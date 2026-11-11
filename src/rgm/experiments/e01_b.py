@@ -150,7 +150,7 @@ def _make_case_once(seed: int, entities: int, fact_count: int, distractors: int,
         path_facts = {(step % 2, path[step], path[step + 1]) for step in range(depth)}
     distractor_pool = sorted(facts - path_facts) or sorted(facts)
     extra_indices = rng.integers(0, len(distractor_pool), size=distractors) if distractors else []
-    pulses = list(facts) + [distractor_pool[int(i)] for i in extra_indices]
+    pulses = sorted(facts) + [distractor_pool[int(i)] for i in extra_indices]
     rng.shuffle(pulses)
     events = tuple(
         Event(int(relation), int(left), int(right), float(rng.choice(GAP_PROFILES[gap])))
@@ -176,7 +176,7 @@ def make_case(seed: int, entities: int, fact_count: int, distractors: int,
     for attempt in range(20):
         try:
             return _make_case_once(
-                seed + attempt * 1000003, entities, fact_count, distractors, depth, gap
+                seed + attempt * 2000006, entities, fact_count, distractors, depth, gap
             )
         except ValueError:
             continue
