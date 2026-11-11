@@ -15,7 +15,7 @@ E01-B measures where memory-only relational support degrades as the candidate sp
 | `full_history` | 16 | Un-decayed sum of all event vectors |
 | `full_soe` | 64 | Four-channel SOE; larger-state diagnostic only |
 
-The five 16-scalar arms form the primary capacity-matched comparison. The 64-scalar full SOE arm is retained to check whether additional timescales become useful under heavier interference; it is not treated as capacity-matched.
+The five 16-scalar arms form the primary state-dimension-matched comparison. Equal scalar dimension does not imply equal effective information capacity or identical update dynamics. The 64-scalar full SOE arm is retained to check whether additional timescales become useful under heavier interference; it is not treated as dimension-matched.
 
 All arms use the same fixed event encoder and candidate-path decoder within a condition/world. Finite-window and full-history controls ignore elapsed gaps; SOE arms decay according to event `dt`.
 
@@ -57,7 +57,7 @@ Two worlds provide a first frontier estimate, not strong population-level infere
 
 ## Interpretation
 
-The primary question is whether 16-dimensional slow-only SOE preserves useful history better than equally sized current, finite-window and full-history controls as each factor increases. The full four-channel SOE is a secondary 64-scalar reference.
+The primary question is whether 16-dimensional slow-only SOE preserves useful history better than current, finite-window and full-history controls with the same scalar state size as each factor increases. This is a state-dimension comparison, not a proof of equal representational capacity. The full four-channel SOE is a secondary 64-scalar reference.
 
 A fall in constituent retrieval suggests representation/readout interference; good constituent retrieval with poor path accuracy points to composition/search difficulty. These outcomes must be separated.
 
