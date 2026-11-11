@@ -1,0 +1,9 @@
+{
+  "experiment": "E00",
+  "run_id": "run_0002",
+  "tested_commit": "a2d85aed9b690c3f2020b4f80e08125a73c3126d",
+  "push_workflow_run": 43043322772,
+  "pull_request_workflow_run": 43043435960,
+  "matrix": {"3.10": "success", "3.12": "success"},
+  "summary": "Both Python matrix jobs completed successfully on the tested code snapshot. Later commits only update status and evidence records."
+}
