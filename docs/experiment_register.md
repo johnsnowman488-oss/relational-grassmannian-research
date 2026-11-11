@@ -2,7 +2,7 @@
 
 | ID | Question | Status | Entry criterion | Exit evidence |
 |---|---|---|---|---|
-| E00 | Are the mathematical/computational primitives correct and reproducible? | Expanded local suite 40/40 passed; CI matrix pending | v0.1 scope frozen | Unit tests, invariant checks, deterministic state round trips, CI pass |
+| E00 | Are the mathematical/computational primitives correct and reproducible? | Accepted — implementation gate passed | v0.1 scope frozen | Unit tests, invariant checks, deterministic state round trips, CI pass |
 | E01 | Does fixed SOE memory recover history-dependent predictive information? | Planned | E00 acceptance gate passed | Held-out sequence comparison with M0–M4 baselines and controls |
 | E02 | Does explicit relational structure add value beyond memory alone? | Planned | E01 evidence reviewed | Ablation and held-out comparisons |
 | E03 | Does Grassmannian geometry add value over non-geometric alternatives? | Planned | Independent memory/relational evidence available | Matched representation comparisons and sensitivity analysis |
@@ -10,4 +10,4 @@
 
 ## E00 run ledger
 
-Local implementation-validation run run_0002 passed 40/40 tests on 2026-11-11; see results/e00/run_0002. The previous 35-test run is retained as run_0001. Neither run is predictive evidence. E00 remains open until GitHub Actions passes on this expanded state-persistence snapshot.
+E00 run_0001 recorded 35 local tests; run_0002 expanded coverage to 40 tests including augmented-state serialization (see results/e00/run_0002). The run_0002 source head a2d85aed9b690c3f2020b4f80e08125a73c3126d passed GitHub Actions on Python 3.10 and 3.12: push run 43043322772 and pull-request run 43043435960. This is implementation acceptance only, not a predictive or novelty result.
