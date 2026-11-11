@@ -2,7 +2,7 @@
 
 | ID | Question | Status | Entry criterion | Exit evidence |
 |---|---|---|---|---|
-| E00 | Are the mathematical/computational primitives correct and reproducible? | Active | v0.1 scope frozen | Unit tests, invariant checks, deterministic state round trips, CI pass |
+| E00 | Are the mathematical/computational primitives correct and reproducible? | Local suite 35/35 passed; CI acceptance pending | v0.1 scope frozen | Unit tests, invariant checks, deterministic state round trips, CI pass |
 | E01 | Does fixed SOE memory recover history-dependent predictive information? | Planned | E00 acceptance gate passed | Held-out sequence comparison with M0–M4 baselines and controls |
 | E02 | Does explicit relational structure add value beyond memory alone? | Planned | E01 evidence reviewed | Ablation and held-out comparisons |
 | E03 | Does Grassmannian geometry add value over non-geometric alternatives? | Planned | Independent memory/relational evidence available | Matched representation comparisons and sensitivity analysis |
@@ -10,4 +10,4 @@
 
 ## E00 run ledger
 
-No E00 run has yet been accepted at the time this register was created. CI and local test execution results will be added with commit and environment metadata. A test pass is not a scientific result.
+Local implementation-validation run run_0001 passed 35/35 tests on 2026-11-11; see results/e00/run_0001. This is not predictive evidence. E00 remains open until GitHub Actions passes on the branch and the committed source/evidence snapshot is checked.
