@@ -16,7 +16,7 @@ The SOE memory stores multiscale temporal traces. The relational layer stores ex
 
 | Milestone | Purpose | Status |
 |---|---|---|
-| E00 | Mathematical and computational foundations: SOE memory, symbolic relations, Grassmannian primitives, transition interface | In progress |
+| E00 | Mathematical and computational foundations: SOE memory, symbolic relations, Grassmannian primitives, transition interface | Local tests 35/35 passed; GitHub Actions pending |
 | E01 | Establish history dependence and compare memory representations with Markov baselines | Planned |
 | E02 | Test the additional value of explicit relational structure | Planned |
 | E03 | Test the contribution of Grassmannian geometry against non-geometric representations | Planned |
