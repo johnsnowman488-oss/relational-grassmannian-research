@@ -27,3 +27,5 @@ This file records frozen choices, their scope, and what remains open. Changes re
 
 - **2026-11-11 — v0.1 initial configuration:** adopted coupled interpretation, four fixed SOE channels, 16-dimensional feature space, rank-four Grassmannian, and small-scale execution. Initial SOE rates are experimental values, not fitted or optimal values.
 - **2026-11-11 — E00 boundary:** implement and test primitives independently. A subspace update is a mathematically valid candidate operation, not an empirically justified model update.
+
+- **2026-11-11 — E00 implementation gate:** accepted after 40 local tests passed and the Python 3.10/3.12 GitHub Actions push and pull-request matrices passed. This validates code and invariants only; predictive hypotheses remain open for E01 onward.
