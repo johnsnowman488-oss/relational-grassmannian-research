@@ -91,3 +91,14 @@ P(X_{n+1}\mid X_n)\ne P(X_{n+1}\mid X_{0:n})
 \]
 
 for a suitable controlled process. This is an experimental proposition, not an assumption encoded in the primitives. Even if an augmented state is sufficient to make a process Markovian, that does not make the observable process first-order Markovian.
+
+
+## 7. Augmented-state persistence
+
+The E00 interoperability boundary is represented by `ResearchState`:
+
+\[
+Z_n=(X_n,\mathcal M_n,\mathcal R_n,P_n).
+\]
+
+It holds the JSON-compatible observable state, the SOE channel bank, the append-only relational event store plus its declared schema, and the Grassmannian frame. A versioned JSON snapshot can be reconstructed and must preserve each component and the next SOE trajectory. This is a persistence/interface contract only; it does not define a coupling update or imply that the augmented state is empirically sufficient.
