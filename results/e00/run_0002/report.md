@@ -16,4 +16,4 @@
 
 All 40 tests passed locally using Python 3.13.5, NumPy 2.3.5, SciPy 1.17.0, and pytest 9.0.2. This remains implementation validation, not a predictive experiment. No performance, novelty, superiority, or scientific-utility claim is made.
 
-GitHub Actions matrix validation on Python 3.10 and 3.12 is pending for this expanded 40-test snapshot.
+GitHub Actions passed on the source commit a2d85aed9b690c3f2020b4f80e08125a73c3126d on both Python 3.10 and 3.12. Push run 43043322772 and pull-request run 43043435960 both completed successfully; see ci_summary.json.
