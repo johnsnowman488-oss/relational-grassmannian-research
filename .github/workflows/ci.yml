@@ -2,7 +2,7 @@ name: E00, E01-A, and E01-A2 validation
 
 on:
   push:
-    branches: [main, "e00-foundations", "e01-history-dependence"]
+    branches: [main, "e00-foundations", "e01-history-dependence", "e01-a2-diagnostic-audit"]
   pull_request:
     branches: [main]
 
