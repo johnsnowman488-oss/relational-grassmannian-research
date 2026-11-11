@@ -65,6 +65,8 @@ class RelationalGraph:
             raise KeyError(f"unknown event_id: {event_id}")
         if timestamp <= prior.timestamp:
             raise ValueError("revision timestamp must be later than the original event")
+        if new_event_id is None:
+            new_event_id = f"{event_id}:revision:{len(self._events) + 1}"
         event = RelationEvent(
             subject=prior.subject, predicate=prior.predicate, object=new_object,
             timestamp=timestamp, event_id=new_event_id, supersedes=event_id,
