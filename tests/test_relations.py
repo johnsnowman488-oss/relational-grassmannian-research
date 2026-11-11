@@ -71,3 +71,11 @@ def test_revision_requires_existing_event_and_later_timestamp(schema):
         graph.revise("missing", new_object="C", timestamp=3.0)
     with pytest.raises(ValueError, match="later"):
         graph.revise("e1", new_object="C", timestamp=2.0)
+
+
+def test_revision_without_explicit_id_generates_stable_unique_id(schema):
+    graph = RelationalGraph(schema)
+    graph.add("A", "located_at", "B", 1.0, event_id="original")
+    revised = graph.revise("original", new_object="C", timestamp=2.0)
+    assert revised.event_id == "original:revision:2"
+    assert graph.active_at(3.0) == (revised,)
