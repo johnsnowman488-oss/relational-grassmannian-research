@@ -1,0 +1,34 @@
+{
+  "experiment": "E01-A",
+  "run_id": 43054096437,
+  "pr_run_id": 43054216655,
+  "source_commit": "b6942ba30135905f4c480334553ff15b4788c9ec",
+  "seed_ranges": {
+    "validation": [
+      20000,
+      20159
+    ],
+    "test": [
+      30000,
+      30159
+    ]
+  },
+  "codebook_seed": 9137,
+  "variant_count": 9,
+  "unit_test_matrix": [
+    "3.10",
+    "3.12"
+  ],
+  "all_jobs_passed": true,
+  "artifact_ids": {
+    "soe": 13870617396,
+    "reset": 13871525393,
+    "shuffled": 13871490442,
+    "slow_only": 13871381045,
+    "current": 13871366080,
+    "full_history": 13870362856,
+    "fast_only": 13870302690,
+    "window8": 13870272748,
+    "window2": 13869489812
+  }
+}

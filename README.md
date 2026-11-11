@@ -15,7 +15,7 @@ An independent, evidence-led research project investigating whether relational o
 | Milestone | Purpose | Status |
 |---|---|---|
 | E00 | Mathematical and computational foundations | Accepted: 40 tests and Python 3.10/3.12 CI passed |
-| E01-A | Memory-only two-hop inference with independent controls | Implemented; CI matrix triggered |
+| E01-A | Memory-only two-hop inference with independent controls | Implemented; CI passed; initial results archived |
 | E01-B | Memory capacity/interference frontier | Deferred pending E01-A review |
 | E02 | Explicit relational structure contribution | Planned |
 | E03 | Grassmannian contribution versus non-geometric representations | Planned |

@@ -30,7 +30,7 @@ All arms share validation and test seed ranges. Threshold selection uses validat
 
 ## Metrics and limits
 
-Primary: held-out exact query accuracy and balanced accuracy. Also report Wilson 95% accuracy interval, Brier score, mean composition score by class, and the fraction of positive queries with nonzero composition support. This score diagnostic is not an independent constituent-fact retrieval probe and must not be described as proof that both facts were independently decoded.
+Primary: held-out exact query accuracy and balanced accuracy. Also report Wilson 95% accuracy interval, raw bounded-support Brier score (descriptive only; not a calibrated probability), mean composition score by class, and the fraction of positive queries with nonzero composition support. This score diagnostic is not an independent constituent-fact retrieval probe and must not be described as proof that both facts were independently decoded.
 
 Frozen configuration: feature dimension 16; four entities; composition depth two; validation/test 160/160; fixed SOE rates (0.01, 0.05, 0.2, 0.8); no learned encoder/readout, graph, geometry, or adaptive rate fitting.
 
