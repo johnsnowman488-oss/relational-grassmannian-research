@@ -1,0 +1,7 @@
+{
+  "run_id": "run_0002",
+  "experiment": "E00",
+  "seeds_used_in_deterministic_tests": [0, 1, 2, 3, 4, 5, 7, 11, 13, 2026],
+  "randomness_policy": "Randomized basis and generator tests use explicit seeds. All memory, relation, transition, and persistence tests are deterministic.",
+  "note": "These are implementation-test seeds, not a statistical experiment seed plan."
+}

@@ -1,0 +1,17 @@
+{
+  "experiment": "E00",
+  "run_id": "run_0001",
+  "run_type": "implementation_validation",
+  "timestamp_utc": "2026-11-11T14:34:43Z",
+  "platform": "Linux x86_64",
+  "python": "3.13.5",
+  "numpy": "2.3.5",
+  "scipy": "1.17.0",
+  "pytest": "9.0.2",
+  "feature_dimension": 16,
+  "grassmannian_rank": 4,
+  "soe_decay_rates": [0.01, 0.05, 0.2, 0.8],
+  "tests": {"passed": 35, "failed": 0, "skipped": 0},
+  "source_snapshot_tree_sha256": "b4ee75c6a2d633087a5bed6a4a11c358524c2afbf9e4ccf3be1c98d56eea18e9",
+  "interpretation": "Unit and invariant checks only; no predictive or novelty claim. GitHub Actions matrix still pending."
+}
