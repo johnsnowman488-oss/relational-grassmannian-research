@@ -3,8 +3,18 @@ name: E01-A3 independent-world and codebook replication
 on:
   push:
     branches: ["e01-a3-replication"]
+    paths:
+      - "src/rgm/experiments/e01.py"
+      - "src/rgm/experiments/e01_a3.py"
+      - "src/rgm/experiments/e01_a3_analysis.py"
+      - "tests/test_e01_a3.py"
   pull_request:
     branches: ["e01-a2-diagnostic-audit"]
+    paths:
+      - "src/rgm/experiments/e01.py"
+      - "src/rgm/experiments/e01_a3.py"
+      - "src/rgm/experiments/e01_a3_analysis.py"
+      - "tests/test_e01_a3.py"
 
 permissions:
   contents: read
