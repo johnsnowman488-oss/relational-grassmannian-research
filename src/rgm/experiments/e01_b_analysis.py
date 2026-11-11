@@ -79,7 +79,8 @@ def analyze(input_dir: Path) -> dict[str, Any]:
                 "mean_difference_vs_slow_only": float(np.mean(deltas)),
                 "paired_world_comparisons_vs_slow_only": comparisons,
             }
-        params = next(iter(arms.values()))[WORLD_SEEDS[0]]["parameters"]
+        raw_params = next(iter(arms.values()))[WORLD_SEEDS[0]]["parameters"]
+        params = {key: value for key, value in raw_params.items() if key != "state_scalar_count"}
         summaries[condition] = {"parameters": params, "memory_arms": arm_summaries}
 
     return {
