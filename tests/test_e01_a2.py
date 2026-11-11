@@ -57,3 +57,24 @@ def test_e01_a2_run_emits_per_sequence_and_candidate_fact_evidence():
 def test_configuration_enumeration_is_frozen():
     assert len(MEMORY_CONFIGS) == 9
     assert READOUTS == ("max_channel", "same_channel", "mean_channel")
+
+
+def test_paired_analysis_uses_shared_sequence_ids_and_reports_mcnemar():
+    from rgm.experiments.e01_a2_analysis import _paired_metrics
+
+    baseline = {
+        1: {"label": 1, "composition_prediction": 1},
+        2: {"label": 0, "composition_prediction": 0},
+        3: {"label": 1, "composition_prediction": 0},
+        4: {"label": 0, "composition_prediction": 1},
+    }
+    comparison = {
+        1: {"label": 1, "composition_prediction": 1},
+        2: {"label": 0, "composition_prediction": 1},
+        3: {"label": 1, "composition_prediction": 1},
+        4: {"label": 0, "composition_prediction": 0},
+    }
+    result = _paired_metrics(baseline, comparison, seed=17)
+    assert result["n_paired_sequences"] == 4
+    assert result["mcnemar"]["discordant_pairs"] == 2
+    assert result["accuracy_difference_comparison_minus_baseline"] == 0.0
