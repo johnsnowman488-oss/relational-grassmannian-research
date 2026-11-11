@@ -151,9 +151,11 @@ def run(config: str, readout: str, n: int = DEFAULT_N) -> dict[str, Any]:
     ]
     fact_y, fact_pred = [], []
     for row in evidence:
+        row["composition_prediction"] = int(row["composition_score"] >= composition_threshold)
         for fact in row["candidate_facts"]:
+            fact["retrieved_prediction"] = int(fact["readout_support"] >= fact_threshold)
             fact_y.append(fact["present"])
-            fact_pred.append(int(fact["readout_support"] >= fact_threshold))
+            fact_pred.append(fact["retrieved_prediction"])
     fact_y_a, fact_pred_a = np.asarray(fact_y), np.asarray(fact_pred)
     fact_tp = int(np.sum((fact_y_a == 1) & (fact_pred_a == 1)))
     fact_fp = int(np.sum((fact_y_a == 0) & (fact_pred_a == 1)))
