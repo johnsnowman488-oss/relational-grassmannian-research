@@ -31,7 +31,7 @@ Check normalized finite probability vectors, score-to-probability conversion, la
 
 ### Acceptance gate
 
-E00 passes only when unit tests pass, geometric invariants are within tolerance, fixed-seed computations are deterministic, state round trips preserve subsequent trajectories, and components have stable documented interfaces. No performance or novelty claim is permitted.
+E00 passes only when unit tests pass, geometric invariants are within tolerance, fixed-seed computations are deterministic, and a versioned augmented-state JSON round trip preserves observable state, SOE channels, relation schema/history, Grassmannian subspace, and the subsequent memory trajectory. Components must have stable documented interfaces and CI must pass on the supported Python matrix. No performance or novelty claim is permitted.
 
 ## E01 — controlled history dependence (planned)
 
