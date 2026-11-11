@@ -3,6 +3,8 @@ name: E01-A3 independent-world and codebook replication
 on:
   push:
     branches: ["e01-a3-replication"]
+  pull_request:
+    branches: ["e01-a2-diagnostic-audit"]
 
 permissions:
   contents: read
