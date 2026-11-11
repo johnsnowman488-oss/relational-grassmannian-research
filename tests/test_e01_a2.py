@@ -77,4 +77,4 @@ def test_paired_analysis_uses_shared_sequence_ids_and_reports_mcnemar():
     result = _paired_metrics(baseline, comparison, seed=17)
     assert result["n_paired_sequences"] == 4
     assert result["mcnemar"]["discordant_pairs"] == 3
-    assert result["accuracy_difference_comparison_minus_baseline"] == 0.0
+    assert result["accuracy_difference_comparison_minus_baseline"] == 0.25
