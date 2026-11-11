@@ -47,7 +47,7 @@ def _fact_scores(channels: FloatArray, books: tuple[FloatArray, FloatArray]) -> 
     result: dict[str, FloatArray] = {}
     for relation in (0, 1):
         # Shape: channels x subject x object. Diagonal facts are excluded downstream.
-        result[str(relation)] = np.clip(channels @ books[relation].T, 0.0, 1.0)
+        result[str(relation)] = np.clip(channels @ books[relation].T, 0.0, 1.0).reshape(channels.shape[0], ENTITIES, ENTITIES)
     return result
 
 
