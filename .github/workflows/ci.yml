@@ -1,4 +1,4 @@
-name: E00 and E01 validation
+name: E00, E01-A, and E01-A2 validation
 
 on:
   push:
@@ -50,4 +50,33 @@ jobs:
         with:
           name: e01-${{ matrix.variant }}
           path: results/e01/ci-${{ matrix.variant }}.json
+          if-no-files-found: error
+
+  e01-a2-diagnostics:
+    name: E01-A2 / ${{ matrix.memory-config }} / ${{ matrix.readout }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        memory-config: [full, only_0, only_1, only_2, only_3, drop_0, drop_1, drop_2, drop_3]
+        readout: [max_channel, same_channel, mean_channel]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install experiment dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Run E01-A2 diagnostic cell
+        run: |
+          python -m rgm.experiments.e01_a2 \
+            --memory-config ${{ matrix.memory-config }} \
+            --readout ${{ matrix.readout }} \
+            --output results/e01_a2/ci-${{ matrix.memory-config }}-${{ matrix.readout }}.json
+      - name: Upload per-sequence diagnostic evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: e01-a2-${{ matrix.memory-config }}-${{ matrix.readout }}
+          path: results/e01_a2/ci-${{ matrix.memory-config }}-${{ matrix.readout }}.json
           if-no-files-found: error
