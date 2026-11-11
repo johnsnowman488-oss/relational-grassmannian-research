@@ -1,0 +1,38 @@
+{
+  "experiment": "E01-A",
+  "feature_dim": 16,
+  "entities": 4,
+  "composition_depth": 2,
+  "soe_rates": [
+    0.01,
+    0.05,
+    0.2,
+    0.8
+  ],
+  "event_count": [
+    9,
+    12
+  ],
+  "inter_event_gaps": [
+    0.5,
+    1,
+    4,
+    12,
+    16
+  ],
+  "validation_n": 160,
+  "test_n": 160,
+  "variants": [
+    "soe",
+    "current",
+    "window2",
+    "window8",
+    "reset",
+    "slow_only",
+    "fast_only",
+    "shuffled",
+    "full_history"
+  ],
+  "threshold_source": "validation_only",
+  "random_codebook_seed": 9137
+}
