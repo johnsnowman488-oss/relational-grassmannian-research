@@ -35,7 +35,7 @@ Constituent fact threshold and composed-query threshold are each selected using 
 
 Constituent fact retrieval reports accuracy, precision, recall and confusion counts over the candidate-fact set. Composition reports exact accuracy, Wilson 95% interval, balanced accuracy and raw bounded-support Brier score. The Brier-like score is descriptive and is not a calibrated probability.
 
-The artifacts enable paired per-sequence comparisons because each matrix cell uses the same validation/test sequence seeds. A later analysis should use paired bootstrap intervals and McNemar tests where appropriate; overlapping Wilson intervals are not a paired test.
+The artifacts enable paired per-sequence comparisons because each matrix cell uses the same validation/test sequence seeds. The CI summary job computes paired bootstrap intervals for the accuracy difference and exact two-sided McNemar tests against the full/max-channel baseline. Overlapping Wilson intervals are not a paired test.
 
 ## Interpretation boundaries
 
