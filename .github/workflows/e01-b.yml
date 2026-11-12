@@ -9,7 +9,7 @@ on:
       - "src/rgm/experiments/e01_b_analysis.py"
       - "src/rgm/experiments/e01_b_determinism.py"
       - "tests/test_e01_b.py"
-      - "docs/e01_b_determinism_audit.md"
+      - "docs/e01_b_determinism*.md"
   pull_request:
     branches: ["e01-a3-replication", "e01-b-capacity-frontier"]
     paths:
