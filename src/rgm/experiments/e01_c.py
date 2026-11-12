@@ -15,12 +15,12 @@ from .e01_b import FEATURE_DIM, _support_tensors, codebooks, event_vector, make_
 
 FloatArray = NDArray[np.float64]
 CONDITIONS: dict[str, dict[str, Any]] = {
-    "baseline_e4": dict(entities=4, facts=8, distractors=0, depth=2, gap="medium"),
-    "repeat_e4": dict(entities=4, facts=8, distractors=32, depth=2, gap="medium"),
-    "candidate_e16": dict(entities=16, facts=16, distractors=16, depth=2, gap="medium"),
-    "factload_e16": dict(entities=16, facts=64, distractors=16, depth=2, gap="medium"),
-    "depth3_e16": dict(entities=16, facts=32, distractors=16, depth=3, gap="medium"),
-    "longgap_e16": dict(entities=16, facts=16, distractors=16, depth=2, gap="long"),
+    "baseline_e4": dict(entities=4, facts=8, distractors=0, depth=2, gap="medium", purpose="low-interference orthogonal-codebook reference"),
+    "repeat_e4": dict(entities=4, facts=8, distractors=32, depth=2, gap="medium", purpose="repeated-event interference stress"),
+    "candidate_e16": dict(entities=16, facts=16, distractors=16, depth=2, gap="medium", purpose="candidate-space growth and codebook crowding"),
+    "factload_e16": dict(entities=16, facts=64, distractors=16, depth=2, gap="medium", purpose="high distinct-fact load"),
+    "depth3_e16": dict(entities=16, facts=32, distractors=16, depth=3, gap="medium", purpose="three-edge composition and path competition"),
+    "longgap_e16": dict(entities=16, facts=16, distractors=16, depth=2, gap="long", purpose="long temporal persistence stress"),
 }
 MEMORY_ARMS = ("slow_only", "full_history")
 VARIANTS = ("observed", "repeat_suppressed", "oracle_facts")
