@@ -4,6 +4,7 @@ on:
   push:
     branches: ["e01-b-capacity-frontier"]
     paths:
+      - ".github/workflows/e01-b.yml"
       - "src/rgm/experiments/e01_b.py"
       - "src/rgm/experiments/e01_b_analysis.py"
       - "src/rgm/experiments/e01_b_determinism.py"
@@ -11,6 +12,7 @@ on:
   pull_request:
     branches: ["e01-a3-replication"]
     paths:
+      - ".github/workflows/e01-b.yml"
       - "src/rgm/experiments/e01_b.py"
       - "src/rgm/experiments/e01_b_analysis.py"
       - "tests/test_e01_b.py"
