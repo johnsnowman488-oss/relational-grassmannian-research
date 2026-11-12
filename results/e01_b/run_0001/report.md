@@ -64,7 +64,7 @@ Each entry below is composition accuracy for slow-only SOE / full four-channel S
 3. **No robust long-gap win for the full SOE bank.** Slow-only SOE reaches 56.9% at the long-gap condition; full SOE reaches 55.9%. Finite-window and full-history controls are weaker in that condition, but the result is modest and based on two worlds.
 4. **Entity scale is confounded with codebook crowding by design.** At more than four entities, codewords are random normalized vectors in fixed R^16. The entity sweep therefore combines a larger candidate space with increased codebook interference; it is not a pure search-size experiment.
 5. **Distractor effects are not monotonic.** Slow-only SOE accuracy is 54.7%, 55.6%, 52.2%, and 56.2% at 0, 4, 16, and 32 additional pulses. Do not infer a monotonic capacity curve from these values.
-6. **Replication remains shallow.** Two synthetic worlds are useful for checking direction consistency but insufficient to establish population-level generalisation. The duplicate workflow summaries also show a small one-cell discrepancy requiring a determinism audit before publication-grade use.
+6. **Replication remains shallow.** Two synthetic worlds are useful for checking direction consistency but insufficient to establish population-level generalisation. The duplicate workflow summaries differ in one cell. Raw artifacts `13873588505` and `13874765712` for `entity_e4 / current / world 402` contain identical event records, but composition thresholds differ (approximately `1.08e-17` versus `0.3975`), changing accuracy from 52.50% to 51.25%. The seeded four-entity codebook uses QR decomposition, whose basis columns have sign ambiguity; tiny positive support residuals can also become candidate thresholds. This is consistent with a numerical-threshold instability, although the exact cross-run backend variation is not fully isolated.
 
 ## Limitations and audit flags
 
@@ -85,3 +85,15 @@ E01-B has completed its initial CI frontier. **Do not expand directly to a large
 - then add more world and codebook seeds to the most informative corners (E=4/16/32, facts=4/16/64, distractors=0/16/32, gaps=short/long, depth=1/2/3).
 
 No conclusion about the superiority of SOE, explicit relational structures, or Grassmannian geometry is warranted from this frontier alone.
+
+
+## Post-run determinism correction
+
+After comparing the raw artifacts, the implementation was updated:
+
+- QR column signs are canonicalized using the diagonal of R.
+- Support values below `1e-12` are set to zero before clipping, preventing floating-point residue from becoming a validation threshold.
+- Unit tests cover repeated seeded codebook construction and orthogonal-support cleanup.
+- A cross-worker audit was added to the workflow. It repeats the previously divergent cell in two independent jobs, compares full per-sequence outputs with `1e-12` numeric tolerance, and gates the aggregate frontier summary.
+
+**Validation status:** the original 228-cell matrix is complete. The determinism correction and gate are committed on the E01-B branch, but a post-correction Actions run has not yet been returned by the connected GitHub workflow status interface. Treat the corrected implementation as awaiting CI confirmation; do not replace the initial results with a presumed corrected result.
