@@ -18,7 +18,7 @@ on:
       - "src/rgm/experiments/e01_b.py"
       - "src/rgm/experiments/e01_b_analysis.py"
       - "tests/test_e01_b.py"
-      - "docs/e01_b_determinism_audit.md"
+      - "docs/e01_b_determinism*.md"
 
 permissions:
   contents: read
