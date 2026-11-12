@@ -1,7 +1,6 @@
 name: E01-B capacity and interference frontier
 
 on:
-  workflow_dispatch:
   push:
     branches: ["e01-b-capacity-frontier"]
     paths:
