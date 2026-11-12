@@ -103,3 +103,17 @@ def test_determinism_comparator_detects_prediction_changes():
     differences = []
     _compare({"prediction": 0}, {"prediction": 1}, "$", differences)
     assert differences == ["$.prediction"]
+
+def test_determinism_comparator_discovers_actual_ci_replica_filenames(tmp_path):
+    import json
+    from rgm.experiments.e01_b_determinism import compare
+
+    payload = {"condition": "entity_e4", "memory_arm": "current",
+               "world_seed": 402, "codebook_seed": 9137, "score": 0.5}
+    (tmp_path / "determinism-replica-1.json").write_text(json.dumps(payload))
+    (tmp_path / "determinism-replica-2.json").write_text(json.dumps(payload))
+    result = compare(tmp_path)
+    assert result["equivalent"] is True
+    assert result["files"] == [
+        "determinism-replica-1.json", "determinism-replica-2.json"
+    ]

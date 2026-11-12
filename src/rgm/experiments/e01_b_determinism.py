@@ -39,7 +39,7 @@ def _compare(a: Any, b: Any, path: str, differences: list[str]) -> None:
 
 
 def compare(input_dir: Path) -> dict[str, Any]:
-    files = sorted(input_dir.glob("replica-*.json"))
+    files = sorted(input_dir.glob("*replica-*.json"))
     if len(files) != 2:
         raise ValueError(f"expected exactly two replica JSON files, found {len(files)}")
     payloads = [json.loads(path.read_text(encoding="utf-8")) for path in files]
