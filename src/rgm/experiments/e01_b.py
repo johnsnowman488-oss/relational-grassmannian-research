@@ -80,7 +80,11 @@ def codebooks(entities: int, seed: int = CODEBOOK_SEED) -> tuple[FloatArray, Flo
         raise ValueError("entities must be at least four")
     if entities == 4:
         rng = np.random.default_rng(seed)
-        q, _ = np.linalg.qr(rng.normal(size=(FEATURE_DIM, FEATURE_DIM)))
+        q, r = np.linalg.qr(rng.normal(size=(FEATURE_DIM, FEATURE_DIM)))
+        # QR bases are sign-ambiguous: canonicalize each column using R's diagonal
+        # so independent CI workers encode the same seeded basis.
+        signs = np.where(np.diag(r) < 0.0, -1.0, 1.0)
+        q = q * signs[np.newaxis, :]
         return np.eye(FEATURE_DIM, dtype=np.float64), q.T.copy()
     rng = np.random.default_rng(seed + entities * 1009)
     books = []
@@ -206,11 +210,16 @@ def _memory_channels(case: Case, arm: str,
 def _support_tensors(channels: FloatArray,
                      books: tuple[FloatArray, FloatArray],
                      entities: int) -> tuple[FloatArray, FloatArray]:
-    return tuple(
-        np.clip(channels @ books[relation].T, 0.0, 1.0)
-        .reshape(channels.shape[0], entities, entities)
-        for relation in (0, 1)
-    )  # type: ignore[return-value]
+    supports = []
+    for relation in (0, 1):
+        scores = channels @ books[relation].T
+        # Suppress positive round-off residue around exact orthogonality. Without
+        # this floor, validation thresholds can depend on tiny BLAS/QR differences.
+        scores = np.where(scores < 1e-12, 0.0, scores)
+        supports.append(np.clip(scores, 0.0, 1.0).reshape(
+            channels.shape[0], entities, entities
+        ))
+    return tuple(supports)  # type: ignore[return-value]
 
 
 def _composition_score(case: Case, supports: tuple[FloatArray, FloatArray],
