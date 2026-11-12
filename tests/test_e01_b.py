@@ -4,6 +4,7 @@ from rgm.experiments.e01_b import (
     CONDITIONS, MEMORY_ARMS, WORLD_SEEDS, _path_exists, codebooks, make_case, run,
 )
 from rgm.experiments.e01_b_analysis import _paired_world
+from rgm.experiments.e01_b_determinism import _compare
 
 
 def test_fixed_dimension_codebooks_expand_and_become_nonorthogonal():
@@ -90,3 +91,15 @@ def test_paired_world_comparison_uses_matching_case_ids():
     assert result["n_paired_sequences"] == 4
     assert result["discordant_pairs"] == 3
     assert result["accuracy_difference"] == 0.25
+
+def test_determinism_comparator_uses_small_numeric_tolerance():
+    differences = []
+    _compare({"score": 0.5, "prediction": 1},
+             {"score": 0.5 + 1e-13, "prediction": 1}, "$", differences)
+    assert differences == []
+
+
+def test_determinism_comparator_detects_prediction_changes():
+    differences = []
+    _compare({"prediction": 0}, {"prediction": 1}, "$", differences)
+    assert differences == ["$.prediction"]
