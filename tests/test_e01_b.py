@@ -16,6 +16,25 @@ def test_fixed_dimension_codebooks_expand_and_become_nonorthogonal():
     assert not np.allclose(gram, np.eye(64))
 
 
+def test_four_entity_codebook_is_canonical_and_repeatedly_deterministic():
+    first = codebooks(4)
+    second = codebooks(4)
+    np.testing.assert_array_equal(first[0], second[0])
+    np.testing.assert_array_equal(first[1], second[1])
+    gram = first[1] @ first[1].T
+    np.testing.assert_allclose(gram, np.eye(16), atol=1e-12)
+
+
+def test_supports_remove_positive_roundoff_at_orthogonal_codewords():
+    from rgm.experiments.e01_b import _support_tensors
+
+    books = codebooks(4)
+    channels = books[1][:2]
+    supports = _support_tensors(channels, books, entities=4)
+    assert np.count_nonzero(supports[1][0]) == 1
+    assert supports[1][0, 0, 0] == 1.0
+
+
 def test_generator_preserves_positive_and_negative_path_labels():
     positive = make_case(401, entities=4, fact_count=8, distractors=4, depth=2, gap="medium")
     negative = make_case(402, entities=4, fact_count=8, distractors=4, depth=2, gap="medium")
