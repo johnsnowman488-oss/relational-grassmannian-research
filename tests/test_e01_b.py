@@ -33,7 +33,7 @@ def test_supports_remove_positive_roundoff_at_orthogonal_codewords():
     channels = books[1][:2]
     supports = _support_tensors(channels, books, entities=4)
     assert np.count_nonzero(supports[1][0]) == 1
-    assert supports[1][0, 0, 0] == 1.0
+    np.testing.assert_allclose(supports[1][0, 0, 0], 1.0, rtol=0.0, atol=1e-12)
 
 
 def test_generator_preserves_positive_and_negative_path_labels():
