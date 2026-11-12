@@ -23,3 +23,6 @@ The audit is intentionally a cross-run comparison rather than two executions in 
 ## Acceptance
 
 The audit passes only if both outputs are structurally equal and all numeric fields agree within tolerance. Any prediction, label, event, threshold or material score difference fails the workflow.
+
+
+The acceptance check runs before the frontier aggregate so a determinism failure cannot be hidden by the larger matrix summary.
