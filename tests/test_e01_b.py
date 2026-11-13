@@ -1,7 +1,8 @@
 import numpy as np
 
 from rgm.experiments.e01_b import (
-    CONDITIONS, MEMORY_ARMS, WORLD_SEEDS, _path_exists, codebooks, make_case, run,
+    CONDITIONS, MEMORY_ARMS, WORLD_SEEDS, _path_exists, _stable_geq, _stable_score,
+    _threshold, codebooks, make_case, run,
 )
 from rgm.experiments.e01_b_analysis import _paired_world
 from rgm.experiments.e01_b_determinism import _compare
@@ -91,6 +92,18 @@ def test_paired_world_comparison_uses_matching_case_ids():
     assert result["n_paired_sequences"] == 4
     assert result["discordant_pairs"] == 3
     assert result["accuracy_difference"] == 0.25
+
+def test_threshold_boundary_is_stable_under_sub_ulp_replica_drift():
+    replica_a = 0.39752885937098414
+    replica_b = 0.39752885937098403
+    threshold = 0.39752885937098414
+    assert _stable_score(replica_a) == _stable_score(replica_b)
+    assert _stable_geq(replica_a, threshold) is True
+    assert _stable_geq(replica_b, threshold) is True
+    # The fitted threshold uses the same canonical grid as held-out prediction.
+    fitted = _threshold([replica_a], [1])
+    assert _stable_geq(replica_b, fitted) is True
+
 
 def test_determinism_comparator_uses_small_numeric_tolerance():
     differences = []
