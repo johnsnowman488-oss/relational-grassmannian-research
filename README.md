@@ -8,20 +8,29 @@ An independent, evidence-led research project investigating whether relational o
 - **Memory:** fixed sum-of-exponentials (SOE) channels; four channels initially.
 - **Initial feature space:** \\(\\mathbb{R}^{16}\\).
 - **Initial Grassmannian:** \\(\\operatorname{Gr}(4,\\mathbb{R}^{16})\\).
-- **Scale:** small, deterministic synthetic experiments first.
+- **Scale:** small, deterministic synthetic experiments before larger models.
 
 ## Milestones
 
 | Milestone | Purpose | Status |
 |---|---|---|
 | E00 | Mathematical and computational foundations | Accepted: 40 tests and Python 3.10/3.12 CI passed |
-| E01-A | Memory-only two-hop inference with independent controls | Implemented; CI passed; initial results archived |
-| E01-B | Memory capacity/interference frontier | Deferred pending E01-A review |
-| E02 | Explicit relational structure contribution | Planned |
-| E03 | Grassmannian contribution versus non-geometric representations | Planned |
+| E01-A | Memory-only two-hop inference and controls | Complete; results archived |
+| E01-A2 | Channel, constituent-retrieval and readout diagnostics | Complete; 27 cells passed |
+| E01-A3 | Independent-world/codebook replication | Complete; 54 cells passed |
+| E01-B | Capacity and interference frontier | Complete; 228 cells and determinism gate passed |
+| E01-C | Mechanism isolation and path-level diagnostics | Complete; 108 cells and oracle gate passed |
+| E02 | Explicit relational graph, memory baseline and hybrid evaluation | Next |
+| E03 | Grassmannian contribution versus non-geometric alternatives | Planned |
 | E04 | Coupled system evaluation | Planned |
 
-The project does not assume SOE superiority or that Grassmannian geometry adds predictive value. Negative results are informative. The track is independent of D2C/Aberconics; prior D2C work on delayed retrieval, temporal traces, and sequential slot-value association is acknowledged. E01-A asks the narrower question of compositional inference from an SOE-only event trace.
+## Current evidence boundary
+
+E01 establishes a narrow synthetic result about temporal event memory and fixed candidate-path readout. It does **not** establish relation discovery, general relational reasoning, or a Grassmannian performance advantage. The strongest current finding is that dense event superposition and max-product path composition are vulnerable to support loss, duplicate accumulation, and false-path competition.
+
+E02 will compare the existing dense memory baseline with explicit event-derived relational storage, then test a graph-plus-temporal-memory hybrid under controlled observation corruption. Model code must receive only observed events and queries. Test labels, latent facts, planted paths and corruption truth remain evaluator-only.
+
+The project remains independent of D2C/Aberconics. SOE superiority and geometric contribution remain open hypotheses; negative results are informative.
 
 ## Development
 
@@ -33,4 +42,4 @@ python -m pytest
 python -m rgm.experiments.e01 --variant soe
 ~~~
 
-See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathematical_specification.md), [the experiment register](docs/experiment_register.md), and [the E01-A protocol](docs/e01_protocol.md).
+See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathematical_specification.md), [the experiment register](docs/experiment_register.md), and the E01/E02 protocol documents.
