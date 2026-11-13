@@ -66,6 +66,10 @@ only. The exact same generated cases are reused across variants and memory arms.
 All graph-true paths count as valid for positive queries; the generator's planted
 path is not treated as the only valid path.
 
+## Numerical decision policy (determinism correction)
+
+Support, edge, and composed-path scores are rounded to 12 decimal places before validation-threshold fitting and before held-out threshold decisions. Threshold comparisons are inclusive (score >= threshold) on the same rounded grid. This prevents sub-precision floating-point differences across BLAS/QR implementations from flipping a prediction at the threshold boundary. Raw state diagnostics remain available; this policy is a deterministic decision rule, not a probability calibration step.
+
 ## Interpretation rules
 
 - Repeat suppression improves retrieval and composition: repeated-event
