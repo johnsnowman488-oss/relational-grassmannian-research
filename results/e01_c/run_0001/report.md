@@ -10,6 +10,10 @@
 - Nine paired world/codebook replicates per condition and memory arm; 160 validation and 160 held-out test sequences per cell.
 - Oracle gate: **passed**. Exact fact supports recovered every generated query label in every cell.
 
+## Numerical reproducibility
+
+Support, path, and threshold decisions use a common 12-decimal score grid. The stable-threshold workflow completed all 108 cells and the oracle gate; the paired-summary artifact preserves the updated output. This correction prevents sub-precision floating-point differences from reversing held-out labels at a validation threshold.
+
 ## Frozen diagnostic design
 
 The experiment compared:
