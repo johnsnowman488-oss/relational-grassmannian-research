@@ -1,99 +1,88 @@
-# E01-B — Initial capacity and interference frontier report
+# E01-B — Capacity and interference frontier, corrected run 0001
 
-## Execution status
+## Execution record
 
-The dedicated GitHub Actions workflow completed the 228-cell matrix:
+- **Status:** passed — 228 frontier cells, Python 3.10/3.12 unit-test jobs, two independent determinism replicas, deterministic comparison, and aggregate summary succeeded.
+- **Corrected workflow run:** [43433259761](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43433259761)
+- **Corrected experiment commit:** `d4a2c5c0d00b94034809d371c9346748b1f0bf64`
+- **Frontier summary artifact:** `e01-b-frontier-summary`, ID `14043621651`, SHA-256 `06a5fcad6c1397132df14d3779c3d1d07a436e0c5a5772d5ad8d56cfc85fb95b`
+- **Determinism artifact:** `e01-b-determinism-check`, ID `14040144215`
+- 19 one-factor conditions × 6 memory arms × 2 worlds = **228 cells**.
+- Each cell used 160 validation and 160 held-out test sequences. The fixed codebook seed was 9137.
 
-- 19 one-factor conditions
-- 6 memory arms
-- 2 synthetic-world seeds (401, 402)
-- 160 validation sequences and 160 held-out test sequences per cell
-- 228 cell artifacts aggregated by the final summary job
+## Frozen design
 
-Two workflow executions were observed: run **43062046129** and run **43062584628**. Both produced a 228-cell summary artifact; the Python 3.10 and 3.12 unit-test jobs passed, and no failures appeared in the returned job listings. The later summary is the reference used below. The duplicate summaries differed in one current-event/entity-E4 value by 0.0125, so this small run-to-run discrepancy is retained as a reproducibility warning rather than silently averaged away.
+E01-B measured how memory-only relational support changes across five one-factor sweeps: entity count (4, 8, 16, 32), distinct-fact load (4, 8, 16, 32, 64), repeated distractor pulses (0, 4, 16, 32), temporal gap (short, medium, long), and composition depth (1, 2, 3).
 
-The summary artifacts are available from the corresponding GitHub Actions runs. PR #6 remains open and unmerged.
+The six memory arms were slow-only SOE (16 scalars), full four-channel SOE (64), current-event (16), window-2 (16), window-8 (16), and full-history sum (16). Thresholds were fitted on validation only. Each memory arm uses the same generator, queries and held-out sequence seeds within a condition/world.
 
-## Main results
+## Corrected aggregate results
 
-Mean composition accuracy across the 19 one-factor configurations (descriptive average; configurations share reference cells and are not independent):
+The following means are descriptive averages over the 19 one-factor condition summaries. Conditions reuse reference settings and must not be interpreted as independent samples or pooled population estimates.
 
 | Memory arm | Mean composition accuracy | Mean constituent-fact retrieval |
 |---|---:|---:|
-| Slow-only SOE (16 scalars) | 53.14% | 67.17% |
-| Full four-channel SOE (64 scalars) | 53.09% | 67.77% |
-| Full-history sum (16 scalars) | 50.81% | 68.14% |
-| Window-8 sum (16 scalars) | 52.01% | 63.22% |
-| Window-2 sum (16 scalars) | 50.41% | 57.04% |
-| Current event (16 scalars) | 50.59% | 53.82% |
+| Slow-only SOE (16 scalars) | **52.83%** | 67.12% |
+| Full four-channel SOE (64 scalars) | 52.86% | 67.71% |
+| Full-history sum (16 scalars) | 50.63% | 67.99% |
+| Window-8 sum (16 scalars) | 51.91% | 63.23% |
+| Window-2 sum (16 scalars) | 50.39% | 57.05% |
+| Current event (16 scalars) | 50.58% | 53.82% |
 
-These are not pooled independent observations and must not be interpreted as a single population estimate. They summarize the repeated one-factor configurations.
+The four-channel bank and slow-only SOE are effectively tied on this descriptive mean, despite the fourfold state-size difference. This run does not show a material multiscale-SOE advantage. Fact retrieval remains higher than composition for most arms; that difference is consistent with a composition/readout bottleneck but is not, by itself, proof that all facts needed for each path were independently preserved.
 
-The full four-channel SOE does not show a material average composition advantage over the 16-scalar slow-only SOE in this frontier. Its 64-scalar state is four times larger, and its mean composition accuracy is effectively the same (53.09% vs 53.14%). The state-dimension-matched slow-only SOE is descriptively stronger than the current, window-2, window-8 and un-decayed full-history controls on this repeated-condition average, but the margin is small and varies by condition. No broad inferential claim follows from two worlds.
+## Condition-level composition accuracy
 
-## Condition-level frontier
+Values are means across the two synthetic worlds.
 
-Each entry below is composition accuracy for slow-only SOE / full four-channel SOE / full-history / window-8. All values are means across the two worlds.
+| Sweep condition | Slow SOE | Full SOE | Full history | Window-8 |
+|---|---:|---:|---:|---:|
+| Entity count 4 | 50.94% | 50.94% | 49.69% | 51.88% |
+| Entity count 8 | 50.63% | 50.62% | 50.94% | 53.75% |
+| Entity count 16 | 53.12% | 53.12% | 50.63% | 54.06% |
+| Entity count 32 | 50.31% | 50.31% | 49.38% | 52.19% |
+| Distinct facts 4 | 50.94% | 50.62% | 51.56% | 53.12% |
+| Distinct facts 8 | 53.12% | 53.12% | 50.63% | 54.06% |
+| Distinct facts 16 | 52.19% | 52.19% | 48.75% | 49.06% |
+| Distinct facts 32 | 54.37% | 53.12% | 49.06% | 53.75% |
+| Distinct facts 64 | 49.06% | 48.75% | 51.25% | 49.06% |
+| Distractor pulses 0 | 54.69% | 58.44% | 55.62% | 50.62% |
+| Distractor pulses 4 | 55.62% | 55.31% | 53.12% | 58.13% |
+| Distractor pulses 16 | 52.19% | 52.19% | 48.75% | 49.06% |
+| Distractor pulses 32 | 56.25% | 56.25% | 50.62% | 51.25% |
+| Gap short | 50.63% | 49.69% | 48.75% | 49.06% |
+| Gap medium | 52.19% | 52.19% | 48.75% | 49.06% |
+| Gap long | 56.88% | 55.94% | 48.75% | 49.06% |
+| Depth 1 | 57.19% | 57.50% | 56.56% | 55.94% |
+| Depth 2 | 52.19% | 52.19% | 48.75% | 49.06% |
+| Depth 3 | 51.25% | 51.88% | 50.31% | 54.06% |
 
-| Sweep | Condition | Slow SOE | Full SOE | Full history | Window-8 |
-|---|---|---:|---:|---:|---:|
-| Entities | 4 | 56.9% | 55.3% | 53.1% | 53.8% |
-| Entities | 8 | 50.6% | 50.6% | 50.9% | 53.7% |
-| Entities | 16 | 53.1% | 53.1% | 50.6% | 54.1% |
-| Entities | 32 | 50.3% | 50.3% | 49.4% | 52.2% |
-| Distinct facts | 4 | 50.9% | 50.6% | 51.6% | 53.1% |
-| Distinct facts | 8 | 53.1% | 53.1% | 50.6% | 54.1% |
-| Distinct facts | 16 | 52.2% | 52.2% | 48.8% | 49.1% |
-| Distinct facts | 32 | 54.4% | 53.1% | 49.1% | 53.7% |
-| Distinct facts | 64 | 49.1% | 48.7% | 51.2% | 49.1% |
-| Distractor pulses | 0 | 54.7% | 58.4% | 55.6% | 50.6% |
-| Distractor pulses | 4 | 55.6% | 55.3% | 53.1% | 58.1% |
-| Distractor pulses | 16 | 52.2% | 52.2% | 48.8% | 49.1% |
-| Distractor pulses | 32 | 56.2% | 56.2% | 50.6% | 51.2% |
-| Gaps | Short | 50.6% | 49.7% | 48.8% | 49.1% |
-| Gaps | Medium | 52.2% | 52.2% | 48.8% | 49.1% |
-| Gaps | Long | 56.9% | 55.9% | 48.8% | 49.1% |
-| Composition depth | 1 hop | 57.2% | 57.5% | 56.6% | 55.9% |
-| Composition depth | 2 hops | 52.2% | 52.2% | 48.8% | 49.1% |
-| Composition depth | 3 hops | 51.2% | 51.9% | 50.3% | 54.1% |
+## Determinism correction and validation
+
+The pre-correction replicas differed in the previously problematic `entity_e4 / current / world 402` cell. Event records matched, but a sub-precision difference in the validation-fitted threshold flipped one held-out prediction.
+
+The corrected implementation rounds support, edge and path scores to a shared 12-decimal grid before threshold fitting and held-out decisions. Threshold comparisons are inclusive and use that same grid. The correction is a numerical decision policy, not a probability-calibration step.
+
+The fresh independent-worker audit completed with:
+- `equivalent: true`;
+- `difference_count: 0`;
+- comparison tolerance (10^{-12}) absolute and relative;
+- matching per-sequence predictions and summary metrics.
+
+The corrected 228-cell matrix and its aggregate summary then completed successfully. This replaces the initial report's pre-correction averages and pending-validation note.
 
 ## Interpretation
 
-1. **Composition remains the limiting stage.** Across the repeated configurations, constituent-fact retrieval ranges from 50.6% to 78.6% across the arms and conditions, while composed-query accuracy ranges from 46.6% to 58.4%. This gap suggests that retaining or detecting individual facts is easier than using them to answer the path query. It is consistent with a composition/readout bottleneck, but does not prove that memory itself is sufficient: the constituent probe and path task are not identical.
-2. **No demonstrated multiscale-SOE advantage.** The 64-scalar four-channel SOE and 16-scalar slow-only SOE are nearly tied on the descriptive mean. More channels do not presently justify their extra state cost.
-3. **No robust long-gap win for the full SOE bank.** Slow-only SOE reaches 56.9% at the long-gap condition; full SOE reaches 55.9%. Finite-window and full-history controls are weaker in that condition, but the result is modest and based on two worlds.
-4. **Entity scale is confounded with codebook crowding by design.** At more than four entities, codewords are random normalized vectors in fixed R^16. The entity sweep therefore combines a larger candidate space with increased codebook interference; it is not a pure search-size experiment.
-5. **Distractor effects are not monotonic.** Slow-only SOE accuracy is 54.7%, 55.6%, 52.2%, and 56.2% at 0, 4, 16, and 32 additional pulses. Do not infer a monotonic capacity curve from these values.
-6. **Replication remains shallow.** Two synthetic worlds are useful for checking direction consistency but insufficient to establish population-level generalisation. The duplicate workflow summaries differ in one cell. Raw artifacts `13873588505` and `13874765712` for `entity_e4 / current / world 402` contain identical event records, but composition thresholds differ (approximately `1.08e-17` versus `0.3975`), changing accuracy from 52.50% to 51.25%. The seeded four-entity codebook uses QR decomposition, whose basis columns have sign ambiguity; tiny positive support residuals can also become candidate thresholds. This is consistent with a numerical-threshold instability, although the exact cross-run backend variation is not fully isolated.
+1. **No demonstrated advantage from four SOE channels.** Slow-only and full SOE are 52.83% and 52.86% respectively, while full SOE uses 64 rather than 16 state scalars.
+2. **Short-window/current controls remain weak on the aggregate.** This is consistent with E01-A's evidence that event history helps, but these descriptive means do not establish a general model ranking.
+3. **The long-gap result favours decaying memory over the tested finite-history references in this particular generator.** Slow-only is 56.88%, full SOE 55.94%, full-history 48.75%, and window-8 49.06%. E01-C adds an important qualification: full-history can preserve more constituent-fact evidence under long gaps even when final composition accuracy is similar.
+4. **Depth-3 composition remains weak.** All arms are near chance, and the larger candidate-space/path diagnostics in E01-C point to false-path competition.
+5. **The sweeps are not pure causal axes in every region.** Above four entities, fixed-`R^{16}` codebooks use normalized random codewords rather than orthogonal vectors, so entity scale includes codebook crowding. Distractor effects are non-monotonic.
 
-## Limitations and audit flags
+## Limits
 
-- The 19 configurations reuse reference settings across different sweeps. The overall means above are descriptive summaries, not independent-condition estimates.
-- Only two world seeds and one codebook seed (9137) were used in E01-B. A3's multiple-codebook-seed replication is not repeated across this frontier.
-- Full SOE uses 64 scalars; the other five arms use 16. The primary comparison is state-dimension-matched, not equal effective information capacity.
-- The readout takes the maximum support across channels independently for each path edge. Cross-channel composition remains a property of the chosen decoder, not evidence of a mechanism learned by SOE.
-- The fixed 16-dimensional codebook becomes non-orthogonal above four entities.
-- The task uses a fixed event encoder and a hand-specified alternating-relation path decoder. It does not test relation discovery or general-purpose reasoning.
+Only two world seeds and one codebook seed were used. The across-condition means are descriptive, not independent pooled estimates. Full SOE is not state-dimension matched to the other arms. The task uses a fixed encoder and alternating-relation path decoder; it does not test relation discovery, general relational reasoning, real-world data, or Grassmannian geometry.
 
 ## Decision
 
-E01-B has completed its initial CI frontier. **Do not expand directly to a larger factorial sweep.** The strongest next action is a targeted diagnostic follow-up on the composition/readout gap and run-to-run determinism:
-
-- verify exact per-case seed, event-order and support reproducibility across duplicate runs;
-- inspect edge-support calibration and false-positive path accumulation as candidate intermediates increase;
-- compare the current max-channel path score with the A2-selected readout controls on a small set of frontier corners;
-- then add more world and codebook seeds to the most informative corners (E=4/16/32, facts=4/16/64, distractors=0/16/32, gaps=short/long, depth=1/2/3).
-
-No conclusion about the superiority of SOE, explicit relational structures, or Grassmannian geometry is warranted from this frontier alone.
-
-
-## Post-run determinism correction
-
-After comparing the raw artifacts, the implementation was updated:
-
-- QR column signs are canonicalized using the diagonal of R.
-- Support values below `1e-12` are set to zero before clipping, preventing floating-point residue from becoming a validation threshold.
-- Unit tests cover repeated seeded codebook construction and orthogonal-support cleanup.
-- A cross-worker audit was added to the workflow. It repeats the previously divergent cell in two independent jobs, compares full per-sequence outputs with `1e-12` numeric tolerance, and gates the aggregate frontier summary.
-
-**Validation status:** the original 228-cell matrix is complete. The determinism correction and gate are committed on the E01-B branch, but a post-correction Actions run has not yet been returned by the connected GitHub workflow status interface. The workflow remains push/PR-triggered. The connected GitHub integration has not returned a new run for the follow-up commits, so a push to the E01-B branch touching one of the workflow's watched source/test/workflow paths is still required to execute the corrected matrix and audit. Treat the corrected implementation as awaiting CI confirmation; do not replace the initial results with a presumed corrected result.
+E01-B is complete after the corrected determinism gate. E01-C's path-level diagnosis motivates E02: compare the current dense memory/readout path against an event-derived explicit relational graph, then test a graph-plus-temporal-memory hybrid. Ground-truth facts remain evaluator-only throughout E02.
