@@ -11,7 +11,10 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ..memory import SOEMemory
-from .e01_b import FEATURE_DIM, _support_tensors, codebooks, event_vector, make_case
+from .e01_b import (
+    FEATURE_DIM, _support_tensors, _stable_geq, _stable_score,
+    _threshold as _stable_threshold, codebooks, event_vector, make_case,
+)
 
 FloatArray = NDArray[np.float64]
 CONDITIONS: dict[str, dict[str, Any]] = {
@@ -30,14 +33,8 @@ DEFAULT_N = 160
 
 
 def _threshold(scores: list[float], labels: list[int]) -> float:
-    values = np.unique(np.asarray([0.0, 1.0, *scores], dtype=np.float64))
-    y, s = np.asarray(labels, dtype=np.int64), np.asarray(scores, dtype=np.float64)
-    best_t, best_acc = 0.5, -1.0
-    for t in values:
-        acc = float(np.mean((s >= t).astype(np.int64) == y))
-        if acc > best_acc or (acc == best_acc and t > best_t):
-            best_t, best_acc = float(t), acc
-    return best_t
+    """Use E01-B's shared precision grid and validation-only threshold rule."""
+    return _stable_threshold(scores, labels)
 
 
 def _memory_state(case: Any, arm: str, books: tuple[FloatArray, FloatArray],
@@ -96,7 +93,7 @@ def _fact_probes(case: Any, support: tuple[FloatArray, FloatArray]
     probes += [(absent[int(i)], 0) for i in chosen]
     records, scores, labels = [], [], []
     for (r, a, b), label in probes:
-        value = float(np.max(support[r][:, a, b]))
+        value = _stable_score(np.max(support[r][:, a, b]))
         records.append(dict(relation=r, subject=a, object=b, present=label, support=value))
         scores.append(value)
         labels.append(label)
@@ -108,10 +105,10 @@ def _paths(case: Any, support: tuple[FloatArray, FloatArray], depth: int) -> dic
     for mids in itertools.product(range(entities), repeat=depth - 1):
         nodes = (case.query_subject, *mids, case.query_object)
         edges = [(step % 2, int(nodes[step]), int(nodes[step + 1])) for step in range(depth)]
-        edge_scores = [float(np.max(support[r][:, a, b])) for r, a, b in edges]
+        edge_scores = [_stable_score(np.max(support[r][:, a, b])) for r, a, b in edges]
         records.append(dict(
             nodes=list(map(int, nodes)), edges=[list(edge) for edge in edges],
-            edge_supports=edge_scores, score=float(np.prod(edge_scores)),
+            edge_supports=edge_scores, score=_stable_score(np.prod(edge_scores)),
             is_true=all(edge in facts for edge in edges),
         ))
     records.sort(key=lambda x: x["score"], reverse=True)
@@ -122,7 +119,7 @@ def _paths(case: Any, support: tuple[FloatArray, FloatArray], depth: int) -> dic
     best_true = true_paths[0] if true_paths else None
     best_false = false_paths[0] if false_paths else None
     rank = None if best_true is None else 1 + sum(
-        x["score"] > best_true["score"] + 1e-15 for x in false_paths
+        x["score"] > best_true["score"] for x in false_paths
     )
     return dict(
         count=len(records), best_any=records[0], best_true=best_true,
@@ -156,11 +153,11 @@ def _evaluate(rows: list[dict[str, Any]], fact_t: float, comp_t: float,
     for row in rows:
         case, path = row["case"], row["path"]
         best, best_true, best_false = path["best_any"], path["best_true"], path["best_false"]
-        pred = int(best["score"] >= comp_t)
+        pred = int(_stable_geq(best["score"], comp_t))
         labels.append(int(case.label))
         predictions.append(pred)
         fact_y.extend(row["fact_labels"])
-        fact_pred.extend(int(v >= fact_t) for v in row["fact_scores"])
+        fact_pred.extend(int(_stable_geq(v, fact_t)) for v in row["fact_scores"])
         detected = False
         if case.label:
             if best_true is None:
@@ -170,13 +167,13 @@ def _evaluate(rows: list[dict[str, Any]], fact_t: float, comp_t: float,
             best_path_true.append(int(bool(best["is_true"])))
             true_ranks.append(int(path["true_rank"]))
             detected = any(
-                all(v >= fact_t for v in candidate["edge_supports"])
+                all(_stable_geq(v, fact_t) for v in candidate["edge_supports"])
                 for candidate in path["true_paths"]
             )
             path_detected.append(int(detected))
             if not detected:
                 diagnosis = "true_path_edge_evidence_missing"
-            elif best_true["score"] < comp_t and not pred:
+            elif not _stable_geq(best_true["score"], comp_t) and not pred:
                 diagnosis = "true_path_product_below_threshold"
             elif not best["is_true"]:
                 diagnosis = "false_candidate_path_outscored_true_path"
