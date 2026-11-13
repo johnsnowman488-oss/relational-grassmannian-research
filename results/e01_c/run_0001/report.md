@@ -3,9 +3,10 @@
 ## Execution record
 
 - Status: **passed** — all 108 diagnostic cells, Python 3.10 and 3.12 unit tests, and paired-summary job succeeded.
-- Workflow run: [43250297397](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43250297397)
-- Experiment commit: \`21faa21ea725b3903c931687670d29695b946dd0\`
-- Paired-summary artifact: \`e01-c-paired-summary\`, artifact ID \`13959311664\`
+- Original workflow run: [43250297397](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43250297397)
+- Stable-threshold validation run: [43433509287](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43433509287) — success; all 108 cells, Python 3.10/3.12 tests, and paired summary passed
+- Corrected source commit: `1e9fae19130abe592218b2ad9c2d76a5f5895fbc`
+- Latest paired-summary artifact: `e01-c-paired-summary`, artifact ID `14043145968`
 - Six conditions × two 16-scalar memory arms × three worlds × three codebook seeds = **108 cells**.
 - Nine paired world/codebook replicates per condition and memory arm; 160 validation and 160 held-out test sequences per cell.
 - Oracle gate: **passed**. Exact fact supports recovered every generated query label in every cell.
