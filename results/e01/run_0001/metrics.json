@@ -1,0 +1,127 @@
+{
+  "commit": "b6942ba30135905f4c480334553ff15b4788c9ec",
+  "run_id": 43054096437,
+  "sample_counts": {
+    "validation": 160,
+    "test": 160
+  },
+  "variants": {
+    "current": {
+      "threshold": 5.91202489259637e-18,
+      "accuracy": 0.49375,
+      "accuracy_wilson_95": [
+        0.4173416277116193,
+        0.5704514497280245
+      ],
+      "balanced_accuracy": 0.49375,
+      "brier_score": 0.4568180132719135,
+      "mean_score_negative": 0.02126923362372978,
+      "mean_score_positive": 0.056452794870943165,
+      "positive_nonzero_composition_support_rate": 0.3875
+    },
+    "fast_only": {
+      "threshold": 0.022606432289853665,
+      "accuracy": 0.58125,
+      "accuracy_wilson_95": [
+        0.5037778324249305,
+        0.6549121608596999
+      ],
+      "balanced_accuracy": 0.58125,
+      "brier_score": 0.441667729096066,
+      "mean_score_negative": 0.026763884876760114,
+      "mean_score_positive": 0.07468773968451978,
+      "positive_nonzero_composition_support_rate": 0.8
+    },
+    "full_history": {
+      "threshold": 0.4163828409825727,
+      "accuracy": 0.64375,
+      "accuracy_wilson_95": [
+        0.5669737875839437,
+        0.7137854313042488
+      ],
+      "balanced_accuracy": 0.64375,
+      "brier_score": 0.27753374449121837,
+      "mean_score_negative": 0.4105678804624793,
+      "mean_score_positive": 0.5986660993146783,
+      "positive_nonzero_composition_support_rate": 0.95
+    },
+    "reset": {
+      "threshold": 1,
+      "accuracy": 0.5,
+      "accuracy_wilson_95": [
+        0.42343924769912267,
+        0.5765607523008773
+      ],
+      "balanced_accuracy": 0.5,
+      "brier_score": 0.5,
+      "mean_score_negative": 0,
+      "mean_score_positive": 0,
+      "positive_nonzero_composition_support_rate": 0
+    },
+    "shuffled": {
+      "threshold": 0.265227690891285,
+      "accuracy": 0.6375,
+      "accuracy_wilson_95": [
+        0.5605966911485732,
+        0.7079556051792627
+      ],
+      "balanced_accuracy": 0.6375,
+      "brier_score": 0.24100604017275645,
+      "mean_score_negative": 0.3257826039514188,
+      "mean_score_positive": 0.5507577532984126,
+      "positive_nonzero_composition_support_rate": 0.975
+    },
+    "slow_only": {
+      "threshold": 0.3341095463159892,
+      "accuracy": 0.6625,
+      "accuracy_wilson_95": [
+        0.5861852427313052,
+        0.7311947438379556
+      ],
+      "balanced_accuracy": 0.6625,
+      "brier_score": 0.2594547711804271,
+      "mean_score_negative": 0.28530504578573296,
+      "mean_score_positive": 0.486316067423879,
+      "positive_nonzero_composition_support_rate": 0.925
+    },
+    "soe": {
+      "threshold": 0.32038009131724327,
+      "accuracy": 0.64375,
+      "accuracy_wilson_95": [
+        0.5669737875839437,
+        0.7137854313042488
+      ],
+      "balanced_accuracy": 0.64375,
+      "brier_score": 0.2380025445043375,
+      "mean_score_negative": 0.31784620356130155,
+      "mean_score_positive": 0.5397208970369366,
+      "positive_nonzero_composition_support_rate": 0.975
+    },
+    "window2": {
+      "threshold": 0.09277375175092971,
+      "accuracy": 0.5375,
+      "accuracy_wilson_95": [
+        0.46027058346133654,
+        0.6129709519008006
+      ],
+      "balanced_accuracy": 0.5375,
+      "brier_score": 0.4045503421341584,
+      "mean_score_negative": 0.05497222987794141,
+      "mean_score_positive": 0.13271660875844682,
+      "positive_nonzero_composition_support_rate": 0.65
+    },
+    "window8": {
+      "threshold": 0.47871561212968966,
+      "accuracy": 0.63125,
+      "accuracy_wilson_95": [
+        0.5542327024207806,
+        0.7021126713466993
+      ],
+      "balanced_accuracy": 0.63125,
+      "brier_score": 0.26735109819271763,
+      "mean_score_negative": 0.3153738636410125,
+      "mean_score_positive": 0.5339540448180523,
+      "positive_nonzero_composition_support_rate": 0.95
+    }
+  }
+}

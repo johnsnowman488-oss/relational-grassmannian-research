@@ -6,35 +6,31 @@ An independent, evidence-led research project investigating whether relational o
 
 - **Interpretation:** coupled relational-memory geometry.
 - **Memory:** fixed sum-of-exponentials (SOE) channels; four channels initially.
-- **Initial feature space:** \(\mathbb{R}^{16}\).
-- **Initial Grassmannian:** \(\operatorname{Gr}(4,\mathbb{R}^{16})\).
+- **Initial feature space:** \\(\\mathbb{R}^{16}\\).
+- **Initial Grassmannian:** \\(\\operatorname{Gr}(4,\\mathbb{R}^{16})\\).
 - **Scale:** small, deterministic synthetic experiments first.
-
-The SOE memory stores multiscale temporal traces. The relational layer stores explicit typed relations and their temporal validity. The Grassmannian state represents a fixed-rank subspace of relational organisation, conditioned by memory. These are distinct objects and will be validated independently before they are coupled.
 
 ## Milestones
 
 | Milestone | Purpose | Status |
 |---|---|---|
-| E00 | Mathematical and computational foundations: SOE memory, symbolic relations, Grassmannian primitives, transition interface | Accepted: 40 local tests and Python 3.10/3.12 CI passed |
-| E01 | Establish history dependence and compare memory representations with Markov baselines | Planned |
-| E02 | Test the additional value of explicit relational structure | Planned |
-| E03 | Test the contribution of Grassmannian geometry against non-geometric representations | Planned |
-| E04 | Test the coupled system after component-level evidence exists | Planned |
+| E00 | Mathematical and computational foundations | Accepted: 40 tests and Python 3.10/3.12 CI passed |
+| E01-A | Memory-only two-hop inference with independent controls | Implemented; CI passed; initial results archived |
+| E01-B | Memory capacity/interference frontier | Deferred pending E01-A review |
+| E02 | Explicit relational structure contribution | Planned |
+| E03 | Grassmannian contribution versus non-geometric representations | Planned |
+| E04 | Coupled system evaluation | Planned |
 
-## Scientific boundary
-
-The project does not assume that SOE memory is superior to finite-order Markov models or that Grassmannian geometry adds predictive value. A negative result is informative. No performance or novelty claim will be made from E00 alone.
-
-This repository is independent of D2C/Aberconics. No integration is planned for v0.1.
+The project does not assume SOE superiority or that Grassmannian geometry adds predictive value. Negative results are informative. The track is independent of D2C/Aberconics; prior D2C work on delayed retrieval, temporal traces, and sequential slot-value association is acknowledged. E01-A asks the narrower question of compositional inference from an SOE-only event trace.
 
 ## Development
 
-Python 3.10+; NumPy; SciPy; pytest.
+Python 3.10+; NumPy, SciPy, pytest.
 
-```bash
+~~~bash
 python -m pip install -e ".[dev]"
-pytest
-```
+python -m pytest
+python -m rgm.experiments.e01 --variant soe
+~~~
 
-See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathematical_specification.md), and [the experiment register](docs/experiment_register.md) for the frozen scope and evidence rules.
+See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathematical_specification.md), [the experiment register](docs/experiment_register.md), and [the E01-A protocol](docs/e01_protocol.md).

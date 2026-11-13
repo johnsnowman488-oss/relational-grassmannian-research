@@ -1,8 +1,8 @@
-name: E00 foundations
+name: E00 and E01 validation
 
 on:
   push:
-    branches: [main, "e00-foundations"]
+    branches: [main, "e00-foundations", "e01-history-dependence"]
   pull_request:
     branches: [main]
 
@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  tests:
-    name: Python ${{ matrix.python-version }}
+  unit-tests:
+    name: Unit tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -25,5 +25,29 @@ jobs:
           cache: pip
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
-      - name: Run E00 unit and invariant tests
+      - name: Run unit and invariant tests
         run: python -m pytest
+
+  e01-variants:
+    name: E01-A / ${{ matrix.variant }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        variant: [soe, current, window2, window8, reset, slow_only, fast_only, shuffled, full_history]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install experiment dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Run independent E01-A control
+        run: python -m rgm.experiments.e01 --variant ${{ matrix.variant }} --output results/e01/ci-${{ matrix.variant }}.json
+      - name: Upload E01-A result
+        uses: actions/upload-artifact@v4
+        with:
+          name: e01-${{ matrix.variant }}
+          path: results/e01/ci-${{ matrix.variant }}.json
+          if-no-files-found: error
