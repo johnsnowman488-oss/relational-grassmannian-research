@@ -27,8 +27,8 @@ class Case:
     query_object: int
     label: int
 
-def codebooks() -> tuple[FloatArray, FloatArray]:
-    rng = np.random.default_rng(9137)
+def codebooks(seed: int = 9137) -> tuple[FloatArray, FloatArray]:
+    rng = np.random.default_rng(seed)
     q, _ = np.linalg.qr(rng.normal(size=(FEATURE_DIM, FEATURE_DIM)))
     return np.eye(FEATURE_DIM, dtype=np.float64), q.T.copy()
 
