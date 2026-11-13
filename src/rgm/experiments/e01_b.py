@@ -15,6 +15,7 @@ from ..memory import SOEMemory
 
 FloatArray = NDArray[np.float64]
 FEATURE_DIM = 16
+SCORE_PRECISION = 12  # stable prediction resolution across BLAS/QR implementations
 SOE_RATES = (0.01, 0.05, 0.2, 0.8)
 CODEBOOK_SEED = 9137
 WORLD_SEEDS = (401, 402)
@@ -207,6 +208,16 @@ def _memory_channels(case: Case, arm: str,
     return memory.snapshot()
 
 
+def _stable_score(value: float) -> float:
+    """Canonicalize scores before thresholding so sub-precision BLAS drift cannot flip labels."""
+    return float(np.round(float(value), decimals=SCORE_PRECISION))
+
+
+def _stable_geq(score: float, threshold: float) -> bool:
+    """Compare scores on the frozen precision grid, with an inclusive threshold."""
+    return _stable_score(score) >= _stable_score(threshold)
+
+
 def _support_tensors(channels: FloatArray,
                      books: tuple[FloatArray, FloatArray],
                      entities: int) -> tuple[FloatArray, FloatArray]:
@@ -215,6 +226,7 @@ def _support_tensors(channels: FloatArray,
         scores = channels @ books[relation].T
         # Suppress positive round-off residue around exact orthogonality. Without
         # this floor, validation thresholds can depend on tiny BLAS/QR differences.
+        scores = np.round(scores, decimals=SCORE_PRECISION)
         scores = np.where(scores < 1e-12, 0.0, scores)
         supports.append(np.clip(scores, 0.0, 1.0).reshape(
             channels.shape[0], entities, entities
@@ -231,10 +243,10 @@ def _composition_score(case: Case, supports: tuple[FloatArray, FloatArray],
     for middle in intermediates:
         nodes = (case.query_subject, *middle, case.query_object)
         edge_scores = [
-            float(np.max(supports[step % 2][:, nodes[step], nodes[step + 1]]))
+            _stable_score(np.max(supports[step % 2][:, nodes[step], nodes[step + 1]]))
             for step in range(depth)
         ]
-        score = float(np.prod(edge_scores))
+        score = _stable_score(np.prod(edge_scores))
         if score > best_score:
             best_score, best_nodes, best_edges = score, tuple(nodes), edge_scores
     return max(0.0, best_score), best_nodes, best_edges
@@ -264,11 +276,13 @@ def _fact_probes(case: Case, supports: tuple[FloatArray, FloatArray],
 
 
 def _threshold(scores: list[float], labels: list[int]) -> float:
-    values = np.unique(np.asarray([0.0, 1.0, *scores], dtype=np.float64))
+    # Threshold fitting and held-out classification use the same 12-decimal grid.
+    stable_scores = np.asarray([_stable_score(score) for score in scores], dtype=np.float64)
+    values = np.unique(np.asarray([0.0, 1.0, *stable_scores], dtype=np.float64))
     y = np.asarray(labels, dtype=np.int64)
     best_t, best = 0.5, -1.0
     for threshold in values:
-        accuracy = float(np.mean((np.asarray(scores) >= threshold).astype(np.int64) == y))
+        accuracy = float(np.mean((stable_scores >= threshold).astype(np.int64) == y))
         if accuracy > best or (accuracy == best and threshold > best_t):
             best_t, best = float(threshold), accuracy
     return best_t
@@ -322,7 +336,7 @@ def run(condition: str, memory_arm: str, world_seed: int,
     composition_scores, labels, predictions = [], [], []
     for case, state, support in zip(test_cases, test_states, test_supports):
         score, best_path, edge_scores = _composition_score(case, support, depth)
-        prediction = int(score >= composition_threshold)
+        prediction = int(_stable_geq(score, composition_threshold))
         composition_scores.append(score)
         labels.append(case.label)
         predictions.append(prediction)
@@ -352,7 +366,7 @@ def run(condition: str, memory_arm: str, world_seed: int,
     tpr = float(np.mean(pred[y == 1] == 1))
     tnr = float(np.mean(pred[y == 0] == 0))
     fy = np.asarray(test_fact_labels, dtype=np.int64)
-    fpred = (np.asarray(test_fact_scores) >= fact_threshold).astype(np.int64)
+    fpred = np.asarray([_stable_geq(score, fact_threshold) for score in test_fact_scores], dtype=np.int64)
     tp = int(np.sum((fy == 1) & (fpred == 1)))
     fpos = int(np.sum((fy == 0) & (fpred == 1)))
     fneg = int(np.sum((fy == 1) & (fpred == 0)))
