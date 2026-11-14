@@ -66,3 +66,22 @@ Three architectural hypotheses remain open:
 3. A unified augmented dynamical-geometric state.
 
 Geometry must be compared against learned non-geometric alternatives. E03 is the next task: freeze a representation-neutral benchmark and its controls before implementing a new relational learner. See the [relational adaptation ledger](relational_adaptation_ledger.md).
+
+
+## Parallel LGDH mechanism stream
+
+LGDH is a separately tracked mechanism investigation. It does not displace E03 as the next mainline E-series experiment and does not imply that the Grassmannian representation has been selected for the mechanism.
+
+| ID | Question | Status | Entry criterion | Exit evidence |
+|---|---|---|---|---|
+| LG-01A | Can fast multidimensional modes remain active under bounded refresh while individual tagged contributions decay? | Implemented; v0.1 executed; valid scientific fail at rate 0.8 (26/30) | Protocol and runner frozen | 30-seed run bundle; exact decay, washout, boundedness, energy and SOE-null checks pass; refresh gate fails at fastest rate |
+| LG-01B | Can intrinsic mode trajectories form directed relations without a supplied target graph? | Planned | LG-01A operational pass; destination mapping pre-registered | Held-out route recovery and path witnesses above non-directional/random controls |
+| LG-01C | Does slower trajectory registration improve contextual route selection? | Planned | LG-01B reproducible | Paired improvement over fast-only and slow-only controls |
+| LG-01D | Can the relational organisation revise under structural change while preserving stable relations? | Planned | LG-01B and LG-01C pass separately | Adaptation, retention, stability and interference evidence |
+| LG-02A | Does computational mode birth/death help represent novel recurring trajectories? | Provisional | Fixed-population routing validated | Controlled utility of mode growth under frozen connection weights |
+| LG-02B | Does directed connection plasticity improve routing? | Provisional | Fixed-population routing validated | Useful edge changes with mode population fixed |
+| LG-02C | Do mode growth and connection plasticity interact beneficially? | Provisional | LG-02A and LG-02B independently supported | Joint effect and complexity-control evidence |
+
+**LG-01A interpretation ceiling:** a pass validates only transient activity under refresh. The conventional leaky SOE null is expected to reproduce the same equations. This experiment cannot establish graph formation, endogenous destination selection, reasoning or a distinct lepto-graph primitive.
+
+Full specifications and ledgers are in the [LGDH experiment spine](lg_experiment_spine.md).
