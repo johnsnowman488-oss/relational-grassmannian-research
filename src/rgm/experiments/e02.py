@@ -607,7 +607,7 @@ def run_c(condition: str, world_seed: int, codebook_seed: int, n: int = 160) -> 
             state_bytes["graph"].append(graph.storage_bytes)
             query_ops["graph"].append(gops)
             per_sequence.append({
-                "case_id": int(model_input.case_id), "input_sha256": model_input.input_sha256,
+                "case_id": str(model_input.case_id), "input_sha256": model_input.input_sha256,
                 "label": int(truth.label), "event_count": len(model_input.events),
                 "unique_observed_edges": len(graph.edge_set),
                 "graph_prediction": int(graph_exists),
