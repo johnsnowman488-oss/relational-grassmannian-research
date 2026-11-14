@@ -95,7 +95,9 @@ Selected SHA-256 entries:
 - summary.json: 890c3eb64d9a173632a012825741c287d17e69373f60fd88982faa13eb6b60b1
 - trace_samples.jsonl: a21b042be502e9cd39605f8256004801555e9c1bc2497fcff571e6c03139164e
 
-A same-protocol campaign was also launched from workflow-only commit b29a6df4b81653c0ac1055d068dee5ecdee40183 as run 43652352159. It is tracked separately from the canonical source-code run above.
+### Same-protocol repeat
+
+A second GitHub Actions push campaign ran from workflow-only commit b29a6df4b81653c0ac1055d068dee5ecdee40183. Run ID lg01a_43652352159_1, workflow [43652352159](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43652352159), artifact lg01a-43652352159-1 (artifact ID 14136263436). Both Python 3.10 and 3.12 test jobs again passed 122 tests each. The repeat reproduced exactly the same seed pass counts (30/30 at 0.05, 30/30 at 0.2, 26/30 at 0.8), the same maximum candidate/null trace difference (2.02055e-15), and zero energy-matching error. Its SHA256SUMS was also verified. This is a repeatability check of the same protocol and input generator, not an independent seed set or a fresh scientific confirmation under a revised protocol.
 
 ## 5. Interpretation and next decision
 
