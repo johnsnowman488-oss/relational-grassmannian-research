@@ -1,7 +1,7 @@
 # LGDH Cross-Experiment Ledger
 
 **Research stream:** Lepto-Graph Development Hypothesis  
-**Status:** Hypothesis registered; LG-01A protocol frozen for implementation; no experimental results  
+**Status:** LG-01A-v0.1 executed; restricted LG-01B operating envelope adopted; LG-01B protocol draft under review  
 **Opened:** 2026-11-14
 
 ## 2026-11-14 — LGDH opened as a parallel mechanism hypothesis
@@ -60,3 +60,12 @@ The LGDH concept remains a hypothesis. This result establishes only that the tes
 ### Same-protocol repeat
 
 A second push workflow, run 43652352159 from the workflow-only commit b29a6df4b81653c0ac1055d068dee5ecdee40183, reproduced the same LG-01A-v0.1 outcome: 30/30 seeds at 0.05, 30/30 at 0.2 and 26/30 at 0.8. Both Python 3.10 and 3.12 test jobs again passed 122 tests each. Its complete artifact (ID 14136263436) also passed SHA256SUMS verification. This is repeat execution of the same protocol and seeds, not a new independent-seed confirmation or a protocol revision.
+
+
+## 2026-11-14 — LG-01B protocol prepared for scientific review
+
+The downstream operating envelope is restricted to γ=0.05 and γ=0.20, the two LG-01A-v0.1 fast rates that met the frozen 30/30 per-seed criterion. γ=0.80 remains failed at 26/30 and is excluded; the LG-01A result and threshold are unchanged.
+
+A first LG-01B-v0.1 protocol draft has been added at docs/lg01b_protocol.md. It proposes a fixed eight-mode, 16-dimensional synthetic coupled system with a hidden two-outgoing-edge directed topology, smooth bounded independent inputs, causal tangent features, conditional ridge prediction, validation-only destination ranking, and independent held-out test episodes. It includes source-state, direction-blind, shuffled, reverse-time, symmetric-association and random controls, plus edge and two-hop path metrics.
+
+The protocol remains **draft / not frozen**. Internal review added the destination's own tangent to its autoregressive baseline, included the source-state mapping in the primary control comparison, and aligned the two-edge path threshold with the single-edge recovery target. No runner, CI campaign or scientific result is authorised until the user approves the remaining design choices and the protocol is frozen.
