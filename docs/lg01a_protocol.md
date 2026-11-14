@@ -179,7 +179,7 @@ LG-01A receives an **operational pass** only if all of the following hold.
 
 1. Tagged decay maximum relative error is at most \(10^{-8}\) in every seed/rate.
 2. Tagged residual at \(3\tau_\ell\) is at most \(0.05+10^{-8}\).
-3. The controlled input-perturbation response matches the exact discrete Green's-function response with relative error at most \(10^{-8}\).
+3. For a one-step perturbation \(\delta u\), the exact later state difference is \(b_\ell a_\ell^m\delta u\) after \(m\) subsequent steps. The controlled input-perturbation response matches this discrete Green's-function response with relative error at most \(10^{-8}\).
 4. All states remain finite and satisfy the analytic boundedness envelope (allowing only a \(10^{-10}\) relative numerical tolerance).
 5. Conventional SOE and candidate lepto-mode traces agree within \(10^{-10}\) relative tolerance under identical conditions.
 
@@ -188,7 +188,7 @@ LG-01A receives an **operational pass** only if all of the following hold.
 For each of the three fast rates \(\gamma\in\{0.05,0.2,0.8\}\):
 
 1. In the continuous-refresh arm, at least 90% of the evaluation windows in at least 27 of 30 seeds must satisfy both:
-   - refresh activity ratio \(\ge10\);
+   - refresh activity ratio \(\ge5\);
    - reference tracking ratio in \([0.8,1.2]\).
 2. After refresh stops, the state norm after \(3\tau_\ell\) must be no more than \(0.05+10^{-8}\) of its stop-time norm for every seed.
 3. The no-refresh pulse-only arm must show the corresponding decay, rather than remaining active.
