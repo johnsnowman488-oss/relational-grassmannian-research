@@ -48,3 +48,14 @@ python -m rgm.experiments.e01 --variant soe
 ~~~
 
 See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathematical_specification.md), [the experiment register](docs/experiment_register.md), and the E01/E02 protocol documents.
+
+
+## Parallel mechanism investigation: Lepto-Graph Development Hypothesis
+
+A separate LGDH line now investigates whether fast, multidimensional, continuously refreshed SOE-like modes can develop endogenous directed relational pathways from their own trajectories, with slower modes registering relevant history. This is a **parallel mechanism hypothesis**, not an established capability and not a replacement for E03. E03 remains the next mainline milestone. LG-01A is protocol-specified but has not yet been implemented or run.
+
+- [LGDH hypothesis](docs/lgdh_hypothesis.md)
+- [LG experiment spine](docs/lg_experiment_spine.md)
+- [LG-01A protocol](docs/lg01a_protocol.md)
+- [LGDH cross-experiment ledger](docs/lgdh_ledger.md)
+- [LG-01A experiment ledger](docs/lg01a_ledger.md)
