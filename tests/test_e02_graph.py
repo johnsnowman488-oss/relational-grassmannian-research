@@ -39,7 +39,7 @@ def test_edges_are_directed_and_relation_typed():
         Event(1, 1, 2, 0.5),
     ])
     assert graph.contains(0, 1, 2)
-    assert not graph.contains(0, 2, 1) is False
+    assert graph.contains(0, 2, 1)
     assert graph.contains(1, 1, 2)
     assert len(graph.edges) == 3
 
