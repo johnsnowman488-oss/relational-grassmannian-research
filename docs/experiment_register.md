@@ -1,5 +1,7 @@
 # Experiment register
 
+This register tracks experimental questions, entry gates and evidence. The full adaptive-relational research programme is recorded in [the relational adaptation ledger](relational_adaptation_ledger.md).
+
 | ID | Question | Status | Entry criterion | Exit evidence |
 |---|---|---|---|---|
 | E00 | Are mathematical/computational primitives correct and reproducible? | Accepted | v0.1 scope frozen | Unit tests, invariants, deterministic state round trips, Python 3.10/3.12 CI |
@@ -8,11 +10,18 @@
 | E01-A3 | Does the A2 pattern replicate across worlds/codebooks? | Complete | A2 configuration selected | 54-cell paired replication across 3 worlds × 3 codebooks |
 | E01-B | Where does the memory capacity/interference frontier degrade? | Complete | A3 reviewed | 228-cell one-factor frontier; corrected cross-worker determinism gate |
 | E01-C | Why does relational composition fail under selected stresses? | Complete | B frontier reviewed | 108-cell mechanism campaign; repeat suppression, path diagnostics and oracle gate |
-| E02-A | Can we freeze a leakage-safe graph/event interface and reproducible corpus? | Next | E01 complete | Schema/contract tests, event-only model input, evaluator-only truth, stable hashes |
-| E02-B | Does explicit event-derived graph storage outperform dense memory on the six E01-C conditions? | Planned | E02-A contract passes | Paired held-out graph-vs-memory outputs, path/query, cost and storage metrics |
-| E02-C | Does graph-plus-temporal memory add value under controlled corruption? | Planned | E02-A contract passes | Paired clean/corrupted comparisons, robustness and temporal-context metrics |
-| E03 | Does Grassmannian geometry add value over non-geometric alternatives? | Planned | Independent memory/relational evidence available | Matched representation comparisons and sensitivity analysis |
-| E04 | Does the coupled system add value beyond its strongest components? | Planned | E02 and E03 reviewed | Controlled coupled-vs-component comparisons |
+| E02-A | Can we freeze a leakage-safe graph/event interface and reproducible corpus? | CI evidence on PR #12/#13; integration pending | E01 complete | Reconcile the two open PR implementations, protocol and workflow; merge only after review |
+| E02-B | Does explicit event-derived graph storage outperform dense memory on the six E01-C conditions? | Campaign reported complete on PR #12; integration pending | E02-A contract passes | Preserve all paired cell evidence, costs and interpretation limits in main |
+| E02-C | Does graph-plus-temporal memory add value under controlled corruption? | Campaign reported complete on PR #12; integration pending | E02-A contract passes | Preserve profile-specific outcomes and distinguish corrupted-learning from recovery-after-gap |
+| E03 | Does a representation-neutral task suite expose relational capability across explicit, higher-order and continuous domains? | Next: specification | E01 reviewed; E02 integration/review documented | Frozen task semantics, splits, baselines, leakage controls, metrics and acceptance gates |
+| E04 | Can relational organisation be discovered without a complete supplied schema? | Planned | E03 benchmark frozen | Discovery precision/recall, false structures, stability and held-out relation patterns |
+| E05 | Can learned relations be composed and generalised to unfamiliar configurations? | Planned | E04 reviewed | Held-out composition, higher-order generalisation and witness quality |
+| E06 | Can relational organisation be revised under change and contradiction? | Planned | E04/E05 baselines established | Revision accuracy, stale relations, collateral loss and adaptation cost |
+| E07 | Does relational organisation persist and recover through missing/noisy observations and temporal gaps? | Planned | E06 protocol available | Separate corrupted-learning and clean-memory-then-outage protocols |
+| E08 | Does relational capability transfer across domains and unseen relation configurations? | Planned | E04/E05 capability established | Zero-/few-shot transfer and adaptation cost |
+| E09 | Does a separate relational state add value beyond SOE-only or a unified state? | Planned | E05–E08 reviewed | Matched comparison of SOE-only, coupled-state and unified-state hypotheses |
+| E10 | Does geometric, including Grassmannian, representation add measurable value? | Planned | E03–E09 controls and candidate mechanisms established | Matched-compute/supervision comparisons, ablations, sensitivity and transfer |
+| E11 | Can relational organisation adapt hierarchically across D2C temporal scales? | Planned | Earlier relational capabilities demonstrated | Long-horizon, cross-scale and top-down adaptation evidence |
 
 ## E00 run ledger
 
@@ -41,11 +50,19 @@ The A-series supports a task-specific slow-timescale contribution but does not s
 
 None of E01-A through E01-C tests Grassmannian geometry. E01 is evidence about a constrained memory/readout task, not a result for the project's central geometric hypothesis.
 
-## E02 entry conditions
+## E02 integration and interpretation notes
 
-1. The event-side model interface is distinct from evaluator truth.
-2. The graph is built only from observed event records and relation definitions.
-3. Test labels, latent fact sets, planted paths and corruption masks are unavailable to prediction jobs.
-4. Validation labels may be exposed only for declared calibration; test truth is consumed only by scoring jobs after predictions are sealed.
-5. Both architectures receive the same event/query inputs, conditions, seed manifests and held-out queries.
-6. Storage and compute are reported separately; an unbounded explicit graph is not treated as capacity-equivalent to a 16-scalar trace.
+As of 2026-11-14, PR #12 (e02-event-graph) and PR #13 (e02-explicit-graph-memory) are both open against main. They are independent branches and modify overlapping protocol/workflow paths. PR #12 contains the full E02-B/C campaign; PR #13 contributes a reusable ObservedEventGraph contract. Do not treat either as merged. Reconcile their graph interfaces, workflow triggers, protocol and tests before integrating.
+
+The E02 campaign is reported as passing 54 E02-B cells and 54 E02-C cells on PR #12. Its results remain synthetic and tied to the E01-C generator. Graph traversal over explicitly observed edges is a retrieval reference, not evidence of open-ended relation discovery. Graph storage is not capacity-matched to a 16-scalar trace. E02-C corrupts the input stream before both graph and memory receive it; it does not test a system that first stores clean relational state and then experiences an observation outage.
+
+## E03–E11 programme boundary
+
+The next programme investigates relational task diversity, discovery, composition, revision, persistence/recovery, cross-domain transfer, temporal/relational cooperation, geometric representation and hierarchical relational adaptation. It is not a commitment to a graph-based or Grassmannian D2C architecture.
+
+Three architectural hypotheses remain open:
+1. SOE-only with learned relational readout/dynamics.
+2. Coupled SOE temporal memory and a separate learned relational state.
+3. A unified augmented dynamical-geometric state.
+
+Geometry must be compared against learned non-geometric alternatives. E03 is the next task: freeze a representation-neutral benchmark and its controls before implementing a new relational learner. See the [relational adaptation ledger](relational_adaptation_ledger.md).
