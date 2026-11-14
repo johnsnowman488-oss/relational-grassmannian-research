@@ -50,15 +50,15 @@ The explicit graph remains a useful reference/control representation. It is not 
 | Experiment | Question / contribution | Status |
 |---|---|---|
 | E01 | Can fixed SOE temporal memory support relational retrieval and composition under controlled synthetic conditions? | Complete; evidence archived on main |
-| E02-A | Can an event-only interface and observed-event graph be specified with leakage-safe boundaries? | CI evidence exists on open PR branches; integration pending |
-| E02-B | How does explicit event-derived graph retrieval compare with the E01 dense-memory baseline? | CI campaign reported complete on PR #12; review/integration pending |
-| E02-C | Does graph-plus-temporal-memory help under clean, missing, spurious and mixed observations? | CI campaign reported complete on PR #12; review/integration pending |
+| E02-A | Can an event-only interface and observed-event graph be specified with leakage-safe boundaries? | Complete; reconciled graph and campaign merged via PR #15 |
+| E02-B | How does explicit event-derived graph retrieval compare with the E01 dense-memory baseline? | Complete; 54/54 cells passed; integrated via PR #15 |
+| E02-C | Does graph-plus-temporal-memory help under clean, missing, spurious and mixed observations? | Complete; 54/54 cells passed; integrated via PR #15 |
 
 **E01 interpretation boundary:** The experiments are synthetic and task-specific. They identify support loss, duplicate-event accumulation and false-path competition in the tested memory/readout. They do not establish general relational reasoning or a Grassmannian advantage.
 
 **E02 interpretation boundary:** A graph result is evidence about retrieval/composition when observed facts are explicitly represented as edges. It is not evidence of relation discovery. Graph storage is not information-capacity matched to a fixed-size memory state. The E02-C corruption design, as currently described, corrupts the observations before graph and memory receive them; it does not establish recovery from a clean relational state retained before a later observation outage.
 
-**Integration note (2026-11-14):** PR #12 (e02-event-graph) and PR #13 (e02-explicit-graph-memory) are both open against main and share paths including .github/workflows/e02.yml and docs/e02_protocol.md. PR #12 contains the full E02-B/C campaign and its own event-derived graph implementation. PR #13 adds a standalone ObservedEventGraph abstraction and a separate contract/workflow. They are independent branches, not a stacked implementation. Do not merge both blindly; reconcile the interface, workflow, protocol and tests first. CI success on a branch is not equivalent to integration into main.
+**Integration note (2026-11-14):** PR #12 and PR #13 were reconciled without merging either branch wholesale. PR #15 integrated the E02-B/C campaign with the shared `ObservedEventGraph` primitive, preserving duplicate counts, first/last event indices and every cumulative observed timestamp. PR #15 merged to main as `5ee58679e3f8b80c453344815ee91be94ddc181b`. The corrected PR workflow run `43639855566` passed E02-A tests on Python 3.10/3.12, all 54 E02-B cells, all 54 E02-C cells, and the combined summary job. The separate repository validation workflow run `43639855578` also passed. The combined E02 summary artifact is Actions artifact `14132220095`.
 
 ### E03 — Relational task diversity and representation challenge
 
