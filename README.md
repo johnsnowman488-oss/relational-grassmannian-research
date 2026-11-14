@@ -20,7 +20,7 @@ An independent, evidence-led research project investigating whether relational o
 | E01-A3 | Independent-world/codebook replication | Complete; 54 cells passed |
 | E01-B | Capacity and interference frontier | Complete; 228 cells and determinism gate passed |
 | E01-C | Mechanism isolation and path-level diagnostics | Complete; 108 cells and oracle gate passed |
-| E02 | Explicit relational graph, memory baseline and hybrid evaluation | Next |
+| E02 | Explicit relational graph, memory baseline and hybrid evaluation | In execution: contract and paired CI campaign |
 | E03 | Grassmannian contribution versus non-geometric alternatives | Planned |
 | E04 | Coupled system evaluation | Planned |
 
@@ -28,7 +28,7 @@ An independent, evidence-led research project investigating whether relational o
 
 E01 establishes a narrow synthetic result about temporal event memory and fixed candidate-path readout. It does **not** establish relation discovery, general relational reasoning, or a Grassmannian performance advantage. The strongest current finding is that dense event superposition and max-product path composition are vulnerable to support loss, duplicate accumulation, and false-path competition.
 
-E02 will compare the existing dense memory baseline with explicit event-derived relational storage, then test a graph-plus-temporal-memory hybrid under controlled observation corruption. Model code must receive only observed events and queries. Test labels, latent facts, planted paths and corruption truth remain evaluator-only.
+E02 is being implemented as one orchestrated campaign: E02-A freezes an event-only model interface and leakage controls; E02-B compares explicit graph retrieval with the E01 dense memory baseline; E02-C tests graph-plus-temporal-memory under controlled missing and spurious observations. The experiment reuses the six E01-C conditions, world/codebook seeds and held-out sequence ranges. Model code must receive only observed events and queries. Test labels, latent facts, planted paths and corruption truth remain evaluator-only.
 
 The project remains independent of D2C/Aberconics. SOE superiority and geometric contribution remain open hypotheses; negative results are informative.
 
@@ -42,4 +42,4 @@ python -m pytest
 python -m rgm.experiments.e01 --variant soe
 ~~~
 
-See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathematical_specification.md), [the experiment register](docs/experiment_register.md), and the E01/E02 protocol documents.
+See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathematical_specification.md), [the experiment register](docs/experiment_register.md), and the [E02 protocol](docs/e02_protocol.md).

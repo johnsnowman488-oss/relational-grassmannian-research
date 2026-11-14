@@ -1,0 +1,162 @@
+
+name: E02 event-graph and temporal-memory campaign
+
+on:
+  push:
+    branches: ["e02-event-graph"]
+    paths:
+      - ".github/workflows/e02.yml"
+      - "docs/e02_protocol.md"
+      - "src/rgm/experiments/e02.py"
+      - "src/rgm/experiments/e02_analysis.py"
+      - "tests/test_e02.py"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/e02.yml"
+      - "docs/e02_protocol.md"
+      - "src/rgm/experiments/e02.py"
+      - "src/rgm/experiments/e02_analysis.py"
+      - "tests/test_e02.py"
+
+permissions:
+  contents: read
+
+jobs:
+  e02-a-contract:
+    name: E02-A contract and tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run full invariant and experiment tests
+        run: python -m pytest
+      - name: Execute E02-A contract receipt
+        if: matrix.python-version == '3.12'
+        run: python -m rgm.experiments.e02 --stage contract --output results/e02/contract_receipt.json
+      - name: Upload E02-A contract receipt
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e02-a-contract-receipt
+          path: results/e02/contract_receipt.json
+          if-no-files-found: error
+
+  e02-b:
+    name: E02-B / ${{ matrix.condition }} / world ${{ matrix.world_seed }} / codebook ${{ matrix.codebook_seed }}
+    needs: [e02-a-contract]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        condition: [baseline_e4, repeat_e4, candidate_e16, factload_e16, depth3_e16, longgap_e16]
+        world_seed: [501, 502, 503]
+        codebook_seed: [9137, 27183, 65537]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install experiment dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Run paired clean graph and memory cell
+        run: |
+          python -m rgm.experiments.e02 \
+            --stage b \
+            --condition ${{ matrix.condition }} \
+            --world-seed ${{ matrix.world_seed }} \
+            --codebook-seed ${{ matrix.codebook_seed }} \
+            --output results/e02/e02-b-${{ matrix.condition }}-w${{ matrix.world_seed }}-cb${{ matrix.codebook_seed }}.json
+      - name: Upload E02-B evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: e02-b-${{ matrix.condition }}-w${{ matrix.world_seed }}-cb${{ matrix.codebook_seed }}
+          path: results/e02/e02-b-${{ matrix.condition }}-w${{ matrix.world_seed }}-cb${{ matrix.codebook_seed }}.json
+          if-no-files-found: error
+
+  e02-c:
+    name: E02-C / ${{ matrix.condition }} / world ${{ matrix.world_seed }} / codebook ${{ matrix.codebook_seed }}
+    needs: [e02-a-contract]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        condition: [baseline_e4, repeat_e4, candidate_e16, factload_e16, depth3_e16, longgap_e16]
+        world_seed: [501, 502, 503]
+        codebook_seed: [9137, 27183, 65537]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install experiment dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Run paired hybrid and corruption cell
+        run: |
+          python -m rgm.experiments.e02 \
+            --stage c \
+            --condition ${{ matrix.condition }} \
+            --world-seed ${{ matrix.world_seed }} \
+            --codebook-seed ${{ matrix.codebook_seed }} \
+            --output results/e02/e02-c-${{ matrix.condition }}-w${{ matrix.world_seed }}-cb${{ matrix.codebook_seed }}.json
+      - name: Upload E02-C evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: e02-c-${{ matrix.condition }}-w${{ matrix.world_seed }}-cb${{ matrix.codebook_seed }}
+          path: results/e02/e02-c-${{ matrix.condition }}-w${{ matrix.world_seed }}-cb${{ matrix.codebook_seed }}.json
+          if-no-files-found: error
+
+  e02-summary:
+    name: E02 combined evidence report
+    needs: [e02-a-contract, e02-b, e02-c]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install analysis dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Download E02-B cells
+        uses: actions/download-artifact@v4
+        with:
+          pattern: e02-b-*
+          path: results/e02/b
+          merge-multiple: true
+      - name: Download E02-C cells
+        uses: actions/download-artifact@v4
+        with:
+          pattern: e02-c-*
+          path: results/e02/c
+          merge-multiple: true
+      - name: Download E02-A contract receipt
+        uses: actions/download-artifact@v4
+        with:
+          name: e02-a-contract-receipt
+          path: results/e02/a
+      - name: Aggregate paired experiment cells
+        run: |
+          python -m rgm.experiments.e02_analysis \
+            --b-input-dir results/e02/b \
+            --c-input-dir results/e02/c \
+            --output-dir results/e02/summary
+      - name: Upload combined E02 report
+        uses: actions/upload-artifact@v4
+        with:
+          name: e02-combined-summary
+          path: |
+            results/e02/a/contract_receipt.json
+            results/e02/summary/e02_summary.json
+            results/e02/summary/report.md
+          if-no-files-found: error

@@ -8,9 +8,9 @@
 | E01-A3 | Does the A2 pattern replicate across worlds/codebooks? | Complete | A2 configuration selected | 54-cell paired replication across 3 worlds × 3 codebooks |
 | E01-B | Where does the memory capacity/interference frontier degrade? | Complete | A3 reviewed | 228-cell one-factor frontier; corrected cross-worker determinism gate |
 | E01-C | Why does relational composition fail under selected stresses? | Complete | B frontier reviewed | 108-cell mechanism campaign; repeat suppression, path diagnostics and oracle gate |
-| E02-A | Can we freeze a leakage-safe graph/event interface and reproducible corpus? | Next | E01 complete | Schema/contract tests, event-only model input, evaluator-only truth, stable hashes |
-| E02-B | Does explicit event-derived graph storage outperform dense memory on the six E01-C conditions? | Planned | E02-A contract passes | Paired held-out graph-vs-memory outputs, path/query, cost and storage metrics |
-| E02-C | Does graph-plus-temporal memory add value under controlled corruption? | Planned | E02-A contract passes | Paired clean/corrupted comparisons, robustness and temporal-context metrics |
+| E02-A | Can we freeze a leakage-safe graph/event interface and reproducible corpus? | Implemented; CI gate pending | E01 complete | Schema/contract tests, event-only model input, evaluator-only truth, stable hashes |
+| E02-B | Does explicit event-derived graph storage outperform dense memory on the six E01-C conditions? | Implemented; 54-cell CI pending | E02-A contract passes | Paired held-out graph-vs-memory outputs, path/query, cost and storage metrics |
+| E02-C | Does graph-plus-temporal memory add value under controlled corruption? | Implemented; 54-cell CI pending | E02-A contract passes | Paired clean/corrupted comparisons, robustness and temporal-context metrics |
 | E03 | Does Grassmannian geometry add value over non-geometric alternatives? | Planned | Independent memory/relational evidence available | Matched representation comparisons and sensitivity analysis |
 | E04 | Does the coupled system add value beyond its strongest components? | Planned | E02 and E03 reviewed | Controlled coupled-vs-component comparisons |
 
@@ -49,3 +49,10 @@ None of E01-A through E01-C tests Grassmannian geometry. E01 is evidence about a
 4. Validation labels may be exposed only for declared calibration; test truth is consumed only by scoring jobs after predictions are sealed.
 5. Both architectures receive the same event/query inputs, conditions, seed manifests and held-out queries.
 6. Storage and compute are reported separately; an unbounded explicit graph is not treated as capacity-equivalent to a 16-scalar trace.
+
+
+## E02 execution ledger
+
+Protocol: [E02-v0.1](e02_protocol.md). The first implementation freezes an event-only model input contract, builds explicit graph topology solely from observed events, and retains occurrence counts/timestamps. Evaluation truth and corruption audits are separated from model input.
+
+The orchestrated E02 workflow runs E02-A tests/contract receipt, then 54 E02-B cells and 54 E02-C cells concurrently (six E01-C conditions × three worlds × three codebooks). The final summary job requires all 108 cells. No E02 predictive result is accepted until the CI matrices and artifact aggregator pass.
