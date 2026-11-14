@@ -20,17 +20,22 @@ An independent, evidence-led research project investigating whether relational o
 | E01-A3 | Independent-world/codebook replication | Complete; 54 cells passed |
 | E01-B | Capacity and interference frontier | Complete; 228 cells and determinism gate passed |
 | E01-C | Mechanism isolation and path-level diagnostics | Complete; 108 cells and oracle gate passed |
-| E02 | Explicit relational graph, memory baseline and hybrid evaluation | Next |
-| E03 | Grassmannian contribution versus non-geometric alternatives | Planned |
-| E04 | Coupled system evaluation | Planned |
+| E02 | Event-derived graph, dense-memory and hybrid evaluation | CI campaigns reported complete on open PR #12; integration reconciliation pending |
+| E03 | Representation-neutral relational task suite | Next: specification |
+| E04–E08 | Relational discovery, composition, revision, recovery and transfer | Planned |
+| E09 | Temporal-memory and relational-organisation cooperation | Planned |
+| E10 | Geometric representation comparisons, including Grassmannian candidates | Planned |
+| E11 | Hierarchical relational adaptation | Planned |
 
 ## Current evidence boundary
 
 E01 establishes a narrow synthetic result about temporal event memory and fixed candidate-path readout. It does **not** establish relation discovery, general relational reasoning, or a Grassmannian performance advantage. The strongest current finding is that dense event superposition and max-product path composition are vulnerable to support loss, duplicate accumulation, and false-path competition.
 
-E02 will compare the existing dense memory baseline with explicit event-derived relational storage, then test a graph-plus-temporal-memory hybrid under controlled observation corruption. Model code must receive only observed events and queries. Test labels, latent facts, planted paths and corruption truth remain evaluator-only.
+E02 compares an explicit event-derived graph with dense memory and a graph-plus-temporal-memory hybrid. Its results remain tied to the E01-C synthetic generator. An observed-edge graph is a retrieval reference, not evidence of open-ended relation discovery. E02 branches are awaiting integration reconciliation; see the [experiment register](docs/experiment_register.md).
 
-The project remains independent of D2C/Aberconics. SOE superiority and geometric contribution remain open hypotheses; negative results are informative.
+D2C experiments motivated a broader research question: can an adaptive system discover, preserve, compose, revise and reorganise relational structure from experience? The architecture remains open. SOE-only learned relational readout, coupled temporal/relational states and a unified augmented state are competing hypotheses. Geometry is a candidate inductive bias, not a premise; learned non-geometric alternatives must be compared.
+
+The project remains an independent research track rather than a D2C implementation branch. The full programme and decision boundaries are recorded in the [relational adaptation ledger](docs/relational_adaptation_ledger.md). E03 is next: freeze a representation-neutral benchmark before implementing a new relational learner.
 
 ## Development
 
