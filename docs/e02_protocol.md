@@ -16,7 +16,7 @@ E02 is a non-geometric baseline study. It does not test Grassmannian geometry, o
 
 The versioned e02-observed-input-v1 payload contains only:
 
-- case_id and entity_count;
+- an opaque content-derived case identifier and entity_count; the generator seed remains evaluator-only because its parity determines the synthetic class label;
 - ordered observed_events, each with an event index, typed relation ID, subject ID, object ID and elapsed-time increment dt;
 - a query containing subject, object, depth and the declared alternating relation pattern.
 
