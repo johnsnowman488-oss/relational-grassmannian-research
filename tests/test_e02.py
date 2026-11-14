@@ -108,3 +108,29 @@ def test_provisional_model_input_keeps_minimum_entity_domain():
 def test_contract_receipt_does_not_publish_evaluator_label():
     result = run_contract()
     assert "truth_label_for_contract_check_only" not in result
+
+
+def test_e02_summary_aggregates_full_metrics_and_storage_costs():
+    from rgm.experiments.e02_analysis import _aggregate_architecture
+
+    def cell(accuracy, state_bytes):
+        metrics = {
+            "accuracy": accuracy, "balanced_accuracy": accuracy,
+            "precision": accuracy, "recall": accuracy,
+            "false_positive_rate": 1.0 - accuracy,
+            "false_negative_rate": 1.0 - accuracy,
+        }
+        cost = {
+            "mean_model_state_bytes": state_bytes,
+            "mean_common_input_bytes": 500.0,
+            "mean_query_edge_evaluations": 8.0,
+            "mean_observed_event_count": 8.0,
+            "mean_unique_observed_edges": 8.0,
+        }
+        return {"architectures": {"graph": {"metrics": metrics, "cost": cost}}}
+
+    summary = _aggregate_architecture([cell(1.0, 700.0), cell(0.8, 900.0)], "graph")
+    assert summary["metrics"]["accuracy"]["mean"] == 0.9
+    assert summary["metrics"]["balanced_accuracy"]["n_cells"] == 2
+    assert summary["cost"]["mean_model_state_bytes"]["mean"] == 800.0
+    assert summary["cost"]["mean_common_input_bytes"]["mean"] == 500.0

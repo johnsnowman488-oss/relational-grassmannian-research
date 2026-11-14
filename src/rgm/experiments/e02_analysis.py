@@ -55,14 +55,43 @@ def _stats(values: list[float]) -> dict[str, float | int]:
     }
 
 
+
+METRIC_FIELDS = (
+    "accuracy", "balanced_accuracy", "precision", "recall",
+    "false_positive_rate", "false_negative_rate",
+)
+COST_FIELDS = (
+    "mean_model_state_bytes", "mean_common_input_bytes",
+    "mean_query_edge_evaluations", "mean_observed_event_count",
+    "mean_unique_observed_edges",
+)
+
+
+def _aggregate_architecture(
+    selected: list[dict[str, Any]], architecture: str, *, profile: str | None = None,
+) -> dict[str, Any]:
+    def artifact_values(section: dict[str, Any]) -> dict[str, Any]:
+        return section["architectures"][architecture] if profile is None else section["profiles"][profile]["architectures"][architecture]
+
+    return {
+        "metrics": {
+            metric: _stats([float(artifact_values(x)["metrics"][metric]) for x in selected])
+            for metric in METRIC_FIELDS
+        },
+        "cost": {
+            metric: _stats([float(artifact_values(x)["cost"][metric]) for x in selected])
+            for metric in COST_FIELDS
+        },
+    }
+
+
 def _aggregate_b(cells: list[dict[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for condition in sorted({x["condition"] for x in cells}):
         result[condition] = {}
         selected = [x for x in cells if x["condition"] == condition]
         for architecture in ARCHITECTURE_ORDER_B:
-            values = [float(x["architectures"][architecture]["metrics"]["accuracy"]) for x in selected]
-            result[condition][architecture] = _stats(values)
+            result[condition][architecture] = _aggregate_architecture(selected, architecture)
         result[condition]["paired_accuracy_difference_graph_minus_slow_only"] = _stats([
             float(x["architectures"]["graph"]["metrics"]["accuracy"])
             - float(x["architectures"]["memory_slow_only"]["metrics"]["accuracy"])
@@ -80,11 +109,9 @@ def _aggregate_c(cells: list[dict[str, Any]]) -> dict[str, Any]:
         for profile in profiles:
             result[condition][profile] = {}
             for architecture in ARCHITECTURE_ORDER_C:
-                values = [
-                    float(x["profiles"][profile]["architectures"][architecture]["metrics"]["accuracy"])
-                    for x in selected
-                ]
-                result[condition][profile][architecture] = _stats(values)
+                result[condition][profile][architecture] = _aggregate_architecture(
+                    selected, architecture, profile=profile,
+                )
             for hybrid in ("hybrid_slow_only", "hybrid_full_history"):
                 result[condition][profile][f"paired_accuracy_difference_{hybrid}_minus_graph"] = _stats([
                     float(x["profiles"][profile]["architectures"][hybrid]["metrics"]["accuracy"])
@@ -102,25 +129,70 @@ def _table_b(summary: dict[str, Any]) -> str:
     for condition, values in summary.items():
         diff = values["paired_accuracy_difference_graph_minus_slow_only"]["mean"] * 100
         lines.append(
-            f"| {condition} | {values['graph']['mean']:.3f} | "
-            f"{values['memory_slow_only']['mean']:.3f} | "
-            f"{values['memory_full_history']['mean']:.3f} | {diff:+.2f} |"
+            f"| {condition} | {values['graph']['metrics']['accuracy']['mean']:.3f} | "
+            f"{values['memory_slow_only']['metrics']['accuracy']['mean']:.3f} | "
+            f"{values['memory_full_history']['metrics']['accuracy']['mean']:.3f} | {diff:+.2f} |"
+        )
+    return "\n".join(lines)
+
+
+def _table_b_costs(summary: dict[str, Any]) -> str:
+    lines = [
+        "| Condition | Common input (B) | Graph state (B) | Slow-only state (B) | Full-history state (B) | Graph query edge checks | Dense path-edge evaluations |",
+        "|---|---:|---:|---:|---:|---:|---:|",
+    ]
+    for condition, values in summary.items():
+        graph = values["graph"]["cost"]
+        slow = values["memory_slow_only"]["cost"]
+        full = values["memory_full_history"]["cost"]
+        lines.append(
+            f"| {condition} | {graph['mean_common_input_bytes']['mean']:.1f} | "
+            f"{graph['mean_model_state_bytes']['mean']:.1f} | "
+            f"{slow['mean_model_state_bytes']['mean']:.1f} | "
+            f"{full['mean_model_state_bytes']['mean']:.1f} | "
+            f"{graph['mean_query_edge_evaluations']['mean']:.1f} | "
+            f"{slow['mean_query_edge_evaluations']['mean']:.1f} |"
         )
     return "\n".join(lines)
 
 
 def _table_c(summary: dict[str, Any]) -> str:
     lines = [
-        "| Condition | Corruption | Graph | Memory (slow) | Hybrid (slow) | Hybrid − graph (pp) |",
-        "|---|---|---:|---:|---:|---:|",
+        "| Condition | Corruption | Graph | Memory (slow) | Memory (full) | Hybrid (slow) | Hybrid (full) | Hybrid slow − graph (pp) |",
+        "|---|---|---:|---:|---:|---:|---:|---:|",
     ]
     for condition, profiles in summary.items():
         for profile, values in profiles.items():
             diff = values["paired_accuracy_difference_hybrid_slow_only_minus_graph"]["mean"] * 100
             lines.append(
-                f"| {condition} | {profile} | {values['graph']['mean']:.3f} | "
-                f"{values['memory_slow_only']['mean']:.3f} | "
-                f"{values['hybrid_slow_only']['mean']:.3f} | {diff:+.2f} |"
+                f"| {condition} | {profile} | "
+                f"{values['graph']['metrics']['accuracy']['mean']:.3f} | "
+                f"{values['memory_slow_only']['metrics']['accuracy']['mean']:.3f} | "
+                f"{values['memory_full_history']['metrics']['accuracy']['mean']:.3f} | "
+                f"{values['hybrid_slow_only']['metrics']['accuracy']['mean']:.3f} | "
+                f"{values['hybrid_full_history']['metrics']['accuracy']['mean']:.3f} | "
+                f"{diff:+.2f} |"
+            )
+    return "\n".join(lines)
+
+
+def _table_c_costs(summary: dict[str, Any]) -> str:
+    lines = [
+        "| Condition | Corruption | Graph state (B) | Memory slow (B) | Hybrid slow (B) | Graph edge checks | Hybrid path-edge evaluations |",
+        "|---|---|---:|---:|---:|---:|---:|",
+    ]
+    for condition, profiles in summary.items():
+        for profile, values in profiles.items():
+            graph = values["graph"]["cost"]
+            slow = values["memory_slow_only"]["cost"]
+            hybrid = values["hybrid_slow_only"]["cost"]
+            lines.append(
+                f"| {condition} | {profile} | "
+                f"{graph['mean_model_state_bytes']['mean']:.1f} | "
+                f"{slow['mean_model_state_bytes']['mean']:.1f} | "
+                f"{hybrid['mean_model_state_bytes']['mean']:.1f} | "
+                f"{graph['mean_query_edge_evaluations']['mean']:.1f} | "
+                f"{hybrid['mean_query_edge_evaluations']['mean']:.1f} |"
             )
     return "\n".join(lines)
 
@@ -164,9 +236,17 @@ def build_report(b_directory: Path, c_directory: Path, output_directory: Path) -
         "",
         _table_b(b_summary),
         "",
+        "### E02-B storage and query costs",
+        "",
+        _table_b_costs(b_summary),
+        "",
         "## E02-C — Graph, memory and hybrid under event corruption",
         "",
         _table_c(c_summary),
+        "",
+        "### E02-C storage and query costs",
+        "",
+        _table_c_costs(c_summary),
         "",
         "## Reading the results",
         "",

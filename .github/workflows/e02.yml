@@ -2,14 +2,6 @@
 name: E02 event-graph and temporal-memory campaign
 
 on:
-  push:
-    branches: ["e02-event-graph"]
-    paths:
-      - ".github/workflows/e02.yml"
-      - "docs/e02_protocol.md"
-      - "src/rgm/experiments/e02.py"
-      - "src/rgm/experiments/e02_analysis.py"
-      - "tests/test_e02.py"
   pull_request:
     branches: ["main"]
     paths:
