@@ -160,12 +160,12 @@ For each destination j, fit a multivariate ridge predictor of its future state a
 \widehat z_j[k+5]
 =
 f_j\left(
-z_j[k],
-d_1[k],\ldots,d_{j-1}[k],d_{j+1}[k],\ldots,d_N[k]
+z_j[k],d_j[k],
+\{d_i[k]:i\ne j\}
 \right).
 \]
 
-The destination's current state is included as an autoregressive control. All other modes' tangents are included jointly so that a candidate source is evaluated conditional on competing source trajectories, rather than by isolated pairwise correlation alone.
+The destination's current state and its own current tangent are included as autoregressive controls. This is essential because the destination's smooth external drive is temporally correlated; without its own tangent, the learner could misattribute destination-local dynamics to an incoming relation. All other modes' tangents are included jointly so that a candidate source is evaluated conditional on competing source trajectories, rather than by isolated pairwise correlation alone.
 
 Standardise features using training-set statistics only. Fit ridge regression on training data. Select the regularisation coefficient from the frozen grid {10^-4, 10^-3, 10^-2, 10^-1, 1, 10, 100} using validation prediction error only. The selected coefficient is then fixed before test evaluation.
 
@@ -183,7 +183,7 @@ S_{i\to j}
 }.
 \]
 
-Here MSE_j,-i is computed after setting source i's tangent feature group to its training mean while keeping all other features unchanged. Positive S_i→j means the source tangent contributes held-out predictive information about destination j beyond the destination's own current state and the other source tangents.
+Here MSE_j,-i is computed after setting source i's tangent feature group to its training mean while keeping the destination's own state and tangent and all other source features unchanged. The target-only comparator uses only z_j[k] and d_j[k]. Positive S_i→j means the source tangent contributes held-out predictive information about destination j beyond the destination's own current state and the other source tangents.
 
 For each source i, rank all j≠i by S_i→j and select the top two destinations. No evaluator labels or graph truth may affect ranking.
 
@@ -197,7 +197,7 @@ After destination ranking is frozen from validation, evaluate the fitted predict
 
 All controls receive the same trajectory observations, data splits, mode count, out-degree prior, and training budget.
 
-1. **Destination-only autoregressive null:** predicts each destination from its own current state only.
+1. **Destination-only autoregressive null:** predicts each destination from its own current state and own current tangent only.
 2. **Source-state mapping:** replaces source tangent groups with source state vectors. This tests whether tangent direction contributes beyond ordinary source-state information.
 3. **Direction-blind activity mapping:** replaces each 16D unit tangent with its scalar tangent magnitude. This tests whether vector direction adds value beyond activity level.
 4. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one dimensionless time unit, preserving local marginal structure while breaking alignment to destination responses.
@@ -259,10 +259,10 @@ A rate passes only if all of the following are met:
 1. Mean primary macro precision@2 is at least **0.60**.
 2. The lower bound of a 95% paired-world bootstrap confidence interval for mean precision@2 is above the random-selection expectation 2/7.
 3. At least **24 of 30 worlds** achieve precision@2 of at least **0.50**.
-4. Primary precision@2 exceeds the best of the direction-blind activity, temporally shuffled, reverse-time, and symmetric-association controls by at least **0.10 absolute**, with the paired 95% bootstrap confidence interval for the difference entirely above zero.
+4. Primary precision@2 exceeds the best of the source-state, direction-blind activity, temporally shuffled, reverse-time, and symmetric-association controls by at least **0.10 absolute**, with the paired 95% bootstrap confidence interval for the difference entirely above zero.
 5. Test-set selected-edge predictive contribution is positive on average and greater than that of non-selected pairs.
 
-Path-witness validity is reported as a secondary gate: inferred length-two witnesses must have precision of at least **0.80** and exceed the best control. Path recall and query coverage are reported regardless of pass/fail.
+Path-witness validity is reported as a secondary gate: inferred length-two witnesses must have precision of at least **0.30** and exceed the best control by at least **0.10 absolute**. The lower absolute threshold is intentional: a two-edge witness requires both constituent edges to be recovered, so its expected precision is lower than single-edge precision. Path recall and query coverage are reported regardless of pass/fail.
 
 A failure at either rate blocks LG-01C. A pass at one rate does not imply a pass at the other. A mixed result must be reported as mixed, not averaged into an overall pass.
 
@@ -326,3 +326,14 @@ Before implementation, scientific review must explicitly accept or revise:
 - [ ] the claim boundary and failure interpretation.
 
 **Current decision:** draft prepared for review only. No protocol freeze, implementation, CI campaign, or scientific result is implied.
+
+
+## 14. Internal protocol review notes
+
+The first review pass identified and corrected three design issues before freeze:
+
+- The destination's own tangent is now included in its autoregressive baseline to control for its temporally correlated local drive.
+- The source-state-only mapping is included in the primary competing-control comparison; otherwise the protocol could incorrectly attribute state-based prediction to tangent direction.
+- The length-two witness threshold is reduced to a level compatible with the single-edge acceptance threshold while still requiring a measurable advantage over controls.
+
+Remaining review questions are whether the fixed k=2 prior is acceptable for this first mechanism test, whether the linear coupled world is sufficiently discriminating without being mistaken for general graph emergence, and whether the proposed 0.60 edge-recovery threshold is appropriately demanding. These are scientific freeze decisions, not implementation details.
