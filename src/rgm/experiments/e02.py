@@ -96,7 +96,7 @@ class ObservedQuery:
 @dataclass(frozen=True)
 class ModelInput:
     """Allowlisted model input. It intentionally has no evaluator-truth field."""
-    case_id: int
+    case_id: str
     entity_count: int
     events: tuple[ObservedEvent, ...]
     query: ObservedQuery
@@ -116,7 +116,7 @@ class ModelInput:
         """Canonical model-facing payload; no labels, facts, paths or audit fields."""
         return {
             "schema_version": SCHEMA_VERSION,
-            "case_id": int(self.case_id),
+            "case_id": str(self.case_id),
             "entity_count": int(self.entity_count),
             "observed_events": [event.to_dict() for event in self.events],
             "query": self.query.to_dict(),
@@ -155,18 +155,25 @@ def _to_pair(case: Any, depth: int) -> tuple[ModelInput, EvaluationTruth]:
         ObservedEvent(i, int(event.relation), int(event.subject), int(event.object), float(event.dt))
         for i, event in enumerate(case.events)
     )
+    entity_count = max(4, max(
+        max((e.subject for e in events), default=0),
+        max((e.object for e in events), default=0),
+        int(case.query_subject), int(case.query_object),
+    ) + 1)
+    query = ObservedQuery(
+        int(case.query_subject), int(case.query_object), int(depth),
+        tuple(step % 2 for step in range(depth)),
+    )
+    # Generator seeds encode the class label in their parity. Never expose
+    # that seed: derive an opaque identifier only from model-visible content.
+    opaque_id_payload = {
+        "entity_count": entity_count,
+        "observed_events": [event.to_dict() for event in events],
+        "query": query.to_dict(),
+    }
+    opaque_case_id = hashlib.sha256(_canonical_bytes(opaque_id_payload)).hexdigest()[:24]
     model_input = ModelInput(
-        case_id=int(case.seed),
-        entity_count=max(4, max(
-            max((e.subject for e in events), default=0),
-            max((e.object for e in events), default=0),
-            int(case.query_subject), int(case.query_object),
-        ) + 1),
-        events=events,
-        query=ObservedQuery(
-            int(case.query_subject), int(case.query_object), int(depth),
-            tuple(step % 2 for step in range(depth)),
-        ),
+        case_id=opaque_case_id, entity_count=entity_count, events=events, query=query,
     )
     truth = EvaluationTruth(
         int(case.label), frozenset(tuple(map(int, fact)) for fact in case.facts),
@@ -422,7 +429,7 @@ def run_b(condition: str, world_seed: int, codebook_seed: int, n: int = 160) -> 
             memory_state_bytes[arm].append(state_nbytes)
             memory_ops[arm].append(path_ops)
         per_sequence.append({
-            "case_id": int(model_input.case_id), "input_sha256": model_input.input_sha256,
+            "case_id": str(model_input.case_id), "input_sha256": model_input.input_sha256,
             "label": int(truth.label), "event_count": len(model_input.events),
             "unique_observed_edges": len(graph.edge_set),
             "graph_prediction": int(exists), "graph_witness": list(witness) if witness else None,
@@ -475,7 +482,7 @@ def _corrupt_input(
     if profile not in CORRUPTION_PROFILES:
         raise ValueError(f"unknown corruption profile: {profile}")
     missing_rate, spurious_rate = CORRUPTION_PROFILES[profile]
-    rng = np.random.default_rng(int(model_input.case_id) + 930_017 + int(salt))
+    rng = np.random.default_rng(int(model_input.case_id[:16], 16) + 930_017 + int(salt))
     facts = sorted(truth.facts)
     drop_count = min(len(facts), int(round(missing_rate * len(facts))))
     picked = rng.choice(len(facts), size=drop_count, replace=False) if drop_count else []
