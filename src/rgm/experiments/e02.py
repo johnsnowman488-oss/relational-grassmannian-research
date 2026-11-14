@@ -191,7 +191,7 @@ def _to_pair_with_entities(case: Any, entities: int, depth: int) -> tuple[ModelI
     return model_input, truth
 
 
-def build_event_graph(model_idef build_event_graph(model_input: ModelInput) -> DerivedGraph:
+def build_event_graph(model_input: ModelInput) -> DerivedGraph:
     """Build the canonical graph from the model-visible observed event stream."""
     store = ObservedEventGraph.from_events(model_input.events)
     edge_set = frozenset(
