@@ -104,9 +104,9 @@ Every result must state what it does not establish.
 
 ## 7. LG-01A gate summary
 
-The detailed frozen protocol is LG-01A-v0.1. Its operational gate requires all three fast rates \(\gamma\in\{0.05,0.2,0.8\}\) to pass the declared decay, refresh-activity, post-refresh washout and boundedness checks over 30 paired seeds. The \(\gamma=0.01\) channel is the slow-timescale reference.
+The frozen LG-01A-v0.1 campaign ran 30 paired seeds. The 0.05 and 0.2 fast rates passed 30/30; the 0.8 rate passed only 26/30, below the pre-registered 27/30 threshold. The result is a **valid scientific fail for the declared fast-rate range**. Mathematical, boundedness, input-response, washout, energy-matching and conventional-SOE-null checks passed. See the LG-01A experiment ledger for run IDs, per-seed failures and artifact hashes.
 
-Even a pass supports only the transient-refresh premise. A conventional leaky SOE channel with the same equation should reproduce the same result. LG-01A does not prove graph formation, endogenous routing, relational reasoning or a novel primitive.
+LG-01B is blocked pending a documented scientific review. Do not narrow the rate set or lower the acceptance threshold post hoc. Any revised range or operational criterion must be introduced in a dated v0.2 protocol and tested with a fresh confirmation campaign. The conventional leaky SOE channel matched the candidate as expected; the v0.1 result does not show a distinct primitive.
 
 ## 8. Per-experiment ledger rule
 
