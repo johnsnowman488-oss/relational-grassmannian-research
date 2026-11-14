@@ -1,21 +1,12 @@
 name: LG-01A transient-mode campaign
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - "src/rgm/experiments/lg01a.py"
-      - "tests/test_lg01a.py"
-      - "docs/lg01a_protocol.md"
-      - "docs/lg01a_ledger.md"
-      - ".github/workflows/lg01a.yml"
   push:
     branches: [main, "research/lgdh-lg01a-spine"]
     paths:
       - "src/rgm/experiments/lg01a.py"
       - "tests/test_lg01a.py"
       - "docs/lg01a_protocol.md"
-      - "docs/lg01a_ledger.md"
       - ".github/workflows/lg01a.yml"
 
 permissions:
