@@ -495,7 +495,7 @@ def _score_soe_null(
     bound_obs_max = _check_bound(
         total, rate, dt, float(np.linalg.norm(null["pre_states"][-1] + q)), umax
     )
-    bound_wash_max = _check_bound(null["wash_total"], rate, dt, float(np.linalg.norm(total[-1]), 0.0)
+    bound_wash_max = _check_bound(null["wash_total"], rate, dt, float(np.linalg.norm(total[-1])), 0.0)
     input_all = np.vstack((null["pre_inputs"], null["obs_inputs"][1:]))
     energy = float(np.sum(np.linalg.norm(input_all, axis=1) ** 2) * dt)
     perturb_error = input_perturbation_relative_error(base, rate, dt)
