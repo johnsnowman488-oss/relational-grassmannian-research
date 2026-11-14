@@ -194,3 +194,40 @@ E03 must not encode the answer in the representation being evaluated. The system
 - **2026-11-14 — Architecture kept open:** SOE-only, coupled temporal/relational states and a unified augmented state remain competing hypotheses.
 - **2026-11-14 — Geometry kept as a candidate, not a premise:** Grassmannian and other geometric representations must be compared with learned non-geometric alternatives.
 - **2026-11-14 — E03 designated next:** benchmark diversity and representation-neutral controls precede implementation of a new relational learner.
+
+
+## 8. Parallel mechanism investigation — Lepto-Graph Development Hypothesis
+
+**Status (2026-11-14):** LGDH hypothesis recorded; LG-01A-v0.1 protocol specified; implementation and runs pending.
+
+A parallel mechanism question has been added: can fast, multidimensional, continuously refreshed memory modes develop directed relational pathways from their own trajectories, while slower modes register relevant trajectory history and supply context for later routing?
+
+The distinction from E01/E02 is important:
+
+- E01 studied fixed SOE temporal memory and candidate-path retrieval/composition.
+- E02 studied an explicit graph derived from observed events and a graph-plus-temporal-memory hybrid.
+- LGDH asks whether relational pathways can emerge endogenously from memory-mode trajectories. An observed-edge graph is a useful comparator, not a demonstration of this mechanism.
+
+The working cycle is:
+
+**Trajectory → historical registration → contextual recognition → routing adaptation → new trajectory**
+
+Direction must emerge from the mode's own trajectory. A tangent identifies a direction in the source mode's state space, not a destination; a mapping to candidate recipient modes remains a central open question. Slower modes may register historical trajectories and provide context, but must not replace the current trajectory-derived signal. Lepto-modes are proposed primarily as routing/relational state, not as permanent stores for every information item.
+
+LGDH is a **parallel research stream** and does not replace E03 as the next mainline E-series task. The Relational Grassmannian remains a separate candidate representation/analysis track; no geometric component is required in LG-01A.
+
+### LG stream
+
+| Experiment | Question | Status |
+|---|---|---|
+| LG-01A | Transient mode behaviour under ongoing bounded refresh | Protocol specified; not implemented or run |
+| LG-01B | Trajectory-derived directional relation formation | Planned; waits for LG-01A gate |
+| LG-01C | Slow-memory registration and contextual routing | Planned; waits for LG-01B |
+| LG-01D | Adaptive relational reorganisation | Planned; waits for LG-01B and LG-01C |
+| LG-02A | Computational neurogenesis / mode birth-death | Provisional follow-up |
+| LG-02B | Computational synaptogenesis / connection plasticity | Provisional follow-up |
+| LG-02C | Joint developmental system | Provisional; only after isolated LG-02A/B evidence |
+
+LG-01A uses the repository's 16-dimensional state space and fixed four-rate SOE bank as a comparable dynamical scaffold. It separates a tagged pulse contribution from a continuing refresh contribution, includes an equal-energy intermittent-refresh control, and retains a conventional SOE null baseline. Its operational pass does not establish any graph or reasoning claim.
+
+See [LGDH hypothesis](lgdh_hypothesis.md), [LG experiment spine](lg_experiment_spine.md), [LG-01A protocol](lg01a_protocol.md), [LGDH ledger](lgdh_ledger.md), and [LG-01A ledger](lg01a_ledger.md).
