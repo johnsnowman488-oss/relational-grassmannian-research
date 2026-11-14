@@ -1,7 +1,7 @@
 # LG — Lepto-Graph Experiment Spine
 
 **Research stream:** Lepto-Graph Development Hypothesis (LGDH)  
-**Status:** Sequence defined; LG-01A protocol specified; no experimental runs yet  
+**Status:** LG-01A-v0.1 complete with a restricted downstream operating envelope; LG-01B specification next  
 **Programme relationship:** Parallel to the E-series; E03 remains the next mainline milestone
 
 ## 1. Research objective
@@ -22,7 +22,7 @@ A pass at one layer does not imply a pass at the next.
 | ID | Question | Isolated mechanism | Entry gate | Required exit evidence |
 |---|---|---|---|---|
 | **LG-01A — Transient mode behaviour** | Can fast multidimensional modes remain active under bounded refresh while tagged historical contributions decay? | Fixed leaky modes; no mode-to-mode edges or learning | Protocol frozen | Analytic decay, input-response, refresh activity, boundedness and reproducible run evidence |
-| **LG-01B — Trajectory-derived directional relations** | Can the trajectories of modes form directed relationships without a supplied target topology? | Endogenous directional features and destination mapping, fixed mode population | LG-01A operational gate passes; destination-map alternatives and evaluation split pre-registered | Held-out relation recovery and valid path witnesses above non-directional / random controls |
+| **LG-01B — Trajectory-derived directional relations** | Can the trajectories of modes form directed relationships without a supplied target topology? | Endogenous directional features and destination mapping, fixed mode population | Restricted LG-01A operating envelope formally adopted for LG-01B (γ = 0.05 and 0.20 only; γ = 0.80 remains a recorded v0.1 failure); destination-map alternatives and evaluation split pre-registered | Held-out relation recovery and valid path witnesses above non-directional / random controls |
 | **LG-01C — Slow historical registration and routing** | Does slow registration of trajectory history improve routing under delayed, ambiguous or context-dependent sequences? | Slow SOE registration and context-conditioned destination selection | LG-01B route formation is reproducible | Paired route/retrieval improvement over fast-only and slow-only controls; ablation evidence |
 | **LG-01D — Relational reorganisation** | Can pathways revise after genuine relation changes without unnecessary destruction of stable relations? | Online route adaptation with fixed mode population | LG-01B and LG-01C pass separately | Change detection, adaptation latency, retained stable relations, low spurious rewiring and held-out task benefit |
 
@@ -104,9 +104,11 @@ Every result must state what it does not establish.
 
 ## 7. LG-01A gate summary
 
-The frozen LG-01A-v0.1 campaign ran 30 paired seeds. The 0.05 and 0.2 fast rates passed 30/30; the 0.8 rate passed only 26/30, below the pre-registered 27/30 threshold. The result is a **valid scientific fail for the declared fast-rate range**. Mathematical, boundedness, input-response, washout, energy-matching and conventional-SOE-null checks passed. See the LG-01A experiment ledger for run IDs, per-seed failures and artifact hashes.
+The frozen LG-01A-v0.1 campaign ran 30 paired seeds. The 0.05 and 0.2 fast rates passed 30/30; the 0.8 rate passed only 26/30, below the pre-registered 27/30 threshold. The result remains a **valid scientific fail for the full declared fast-rate range**. Mathematical, boundedness, input-response, washout, energy-matching and conventional-SOE-null checks passed. See the LG-01A experiment ledger for run IDs, per-seed failures and artifact hashes.
 
-LG-01B is blocked pending a documented scientific review. Do not narrow the rate set or lower the acceptance threshold post hoc. Any revised range or operational criterion must be introduced in a dated v0.2 protocol and tested with a fresh confirmation campaign. The conventional leaky SOE channel matched the candidate as expected; the v0.1 result does not show a distinct primitive.
+**Downstream scope decision (2026-11-14):** proceed to LG-01B only within the two LG-01A-v0.1 fast-rate conditions that independently met the frozen per-seed gate: γ = 0.05 and γ = 0.20 (each 30/30). γ = 0.80 remains failed and is excluded from LG-01B's initial operating envelope. This is an explicit restriction of the scope of the next experiment, not a retrospective LG-01A pass, not a change to LG-01A-v0.1, and not permission to alter its threshold or erase the failed condition. LG-01B must report its scope limitation and must not generalise to γ = 0.80 or to the full declared range.
+
+LG-01B may now proceed to specification and preregistration within this restricted envelope. Its destination-map alternatives, evaluation split, and controls must be frozen before implementation or execution. The conventional leaky SOE channel matched the candidate as expected; the v0.1 result does not show a distinct primitive.
 
 ## 8. Per-experiment ledger rule
 
