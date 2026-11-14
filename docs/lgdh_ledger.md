@@ -1,7 +1,7 @@
 # LGDH Cross-Experiment Ledger
 
 **Research stream:** Lepto-Graph Development Hypothesis  
-**Status:** Hypothesis registered; LG-01A protocol frozen for implementation; no experimental results  
+**Status:** LG-01A-v0.1 complete; restricted operating envelope adopted for LG-01B specification  
 **Opened:** 2026-11-14
 
 ## 2026-11-14 — LGDH opened as a parallel mechanism hypothesis
@@ -60,3 +60,14 @@ The LGDH concept remains a hypothesis. This result establishes only that the tes
 ### Same-protocol repeat
 
 A second push workflow, run 43652352159 from the workflow-only commit b29a6df4b81653c0ac1055d068dee5ecdee40183, reproduced the same LG-01A-v0.1 outcome: 30/30 seeds at 0.05, 30/30 at 0.2 and 26/30 at 0.8. Both Python 3.10 and 3.12 test jobs again passed 122 tests each. Its complete artifact (ID 14136263436) also passed SHA256SUMS verification. This is repeat execution of the same protocol and seeds, not a new independent-seed confirmation or a protocol revision.
+
+
+## 2026-11-14 — LG-01B authorised within the demonstrated LG-01A operating envelope
+
+Following review of the LG-01A-v0.1 campaign, proceed to LG-01B using only the fast-mode rates that satisfied the frozen per-seed criterion:
+
+- **γ = 0.05:** 30/30 seeds passed.
+- **γ = 0.20:** 30/30 seeds passed.
+- **γ = 0.80:** 26/30 seeds; remains a valid failure and is excluded from the initial LG-01B operating envelope.
+
+This is a downstream scope restriction based on the observed LG-01A results. It does not convert LG-01A-v0.1 into an overall pass, alter its pre-registered 27/30 rule, or authorise retroactive threshold changes. LG-01B conclusions will be limited to γ = 0.05 and 0.20. The LG-01B protocol must record this boundary, pre-register the destination-mapping alternatives and held-out evaluation split, and retain non-directional and random-routing controls.
