@@ -74,8 +74,8 @@ LGDH is a separately tracked mechanism investigation. It does not displace E03 a
 
 | ID | Question | Status | Entry criterion | Exit evidence |
 |---|---|---|---|---|
-| LG-01A | Can fast multidimensional modes remain active under bounded refresh while individual tagged contributions decay? | Implemented; v0.1 executed; valid scientific fail at rate 0.8 (26/30) | Protocol and runner frozen | 30-seed run bundle; exact decay, washout, boundedness, energy and SOE-null checks pass; refresh gate fails at fastest rate |
-| LG-01B | Can intrinsic mode trajectories form directed relations without a supplied target graph? | Planned | LG-01A operational pass; destination mapping pre-registered | Held-out route recovery and path witnesses above non-directional/random controls |
+| LG-01A | Can fast multidimensional modes remain active under bounded refresh while individual tagged contributions decay? | Implemented; v0.1 executed; full-range scientific fail at rate 0.8 (26/30); 0.05 and 0.20 pass 30/30 | Protocol and runner frozen | 30-seed run bundle; exact decay, washout, boundedness, energy and SOE-null checks pass; fastest-rate refresh gate fails |
+| LG-01B | Can intrinsic mode trajectories form directed relations without a supplied target graph? | Next: specification (restricted to γ = 0.05 and 0.20) | LG-01A-v0.1 rates 0.05 and 0.20 met 30/30; 0.80 remains failed and excluded; destination mapping and evaluation split pre-registered | Held-out route recovery and path witnesses above non-directional/random controls |
 | LG-01C | Does slower trajectory registration improve contextual route selection? | Planned | LG-01B reproducible | Paired improvement over fast-only and slow-only controls |
 | LG-01D | Can the relational organisation revise under structural change while preserving stable relations? | Planned | LG-01B and LG-01C pass separately | Adaptation, retention, stability and interference evidence |
 | LG-02A | Does computational mode birth/death help represent novel recurring trajectories? | Provisional | Fixed-population routing validated | Controlled utility of mode growth under frozen connection weights |
