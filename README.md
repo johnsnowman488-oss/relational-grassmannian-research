@@ -52,7 +52,7 @@ See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathemat
 
 ## Parallel mechanism investigation: Lepto-Graph Development Hypothesis
 
-A separate LGDH line now investigates whether fast, multidimensional, continuously refreshed SOE-like modes can develop endogenous directed relational pathways from their own trajectories, with slower modes registering relevant history. This is a **parallel mechanism hypothesis**, not an established capability and not a replacement for E03. E03 remains the next mainline milestone. LG-01A is protocol-specified but has not yet been implemented or run.
+A separate LGDH line now investigates whether fast, multidimensional, continuously refreshed SOE-like modes can develop endogenous directed relational pathways from their own trajectories, with slower modes registering relevant history. This is a **parallel mechanism hypothesis**, not an established capability and not a replacement for E03. E03 remains the next mainline milestone. LG-01A-v0.1 has been implemented and executed over 30 paired seeds. Its mathematical and reproducibility tests passed on Python 3.10 and 3.12 (122 tests each); the scientific gate failed at the fastest declared rate (0.8: 26/30 seeds). LG-01B is blocked pending review; see the [LG-01A ledger](docs/lg01a_ledger.md).
 
 - [LGDH hypothesis](docs/lgdh_hypothesis.md)
 - [LG experiment spine](docs/lg_experiment_spine.md)
