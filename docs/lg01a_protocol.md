@@ -169,7 +169,7 @@ For every seed and rate, record:
 7. **Boundedness:** maximum state norm and whether the analytic bound is respected at every step.
 8. **Numerical validity:** finite values, deterministic replay, expected array dimensions, and parameter/configuration hashes.
 
-RMS means the square root of the mean squared Euclidean state norm over the stated window. Evaluation windows are fixed at \(\tau_\ell/4\) with stride \(\tau_\ell/8\), restricted to the final observation interval \([3\tau_\ell,4\tau_\ell]\). No timestep is treated as an independent experimental replicate.
+RMS means the square root of the mean squared Euclidean state norm over the stated window. For discrete windowing, use \(W_\ell=\max(2,\lceil\tau_\ell/(4\Delta t)\rceil)\) samples and stride \(S_\ell=\max(1,\lfloor\tau_\ell/(8\Delta t)\rfloor)\) samples, restricted to the final observation interval \([3\tau_\ell,4\tau_\ell]\). This makes the window rule deterministic even where \(\tau/4\) is not an integer multiple of \(\Delta t\). No timestep is treated as an independent experimental replicate.
 
 ## 7. Pre-registered acceptance criteria
 
