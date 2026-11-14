@@ -33,6 +33,10 @@ def test_model_input_contract_excludes_evaluator_truth_and_hash_is_stable():
     assert "label" not in json.dumps(payload)
     assert len(model_input.input_sha256) == 64
     assert model_input.input_sha256 == model_input.input_sha256
+    # Generator seed parity determines the synthetic label; never expose it.
+    assert isinstance(model_input.case_id, str)
+    assert model_input.case_id != "7700001"
+    assert len(model_input.case_id) == 24
     assert truth.label in (0, 1)
 
 
