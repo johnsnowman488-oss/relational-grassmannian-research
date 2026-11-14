@@ -1,0 +1,60 @@
+name: E02 explicit graph research
+
+on:
+  push:
+    branches: ["e02-explicit-graph-memory"]
+    paths:
+      - ".github/workflows/e02.yml"
+      - "docs/e02_protocol.md"
+      - "src/rgm/graph.py"
+      - "tests/test_e02_graph.py"
+      - "src/rgm/experiments/e01_c.py"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/e02.yml"
+      - "docs/e02_protocol.md"
+      - "src/rgm/graph.py"
+      - "tests/test_e02_graph.py"
+      - "src/rgm/experiments/e01_c.py"
+
+permissions:
+  contents: read
+
+jobs:
+  e02-a-freeze:
+    name: E02-A protocol and graph contract / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Verify frozen E01-C condition names
+        run: |
+          python - <<'PY'
+          from rgm.experiments.e01_c import CONDITIONS, WORLD_SEEDS, CODEBOOK_SEEDS
+          expected = {"baseline_e4", "repeat_e4", "candidate_e16", "factload_e16", "depth3_e16", "longgap_e16"}
+          assert set(CONDITIONS) == expected, (set(CONDITIONS), expected)
+          assert WORLD_SEEDS == (501, 502, 503)
+          assert CODEBOOK_SEEDS == (9137, 27183, 65537)
+          print("E02 protocol matches the frozen six E01-C conditions and seed sets")
+          PY
+      - name: Run graph contract and repository tests
+        run: python -m pytest
+      - name: Upload E02-A acceptance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: e02-a-acceptance-py${{ matrix.python-version }}
+          path: |
+            docs/e02_protocol.md
+            src/rgm/graph.py
+            tests/test_e02_graph.py
+          if-no-files-found: error
