@@ -56,3 +56,7 @@ All mathematical, input-response, analytic-boundedness, finite-state and washout
 **Decision:** valid scientific fail for LG-01A-v0.1's declared fast-rate range. Keep the result. Do not advance to LG-01B. Any reconsideration of the 0.8 operating threshold, input normalization or timescale range must be made through a dated v0.2 protocol revision and fresh confirmation run; no post-hoc threshold adjustment is permitted.
 
 The LGDH concept remains a hypothesis. This result establishes only that the tested transient-refresh operating condition is reliable at 0.05 and 0.2 under this protocol, not at 0.8 with the chosen criterion. It does not test endogenous routing, historical trajectory registration, graph formation or adaptive reasoning.
+
+### Same-protocol repeat
+
+A second push workflow, run 43652352159 from the workflow-only commit b29a6df4b81653c0ac1055d068dee5ecdee40183, reproduced the same LG-01A-v0.1 outcome: 30/30 seeds at 0.05, 30/30 at 0.2 and 26/30 at 0.8. Both Python 3.10 and 3.12 test jobs again passed 122 tests each. Its complete artifact (ID 14136263436) also passed SHA256SUMS verification. This is repeat execution of the same protocol and seeds, not a new independent-seed confirmation or a protocol revision.
