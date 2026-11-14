@@ -231,3 +231,9 @@ LGDH is a **parallel research stream** and does not replace E03 as the next main
 LG-01A uses the repository's 16-dimensional state space and fixed four-rate SOE bank as a comparable dynamical scaffold. It separates a tagged pulse contribution from a continuing refresh contribution, includes an equal-energy intermittent-refresh control, and retains a conventional SOE null baseline. Its operational pass does not establish any graph or reasoning claim.
 
 See [LGDH hypothesis](lgdh_hypothesis.md), [LG experiment spine](lg_experiment_spine.md), [LG-01A protocol](lg01a_protocol.md), [LGDH ledger](lgdh_ledger.md), and [LG-01A ledger](lg01a_ledger.md).
+
+### LG-01A execution update (2026-11-14)
+
+The parallel Lepto-Graph Development Hypothesis stream has moved from specification to its first controlled execution. The LG-01A-v0.1 runner and tests are implemented. GitHub Actions run 43652121470 passed 122 repository tests on both Python 3.10 and 3.12 and executed 30 paired seeds. It found 30/30 passes at fast rates 0.05 and 0.2, but only 26/30 at 0.8, below the pre-registered 27/30 requirement. All mathematical, boundedness, washout, energy-match and conventional-SOE-null controls passed. The run bundle is artifact 14136786352.
+
+The result is a valid v0.1 scientific failure at the fastest declared rate, not an implementation failure. LG-01B is blocked until the scope of that result is reviewed. This does not change the main E-series ordering: E03 remains the next mainline milestone, and no Grassmannian or lepto-graph architecture has been selected.
