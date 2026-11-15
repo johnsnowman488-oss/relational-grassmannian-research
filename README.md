@@ -107,3 +107,31 @@ M3 begins the adaptive-learning investigation while retaining the existing vecto
 - [M3 preflight reference runner](src/rgm/experiments/leptograph_m3_preflight.py)
 
 The preflight is not an M3 production implementation. In particular, the memory-architecture comparison is expected to remain blocked until a capacity-matched unified-memory control is mathematically specified. A green CI run means the preflight executed, not that M3 implementation is authorised.
+
+
+## HLG-M3 — proposed relational memory and adaptation foundation
+
+The HLG-M3 foundation is adopted as a proposed design for review, extending the heterogeneous vector-space substrate without replacing M0-M2. It separates stored relationship operators from route activation; introduces shared context banks, metric-aware context matching with abstention, joint online operator estimation, prequential relational evidence, conditional identifiability, and a candidate-based revision mechanism. These are proposed mechanisms, not an implementation protocol or established learning result.
+
+- [Proposed HLG-M3 mathematical foundation](docs/hybrid_leptograph_m3_foundation_proposal.md)
+- [Seven-job mathematical design campaign plan](docs/hybrid_leptograph_m3_foundation_campaign_plan.md)
+- [Pre-implementation reference campaign runner](src/rgm/experiments/leptograph_m3_foundation_campaign.py)
+
+Seven concurrent mathematical design jobs (F1-F7) challenge evidence attribution, metric-aware operator estimation, context memory, evidence/activation/revision, memory controls, integrated task design, and independent mathematical limits. The implementation protocol remains explicitly unfrozen until their results are reviewed.
+
+
+### HLG-M3 foundation campaign results
+
+The canonical seven-job design campaign completed successfully (run 43756548407); all seven jobs, aggregate evidence verification, and 228-test full suites on Python 3.10/3.12 passed. The implementation protocol remains unfrozen pending research review.
+
+- [F1-F7 canonical results and interpretation boundaries](docs/hybrid_leptograph_m3_foundation_campaign_results.md)
+
+
+### HLG-M3 targeted foundation refinements
+
+Following review of F1-F7, five targeted pre-freeze refinement jobs (R1-R5) address invariant absolute context scoring, correlated-source prequential attribution, sequential activation hysteresis, calibrated revision detection/candidate promotion, and learner/evaluator plus resource-accounting contracts.
+
+- [Five-job refinement campaign plan](docs/hybrid_leptograph_m3_refinement_campaign_plan.md)
+- [Refinement reference runner](src/rgm/experiments/leptograph_m3_refinements.py)
+
+These jobs refine the adopted proposal without changing it into a frozen implementation protocol. C0-C4 performance comparison and measured compute matching remain future implementation experiments.
