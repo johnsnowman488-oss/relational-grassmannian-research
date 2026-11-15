@@ -122,3 +122,33 @@ Each experiment has its own ledger. Before any confirmation run, record:
 - decision: **pass**, **fail**, **inconclusive**, or **invalid run**.
 
 The cross-experiment LGDH ledger records changes in the hypothesis and decisions that affect more than one experiment. The repository experiment register gives current status. A CI pass is an execution result, not automatically a scientific pass.
+
+
+## 9. Hybrid relational Leptograph extension and M0
+
+The hybrid relational Leptograph is a mathematical extension under investigation, not a reinterpretation of LG-01A or LG-01B. It preserves multidimensional information reception and routing. Modes share a local vector space within a group, while different groups may have heterogeneous dimensions and communicate through directed, dimension-compatible relational operators. Optional relation-specific interface spaces provide encoder/decoder factorizations; reverse routes remain independent.
+
+The extension distinguishes mode state, mode-level temporal memory, relationship history, current routing operator, relational lineage/identity, context and confidence. A provisional evidence-driven operator adaptation law has been written, but its evidence generator must be separately defined to avoid circularity. Full coupled stability, relational identity recognition, false-reactivation control, endogenous edge/mode birth and death, group reorganisation, and higher-order relations remain open.
+
+The canonical definitions and proof obligations are in [hybrid_leptograph_foundations.md](hybrid_leptograph_foundations.md).
+
+**HLG-M0** is the first mathematical implementation gate, with five exact-reference cases: mode memory; heterogeneous forward routing; independent forward/reverse operators; dormancy; and reactivation. It uses independent analytical expressions and DOP853 integration as cross-checks. Each case is a separate concurrent CI job, followed by a required evidence aggregation job and a full Python 3.10/3.12 test matrix.
+
+M0's claim ceiling is strict: agreement with analytical references verifies only these equations and implementation paths. It does not demonstrate learned destination selection, historical identity recognition, autonomous relation formation, network-level adaptive stability or general reasoning. LG-01B's recorded v0.1 failure remains unchanged, and LG-01C remains blocked under its own prerequisites.
+
+
+### HLG-M0 canonical execution
+
+The hybrid extension's M0 milestone is implemented and the canonical GitHub Actions run [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) passed. All five concurrent analytical cases and the final aggregation job succeeded; the full repository test suite passed 137/137 on Python 3.10 and 137/137 on Python 3.12. This is an analytical/code-verification result only. The complete numerical record and artifact digests are kept in the relational adaptation ledger. The invalid first workflow attempt is documented there and is not counted.
+
+
+## 10. HLG-M1 — heterogeneous routing and geometric invariance
+
+HLG-M1 follows M0 and focuses on the coordinate-free meaning of the hybrid architecture's heterogeneous maps. The key distinction is between orthonormal basis changes (isometries, \(K'=Q_t^\top KQ_s\)) and arbitrary invertible coordinate changes (\(K'=A_t^{-1}KA_s\)) with covariant metric transport. The protocol proves metric singular-spectrum invariance, chain-composition covariance, interface gauge non-identifiability/rank bounds, rank-nullity properties and Grassmannian principal-angle/projector invariance.
+
+Six fixed deterministic cases M1-A through M1-F are run independently and concurrently, followed by an aggregate evidence gate. The full repository suite is run on Python 3.10 and 3.12. Operators are fixed in this experiment: M1 does not estimate or learn them, and makes no claim about semantic alignment, relation discovery or full coupled-system stability. See [the frozen M1 protocol](hybrid_leptograph_m1_protocol.md).
+
+
+### HLG-M1 canonical execution
+
+Canonical Actions run [43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175) passed all six concurrent invariance cases, the aggregate evidence gate and both full-suite matrices (183 tests on Python 3.10 and 183 on Python 3.12). M1 is accepted as algebraic/geometric implementation verification only. Case metrics, artifact IDs and checksums are recorded in the relational adaptation ledger.

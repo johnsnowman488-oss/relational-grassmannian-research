@@ -237,3 +237,133 @@ See [LGDH hypothesis](lgdh_hypothesis.md), [LG experiment spine](lg_experiment_s
 The parallel Lepto-Graph Development Hypothesis stream has moved from specification to its first controlled execution. The LG-01A-v0.1 runner and tests are implemented. GitHub Actions run 43652121470 passed 122 repository tests on both Python 3.10 and 3.12 and executed 30 paired seeds. It found 30/30 passes at fast rates 0.05 and 0.2, but only 26/30 at 0.8, below the pre-registered 27/30 requirement. All mathematical, boundedness, washout, energy-match and conventional-SOE-null controls passed. The run bundle is artifact 14136786352.
 
 The result is a valid v0.1 scientific failure at the fastest declared rate, not an implementation failure. LG-01B is blocked until the scope of that result is reviewed. This does not change the main E-series ordering: E03 remains the next mainline milestone, and no Grassmannian or lepto-graph architecture has been selected.
+
+
+## 9. Hybrid relational Leptograph — mathematical foundation (2026-11-15)
+
+A hybrid dimensional architecture has been added as a parallel LGDH research extension. It preserves the Leptograph's n-dimensional information reception, internal processing and routing while making dimensional organisation explicit:
+
+- Modes are partitioned into groups; modes in a group share an ambient real inner-product space \(\mathcal E_g\cong\mathbb R^{d_g}\).
+- Different groups may have heterogeneous dimensions. The global state is a direct sum of local mode spaces, not an assertion that all modes share one representation.
+- A directed relation from group \(g\) to group \(h\) is a linear map \(K_e:\mathcal E_g\to\mathcal E_h\). An optional relation-specific interface factors it as \(K_e=D_eS_e\), with an explicit non-identifiability/gauge freedom in that factorization.
+- Reverse relations have independent operators; no inverse, transpose or symmetry is presumed.
+- Mode-level temporal memory and relationship-level history are distinct states. Relationship identity, context and confidence are recorded as separate design roles, but their inference/update rules remain open.
+- Provisional adaptation uses \(\dot H_e=\lambda_e(s_e-H_e)\) and \(\dot K_e=\eta_eH_es_e(\widehat K_e-K_e)-\delta_e(1-s_e)K_e\). Evidence construction must be non-circular and separately specified.
+
+The mathematical foundation records proofs for historical-state invariance, operator norm-ball invariance under bounded targets, exact dormancy and reactivation, conditional incremental stability of the mode subsystem, and noiseless operator identifiability under full source excitation. It states the additional assumptions needed for local/global well-posedness and explicitly does **not** claim full coupled-system stability.
+
+Grassmannian subspaces are retained as candidate relational signatures, not mandatory routing states or sufficient historical identities. Higher-order relations, endogenous topology and mode changes, identity recognition, false-reactivation control, and multi-source noisy identifiability remain open.
+
+See [Hybrid Relational Leptograph mathematical foundations](hybrid_leptograph_foundations.md).
+
+### M0 — analytical reference verification
+
+M0 implements and executes five independent analytical cases:
+
+| Case | Scope |
+|---|---|
+| M0-A | Exact mode-memory response and washout |
+| M0-B | Heterogeneous directed routing \(\mathbb R^2\to\mathbb R^4\to\mathbb R^5\) |
+| M0-C | Independent forward and reverse operators |
+| M0-D | Dormant history and operator decay |
+| M0-E | Reactivation after dormancy under renewed constant evidence |
+
+M0 is an equation/code verification milestone, not evidence of relation discovery or scientific utility. Each case is independently executable; CI runs the five cases concurrently and aggregates their evidence. Initial local verification on Python 3.13.5 / NumPy 2.3.5 / SciPy 1.17.0 passed all five cases, with maximum absolute differences from independent DOP853 integration between \(4.60\times10^{-13}\) and \(5.15\times10^{-12}\), against a \(2\times10^{-10}\) tolerance. The dedicated M0 test file passed 15 tests. The canonical cross-version repository CI run 43736121964 also passed, with 137 full-suite tests on Python 3.10 and 137 on Python 3.12; the run and artifact checksums are recorded below.
+
+This extension does not modify LG-01A or LG-01B frozen protocols, alter LG-01B's scientific failure, or unblock LG-01C. It also does not displace E03 in the main E-series.
+
+
+### M0 CI execution record (2026-11-15)
+
+**Canonical workflow run:** [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964)  
+**Source commit:** 199f57f22d534d481b33925aa3785647d761eef9  
+**Result:** success; all five analytical cases and the aggregate gate passed.
+
+The full repository test suite passed on both supported CI versions:
+
+| Python | Full-suite result |
+|---|---:|
+| 3.10 | 137 passed |
+| 3.12 | 137 passed |
+
+Each analytical case ran as a separate concurrent job. Maximum absolute differences between the closed-form reference and independent DOP853 integration were:
+
+| Case | Maximum absolute error | Absolute tolerance | Result |
+|---|---:|---:|---|
+| M0-A | \(4.5963\times10^{-13}\) | \(2\times10^{-10}\) | Pass |
+| M0-B | \(1.0968\times10^{-12}\) | \(2\times10^{-10}\) | Pass |
+| M0-C | \(8.2023\times10^{-13}\) | \(2\times10^{-10}\) | Pass |
+| M0-D | \(8.4077\times10^{-13}\) | \(2\times10^{-10}\) | Pass |
+| M0-E | \(5.1501\times10^{-12}\) | \(2\times10^{-10}\) | Pass |
+
+The aggregation job verified exactly the five expected case files and reported all_cases_passed=true. The canonical summary JSON SHA-256 is eec0b1b5b62023f9262ae094a3edea73468e8a3d907528e70b2998742d5fb968.
+
+**Evidence artifacts:**
+
+| Artifact | ID | ZIP SHA-256 |
+|---|---:|---|
+| M0-A | 14170317370 | 9b59b314e154d6f302981d6f0d6b52577a0dbcf8220f2c728ced6f9d4fa70caf |
+| M0-B | 14169984404 | 9c893374412de6c02ac3a7f206df5f1df41ff744d6cdf025820c095b1bf9b40a |
+| M0-C | 14170463179 | ff72dc23845706334a8c3c3a31e87df83c5046e6bf3da2cc2dbd8a0d02ff3808 |
+| M0-D | 14170268772 | 693cf59da7491299756a93f917832437f004dab6be363215acaec597d1830aa1 |
+| M0-E | 14170002887 | 9fb085f81c33eddff3fba4a6c9ec554b5b2aa25bd367056d67939bb5e32c70a8 |
+| Aggregate summary | 14169848246 | e5269f02b8b7ba38e8356dc8c98a737c63cc143a3dc8938056a89ffeb9c67439 |
+
+An earlier workflow attempt, 43736080691, is explicitly classified as an invalid CI harness attempt: escaped matrix expressions produced invalid Python-version and artifact-name values. The workflow was corrected in commit 199f57f22d534d481b33925aa3785647d761eef9, and only run 43736121964 is treated as canonical M0 CI evidence. The invalid attempt is not counted as an analytical result.
+
+**Interpretation:** M0 passes its analytical/implementation verification gate. It validates these five fixed reference cases and the test environment. It does not establish relation discovery, identity recognition, causal inference, topology emergence, full coupled-system stability or scientific utility.
+
+
+## HLG-M1 — frozen mathematical/implementation scope (2026-11-15)
+
+M1 follows the completed M0 reference checks and isolates a new question: do heterogeneous directed operators, their compositions and geometric signatures behave consistently under changes of coordinates?
+
+The frozen distinction is:
+- **Orthonormal basis changes:** \(K'=Q_t^\top KQ_s\). These are isometries and preserve Euclidean norms, Frobenius norm, rank and ordinary singular values.
+- **General invertible coordinate changes:** \(K'=A_t^{-1}KA_s\). These are not generally isometries. The inner-product matrices must also change by \(G'_s=A_s^\top G_sA_s\), \(G'_t=A_t^\top G_tA_t\); generalized metric singular values, computed after Cholesky whitening, are the invariant quantities.
+- **Route composition:** internal coordinate changes cancel along a heterogeneous chain.
+- **Interface gauge:** \(S'=RS,D'=DR^{-1}\) preserves \(DS\) for any invertible \(R\), but does not make the individual factors identifiable or imply that non-orthogonal gauges preserve the interface metric.
+- **Grassmannian geometry:** principal angles and geodesic distance are invariant under a common orthogonal ambient coordinate change and independent orthogonal frame rotations. Both subspaces being compared must share one ambient metric space and rank.
+
+The frozen six-case protocol is [hybrid_leptograph_m1_protocol.md](hybrid_leptograph_m1_protocol.md). Its cases use deterministic seeds 1101–1106 and float64 tolerances: M1-A/C/D/F \(2\\times10^{-10}\); M1-B \(2\\times10^{-9}\); M1-E uses exact rank/injectivity/surjectivity and factor-rank assertions. Each case writes its own result JSON; CI runs all six independently, then requires the complete evidence set. The full repository suite is checked on Python 3.10 and 3.12.
+
+M1 does not estimate or learn route operators. It does not establish semantic alignment, causal correctness, relation identity, noisy multi-source identifiability or full adaptive-network stability. Those remain separate research questions.
+
+
+## HLG-M1 canonical execution record (2026-11-15)
+
+**Canonical workflow:** [GitHub Actions run 43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175)  
+**Experiment source commit:** 63897b81ff043aa36418447e4372caf7b375a46f  
+**Workflow conclusion:** success; all 9 jobs passed.
+
+| Full repository test matrix | Result |
+|---|---:|
+| Python 3.10 | 183 passed |
+| Python 3.12 | 183 passed |
+
+### Case-level evidence
+
+| Case | Main maximum error / invariant | Result |
+|---|---:|---|
+| M1-A | Output covariance \(6.66\\times10^{-16}\); Frobenius and singular-spectrum errors at \(10^{-16}\) scale | Pass |
+| M1-B | Metric singular-spectrum error \(8.88\\times10^{-16}\); route-coordinate error \(5.55\\times10^{-17}\); metric norm errors 0 | Pass |
+| M1-C | Chain-composition covariance \(1.78\\times10^{-15}\); route covariance \(1.61\\times10^{-15}\) | Pass |
+| M1-D | GL-gauge composite error \(1.22\\times10^{-15}\); factor rank bound verified | Pass |
+| M1-E | Embedding rank 3/injective; projection rank 2/surjective; interface composite rank 2 with nullity 2 | Pass |
+| M1-F | Principal-angle error \(4.44\\times10^{-16}\); geodesic and projector errors \(2.22\\times10^{-16}\) | Pass |
+
+The aggregate verifier required exactly M1-A through M1-F and reported all_cases_passed=true with summary JSON SHA-256 c6e4e0d2381b077ee38ee71df6a26a04e9be15cd80d29013972351bfb3841096.
+
+### Evidence artifacts
+
+| Artifact | ID | ZIP SHA-256 |
+|---|---:|---|
+| M1-A | 14171445572 | 081472a4c8b8b1c01e40f1aba52976b44b86e673f53bf81104aa06ac204c9c21 |
+| M1-B | 14171021743 | 91cd74e365c9e5118e013c7a31e0785ac9870837442b84b8776f1c0a870d158a |
+| M1-C | 14171445545 | 08ee2d72ef7fdb805f2e52a5f2bafb3b3773d8f44af81536ab0d0157de26a9bb |
+| M1-D | 14170554945 | 7746ac54f04bee290fda94c6bcc14e63e5760ac1ce2a9818aa360a7e1c6cb2a2 |
+| M1-E | 14171535011 | f34048abd7b5647050731f6487ca0f32421a8de805d1fed19dbf326be0582b9c |
+| M1-F | 14170673258 | 5bfd2ef3d15411d57d204c548415b5986a505fe4e00550478507921e104123d9 |
+| Aggregate summary | 14171175758 | 241c0cd8bb60bb6e22fde850e63943bb12f6fee5f7bf6875722955374f0db45b |
+
+**Interpretation:** HLG-M1 passes its algebraic/geometric implementation gate. The results verify covariance of fixed heterogeneous maps, metric transport, route composition, interface factorisation gauge freedom, linear rank diagnostics and Grassmannian invariance to floating-point tolerance. They do not establish learned relational operators, semantic alignment, causal attribution, noisy multi-source identifiability, temporal adaptation or stability of the complete adaptive network.

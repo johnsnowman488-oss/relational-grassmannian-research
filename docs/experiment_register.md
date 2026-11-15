@@ -85,3 +85,31 @@ LGDH is a separately tracked mechanism investigation. It does not displace E03 a
 **LG-01A interpretation ceiling:** a pass validates only transient activity under refresh. The conventional leaky SOE null is expected to reproduce the same equations. This experiment cannot establish graph formation, endogenous destination selection, reasoning or a distinct lepto-graph primitive.
 
 Full specifications and ledgers are in the [LGDH experiment spine](lg_experiment_spine.md).
+
+
+## Hybrid Relational Leptograph analytical milestone
+
+| ID | Question | Status | Entry criterion | Exit evidence |
+|---|---|---|---|---|
+| HLG-M0 | Do the hybrid group's spaces, directed heterogeneous routing, memory, dormancy and reactivation equations have correct analytical reference implementations? | Implemented; all five analytical cases, aggregate evidence gate and full Python 3.10/3.12 test matrices passed (137 tests each) | Foundation v0.1 recorded; equations and claim boundaries explicit | Five independent exact-vs-DOP853 references, full Python 3.10/3.12 repository tests, and aggregate evidence manifest |
+
+HLG-M0 cases are independently executable and suitable for concurrent CI jobs: M0-A memory; M0-B heterogeneous forward routing; M0-C independent reverse routing; M0-D dormancy; M0-E reactivation. M0 is mathematical/implementation verification only. It does not test whether relations can be discovered, whether identity can be recognised, whether topology can emerge, or whether the fully coupled adaptive system is stable. See [the mathematical foundations](hybrid_leptograph_foundations.md).
+
+ 
+### HLG-M0 canonical run
+
+The canonical GitHub Actions run is [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) at commit 199f57f22d534d481b33925aa3785647d761eef9. Five analytical cases passed concurrently, the aggregate evidence verifier passed, and the complete test suite passed with 137 tests on each of Python 3.10 and 3.12. The summary artifact is 14169848246. See the relational adaptation ledger for error maxima, artifact digests and the invalid first harness-attempt note.
+
+
+## Hybrid Relational Leptograph M1 — Heterogeneous Dimensional Routing and Geometric Invariance
+
+| ID | Question | Status | Entry criterion | Exit evidence |
+|---|---|---|---|---|
+| HLG-M1 | Do heterogeneous directed maps, route compositions, interface factorizations and Grassmannian signatures transform correctly under coordinate changes? | Passed; six concurrent analytical cases, aggregate evidence gate and full Python 3.10/3.12 test suites (183 tests each) | HLG-M0 passed; M1-v0.1 protocol frozen | Six passing invariance cases, aggregate evidence manifest, full repository tests on Python 3.10/3.12 |
+
+M1-A through M1-F test (A) orthonormal source/target basis covariance; (B) general invertible coordinate covariance with metric transport; (C) a heterogeneous 2→4→3→5 route chain; (D) interface GL-gauge invariance and factorisation rank bounds; (E) rank-nullity and information-dimension diagnostics; and (F) Grassmannian principal-angle, distance and projector invariance. Each case is an independent concurrent job followed by aggregate evidence validation. This is a fixed-operator algebraic verification milestone, not evidence of learned relational discovery or adaptive-network stability. See [the frozen M1 protocol](hybrid_leptograph_m1_protocol.md).
+
+
+### HLG-M1 canonical execution
+
+Canonical GitHub Actions run [43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175) completed successfully at source commit 63897b81ff043aa36418447e4372caf7b375a46f. Six independent analytical jobs, the aggregate evidence verifier, and both complete repository test matrices passed. The full suite reported 183 tests passed on Python 3.10 and 183 on Python 3.12. Numerical maxima, all artifact IDs and ZIP SHA-256 digests are in the relational adaptation ledger.

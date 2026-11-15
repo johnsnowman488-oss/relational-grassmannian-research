@@ -1,0 +1,48 @@
+"""Hybrid Leptograph mathematical and routing primitives."""
+from .m0 import (
+    exact_history_trace,
+    exact_memory_trace,
+    exact_operator_trace,
+    factor_routing_operator as m0_factor_routing_operator,
+    route as m0_route,
+)
+from .m1 import (
+    compose_routes,
+    factor_routing_operator,
+    gauge_reparameterize_factorization,
+    grassmann_distance,
+    metric_norm,
+    metric_singular_values,
+    operator_diagnostics,
+    principal_angles,
+    projector_from_frame,
+    route,
+    transform_factorization,
+    transform_inner_product,
+    transform_linear_map,
+    transform_projector,
+    verify_factor_rank_bound,
+)
+
+__all__ = [
+    "compose_routes",
+    "exact_history_trace",
+    "exact_memory_trace",
+    "exact_operator_trace",
+    "factor_routing_operator",
+    "gauge_reparameterize_factorization",
+    "grassmann_distance",
+    "m0_factor_routing_operator",
+    "m0_route",
+    "metric_norm",
+    "metric_singular_values",
+    "operator_diagnostics",
+    "principal_angles",
+    "projector_from_frame",
+    "route",
+    "transform_factorization",
+    "transform_inner_product",
+    "transform_linear_map",
+    "transform_projector",
+    "verify_factor_rank_bound",
+]

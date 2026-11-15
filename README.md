@@ -60,3 +60,27 @@ A separate LGDH line now investigates whether fast, multidimensional, continuous
 - [LG-01B protocol draft](docs/lg01b_protocol.md)
 - [LGDH cross-experiment ledger](docs/lgdh_ledger.md)
 - [LG-01A experiment ledger](docs/lg01a_ledger.md)
+
+
+## Hybrid Relational Leptograph — mathematical foundation
+
+A parallel LGDH extension formalises a hybrid dimensional architecture: modes share a vector space within each group, groups may have heterogeneous dimensions, and directed relations route information through dimension-compatible operators and optional relation-specific interfaces. Mode memory and relationship history are separate dynamical states. Identity recognition, topology birth/death, group reorganisation and full coupled stability remain open.
+
+- [Hybrid Relational Leptograph mathematical foundations](docs/hybrid_leptograph_foundations.md)
+- [M0 analytical reference implementation](src/rgm/leptograph/m0.py)
+
+M0 verifies five closed-form reference cases: memory, heterogeneous routing, independent reverse routing, dormancy and reactivation. It is not a scientific-performance or relation-discovery result. Five analytical cases run as independent concurrent jobs, with a Python 3.10/3.12 full-test matrix and final evidence aggregation.
+
+
+Canonical GitHub Actions run [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) passed all five analytical jobs, the aggregation gate, and 137 full-repository tests on each of Python 3.10 and 3.12. Artifact IDs and SHA-256 digests are recorded in the relational adaptation ledger.
+
+
+## HLG-M1 — Heterogeneous Dimensional Routing and Geometric Invariance
+
+M1 verifies how directed routing maps between spaces of different dimensions transform under orthonormal and general invertible coordinate changes. It separately checks metric transport and metric-aware singular values, route-chain composition, interface GL-gauge freedom, rank/nullity diagnostics and Grassmannian invariance.
+
+- [Frozen HLG-M1 protocol and propositions](docs/hybrid_leptograph_m1_protocol.md)
+- [M1 implementation](src/rgm/leptograph/m1.py)
+- [M1 independent experiment runner](src/rgm/experiments/leptograph_m1.py)
+
+Six independent deterministic cases run concurrently, followed by aggregate evidence verification and a Python 3.10/3.12 full-repository test matrix. Canonical run [43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175) passed all six cases and both 183-test suites. M1 is algebraic/geometric verification of fixed operators, not evidence of learned relation discovery, semantic alignment or full adaptive-system stability.
