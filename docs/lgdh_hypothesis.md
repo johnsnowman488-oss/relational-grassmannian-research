@@ -1,7 +1,7 @@
 # Lepto-Graph Development Hypothesis (LGDH)
 
 **Research stream:** LG — parallel mechanism investigation  
-**Status:** Hypothesis recorded; LG-01A protocol specified; no LGDH results yet  
+**Status:** LG-01A-v0.1 executed; LG-01B protocol draft under review  
 **Opened:** 2026-11-14  
 **Parent research project:** Independent Relational Grassmannian Research
 
