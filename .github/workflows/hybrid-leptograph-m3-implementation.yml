@@ -1,0 +1,142 @@
+name: HLG-M3 Implementation Campaign
+
+on:
+  push:
+    branches: [research/hybrid-relational-leptograph-m3-implementation-v0.1]
+    paths:
+      - "docs/hybrid_leptograph_m3_implementation_protocol_v0_1.md"
+      - "docs/hybrid_leptograph_m3_work_packages.md"
+      - "src/rgm/leptograph/m3/**"
+      - "src/rgm/experiments/leptograph_m3_implementation.py"
+      - "tests/test_leptograph_m3_implementation.py"
+      - ".github/workflows/hybrid-leptograph-m3-implementation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/hybrid_leptograph_m3_implementation_protocol_v0_1.md"
+      - "docs/hybrid_leptograph_m3_work_packages.md"
+      - "src/rgm/leptograph/m3/**"
+      - "src/rgm/experiments/leptograph_m3_implementation.py"
+      - "tests/test_leptograph_m3_implementation.py"
+      - ".github/workflows/hybrid-leptograph-m3-implementation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  full-tests:
+    name: Full repository tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run full test suite
+        run: python -m pytest
+
+  component-work-packages:
+    name: ${{ matrix.package }} component investigation
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        package: [M3-A, M3-B, M3-C, M3-D, M3-E]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Execute independent work package
+        run: >-
+          python -m rgm.experiments.leptograph_m3_implementation
+          --work-package ${{ matrix.package }}
+          --output results/leptograph_m3_implementation/${{ matrix.package }}.json
+      - name: Upload package evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlg-m3-implementation-${{ matrix.package }}
+          path: results/leptograph_m3_implementation/${{ matrix.package }}.json
+          if-no-files-found: error
+
+  integration:
+    name: M3-I integrated heterogeneous learner
+    runs-on: ubuntu-latest
+    needs: [component-work-packages]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Execute integrated sequential smoke
+        run: >-
+          python -m rgm.experiments.leptograph_m3_implementation
+          --work-package M3-I
+          --output results/leptograph_m3_implementation/M3-I.json
+      - name: Upload integration evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlg-m3-implementation-M3-I
+          path: results/leptograph_m3_implementation/M3-I.json
+          if-no-files-found: error
+
+  aggregate:
+    name: Verify six work-package artifacts
+    runs-on: ubuntu-latest
+    needs: [component-work-packages, integration, full-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download six work-package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: hlg-m3-implementation-M3-*
+          path: results/leptograph_m3_implementation
+          merge-multiple: true
+      - name: Verify exact campaign evidence set
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("results/leptograph_m3_implementation")
+          expected = {f"M3-{x}.json" for x in ("A", "B", "C", "D", "E", "I")}
+          actual = {p.name for p in root.glob("*.json")}
+          assert actual == expected, {"expected": sorted(expected), "actual": sorted(actual)}
+          records = [json.loads((root / name).read_text()) for name in sorted(expected)]
+          assert all(r.get("campaign_id") == "HLG-M3-IMPLEMENTATION-v0.1" for r in records)
+          assert all(r.get("execution_passed") is True for r in records)
+          summary = {
+              "campaign_id": "HLG-M3-IMPLEMENTATION-v0.1",
+              "package_ids": [r["package_id"] for r in records],
+              "package_count": len(records),
+              "all_package_executions_passed": True,
+              "implementation_protocol_frozen": False,
+              "m3_scientific_validation_complete": False,
+              "decision": "FIRST_IMPLEMENTATION_SLICE_EXECUTED_REVIEW_AND_EXTEND",
+              "claim_ceiling": "component and synthetic integration smoke only; held-out generalisation, architecture comparison, detector calibration and global stability remain open"
+          }
+          (root / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+          print(json.dumps(summary, sort_keys=True))
+          PY
+      - name: Upload aggregate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlg-m3-implementation-summary
+          path: results/leptograph_m3_implementation/summary.json
+          if-no-files-found: error
