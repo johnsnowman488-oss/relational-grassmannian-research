@@ -95,3 +95,6 @@ M2 extends the fixed heterogeneous routing foundation to parallel paths and feed
 - [M2 independent experiment runner](src/rgm/experiments/leptograph_m2.py)
 
 M2 is fixed-matrix algebra and LTI network verification only. It does not validate adaptive, delayed, nonlinear or learned-network stability, nor information-theoretic capacity or semantic retention.
+
+
+Canonical HLG-M2 run [43741891066](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43741891066) passed all six reference cases, the aggregate evidence gate, and 198 full-repository tests on each of Python 3.10 and 3.12. This is fixed-matrix/LTI verification, not adaptive-network evidence.

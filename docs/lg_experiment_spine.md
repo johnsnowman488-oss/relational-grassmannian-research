@@ -161,3 +161,8 @@ HLG-M2 extends the fixed-operator analysis from one route to multi-route network
 For the fixed discrete-time LTI model, asymptotic stability is governed by the global transition matrix spectral radius. The induced 2-norm below one is sufficient but not necessary; non-normal stable systems can exhibit transient amplification. M2 therefore reports the spectral criterion, induced norm and finite-horizon power growth as distinct quantities.
 
 The six frozen cases and claim boundaries are in [the M2 protocol](hybrid_leptograph_m2_protocol.md). The implementation is fixed-matrix algebra only: it does not introduce route learning, online adaptation, delays, nonlinear dynamics, semantic information or adaptive-network stability. E03 remains the next mainline E-series milestone.
+
+
+### HLG-M2 canonical execution (2026-11-15)
+
+Canonical run [43741891066](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43741891066) passed all six multi-route cases, aggregate verification and 198 full-repository tests on each of Python 3.10 and 3.12. This verifies only the frozen fixed-route and synchronous LTI references. See the M2 section of the [relational adaptation ledger](relational_adaptation_ledger.md) for numerical metrics and artifact digests.

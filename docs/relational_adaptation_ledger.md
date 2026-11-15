@@ -380,3 +380,44 @@ The core distinctions are:
 - Singular-spectrum conditioning and single-route erasure are diagnostics in the declared Euclidean coordinates, not semantic or Shannon-information measures. General coordinate changes require M1's metric transport.
 
 M2 leaves adaptive/time-varying/delayed/nonlinear/stochastic stability, information-theoretic capacity, semantic retention, learning and relation discovery open. It does not alter M0/M1 evidence, any frozen LG protocol/result, or E03's status as the next mainline E-series milestone.
+
+
+### HLG-M2 canonical execution record (2026-11-15)
+
+**Canonical workflow:** [GitHub Actions run 43741891066](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43741891066)  
+**Source commit:** 6e8b7fcad4e8456849041f329cb8f1e8e4714d23  
+**Result:** success; all 9 jobs passed (six cases, aggregate evidence and two full-suite jobs).
+
+| Full repository test matrix | Result |
+|---|---:|
+| Python 3.10 | 198 passed |
+| Python 3.12 | 198 passed |
+
+#### Case metrics
+
+| Case | Evidence | Result |
+|---|---|---|
+| M2-A | Coherence ratio 0.7647059; cancellation fraction 0.2352941; coalesced rank 2; effective condition 4.3333 | Pass |
+| M2-B | Opposite routes cancel to summed rank 0; stacked observation rank 3, nullity 0 | Pass |
+| M2-C | Component conditions 100 and 10; composite condition 1,000 equals the product upper bound; singular values 1, 0.05, 0.001 | Pass |
+| M2-D | Spectral radius 0.8; induced 2-norm 6.1048; 12-step horizon peak gain 12.3016 at step 4 | Pass |
+| M2-E | Heterogeneous 7×7 network; spectral radius 0.2583156; stability margin 0.7416844; induced 2-norm 0.2623529 | Pass |
+| M2-F | Stacked source rank 2/nullity 0; after each of the three single-route erasures rank remains 2/nullity 0; worst condition 1.4142 | Pass |
+
+The aggregation job required M2-A through M2-F and reported all_cases_passed=true. Aggregate summary JSON SHA-256: c80e63ed1dfb4e499f6641f3e207776f3458c1505cd5907e7e088f2d44ac05cc.
+
+#### Evidence artifacts
+
+| Artifact | ID | ZIP SHA-256 |
+|---|---:|---|
+| M2-A | 14172538194 | 7b8ebab8d8c2bc21a1993540bdde884a4ff07aea0fd41acdc3a0bc861da9d02d |
+| M2-B | 14171829403 | 3ee515846f6ab3db5493391b09efc513e15d95ed11870d9cd8eb341cc3563f7c |
+| M2-C | 14172915378 | 83fa089c92283c236883e485b9aecba4d753014e73f0b3686c1b13ebf4e852eb |
+| M2-D | 14172403906 | 0977974071ce71fab0b7152cf83199d068e4b8d4b0fa7f88bb915e6c2418a20e |
+| M2-E | 14172149844 | 02618a1d061688411159f2720b988c2a48bb3eb926feecc4bc3944d14d15b379 |
+| M2-F | 14171849292 | 0aa72902800426a08f7ef956f05f52383fd6a973604cb9e6ad95d86e6f405fcb |
+| Aggregate summary | 14173155405 | f669f8c8af416555d7059da77ad224bbb07a3c3b9c6b28734fc5de0112288fa3 |
+
+The first push workflow attempt, 43741811020, is excluded as an invalid CI harness attempt: an extra literal dollar in the matrix expressions caused setup-python to request $3.10/$3.12, and case arguments were expanded as empty shell variables. The workflow expressions were corrected in commit 6e8b7fcad4e8456849041f329cb8f1e8e4714d23. The corrected canonical run 43741891066 is the accepted execution evidence; no scientific case result was taken from the invalid attempt.
+
+**Interpretation:** HLG-M2 passes its fixed-matrix and synchronous finite-dimensional LTI implementation gate. It verifies route-sum cancellation, stacked observation retention, condition accumulation, global spectral stability versus transient growth, and source-rank resilience to one route loss for the frozen matrices. It does not establish adaptive/nonlinear/delayed/stochastic network stability, semantic information retention, information-theoretic capacity or scientific task utility.
