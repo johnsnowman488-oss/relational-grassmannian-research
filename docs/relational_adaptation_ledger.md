@@ -312,3 +312,19 @@ The aggregation job verified exactly the five expected case files and reported a
 An earlier workflow attempt, 43736080691, is explicitly classified as an invalid CI harness attempt: escaped matrix expressions produced invalid Python-version and artifact-name values. The workflow was corrected in commit 199f57f22d534d481b33925aa3785647d761eef9, and only run 43736121964 is treated as canonical M0 CI evidence. The invalid attempt is not counted as an analytical result.
 
 **Interpretation:** M0 passes its analytical/implementation verification gate. It validates these five fixed reference cases and the test environment. It does not establish relation discovery, identity recognition, causal inference, topology emergence, full coupled-system stability or scientific utility.
+
+
+## HLG-M1 — frozen mathematical/implementation scope (2026-11-15)
+
+M1 follows the completed M0 reference checks and isolates a new question: do heterogeneous directed operators, their compositions and geometric signatures behave consistently under changes of coordinates?
+
+The frozen distinction is:
+- **Orthonormal basis changes:** \(K'=Q_t^\top KQ_s\). These are isometries and preserve Euclidean norms, Frobenius norm, rank and ordinary singular values.
+- **General invertible coordinate changes:** \(K'=A_t^{-1}KA_s\). These are not generally isometries. The inner-product matrices must also change by \(G'_s=A_s^\top G_sA_s\), \(G'_t=A_t^\top G_tA_t\); generalized metric singular values, computed after Cholesky whitening, are the invariant quantities.
+- **Route composition:** internal coordinate changes cancel along a heterogeneous chain.
+- **Interface gauge:** \(S'=RS,D'=DR^{-1}\) preserves \(DS\) for any invertible \(R\), but does not make the individual factors identifiable or imply that non-orthogonal gauges preserve the interface metric.
+- **Grassmannian geometry:** principal angles and geodesic distance are invariant under a common orthogonal ambient coordinate change and independent orthogonal frame rotations. Both subspaces being compared must share one ambient metric space and rank.
+
+The frozen six-case protocol is [hybrid_leptograph_m1_protocol.md](hybrid_leptograph_m1_protocol.md). Its cases use deterministic seeds 1101–1106 and float64 tolerances: M1-A/C/D/F \(2\\times10^{-10}\); M1-B \(2\\times10^{-9}\); M1-E uses exact rank/injectivity/surjectivity and factor-rank assertions. Each case writes its own result JSON; CI runs all six independently, then requires the complete evidence set. The full repository suite is checked on Python 3.10 and 3.12.
+
+M1 does not estimate or learn route operators. It does not establish semantic alignment, causal correctness, relation identity, noisy multi-source identifiability or full adaptive-network stability. Those remain separate research questions.

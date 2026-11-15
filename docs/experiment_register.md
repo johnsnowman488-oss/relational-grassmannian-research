@@ -99,3 +99,12 @@ HLG-M0 cases are independently executable and suitable for concurrent CI jobs: M
 ### HLG-M0 canonical run
 
 The canonical GitHub Actions run is [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) at commit 199f57f22d534d481b33925aa3785647d761eef9. Five analytical cases passed concurrently, the aggregate evidence verifier passed, and the complete test suite passed with 137 tests on each of Python 3.10 and 3.12. The summary artifact is 14169848246. See the relational adaptation ledger for error maxima, artifact digests and the invalid first harness-attempt note.
+
+
+## Hybrid Relational Leptograph M1 — Heterogeneous Dimensional Routing and Geometric Invariance
+
+| ID | Question | Status | Entry criterion | Exit evidence |
+|---|---|---|---|---|
+| HLG-M1 | Do heterogeneous directed maps, route compositions, interface factorizations and Grassmannian signatures transform correctly under coordinate changes? | Implemented; six independent analytical cases and test suite prepared; CI pending | HLG-M0 passed; M1-v0.1 protocol frozen | Six passing invariance cases, aggregate evidence manifest, full repository tests on Python 3.10/3.12 |
+
+M1-A through M1-F test (A) orthonormal source/target basis covariance; (B) general invertible coordinate covariance with metric transport; (C) a heterogeneous 2→4→3→5 route chain; (D) interface GL-gauge invariance and factorisation rank bounds; (E) rank-nullity and information-dimension diagnostics; and (F) Grassmannian principal-angle, distance and projector invariance. Each case is an independent concurrent job followed by aggregate evidence validation. This is a fixed-operator algebraic verification milestone, not evidence of learned relational discovery or adaptive-network stability. See [the frozen M1 protocol](hybrid_leptograph_m1_protocol.md).

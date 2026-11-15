@@ -140,3 +140,10 @@ M0's claim ceiling is strict: agreement with analytical references verifies only
 ### HLG-M0 canonical execution
 
 The hybrid extension's M0 milestone is implemented and the canonical GitHub Actions run [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) passed. All five concurrent analytical cases and the final aggregation job succeeded; the full repository test suite passed 137/137 on Python 3.10 and 137/137 on Python 3.12. This is an analytical/code-verification result only. The complete numerical record and artifact digests are kept in the relational adaptation ledger. The invalid first workflow attempt is documented there and is not counted.
+
+
+## 10. HLG-M1 — heterogeneous routing and geometric invariance
+
+HLG-M1 follows M0 and focuses on the coordinate-free meaning of the hybrid architecture's heterogeneous maps. The key distinction is between orthonormal basis changes (isometries, \(K'=Q_t^\top KQ_s\)) and arbitrary invertible coordinate changes (\(K'=A_t^{-1}KA_s\)) with covariant metric transport. The protocol proves metric singular-spectrum invariance, chain-composition covariance, interface gauge non-identifiability/rank bounds, rank-nullity properties and Grassmannian principal-angle/projector invariance.
+
+Six fixed deterministic cases M1-A through M1-F are run independently and concurrently, followed by an aggregate evidence gate. The full repository suite is run on Python 3.10 and 3.12. Operators are fixed in this experiment: M1 does not estimate or learn them, and makes no claim about semantic alignment, relation discovery or full coupled-system stability. See [the frozen M1 protocol](hybrid_leptograph_m1_protocol.md).

@@ -1,0 +1,100 @@
+name: Hybrid Relational Leptograph M1
+
+on:
+  push:
+    branches: [research/hybrid-relational-leptograph-m1]
+    paths:
+      - "docs/hybrid_leptograph_m1_protocol.md"
+      - "docs/hybrid_leptograph_foundations.md"
+      - "src/rgm/leptograph/m1.py"
+      - "src/rgm/experiments/leptograph_m1.py"
+      - "tests/test_leptograph_m1.py"
+      - ".github/workflows/hybrid-leptograph-m1.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/hybrid_leptograph_m1_protocol.md"
+      - "docs/hybrid_leptograph_foundations.md"
+      - "src/rgm/leptograph/m1.py"
+      - "src/rgm/experiments/leptograph_m1.py"
+      - "tests/test_leptograph_m1.py"
+      - ".github/workflows/hybrid-leptograph-m1.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Full repository tests (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run full repository test suite
+        run: python -m pytest
+
+  invariance-cases:
+    name: Invariance reference ${{ matrix.case }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        case: [M1-A, M1-B, M1-C, M1-D, M1-E, M1-F]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install experiment dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Execute independent invariance case
+        run: >-
+          python -m rgm.experiments.leptograph_m1
+          --case ${{ matrix.case }}
+          --output results/leptograph_m1/${{ matrix.case }}.json
+      - name: Upload case evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-leptograph-m1-${{ matrix.case }}
+          path: results/leptograph_m1/${{ matrix.case }}.json
+          if-no-files-found: error
+
+  aggregate:
+    name: Verify complete M1 evidence set
+    runs-on: ubuntu-latest
+    needs: [invariance-cases]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Download all independent case artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: hybrid-leptograph-m1-M1-*
+          path: results/leptograph_m1
+          merge-multiple: true
+      - name: Require all six passing cases
+        run: >-
+          python -m rgm.experiments.leptograph_m1
+          --verify-result-dir results/leptograph_m1
+          --output results/leptograph_m1/summary.json
+      - name: Upload aggregate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-leptograph-m1-summary
+          path: results/leptograph_m1/summary.json
+          if-no-files-found: error

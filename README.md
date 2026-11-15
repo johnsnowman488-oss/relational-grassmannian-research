@@ -73,3 +73,14 @@ M0 verifies five closed-form reference cases: memory, heterogeneous routing, ind
 
 
 Canonical GitHub Actions run [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) passed all five analytical jobs, the aggregation gate, and 137 full-repository tests on each of Python 3.10 and 3.12. Artifact IDs and SHA-256 digests are recorded in the relational adaptation ledger.
+
+
+## HLG-M1 — Heterogeneous Dimensional Routing and Geometric Invariance
+
+M1 verifies how directed routing maps between spaces of different dimensions transform under orthonormal and general invertible coordinate changes. It separately checks metric transport and metric-aware singular values, route-chain composition, interface GL-gauge freedom, rank/nullity diagnostics and Grassmannian invariance.
+
+- [Frozen HLG-M1 protocol and propositions](docs/hybrid_leptograph_m1_protocol.md)
+- [M1 implementation](src/rgm/leptograph/m1.py)
+- [M1 independent experiment runner](src/rgm/experiments/leptograph_m1.py)
+
+Six independent deterministic cases run concurrently, followed by aggregate evidence verification and a Python 3.10/3.12 full-repository test matrix. M1 is algebraic/geometric verification of fixed operators, not evidence of learned relation discovery, semantic alignment or full adaptive-system stability.
