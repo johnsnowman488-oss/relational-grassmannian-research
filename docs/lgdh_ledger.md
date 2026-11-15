@@ -53,7 +53,7 @@ At rate 0.80, seeds 105, 112, 114 and 116 failed the pre-registered requirement 
 
 All mathematical, input-response, analytic-boundedness, finite-state and washout checks passed. The candidate and independently stepped conventional SOE traces matched within maximum relative difference 2.02055e-15 (tolerance 1e-10). Continuous and intermittent input energies matched exactly. Thus the dynamics are fully explained by the ordinary leaky-SOE null in this experiment; no new primitive is demonstrated.
 
-**Decision:** valid scientific fail for LG-01A-v0.1's declared fast-rate range. Keep the result. Do not advance to LG-01B. Any reconsideration of the 0.8 operating threshold, input normalization or timescale range must be made through a dated v0.2 protocol revision and fresh confirmation run; no post-hoc threshold adjustment is permitted.
+**Decision:** valid scientific fail for LG-01A-v0.1's declared fast-rate range. Keep the result. Do not implement or execute LG-01B until its separate protocol is reviewed and frozen. Any reconsideration of the 0.8 operating threshold, input normalization or timescale range must be made through a dated v0.2 protocol revision and fresh confirmation run; no post-hoc threshold adjustment is permitted.
 
 The LGDH concept remains a hypothesis. This result establishes only that the tested transient-refresh operating condition is reliable at 0.05 and 0.2 under this protocol, not at 0.8 with the chosen criterion. It does not test endogenous routing, historical trajectory registration, graph formation or adaptive reasoning.
 
