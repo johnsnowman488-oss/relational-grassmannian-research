@@ -91,6 +91,11 @@ Full specifications and ledgers are in the [LGDH experiment spine](lg_experiment
 
 | ID | Question | Status | Entry criterion | Exit evidence |
 |---|---|---|---|---|
-| HLG-M0 | Do the hybrid group's spaces, directed heterogeneous routing, memory, dormancy and reactivation equations have correct analytical reference implementations? | Implemented; five local analytical cases and 15 dedicated tests passed; cross-version CI pending | Foundation v0.1 recorded; equations and claim boundaries explicit | Five independent exact-vs-DOP853 references, full Python 3.10/3.12 repository tests, and aggregate evidence manifest |
+| HLG-M0 | Do the hybrid group's spaces, directed heterogeneous routing, memory, dormancy and reactivation equations have correct analytical reference implementations? | Implemented; all five analytical cases, aggregate evidence gate and full Python 3.10/3.12 test matrices passed (137 tests each) | Foundation v0.1 recorded; equations and claim boundaries explicit | Five independent exact-vs-DOP853 references, full Python 3.10/3.12 repository tests, and aggregate evidence manifest |
 
 HLG-M0 cases are independently executable and suitable for concurrent CI jobs: M0-A memory; M0-B heterogeneous forward routing; M0-C independent reverse routing; M0-D dormancy; M0-E reactivation. M0 is mathematical/implementation verification only. It does not test whether relations can be discovered, whether identity can be recognised, whether topology can emerge, or whether the fully coupled adaptive system is stable. See [the mathematical foundations](hybrid_leptograph_foundations.md).
+
+ 
+### HLG-M0 canonical run
+
+The canonical GitHub Actions run is [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) at commit 199f57f22d534d481b33925aa3785647d761eef9. Five analytical cases passed concurrently, the aggregate evidence verifier passed, and the complete test suite passed with 137 tests on each of Python 3.10 and 3.12. The summary artifact is 14169848246. See the relational adaptation ledger for error maxima, artifact digests and the invalid first harness-attempt note.

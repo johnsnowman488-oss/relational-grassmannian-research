@@ -271,3 +271,44 @@ M0 implements and executes five independent analytical cases:
 M0 is an equation/code verification milestone, not evidence of relation discovery or scientific utility. Each case is independently executable; CI runs the five cases concurrently and aggregates their evidence. Initial local verification on Python 3.13.5 / NumPy 2.3.5 / SciPy 1.17.0 passed all five cases, with maximum absolute differences from independent DOP853 integration between \(4.60\times10^{-13}\) and \(5.15\times10^{-12}\), against a \(2\times10^{-10}\) tolerance. The dedicated M0 test file passed 15 tests. Cross-version repository CI is the next independent validation.
 
 This extension does not modify LG-01A or LG-01B frozen protocols, alter LG-01B's scientific failure, or unblock LG-01C. It also does not displace E03 in the main E-series.
+
+
+### M0 CI execution record (2026-11-15)
+
+**Canonical workflow run:** [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964)  
+**Source commit:** 199f57f22d534d481b33925aa3785647d761eef9  
+**Result:** success; all five analytical cases and the aggregate gate passed.
+
+The full repository test suite passed on both supported CI versions:
+
+| Python | Full-suite result |
+|---|---:|
+| 3.10 | 137 passed |
+| 3.12 | 137 passed |
+
+Each analytical case ran as a separate concurrent job. Maximum absolute differences between the closed-form reference and independent DOP853 integration were:
+
+| Case | Maximum absolute error | Absolute tolerance | Result |
+|---|---:|---:|---|
+| M0-A | \(4.5963\times10^{-13}\) | \(2\times10^{-10}\) | Pass |
+| M0-B | \(1.0968\times10^{-12}\) | \(2\times10^{-10}\) | Pass |
+| M0-C | \(8.2023\times10^{-13}\) | \(2\times10^{-10}\) | Pass |
+| M0-D | \(8.4077\times10^{-13}\) | \(2\times10^{-10}\) | Pass |
+| M0-E | \(5.1501\times10^{-12}\) | \(2\times10^{-10}\) | Pass |
+
+The aggregation job verified exactly the five expected case files and reported all_cases_passed=true. The canonical summary JSON SHA-256 is eec0b1b5b62023f9262ae094a3edea73468e8a3d907528e70b2998742d5fb968.
+
+**Evidence artifacts:**
+
+| Artifact | ID | ZIP SHA-256 |
+|---|---:|---|
+| M0-A | 14170317370 | 9b59b314e154d6f302981d6f0d6b52577a0dbcf8220f2c728ced6f9d4fa70caf |
+| M0-B | 14169984404 | 9c893374412de6c02ac3a7f206df5f1df41ff744d6cdf025820c095b1bf9b40a |
+| M0-C | 14170463179 | ff72dc23845706334a8c3c3a31e87df83c5046e6bf3da2cc2dbd8a0d02ff3808 |
+| M0-D | 14170268772 | 693cf59da7491299756a93f917832437f004dab6be363215acaec597d1830aa1 |
+| M0-E | 14170002887 | 9fb085f81c33eddff3fba4a6c9ec554b5b2aa25bd367056d67939bb5e32c70a8 |
+| Aggregate summary | 14169848246 | e5269f02b8b7ba38e8356dc8c98a737c63cc143a3dc8938056a89ffeb9c67439 |
+
+An earlier workflow attempt, 43736080691, is explicitly classified as an invalid CI harness attempt: escaped matrix expressions produced invalid Python-version and artifact-name values. The workflow was corrected in commit 199f57f22d534d481b33925aa3785647d761eef9, and only run 43736121964 is treated as canonical M0 CI evidence. The invalid attempt is not counted as an analytical result.
+
+**Interpretation:** M0 passes its analytical/implementation verification gate. It validates these five fixed reference cases and the test environment. It does not establish relation discovery, identity recognition, causal inference, topology emergence, full coupled-system stability or scientific utility.

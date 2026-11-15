@@ -135,3 +135,8 @@ The canonical definitions and proof obligations are in [hybrid_leptograph_founda
 **HLG-M0** is the first mathematical implementation gate, with five exact-reference cases: mode memory; heterogeneous forward routing; independent forward/reverse operators; dormancy; and reactivation. It uses independent analytical expressions and DOP853 integration as cross-checks. Each case is a separate concurrent CI job, followed by a required evidence aggregation job and a full Python 3.10/3.12 test matrix.
 
 M0's claim ceiling is strict: agreement with analytical references verifies only these equations and implementation paths. It does not demonstrate learned destination selection, historical identity recognition, autonomous relation formation, network-level adaptive stability or general reasoning. LG-01B's recorded v0.1 failure remains unchanged, and LG-01C remains blocked under its own prerequisites.
+
+
+### HLG-M0 canonical execution
+
+The hybrid extension's M0 milestone is implemented and the canonical GitHub Actions run [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) passed. All five concurrent analytical cases and the final aggregation job succeeded; the full repository test suite passed 137/137 on Python 3.10 and 137/137 on Python 3.12. This is an analytical/code-verification result only. The complete numerical record and artifact digests are kept in the relational adaptation ledger. The invalid first workflow attempt is documented there and is not counted.
