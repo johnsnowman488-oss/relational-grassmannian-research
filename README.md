@@ -125,3 +125,13 @@ Seven concurrent mathematical design jobs (F1-F7) challenge evidence attribution
 The canonical seven-job design campaign completed successfully (run 43756548407); all seven jobs, aggregate evidence verification, and 228-test full suites on Python 3.10/3.12 passed. The implementation protocol remains unfrozen pending research review.
 
 - [F1-F7 canonical results and interpretation boundaries](docs/hybrid_leptograph_m3_foundation_campaign_results.md)
+
+
+### HLG-M3 targeted foundation refinements
+
+Following review of F1-F7, five targeted pre-freeze refinement jobs (R1-R5) address invariant absolute context scoring, correlated-source prequential attribution, sequential activation hysteresis, calibrated revision detection/candidate promotion, and learner/evaluator plus resource-accounting contracts.
+
+- [Five-job refinement campaign plan](docs/hybrid_leptograph_m3_refinement_campaign_plan.md)
+- [Refinement reference runner](src/rgm/experiments/leptograph_m3_refinements.py)
+
+These jobs refine the adopted proposal without changing it into a frozen implementation protocol. C0-C4 performance comparison and measured compute matching remain future implementation experiments.
