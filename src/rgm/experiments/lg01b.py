@@ -85,7 +85,8 @@ class LG01BConfig:
             and self.tangent_epsilon == TANGENT_EPS and self.ridge_alphas == RIDGE_ALPHAS
             and self.bootstrap_resamples == BOOTSTRAP_RESAMPLES
             and self.bootstrap_seed == BOOTSTRAP_SEED and self.edge_precision_min == 0.60
-            and self.control_margin == 0.10 and self.min_worlds_at_half == 24
+            and self.chance_precision == (2.0 / 7.0) and self.control_margin == 0.10
+            and self.min_worlds_at_half == 24
             and self.path_precision_min == 0.30 and self.path_control_margin == 0.10
         )
         if not frozen:
@@ -955,6 +956,8 @@ def run_campaign(output_root: Path, run_id: str, config: LG01BConfig | None = No
             rate_key = f"{rate:.2f}"
             rate_start = time.perf_counter()
             lengths = _episode_lengths(rate)
+            f_matrix, a_matrix, _ = build_transition(truth, rotation, rate, DT)
+            stability = stability_diagnostics(f_matrix, a_matrix)
             coupled_episodes: dict[str, FloatArray] = {}
             null_episodes: dict[str, FloatArray] = {}
             for split, (burn_steps, record_steps) in lengths.items():
@@ -1004,6 +1007,7 @@ def run_campaign(output_root: Path, run_id: str, config: LG01BConfig | None = No
             world_record.update({
                 "world_seed": world_seed, "rate": rate,
                 "graph_rejection_count": rejection_count,
+                "stability_diagnostics": stability,
                 "coupled_degenerate_tangents": coupled_mapping["degenerate_tangent_counts"],
                 "coupled_sample_counts": coupled_mapping["sample_counts"],
                 "null_degenerate_tangents": null_mapping["degenerate_tangent_counts"],
@@ -1019,7 +1023,7 @@ def run_campaign(output_root: Path, run_id: str, config: LG01BConfig | None = No
                     _write_json(
                         payload_root / arm_name / f"world_{world_seed}" / f"gamma_{rate_key}" / f"{split}.json",
                         {
-                            "world_seed": world_seed, "rate": rate, "arm": arm_name, "split": split,
+                            "rate": rate, "arm": arm_name, "split": split,
                             "payload_sha256": digest,
                             "interface": {
                                 "dt": DT, "mode_count": N_MODES,
