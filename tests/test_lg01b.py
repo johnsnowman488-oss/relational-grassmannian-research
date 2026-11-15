@@ -234,12 +234,12 @@ def test_bootstrap_is_paired_and_best_control_is_selected_within_each_resample()
     assert np.array_equal(indices_a, indices_b)
     primary = np.full(30, 0.8)
     controls = {
-        "a": np.full(30, 0.5),
+        "a": np.full(30, 0.48),
         "b": np.linspace(0.3, 0.7, 30),
     }
     delta, ci, best = lg._best_control_delta(primary, controls, indices_a)
     assert best == "b"
-    assert delta == pytest.approx(0.4)
+    assert delta == pytest.approx(0.3)
     assert ci[0] > 0.0
 
 
