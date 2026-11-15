@@ -1,0 +1,100 @@
+name: HLG-M3 Foundation Refinement Campaign
+
+on:
+  push:
+    branches: [research/hybrid-relational-leptograph-m3-refinements]
+    paths:
+      - "docs/hybrid_leptograph_m3_refinement_campaign_plan.md"
+      - "src/rgm/experiments/leptograph_m3_refinements.py"
+      - "tests/test_leptograph_m3_refinements.py"
+      - ".github/workflows/hybrid-leptograph-m3-refinements.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/hybrid_leptograph_m3_refinement_campaign_plan.md"
+      - "src/rgm/experiments/leptograph_m3_refinements.py"
+      - "tests/test_leptograph_m3_refinements.py"
+      - ".github/workflows/hybrid-leptograph-m3-refinements.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  full-tests:
+    name: Full repository tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - run: python -m pytest
+
+  refinement-jobs:
+    name: M3 refinement ${{ matrix.job }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        job: [R1, R2, R3, R4, R5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip && python -m pip install -e .
+      - run: >-
+          python -m rgm.experiments.leptograph_m3_refinements
+          --case ${{ matrix.job }}
+          --output results/leptograph_m3_refinements/${{ matrix.job }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-leptograph-m3-refinement-${{ matrix.job }}
+          path: results/leptograph_m3_refinements/${{ matrix.job }}.json
+          if-no-files-found: error
+
+  aggregate:
+    name: Verify five refinement artifacts
+    runs-on: ubuntu-latest
+    needs: [refinement-jobs, full-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip && python -m pip install -e .
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hybrid-leptograph-m3-refinement-R*
+          path: results/leptograph_m3_refinements
+          merge-multiple: true
+      - name: Verify exact R1-R5 evidence set
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("results/leptograph_m3_refinements")
+          expected={f"R{i}.json" for i in range(1,6)}
+          actual={x.name for x in p.glob("*.json")}
+          assert actual == expected, (expected, actual)
+          cases=[json.loads((p/f"R{i}.json").read_text()) for i in range(1,6)]
+          assert all(x.get("execution_passed") is True for x in cases)
+          summary={"case_ids":[x["case_id"] for x in cases],"case_count":len(cases),
+                   "all_refinements_passed":True,"implementation_protocol_frozen":False,
+                   "decision":"REVIEW_R1_R5_RESULTS_BEFORE_M3_FREEZE"}
+          (p/"summary.json").write_text(json.dumps(summary,indent=2)+"\n")
+          print(json.dumps(summary,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-leptograph-m3-refinements-summary
+          path: results/leptograph_m3_refinements/summary.json
+          if-no-files-found: error
