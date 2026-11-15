@@ -107,4 +107,4 @@ Do not reinterpret the LG-01A-v0.1 result or change its frozen threshold. A down
 
 ## 6. Next action
 
-Retain the runner, tests and v0.1 result as a reproducible baseline. Retain the runner, tests and v0.1 result as a reproducible baseline. LG-01B may be specified within the demonstrated γ=0.05 and γ=0.20 operating envelope; its implementation and execution remain blocked until the LG-01B protocol is approved and frozen.
+Retain the runner, tests and v0.1 result as a reproducible baseline. LG-01B may be specified within the demonstrated γ=0.05 and γ=0.20 operating envelope; its implementation and execution remain blocked until the LG-01B protocol is approved and frozen.
