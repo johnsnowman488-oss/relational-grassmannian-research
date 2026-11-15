@@ -899,9 +899,10 @@ def run_campaign(output_root: Path, run_id: str, config: LG01BConfig | None = No
     (run_dir / "protocol_snapshot.md").write_bytes(protocol_bytes)
     try:
         commit_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_root, text=True).strip()
-        git_status = subprocess.check_output(["git", "status", "--porcelain"], cwd=repo_root, text=True).strip()
+        git_status = subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=repo_root, text=True).strip()
+        full_git_status = subprocess.check_output(["git", "status", "--porcelain"], cwd=repo_root, text=True).strip()
     except Exception:
-        commit_sha, git_status = "unavailable", "unavailable"
+        commit_sha, git_status, full_git_status = "unavailable", "unavailable", "unavailable"
 
     _write_json(run_dir / "config.json", asdict(config) | {
         "split_durations_tau": SPLIT_DURATIONS_TAU,
@@ -912,8 +913,11 @@ def run_campaign(output_root: Path, run_id: str, config: LG01BConfig | None = No
     _write_json(run_dir / "environment.json", {
         "python": sys.version, "platform": platform.platform(),
         "numpy": np.__version__, "scipy": __import__("scipy").__version__,
-        "repository_commit": commit_sha, "working_tree_clean": git_status == "",
-        "working_tree_status": git_status, "protocol_sha256": protocol_hash,
+        "repository_commit": commit_sha,
+        "tracked_working_tree_clean": git_status == "",
+        "tracked_working_tree_status": git_status,
+        "full_working_tree_status": full_git_status,
+        "protocol_sha256": protocol_hash,
     })
     seed_manifest: list[dict[str, Any]] = []
     evaluator_root, payload_root, prediction_root = (
