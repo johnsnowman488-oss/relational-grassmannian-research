@@ -216,7 +216,7 @@ The E02 ObservedEventGraph is not treated as a competing learner here: it receiv
 
 Use 30 independent graph worlds, with world seeds 301–330. Each world is evaluated at both γ=0.05 and γ=0.20, paired on the same hidden graph, orthogonal transformation, and per-mode input seeds. The input process uses the same physical correlation time in both conditions. The two rate conditions are not counted as 60 independent worlds.
 
-For each world/rate, generate independent train, validation, and test episodes with independent input innovations:
+For each world/rate, generate independent train, validation, and test episodes with independent input innovations. Reset the mode state to zero at the start of each episode, then run its declared burn-in before recording; keep the same world graph and R across the three episodes:
 
 | Episode | Burn-in | Recorded duration | Purpose |
 |---|---:|---:|---|
