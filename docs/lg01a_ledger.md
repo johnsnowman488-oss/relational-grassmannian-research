@@ -103,8 +103,8 @@ A second GitHub Actions push campaign ran from workflow-only commit b29a6df4b816
 
 LG-01A-v0.1 is a valid negative result for the declared rate range: the activity requirement is met at 0.05 and 0.2, but not at 0.8 under the frozen 27-of-30 seed rule. This is not evidence that transient refresh is impossible in general; it falsifies the current operational threshold for the fastest tested mode under this input protocol. No seed was excluded and no acceptance threshold was changed after observing the data.
 
-Do not proceed to LG-01B yet. First review whether the intended lepto-mode function requires the fastest tested timescale, whether the refresh-input scale and window threshold reflect a defensible operational definition, and whether a revised question is needed. Any revised rate range, input scaling or activity criterion requires a dated LG-01A-v0.2 protocol, a reasoned mathematical justification, and a fresh independent confirmation campaign. Do not relabel this v0.1 failure as a pass.
+Do not reinterpret the LG-01A-v0.1 result or change its frozen threshold. A downstream scope decision dated 2026-11-14 authorises LG-01B specification only at γ=0.05 and γ=0.20, each of which passed 30/30. γ=0.80 remains failed and excluded. This does not authorise LG-01B implementation or execution until its separate protocol is reviewed and frozen.
 
 ## 6. Next action
 
-Retain the runner, tests and v0.1 result as a reproducible baseline. Resolve the fast-rate failure scientifically before proposing a protocol revision. LG-01B remains blocked until this decision is made and the corresponding gate is honestly closed.
+Retain the runner, tests and v0.1 result as a reproducible baseline. LG-01B may be specified within the demonstrated γ=0.05 and γ=0.20 operating envelope; its implementation and execution remain blocked until the LG-01B protocol is approved and frozen.

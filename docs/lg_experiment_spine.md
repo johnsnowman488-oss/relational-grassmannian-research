@@ -1,7 +1,7 @@
 # LG — Lepto-Graph Experiment Spine
 
 **Research stream:** Lepto-Graph Development Hypothesis (LGDH)  
-**Status:** Sequence defined; LG-01A protocol specified; no experimental runs yet  
+**Status:** LG-01A-v0.1 complete; restricted operating envelope adopted; LG-01B protocol draft under scientific review  
 **Programme relationship:** Parallel to the E-series; E03 remains the next mainline milestone
 
 ## 1. Research objective
@@ -22,7 +22,7 @@ A pass at one layer does not imply a pass at the next.
 | ID | Question | Isolated mechanism | Entry gate | Required exit evidence |
 |---|---|---|---|---|
 | **LG-01A — Transient mode behaviour** | Can fast multidimensional modes remain active under bounded refresh while tagged historical contributions decay? | Fixed leaky modes; no mode-to-mode edges or learning | Protocol frozen | Analytic decay, input-response, refresh activity, boundedness and reproducible run evidence |
-| **LG-01B — Trajectory-derived directional relations** | Can the trajectories of modes form directed relationships without a supplied target topology? | Endogenous directional features and destination mapping, fixed mode population | LG-01A operational gate passes; destination-map alternatives and evaluation split pre-registered | Held-out relation recovery and valid path witnesses above non-directional / random controls |
+| **LG-01B — Trajectory-derived directional relations** | Can intrinsic mode trajectories support recovery of directed relations without a supplied target topology? | LG-01A rates γ=0.05 and 0.20 met 30/30; γ=0.80 excluded after its 26/30 failure; LG-01B protocol frozen before implementation | Held-out directed-edge recovery and valid path witnesses above source-state, direction-blind, shuffled, reverse-time and random controls |
 | **LG-01C — Slow historical registration and routing** | Does slow registration of trajectory history improve routing under delayed, ambiguous or context-dependent sequences? | Slow SOE registration and context-conditioned destination selection | LG-01B route formation is reproducible | Paired route/retrieval improvement over fast-only and slow-only controls; ablation evidence |
 | **LG-01D — Relational reorganisation** | Can pathways revise after genuine relation changes without unnecessary destruction of stable relations? | Online route adaptation with fixed mode population | LG-01B and LG-01C pass separately | Change detection, adaptation latency, retained stable relations, low spurious rewiring and held-out task benefit |
 
@@ -106,7 +106,9 @@ Every result must state what it does not establish.
 
 The frozen LG-01A-v0.1 campaign ran 30 paired seeds. The 0.05 and 0.2 fast rates passed 30/30; the 0.8 rate passed only 26/30, below the pre-registered 27/30 threshold. The result is a **valid scientific fail for the declared fast-rate range**. Mathematical, boundedness, input-response, washout, energy-matching and conventional-SOE-null checks passed. See the LG-01A experiment ledger for run IDs, per-seed failures and artifact hashes.
 
-LG-01B is blocked pending a documented scientific review. Do not narrow the rate set or lower the acceptance threshold post hoc. Any revised range or operational criterion must be introduced in a dated v0.2 protocol and tested with a fresh confirmation campaign. The conventional leaky SOE channel matched the candidate as expected; the v0.1 result does not show a distinct primitive.
+**Downstream scope decision (2026-11-14):** LG-01B is authorised for specification only at the two LG-01A-v0.1 fast rates that met the frozen per-seed gate: γ=0.05 and γ=0.20 (30/30 each). γ=0.80 remains a valid failure (26/30) and is excluded. This does not change the LG-01A-v0.1 result or its acceptance threshold.
+
+The LG-01B-v0.1 protocol is now drafted for scientific review. It is not frozen, and no runner or campaign is authorised. Before implementation, review the hidden coupled-world design, destination mapping, controls, split discipline, and acceptance thresholds. The conventional leaky SOE channel matched the LG-01A candidate as expected; that result does not show a distinct primitive.
 
 ## 8. Per-experiment ledger rule
 
