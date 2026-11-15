@@ -396,10 +396,10 @@ def _episode(seed: int, split: str) -> dict[str, Any]:
                 "context_features": ctx.tolist(),
                 "target_observation": y.tolist() if observed else None,
                 "target_mask": observed,
-                "episode_seed": seed,
-                "phase_index": phase_index,
             })
             evaluator_rows.append({
+                "episode_seed": seed,
+                "phase_index": phase_index,
                 "phase": phase,
                 "context_label": context_name,
                 "planted_operator": target_operator.tolist(),
@@ -422,7 +422,7 @@ def case_f6() -> dict[str, Any]:
     disjoint = all(seed_sets[i].isdisjoint(seed_sets[j]) for i in range(3) for j in range(i + 1, 3))
     phases = sorted({row["phase"] for world in worlds for row in world["evaluator_rows"]})
     learner_keys = set(worlds[0]["learner_rows"][0])
-    forbidden_keys = {"phase", "context_label", "planted_operator", "distractor_operator", "target_truth"}
+    forbidden_keys = {"phase", "phase_index", "episode_seed", "context_label", "planted_operator", "distractor_operator", "target_truth"}
     leakage_free = learner_keys.isdisjoint(forbidden_keys)
     masks_correct = all(
         row["target_observation"] is None and not row["target_mask"]
