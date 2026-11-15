@@ -1,22 +1,13 @@
-"""Online multi-source ridge estimation with prequential sequencing."""
+"""Joint heterogeneous online ridge estimator with effective route gates."""
 from __future__ import annotations
-
 from dataclasses import dataclass, field
 from typing import Mapping, Sequence
-
 import numpy as np
 
 
 @dataclass
 class MultiSourceRidge:
-    """Joint linear predictor over every declared heterogeneous source.
-
-    Sources are concatenated in the constructor's fixed key order, followed by
-    context nuisance features and an intercept. Predictions are made from the
-    current sufficient statistics; update() is a separate subsequent action.
-    Counterfactual ablations are predictive diagnostics, not causal effects.
-    """
-
+    """All-source shadow estimator with separately gated effective predictions."""
     source_dimensions: Mapping[str, int]
     context_dimension: int
     target_dimension: int
@@ -47,23 +38,28 @@ class MultiSourceRidge:
         self._context_slice = slice(offset, offset + self.context_dimension)
         offset += self.context_dimension
         self._intercept_index = offset
-        width = offset + 1
-        self.gram = np.zeros((width, width), dtype=float)
-        self.cross = np.zeros((width, self.target_dimension), dtype=float)
+        self.gram = np.zeros((offset + 1, offset + 1), dtype=float)
+        self.cross = np.zeros((offset + 1, self.target_dimension), dtype=float)
 
     @property
     def feature_dimension(self) -> int:
         return int(self.gram.shape[0])
 
-    def _features(self, sources: Mapping[str, Sequence[float]], context: Sequence[float]) -> np.ndarray:
+    def _features(self, sources, context, source_gates=None) -> np.ndarray:
         if set(sources) != set(self.source_dimensions):
             raise ValueError("every declared source must be supplied exactly once")
+        gates = dict(source_gates or {})
+        if set(gates) - set(self.source_dimensions):
+            raise ValueError("gate supplied for an undeclared source")
         chunks = []
         for key in sorted(self.source_dimensions):
             x = np.asarray(sources[key], dtype=float)
             if x.shape != (self.source_dimensions[key],) or not np.all(np.isfinite(x)):
                 raise ValueError(f"invalid source vector for {key}")
-            chunks.append(x)
+            gate = float(gates.get(key, 1.0))
+            if not np.isfinite(gate) or not 0.0 <= gate <= 1.0:
+                raise ValueError(f"invalid source gate for {key}")
+            chunks.append(gate * x)
         c = np.asarray(context, dtype=float)
         if c.shape != (self.context_dimension,) or not np.all(np.isfinite(c)):
             raise ValueError("invalid context feature vector")
@@ -71,21 +67,30 @@ class MultiSourceRidge:
         return np.concatenate(chunks)
 
     def coefficients(self) -> np.ndarray:
-        regularised = self.gram + self.ridge * np.eye(self.feature_dimension)
-        return np.linalg.solve(regularised, self.cross)
+        return np.linalg.solve(self.gram + self.ridge * np.eye(self.feature_dimension), self.cross)
 
-    def predict(self, sources: Mapping[str, Sequence[float]], context: Sequence[float]) -> np.ndarray:
-        phi = self._features(sources, context)
+    def source_operator(self, source_id: str) -> np.ndarray:
+        if source_id not in self._source_slices:
+            raise KeyError(source_id)
+        return self.coefficients()[self._source_slices[source_id], :].T.copy()
+
+    def predict(self, sources, context, *, source_gates=None, operator_overrides=None) -> np.ndarray:
+        phi = self._features(sources, context, source_gates)
+        beta = self.coefficients()
+        overrides = dict(operator_overrides or {})
+        if set(overrides) - set(self.source_dimensions):
+            raise ValueError("operator override for undeclared source")
+        if overrides:
+            beta = beta.copy()
+            for key, value in overrides.items():
+                operator = np.asarray(value, dtype=float)
+                if operator.shape != (self.target_dimension, self.source_dimensions[key]) or not np.all(np.isfinite(operator)):
+                    raise ValueError(f"invalid operator override for {key}")
+                beta[self._source_slices[key], :] = operator.T
         self.prediction_count += 1
-        return phi @ self.coefficients()
+        return phi @ beta
 
-    def update(
-        self,
-        sources: Mapping[str, Sequence[float]],
-        context: Sequence[float],
-        target: Sequence[float],
-    ) -> None:
-        """Update only after the caller has obtained and scored a prediction."""
+    def update(self, sources, context, target) -> None:
         phi = self._features(sources, context)
         y = np.asarray(target, dtype=float)
         if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
@@ -97,55 +102,53 @@ class MultiSourceRidge:
         self.sample_count += 1
         self.update_count += 1
 
-    def marginal_loss_contributions(
-        self,
-        sources: Mapping[str, Sequence[float]],
-        context: Sequence[float],
-        target: Sequence[float],
-    ) -> dict[str, float]:
-        """Return full-loss minus/against ablated-loss diagnostics per source.
-
-        Positive values mean removing the source increases squared prediction
-        loss. Correlation can make these contributions unstable or ambiguous;
-        they are not causal attribution.
-        """
+    def marginal_loss_contributions(self, sources, context, target) -> dict[str, float]:
         phi = self._features(sources, context)
         y = np.asarray(target, dtype=float)
         if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
             raise ValueError("invalid target vector")
         beta = self.coefficients()
-        full_prediction = phi @ beta
-        full_loss = float(np.sum((y - full_prediction) ** 2))
-        values: dict[str, float] = {}
+        full_loss = float(np.sum((y - phi @ beta) ** 2))
+        out = {}
         for key, slc in self._source_slices.items():
             ablated = phi.copy()
             ablated[slc] = 0.0
-            ablated_loss = float(np.sum((y - ablated @ beta) ** 2))
-            values[key] = ablated_loss - full_loss
-        return values
+            out[key] = float(np.sum((y - ablated @ beta) ** 2) - full_loss)
+        return out
 
-    def source_feature_usage(self, sources: Mapping[str, Sequence[float]]) -> dict[str, float]:
-        """Report absolute contribution magnitude from each source block."""
-        phi = self._features(sources, np.zeros(self.context_dimension))
-        beta = self.coefficients()
-        return {
-            key: float(np.linalg.norm(phi[slc] @ beta[slc]))
-            for key, slc in self._source_slices.items()
-        }
-
-    def source_coefficient_norms(self) -> dict[str, float]:
-        """Return coefficient-block norms keyed by the declared source IDs."""
-        beta = self.coefficients()
-        return {
-            key: float(np.linalg.norm(beta[slc]))
-            for key, slc in self._source_slices.items()
-        }
+    def conditional_identifiability(self, *, tolerance: float = 1e-8, maximum_condition: float = 1e8):
+        """Unregularised Schur-complement rank; ridge cannot manufacture identifiability."""
+        if tolerance <= 0 or maximum_condition <= 1:
+            raise ValueError("invalid identifiability tolerance")
+        result = {}
+        all_indices = np.arange(self.feature_dimension)
+        for key, slc in self._source_slices.items():
+            selected = np.arange(slc.start, slc.stop)
+            other = np.setdiff1d(all_indices, selected, assume_unique=True)
+            gss = self.gram[np.ix_(selected, selected)]
+            if other.size:
+                gcc = self.gram[np.ix_(other, other)]
+                gcs = self.gram[np.ix_(other, selected)]
+                projection, *_ = np.linalg.lstsq(gcc, gcs, rcond=tolerance)
+                schur = gss - self.gram[np.ix_(selected, other)] @ projection
+            else:
+                schur = gss.copy()
+            eigenvalues = np.linalg.eigvalsh(0.5 * (schur + schur.T))
+            scale = max(float(np.max(np.abs(eigenvalues))), 1.0)
+            positive = eigenvalues[eigenvalues > tolerance * scale]
+            rank, dimension = int(positive.size), int(selected.size)
+            condition = float(np.max(positive) / np.min(positive)) if rank == dimension and rank else None
+            result[key] = {
+                "rank": rank, "dimension": dimension, "condition_number": condition,
+                "identifiable": bool(rank == dimension and condition is not None and condition <= maximum_condition),
+            }
+        return result
 
     def resource_snapshot(self) -> dict[str, int | float]:
         return {
             "sufficient_statistic_bytes": int(self.gram.nbytes + self.cross.nbytes),
             "parameter_count": int(self.feature_dimension * self.target_dimension),
-            "update_outer_product_multiply_adds": int(self.feature_dimension * self.feature_dimension + self.feature_dimension * self.target_dimension),
+            "update_outer_product_multiply_adds": int(self.feature_dimension**2 + self.feature_dimension * self.target_dimension),
             "query_multiply_adds": int(self.feature_dimension * self.target_dimension),
             "sample_count": self.sample_count,
         }
