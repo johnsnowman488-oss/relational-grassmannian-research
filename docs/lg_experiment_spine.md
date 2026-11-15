@@ -1,7 +1,7 @@
 # LG — Lepto-Graph Experiment Spine
 
 **Research stream:** Lepto-Graph Development Hypothesis (LGDH)  
-**Status:** LG-01A-v0.1 complete; restricted operating envelope adopted; LG-01B protocol draft under scientific review  
+**Status:** LG-01A-v0.1 complete; restricted operating envelope adopted; LG-01B-v0.1 frozen; runner and 30-world campaign in progress  
 **Programme relationship:** Parallel to the E-series; E03 remains the next mainline milestone
 
 ## 1. Research objective
@@ -108,7 +108,7 @@ The frozen LG-01A-v0.1 campaign ran 30 paired seeds. The 0.05 and 0.2 fast rates
 
 **Downstream scope decision (2026-11-14):** LG-01B is authorised for specification only at the two LG-01A-v0.1 fast rates that met the frozen per-seed gate: γ=0.05 and γ=0.20 (30/30 each). γ=0.80 remains a valid failure (26/30) and is excluded. This does not change the LG-01A-v0.1 result or its acceptance threshold.
 
-The LG-01B-v0.1 protocol is now drafted for scientific review. It is not frozen, and no runner or campaign is authorised. Before implementation, review the hidden coupled-world design, destination mapping, controls, split discipline, and acceptance thresholds. The conventional leaky SOE channel matched the LG-01A candidate as expected; that result does not show a distinct primitive.
+LG-01B-v0.1 is frozen and its runner/campaign are authorised. The frozen experiment tests hidden-topology recovery from coupled trajectories only; it does not test spontaneous graph emergence. The k=2 prior and conservative c=0.05 coupling remain fixed, with no post-hoc tuning. The conventional leaky SOE channel matched the LG-01A candidate as expected; that result does not show a distinct primitive.
 
 ## 8. Per-experiment ledger rule
 
@@ -122,3 +122,6 @@ Each experiment has its own ledger. Before any confirmation run, record:
 - decision: **pass**, **fail**, **inconclusive**, or **invalid run**.
 
 The cross-experiment LGDH ledger records changes in the hypothesis and decisions that affect more than one experiment. The repository experiment register gives current status. A CI pass is an execution result, not automatically a scientific pass.
+
+
+**2026-11-15 freeze:** user approved hidden directed-topology recovery as LG-01B's first operational question and deferred spontaneous emergence. See `lg01b_protocol.md` for frozen parameters, controls and gates. Only γ=0.05 and γ=0.20 are in scope.
