@@ -153,7 +153,7 @@ The primary directional feature is the unit tangent:
 d_i[k]=\frac{\dot z_i[k]}{\|\dot z_i[k]\|_2+\epsilon},
 \]
 
-with a frozen numerical ε chosen from float64 machine-scale safeguards and recorded in the configuration. Samples with non-finite or numerically degenerate tangents must be counted and handled by a predeclared rule; they must not be silently dropped.
+with a frozen numerical ε=10^-12 in float64. If ||dot z_i[k]||_2≤10^-12, set d_i[k] to the zero vector and increment a degenerate-tangent counter; do not drop or interpolate the sample. Non-finite tangents invalidate the run.
 
 ### 6.2 Primary mapping: conditional trajectory prediction
 
@@ -202,10 +202,10 @@ All controls receive the same trajectory observations, data splits, mode count, 
 
 1. **Destination-only autoregressive null:** predicts each destination from its own current state and own current tangent only.
 2. **Source-state mapping:** replaces source tangent groups with source state vectors. This tests whether tangent direction contributes beyond ordinary source-state information.
-3. **Direction-blind activity mapping:** replaces each 16D unit tangent with its scalar tangent magnitude. This tests whether vector direction adds value beyond activity level.
+3. **Direction-blind activity mapping:** replaces each 16D unit tangent with the scalar raw tangent speed ||dot z_i[k]||_2. This tests whether vector direction adds value beyond activity level.
 4. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one physical time unit, preserving local marginal structure while breaking alignment to destination responses.
 5. **Reverse-time mapping:** predicts destination past state from later source tangents using the same physical horizon h=0.25τ for the corresponding rate. This tests whether the apparent relation is specifically forward-directed.
-6. **Symmetric association baseline:** ranks pairs using direction-blind, symmetric association between mode activity traces; it cannot assign a direction from the association itself.
+6. **Symmetric association baseline:** ranks pairs using the absolute Pearson correlation between the state-energy traces ||z_i[k]||_2 and ||z_j[k]||_2, computed on validation data only. The pair score is symmetric (S_i_j=S_j_i), so it cannot identify direction from the association itself.
 7. **Random top-two baseline:** selects two destinations uniformly for each source using a separately recorded evaluator seed.
 
 The primary model must outperform the best non-directional / shuffled control, not merely random selection. The source-state control is separately reported because a successful result from state features alone would not establish the value of trajectory direction.
@@ -268,7 +268,7 @@ Path-witness validity is reported as a secondary gate: inferred length-two witne
 
 A failure at either rate blocks LG-01C. A pass at one rate does not imply a pass at the other. A mixed result must be reported as mixed, not averaged into an overall pass.
 
-Compute 95% confidence intervals by a paired bootstrap over the 30 worlds (10,000 resamples; fixed bootstrap seed recorded in configuration). Do not treat timesteps or the two paired rates as independent worlds. These numerical thresholds are proposed for review before freeze. They must not be altered after execution. Any revision after a run requires a dated protocol revision and a fresh confirmation campaign.
+Compute 95% confidence intervals by a paired bootstrap over the 30 worlds (10,000 resamples; bootstrap seed 4401, recorded in configuration). Do not treat timesteps or the two paired rates as independent worlds. These numerical thresholds are proposed for review before freeze. They must not be altered after execution. Any revision after a run requires a dated protocol revision and a fresh confirmation campaign.
 
 ## 11. Reproducibility and implementation requirements
 
