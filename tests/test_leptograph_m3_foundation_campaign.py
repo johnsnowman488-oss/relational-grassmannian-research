@@ -27,9 +27,10 @@ def test_design_job_runs(case_id: str) -> None:
 
 def test_prequential_true_and_null_attribution() -> None:
     result = case_f1()
-    assert result["true_relation_marginal_contribution"] > 0
-    assert abs(result["null_decoy_marginal_contribution"]) < 0.01
+    assert result["true_relation_mean_marginal_contribution"] > 0
+    assert abs(result["null_decoy_mean_marginal_contribution"]) < 0.01
     assert result["collinear_conditional_information_rank"] < 2
+    assert result["each_prediction_scored_before_current_target_update"]
 
 
 def test_metric_aware_operator_estimation_is_coordinate_covariant() -> None:
@@ -69,6 +70,7 @@ def test_integrated_benchmark_manifest_is_leakage_separated() -> None:
     assert result["split_worlds_are_disjoint"]
     assert result["evaluator_truth_excluded_from_learner_inputs"]
     assert result["observation_gap_masks_enforced"]
+    assert result["heldout_composition_phase_is_test_only"]
 
 
 def test_independent_review_checks_metric_norm_and_switching_boundary() -> None:

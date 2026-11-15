@@ -50,7 +50,7 @@ def _conditional_information(x_target: np.ndarray, x_other: np.ndarray) -> np.nd
 
 
 def case_f1() -> dict[str, Any]:
-    """Prequential marginal contribution, null-decoy control and confounding."""
+    """Sequential prequential marginal contribution, null-decoy and confounding."""
     rng = np.random.default_rng(1101)
     n_train, n_test = 1800, 900
     x1 = rng.normal(size=(2, n_train + n_test))
@@ -64,21 +64,40 @@ def case_f1() -> dict[str, Any]:
     y = theta1 @ x1 + theta2 @ x2 + beta @ ctx + intercept @ bias
     y += 0.01 * rng.normal(size=y.shape)
     phi = np.vstack((x1, x2, ctx, bias))
-    train = slice(0, n_train)
-    test = slice(n_train, n_train + n_test)
-    what = _metric_ridge(
-        phi[:, train], y[:, train], np.eye(phi.shape[0]), np.eye(y.shape[0]), 1e-7
-    )
-    # Full and ablated predictions use a frozen pre-observation model.
-    yhat = what @ phi[:, test]
-    e1 = what[:, 0:2] @ x1[:, test]
-    e2 = what[:, 2:5] @ x2[:, test]
-    mse = lambda residual: float(np.mean(np.square(residual)))
-    full_loss = mse(y[:, test] - yhat)
-    without_relation = mse(y[:, test] - (yhat - e1))
-    without_decoy = mse(y[:, test] - (yhat - e2))
-    delta_true = without_relation - full_loss
-    delta_null = without_decoy - full_loss
+
+    # Initialise from the training prefix; score each test observation first,
+    # then incorporate that observation into the sufficient statistics.
+    train_phi = phi[:, :n_train]
+    train_y = y[:, :n_train]
+    gram = train_phi @ train_phi.T
+    cross = train_y @ train_phi.T
+    regularisation = 1e-7
+    full_losses, true_marginals, decoy_marginals = [], [], []
+    prediction_order_ok = True
+    for index in range(n_test):
+        feature = phi[:, n_train + index]
+        target = y[:, n_train + index]
+        what = np.linalg.solve(gram + regularisation * np.eye(gram.shape[0]), cross.T).T
+        prediction = what @ feature
+        # Counterfactual ablations are computed from the same frozen pre-update model.
+        contribution_1 = what[:, 0:2] @ x1[:, n_train + index]
+        contribution_2 = what[:, 2:5] @ x2[:, n_train + index]
+        full_loss = float(np.mean(np.square(target - prediction)))
+        no_relation_loss = float(np.mean(np.square(target - (prediction - contribution_1))))
+        no_decoy_loss = float(np.mean(np.square(target - (prediction - contribution_2))))
+        full_losses.append(full_loss)
+        true_marginals.append(no_relation_loss - full_loss)
+        decoy_marginals.append(no_decoy_loss - full_loss)
+        # The current target is incorporated only after all prequential scores exist.
+        prediction_before_update = prediction.copy()
+        prediction_recomputed_without_target_input = what @ feature
+        prediction_order_ok &= bool(np.array_equal(prediction_before_update, prediction_recomputed_without_target_input))
+        gram += np.outer(feature, feature)
+        cross += np.outer(target, feature)
+
+    full_test_mse = float(np.mean(full_losses))
+    delta_true = float(np.mean(true_marginals))
+    delta_null = float(np.mean(decoy_marginals))
 
     # Deliberately make two source blocks observationally collinear.
     x1c = rng.normal(size=(2, 500))
@@ -87,27 +106,22 @@ def case_f1() -> dict[str, Any]:
     conditional = _conditional_information(x1c, x2c)
     eig = np.linalg.eigvalsh((conditional + conditional.T) / 2.0)
     rank = int(np.linalg.matrix_rank(conditional, tol=1e-7))
-    frozen_prediction = yhat[:, :1].copy()
-    changed_target = y[:, n_train:n_train + 1] + 1000.0
-    leakage_invariant = bool(np.array_equal(frozen_prediction, yhat[:, :1]) and changed_target.shape == (3, 1))
-    passed = delta_true > 0.1 and abs(delta_null) < 0.01 and rank < 2 and leakage_invariant
+    passed = delta_true > 0.1 and abs(delta_null) < 0.01 and rank < 2 and prediction_order_ok
     return {
         "case_id": "F1",
-        "description": "Prequential predictive contribution and source-confounding audit",
+        "description": "Sequential prequential predictive contribution and source-confounding audit",
         "train_samples": n_train,
-        "test_samples": n_test,
-        "full_test_mse": full_loss,
-        "true_relation_marginal_contribution": delta_true,
-        "null_decoy_marginal_contribution": delta_null,
+        "prequential_test_updates": n_test,
+        "full_prequential_test_mse": full_test_mse,
+        "true_relation_mean_marginal_contribution": delta_true,
+        "null_decoy_mean_marginal_contribution": delta_null,
         "collinear_conditional_information_rank": rank,
         "collinear_target_block_dimension": 2,
         "collinear_conditional_information_eigenvalues": [float(v) for v in eig],
-        "pre_update_prediction_is_frozen_before_target_update": leakage_invariant,
-        "interpretation": "Marginal predictive contribution identifies a planted useful block and gives near-zero contribution for an independent null block in this probe. Collinearity removes conditional identifiability; predictive attribution is not causal attribution.",
+        "each_prediction_scored_before_current_target_update": prediction_order_ok,
+        "interpretation": "The online prequential stream identifies a planted useful block and gives near-zero contribution for an independent null block in this probe. Collinearity removes conditional identifiability; predictive attribution is not causal attribution.",
         "passed": bool(passed),
     }
-
-
 def case_f2() -> dict[str, Any]:
     """Recover heterogeneous operators and verify general-coordinate covariance."""
     rng = np.random.default_rng(2202)
@@ -371,24 +385,29 @@ def _episode(seed: int, split: str) -> dict[str, Any]:
     contexts = {"A": np.array([1.0, 0.0]), "B": np.array([0.0, 1.0])}
     theta_a = np.array([[0.6, -0.2], [0.1, 0.5]])
     theta_b = np.array([[-0.3, 0.4], [0.7, 0.1]])
-    theta_distractor = np.zeros((2, 2))
+    theta_other = np.array([[0.25, -0.15], [0.05, 0.2]])
+    zero = np.zeros((2, 2))
     phases = [
-        ("acquisition", "A", theta_a, False),
-        ("distractor", "A", theta_distractor, False),
-        ("context_switch", "B", theta_b, False),
-        ("observation_gap", "A", theta_a, True),
-        ("reactivation", "A", theta_a, False),
-        ("within_context_drift", "A", theta_a + 0.25, False),
-        ("heldout_composition", "B", theta_b, False),
+        ("acquisition", "A", theta_a, zero, False),
+        ("distractor", "A", zero, zero, False),
+        ("context_switch", "B", theta_b, zero, False),
+        ("relation2_isolation", "B", zero, theta_other, False),
+        ("observation_gap", "A", theta_a, zero, True),
+        ("reactivation", "A", theta_a, zero, False),
+        ("within_context_drift", "A", theta_a + 0.25, zero, False),
     ]
+    # The composition of two already encountered relation blocks appears only
+    # in the held-out test worlds; training worlds observe the blocks separately.
+    if split == "test":
+        phases.append(("heldout_composition", "B", theta_b, theta_other, False))
     learner_rows = []
     evaluator_rows = []
-    for phase_index, (phase, context_name, target_operator, masked) in enumerate(phases):
+    for phase_index, (phase, context_name, primary_operator, secondary_operator, masked) in enumerate(phases):
         for _step in range(20):
             source = rng.normal(size=2)
             other = rng.normal(size=2)
             ctx = contexts[context_name]
-            y = target_operator @ source + 0.15 * other + 0.005 * rng.normal(size=2)
+            y = primary_operator @ source + secondary_operator @ other + 0.005 * rng.normal(size=2)
             observed = not masked
             learner_rows.append({
                 "source": source.tolist(),
@@ -402,15 +421,15 @@ def _episode(seed: int, split: str) -> dict[str, Any]:
                 "phase_index": phase_index,
                 "phase": phase,
                 "context_label": context_name,
-                "planted_operator": target_operator.tolist(),
-                "distractor_operator": theta_distractor.tolist(),
+                "primary_operator": primary_operator.tolist(),
+                "secondary_operator": secondary_operator.tolist(),
                 "target_truth": y.tolist(),
             })
     return {"split": split, "seed": seed, "learner_rows": learner_rows, "evaluator_rows": evaluator_rows}
 
 
 def case_f6() -> dict[str, Any]:
-    """Build a leakage-separated reference sequential learning task manifest."""
+    """Build a leakage-separated task with a genuinely held-out relation composition."""
     train_seeds = list(range(110, 114))
     validation_seeds = list(range(210, 212))
     test_seeds = list(range(310, 312))
@@ -422,7 +441,7 @@ def case_f6() -> dict[str, Any]:
     disjoint = all(seed_sets[i].isdisjoint(seed_sets[j]) for i in range(3) for j in range(i + 1, 3))
     phases = sorted({row["phase"] for world in worlds for row in world["evaluator_rows"]})
     learner_keys = set(worlds[0]["learner_rows"][0])
-    forbidden_keys = {"phase", "phase_index", "episode_seed", "context_label", "planted_operator", "distractor_operator", "target_truth"}
+    forbidden_keys = {"phase", "phase_index", "episode_seed", "context_label", "primary_operator", "secondary_operator", "target_truth"}
     leakage_free = learner_keys.isdisjoint(forbidden_keys)
     masks_correct = all(
         row["target_observation"] is None and not row["target_mask"]
@@ -430,8 +449,15 @@ def case_f6() -> dict[str, Any]:
         for row, ev in zip(world["learner_rows"], world["evaluator_rows"])
         if ev["phase"] == "observation_gap"
     )
+    composition_is_test_only = all(
+        (any(ev["phase"] == "heldout_composition" for ev in world["evaluator_rows"])) == (world["split"] == "test")
+        for world in worlds
+    )
     row_count = sum(len(w["learner_rows"]) for w in worlds)
-    passed = disjoint and len(phases) == 7 and leakage_free and masks_correct and row_count > 0
+    passed = (
+        disjoint and len(phases) == 8 and leakage_free and masks_correct
+        and composition_is_test_only and row_count > 0
+    )
     return {
         "case_id": "F6",
         "description": "Integrated sequential adaptive-relational learning benchmark manifest",
@@ -439,23 +465,15 @@ def case_f6() -> dict[str, Any]:
         "validation_seeds": validation_seeds,
         "test_seeds": test_seeds,
         "world_count": len(worlds),
-        "rows_per_world": len(worlds[0]["learner_rows"]),
         "total_rows": row_count,
         "phases": phases,
         "split_worlds_are_disjoint": disjoint,
-        "evaluator_truth_excluded_from_learner_inputs": leakage_free,
+        "evaluator_truth_and_phase_metadata_excluded_from_learner_inputs": leakage_free,
         "observation_gap_masks_enforced": masks_correct,
+        "heldout_composition_phase_is_test_only": composition_is_test_only,
         "passed": bool(passed),
-        "interpretation": "The manifest is a leakage-separated reference task generator. It does not demonstrate that any architecture learns the tasks; its phase labels and planted operators remain evaluator-only.",
+        "interpretation": "The task generator exposes individual relation blocks in training and reserves their joint composition for test worlds. Phase identity, planted operators and evaluator truth remain outside learner inputs. This is a benchmark design probe, not a learner performance result.",
     }
-
-
-def _metric_operator_norm(k: np.ndarray, gs: np.ndarray, gt: np.ndarray) -> float:
-    cs = _chol_factor(gs)
-    ct = _chol_factor(gt)
-    return float(np.linalg.norm(ct @ k @ np.linalg.inv(cs), ord=2))
-
-
 def case_f7() -> dict[str, Any]:
     """Independent metric-invariance, switching and storage/activation challenge."""
     rng = np.random.default_rng(7707)
