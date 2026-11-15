@@ -102,7 +102,7 @@ B_\gamma=F_\gamma^{-1}(A_\gamma-I),
 Z_{k+1}=A_\gamma Z_k+B_\gamma U_k.
 \]
 
-Use a numerically stable matrix-exponential / linear-solve implementation and verify it against an independent high-accuracy reference. Do not use forward Euler. Here Z and U stack all mode states and inputs in node-major order. Derive all pseudorandom streams with NumPy SeedSequence and PCG64 from [world_seed, stream_code, mode_id]. Freeze stream codes as: 1 graph generation; 2 orthogonal R; 3 training inputs; 4 validation inputs; 5 test inputs; 6 random baseline; 7 temporal-shuffle control. Use mode_id=0 for graph, R, and random baseline; use the stable mode index 0–7 for each per-mode input and shuffle stream. No stream may be reused across purposes. Record the full seed entropy, generator, and graph rejection count.
+Use a numerically stable matrix-exponential / linear-solve implementation and verify it against an independent high-accuracy reference. Do not use forward Euler. Here Z and U stack all mode states and inputs in node-major order. Derive all pseudorandom streams with NumPy SeedSequence and PCG64 from [world_seed, stream_code, mode_id]. Freeze stream codes as: 1 graph generation; 2 orthogonal R; 3 training inputs; 4 validation inputs; 5 test inputs; 6 random baseline; 7 temporal-shuffle control. Use mode_id=0 for graph, R, and random baseline; use stable mode index 0–7 for each per-mode input. For each shuffle stream use entropy [world_seed, 7, split_code, mode_id], where split_code is 3, 4, or 5 for train, validation, or test. No stream may be reused across purposes. Record the full seed entropy, generator, and graph rejection count.
 
 For each mode, generate an independent smooth bounded vector input using a seeded first-order autoregressive process:
 
