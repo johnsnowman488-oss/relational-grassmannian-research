@@ -1,7 +1,7 @@
 # LGDH Cross-Experiment Ledger
 
 **Research stream:** Lepto-Graph Development Hypothesis  
-**Status:** LG-01A-v0.1 executed; LG-01B-v0.1 frozen; implementation and campaign in progress  
+**Status:** LG-01A-v0.1 executed; LG-01B-v0.1 executed; scientific gate failed at both qualified rates  
 **Opened:** 2026-11-14
 
 ## 2026-11-14 — LGDH opened as a parallel mechanism hypothesis
@@ -53,7 +53,7 @@ At rate 0.80, seeds 105, 112, 114 and 116 failed the pre-registered requirement 
 
 All mathematical, input-response, analytic-boundedness, finite-state and washout checks passed. The candidate and independently stepped conventional SOE traces matched within maximum relative difference 2.02055e-15 (tolerance 1e-10). Continuous and intermittent input energies matched exactly. Thus the dynamics are fully explained by the ordinary leaky-SOE null in this experiment; no new primitive is demonstrated.
 
-**Decision:** valid scientific fail for LG-01A-v0.1's declared fast-rate range. Keep the result. Do not implement or execute LG-01B until its separate protocol is reviewed and frozen. Any reconsideration of the 0.8 operating threshold, input normalization or timescale range must be made through a dated v0.2 protocol revision and fresh confirmation run; no post-hoc threshold adjustment is permitted.
+**Decision:** valid scientific fail for LG-01A-v0.1's declared fast-rate range. Keep the result. LG-01B was later frozen and executed only at the two qualifying rates; it failed its pre-registered topology-recovery gates at both. γ=0.80 remains excluded. Any reconsideration of the operating threshold, input normalization, tangent feature or coupling must be handled through a separately dated protocol revision and fresh confirmation run; no post-hoc adjustment is permitted.
 
 The LGDH concept remains a hypothesis. This result establishes only that the tested transient-refresh operating condition is reliable at 0.05 and 0.2 under this protocol, not at 0.8 with the chosen criterion. It does not test endogenous routing, historical trajectory registration, graph formation or adaptive reasoning.
 
@@ -80,3 +80,13 @@ Frozen scope and gates: eight modes, dimension 16, hidden strongly connected dig
 The k=2 prior is accepted to isolate destination identity recovery; unknown-degree discovery is not tested. Coupling c=0.05 is deliberately conservative and will not be raised post hoc. A failure at this strength remains a valid outcome. The two LG-01A-qualified rates are reported independently; γ=0.80 remains a valid LG-01A-v0.1 failure at 26/30 and is excluded without changing that result. LGDH remains parallel to the E-series; E03 is still the next mainline experiment.
 
 Implementation is on `research/lg01b-implementation`. No scientific result is available until the frozen 30-world campaign completes and its evidence bundle is inspected.
+
+## 2026-11-15 — LG-01B-v0.1 campaign result
+
+The frozen 30-world campaign completed under GitHub Actions run [43658776160](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43658776160). All 143 repository tests passed on Python 3.10 and 3.12. The campaign completed the 60 paired world-rate conditions, passed all strict stability checks, produced no degenerate coupled training tangents, and uploaded an evidence artifact with 459/459 internal checksums valid.
+
+**Scientific decision: FAIL at both rates.** At γ=0.05, mean precision@2 was 0.2729 (95% CI 0.2396–0.3042), below chance 2/7; 0/30 worlds reached 0.50. The direction-blind control was stronger (0.2938), giving a primary-minus-control margin of −0.0208 (paired 95% CI −0.0750 to −0.0021). Path precision was 0.0865, versus 0.0906 for the strongest path control. At γ=0.20, mean precision@2 was 0.3188 (95% CI 0.2771–0.3646), with only 3/30 worlds reaching 0.50. The reverse-time control was stronger (0.3417), giving a margin of −0.0229 (paired 95% CI −0.0729 to 0.0271). Path precision was 0.0885, versus 0.1198 for the strongest path control.
+
+Mean selected-edge test contributions were negative at both rates (−0.0306 and −0.0600); paired coupled-minus-uncoupled intervals included zero. The only passing individual gate was that selected-pair contribution was slightly less negative than the non-selected-pair mean. This is not evidence of positive predictive utility. Coupling c=0.05 and all thresholds were retained unchanged.
+
+Artifact `lg01b-43658776160-1` (ID 14139840352), source commit `57c546d4a417df2a34ba21e4ee4d6eeb6fe6a294`; runtime 346.06 s, peak memory 187,326,464 bytes. Detailed per-world metrics and checksums are recorded in `docs/lg01b_ledger.md`. **LG-01C is blocked** under its current prerequisite; E03 remains the next mainline E-series milestone. The result does not test or settle spontaneous graph emergence.
