@@ -268,7 +268,7 @@ M0 implements and executes five independent analytical cases:
 | M0-D | Dormant history and operator decay |
 | M0-E | Reactivation after dormancy under renewed constant evidence |
 
-M0 is an equation/code verification milestone, not evidence of relation discovery or scientific utility. Each case is independently executable; CI runs the five cases concurrently and aggregates their evidence. Initial local verification on Python 3.13.5 / NumPy 2.3.5 / SciPy 1.17.0 passed all five cases, with maximum absolute differences from independent DOP853 integration between \(4.60\times10^{-13}\) and \(5.15\times10^{-12}\), against a \(2\times10^{-10}\) tolerance. The dedicated M0 test file passed 15 tests. Cross-version repository CI is the next independent validation.
+M0 is an equation/code verification milestone, not evidence of relation discovery or scientific utility. Each case is independently executable; CI runs the five cases concurrently and aggregates their evidence. Initial local verification on Python 3.13.5 / NumPy 2.3.5 / SciPy 1.17.0 passed all five cases, with maximum absolute differences from independent DOP853 integration between \(4.60\times10^{-13}\) and \(5.15\times10^{-12}\), against a \(2\times10^{-10}\) tolerance. The dedicated M0 test file passed 15 tests. The canonical cross-version repository CI run 43736121964 also passed, with 137 full-suite tests on Python 3.10 and 137 on Python 3.12; the run and artifact checksums are recorded below.
 
 This extension does not modify LG-01A or LG-01B frozen protocols, alter LG-01B's scientific failure, or unblock LG-01C. It also does not displace E03 in the main E-series.
 

@@ -70,3 +70,6 @@ A parallel LGDH extension formalises a hybrid dimensional architecture: modes sh
 - [M0 analytical reference implementation](src/rgm/leptograph/m0.py)
 
 M0 verifies five closed-form reference cases: memory, heterogeneous routing, independent reverse routing, dormancy and reactivation. It is not a scientific-performance or relation-discovery result. Five analytical cases run as independent concurrent jobs, with a Python 3.10/3.12 full-test matrix and final evidence aggregation.
+
+
+Canonical GitHub Actions run [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) passed all five analytical jobs, the aggregation gate, and 137 full-repository tests on each of Python 3.10 and 3.12. Artifact IDs and SHA-256 digests are recorded in the relational adaptation ledger.
