@@ -1,10 +1,11 @@
 # LG-01B — Trajectory-Derived Directional Relations
 
-**Protocol version:** LG-01B-v0.1-draft  
-**Status:** Draft for scientific review; **not frozen**; no implementation or execution authorised  
+**Protocol version:** LG-01B-v0.1  
+**Status:** **FROZEN**; implementation and the pre-registered campaign are authorised  
 **Research stream:** Lepto-Graph Development Hypothesis (LGDH)  
-**Date prepared:** 2026-11-14  
-**Prerequisite:** LG-01A-v0.1 completed; downstream operating envelope restricted to the two passing fast rates
+**Freeze date:** 2026-11-15  
+**Prerequisite:** LG-01A-v0.1 completed; downstream operating envelope restricted to the two passing fast rates  
+**Approved question:** recovery of a hidden directed topology from coupled trajectories; spontaneous graph emergence is explicitly deferred
 
 ## 1. Research question
 
@@ -67,7 +68,7 @@ For each independent world, generate a directed graph with:
 
 The graph is represented by an evaluator-only adjacency matrix G, where G_ij=1 means source i influences destination j. The model-facing runner must never pass G, its edge list, edge labels, or graph-generation seed to the trajectory-mapping code.
 
-The out-degree k=2 is a declared task prior used for top-k selection. The learner is not given the identity of any edge. This means the experiment tests destination identity recovery under a known out-degree, not simultaneous discovery of the degree distribution.
+The out-degree k=2 is a declared and frozen task prior used for top-k selection. The learner is not given the identity of any edge. This means the experiment tests destination identity recovery under a known out-degree, not simultaneous discovery of the degree distribution. The prior is accepted for this first mechanism test because it isolates destination-identity recovery from degree estimation; unknown-degree discovery is deferred.
 
 ### 4.3 Coupled mode dynamics
 
@@ -86,7 +87,7 @@ For destination mode j, define:
 
 Here z_j(t) is in R^16, and u_j(t) is an independent bounded input stream for mode j. The same decay rate is used across modes within a world. The graph determines only the hidden directed coupling; it is not exposed to the learner.
 
-The coupling is deliberately weak and stable. Since every source has out-degree two, ||G||_2 ≤ sqrt(14); with orthogonal R, κ||G||_2 ≤ 0.05γsqrt(14) < γ. Thus the symmetric-part stability bound remains strictly dissipative relative to the -γ decay term. The implementation must still check finite-state behaviour and verify the numerical transition matrix is stable.
+The coupling ratio c=0.05 is frozen and will not be tuned after execution. The coupling is deliberately weak and stable. Since every source has out-degree two, ||G||_2 ≤ sqrt(14); with orthogonal R, κ||G||_2 ≤ 0.05γsqrt(14) < γ. Thus the symmetric-part stability bound remains strictly dissipative relative to the -γ decay term. The implementation must still check finite-state behaviour and verify the numerical transition matrix is stable. Detectability at this conservative strength is not known in advance; a failure is a valid scientific outcome, not grounds for a post-hoc increase in c.
 
 ### 4.4 Physical-time integration and input process
 
@@ -101,7 +102,7 @@ B_\gamma=F_\gamma^{-1}(A_\gamma-I),
 Z_{k+1}=A_\gamma Z_k+B_\gamma U_k.
 \]
 
-Use a numerically stable matrix-exponential / linear-solve implementation and verify it against an independent high-accuracy reference. Do not use forward Euler. Here Z and U stack all mode states and inputs in node-major order. Use separate deterministic seed streams for graph generation, R generation, each split, each mode's input process, and the random baseline; no stream may be reused across purposes.
+Use a numerically stable matrix-exponential / linear-solve implementation and verify it against an independent high-accuracy reference. Do not use forward Euler. Here Z and U stack all mode states and inputs in node-major order. Derive all pseudorandom streams with NumPy SeedSequence and PCG64 from [world_seed, stream_code, mode_id]. Freeze stream codes as: 1 graph generation; 2 orthogonal R; 3 training inputs; 4 validation inputs; 5 test inputs; 6 random baseline; 7 temporal-shuffle control. Use mode_id=0 for graph, R, and random baseline; use the stable mode index 0–7 for each per-mode input and shuffle stream. No stream may be reused across purposes. Record the full seed entropy, generator, and graph rejection count.
 
 For each mode, generate an independent smooth bounded vector input using a seeded first-order autoregressive process:
 
@@ -204,10 +205,10 @@ All algorithmic controls receive the same coupled-world trajectory observations,
 2. **Source-state mapping:** replaces source tangent groups with source state vectors. This tests whether tangent direction contributes beyond ordinary source-state information.
 3. **Direction-blind activity mapping:** replaces each 16D unit tangent with the scalar raw tangent speed ||dot z_i[k]||_2. This tests whether vector direction adds value beyond activity level.
 4. **Uncoupled-world null:** repeat the same input and observation process with G=0, using the same per-mode input seeds as the paired coupled world. This negative control contains no inter-mode edges. Run the same mapping pipeline and report the selected-pair validation and test predictive-contribution distributions; top-two selections in this arm are false relations by construction.
-5. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one physical time unit, preserving local marginal structure while breaking alignment to destination responses.
+5. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one physical time unit (8 samples at Δt=0.125), preserving within-block order while breaking alignment to destination responses. Generate each split/mode permutation from seed stream code 7; do not reuse a permutation across splits.
 6. **Reverse-time mapping:** at origin k, predicts destination state z_j[k] from source tangents at k+Hγ, using destination state and tangent at k+Hγ as reverse-time autoregressive controls. This mirrors the forward horizon and tests whether the apparent relation is specifically forward-directed.
 7. **Symmetric association baseline:** ranks pairs using the absolute Pearson correlation between the state-energy traces ||z_i[k]||_2 and ||z_j[k]||_2, computed on validation data only. The pair score is symmetric (S_i_j=S_j_i), so it cannot identify direction from the association itself.
-8. **Random top-two baseline:** selects two destinations uniformly for each source using a separately recorded evaluator seed.
+8. **Random top-two baseline:** selects two destinations uniformly for each source using seed stream code 6, with deterministic tie-free sampling without replacement.
 
 The primary model must outperform the best source-state, direction-blind, shuffled, reverse-time, symmetric-association, and random control on topology recovery. The uncoupled-world null is evaluated separately through the paired predictive-contribution criterion below because it has no true edges and therefore no meaningful edge precision. The source-state control is separately reported because a successful result from state features alone would not establish the value of trajectory direction.
 
@@ -253,7 +254,7 @@ The learner is not given path queries or path truth during fitting. Path metrics
 
 Record parameter count, training samples, prediction operations, wall-clock time, peak memory if available, finite-state checks, matrix stability checks, and all failed/degenerate tangent counts. Report results separately for each rate and paired differences across rates.
 
-## 10. Pre-registered acceptance and failure criteria (draft)
+## 10. Pre-registered acceptance and failure criteria (frozen)
 
 Each rate is evaluated independently over the 30 paired worlds.
 
@@ -262,18 +263,18 @@ A rate passes only if all of the following are met:
 1. Mean primary macro precision@2 is at least **0.60**.
 2. The lower bound of a 95% paired-world bootstrap confidence interval for mean precision@2 is above the random-selection expectation 2/7.
 3. At least **24 of 30 worlds** achieve precision@2 of at least **0.50**.
-4. Primary precision@2 exceeds the best of the source-state, direction-blind activity, temporally shuffled, reverse-time, and symmetric-association controls by at least **0.10 absolute**, with the paired 95% bootstrap confidence interval for the difference entirely above zero.
-5. Test-set selected-edge predictive contribution is positive on average, greater than that of non-selected pairs, and greater than the paired uncoupled-world top-two contribution, with the paired 95% bootstrap confidence interval for the coupled-minus-uncoupled difference entirely above zero.
+4. Primary precision@2 exceeds the strongest of the source-state, direction-blind activity, temporally shuffled, reverse-time, symmetric-association, and random controls by at least **0.10 absolute**. The paired-world bootstrap comparison is computed in each resample as primary mean precision minus the maximum mean precision among those controls; its 95% confidence interval lower bound must be above zero.
+5. On the independent test episode, the primary model's selected-edge predictive contribution is positive on average and greater than the mean contribution of non-selected pairs. It must also exceed the paired uncoupled-world top-two contribution, with the paired-world 95% bootstrap confidence interval for coupled-minus-uncoupled selected-edge contribution entirely above zero. Each world's uncoupled top-two pairs are selected by that null world's validation scores, never by evaluator truth.
 
 The path-witness criterion is an additional required exit gate: inferred length-two witnesses must have precision of at least **0.30** and exceed the best control by at least **0.10 absolute**. The lower absolute threshold is intentional: a two-edge witness requires both constituent edges to be recovered, so its expected precision is lower than single-edge precision. Path recall and query coverage are reported regardless of pass/fail.
 
 A rate is a pass only if both its edge-recovery criteria and its path-witness criterion pass. A failure at either rate blocks LG-01C. A pass at one rate does not imply a pass at the other. A mixed result must be reported as mixed, not averaged into an overall pass.
 
-Compute 95% confidence intervals by a paired bootstrap over the 30 worlds (10,000 resamples; bootstrap seed 4401, recorded in configuration). Do not treat timesteps or the two paired rates as independent worlds. These numerical thresholds are proposed for review before freeze. They must not be altered after execution. Any revision after a run requires a dated protocol revision and a fresh confirmation campaign.
+Compute 95% confidence intervals by a paired bootstrap over the 30 worlds (10,000 resamples; bootstrap seed 4401, recorded in configuration). Use the same resampled world indices for all paired conditions and controls; do not treat timesteps or the two paired rates as independent worlds. The k=2 prior, c=0.05 coupling, precision@2 threshold 0.60, control margin 0.10, path precision threshold 0.30, and path-control margin 0.10 are frozen before execution. They must not be altered after execution. Any revision after a run requires a dated protocol revision and a fresh confirmation campaign.
 
 ## 11. Reproducibility and implementation requirements
 
-The eventual runner must produce:
+The runner must produce:
 
 - protocol and configuration snapshots with hashes;
 - repository commit and clean/dirty working-tree status;
@@ -300,7 +301,7 @@ Mathematical/reproducibility tests must cover:
 - edge/path metric correctness on hand-constructed toy graphs;
 - checksum verification and complete seed coverage.
 
-No campaign runner, workflow, or result artifacts should be added until this protocol is reviewed and frozen.
+This protocol is frozen. The runner and its tests may now be implemented, and the campaign may be executed exactly as specified. Any scientific or numerical change to the frozen design requires a dated protocol revision and a fresh confirmation campaign.
 
 ## 12. Threats to validity and explicit limitations
 
@@ -318,17 +319,17 @@ These limitations must appear in any report and must not be hidden by aggregate 
 
 Before implementation, scientific review must explicitly accept or revise:
 
-- [ ] the eight-mode, 16D coupled linear world and two-outgoing-edge prior;
-- [ ] the coupling orientation and stability argument;
-- [ ] the smooth bounded input process and exact integration scheme;
-- [ ] the causal tangent feature and conditional ridge mapping;
-- [ ] the independent train/validation/test episode design;
-- [ ] the direction-blind, shuffled, reverse-time, state-only, and random controls;
-- [ ] the 30-world campaign and paired-rate interpretation;
-- [ ] the numeric acceptance thresholds and path-witness criteria;
-- [ ] the claim boundary and failure interpretation.
+- [x] the eight-mode, 16D coupled linear world and two-outgoing-edge prior;
+- [x] the coupling orientation and stability argument;
+- [x] the smooth bounded input process and exact integration scheme;
+- [x] the causal tangent feature and conditional ridge mapping;
+- [x] the independent train/validation/test episode design;
+- [x] the direction-blind, shuffled, reverse-time, state-only, and random controls;
+- [x] the 30-world campaign and paired-rate interpretation;
+- [x] the numeric acceptance thresholds and path-witness criteria;
+- [x] the claim boundary and failure interpretation.
 
-**Current decision:** draft prepared for review only. No protocol freeze, implementation, CI campaign, or scientific result is implied.
+**Freeze decision (2026-11-15):** the user approved the narrow hidden-topology-recovery scope. The k=2 prior, c=0.05 coupling, γ={0.05, 0.20} rate scope, 0.60 mean precision@2 gate, 0.10 best-control margin, 0.30 path-precision gate, 0.10 path-control margin, 30 worlds, seeds, split lengths, bootstrap procedure, and all controls are frozen as LG-01B-v0.1. Spontaneous graph emergence is deferred to a separate experiment. No parameter may be changed in response to campaign results.
 
 
 ## 14. Internal protocol review notes
@@ -341,7 +342,7 @@ The first review pass identified and corrected several design issues before free
 - A paired uncoupled-world null was added to measure false destination scores when no inter-mode coupling exists.
 - The control models use the same validation-only hyperparameter-selection procedure as the primary model.
 
-Remaining review questions are whether the fixed k=2 prior is acceptable for this first mechanism test, whether the linear coupled world is sufficiently discriminating without being mistaken for general graph emergence, whether the proposed 0.60 edge-recovery threshold is appropriately demanding, and whether the chosen coupling strength c=0.05 is sufficiently detectable without being unrealistically strong. These are scientific freeze decisions, not implementation details.
+Freeze resolutions: (1) fixed k=2 is accepted as an explicit prior, so LG-01B isolates destination identity recovery rather than unknown-degree discovery; (2) the linear coupled-world reconstruction test is the first operational test, with no claim of spontaneous graph emergence; (3) mean precision@2 ≥0.60 and the 0.10 best-control margin are frozen; and (4) c=0.05 remains fixed despite uncertain detectability. A result below the gate is reported as failure or inconclusive under the pre-registered criteria; coupling is not increased after the fact.
 
 
 ### Additional review note: rate comparability
