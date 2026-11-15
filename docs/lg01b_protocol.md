@@ -101,7 +101,7 @@ B_\gamma=F_\gamma^{-1}(A_\gamma-I),
 Z_{k+1}=A_\gamma Z_k+B_\gamma U_k.
 \]
 
-Use a numerically stable matrix-exponential / linear-solve implementation and verify it against an independent high-accuracy reference. Do not use forward Euler. Here Z and U stack all mode states and inputs in the same fixed mode order.
+Use a numerically stable matrix-exponential / linear-solve implementation and verify it against an independent high-accuracy reference. Do not use forward Euler. Here Z and U stack all mode states and inputs in node-major order. Use separate deterministic seed streams for graph generation, R generation, each split, each mode's input process, and the random baseline; no stream may be reused across purposes.
 
 For each mode, generate an independent smooth bounded vector input using a seeded first-order autoregressive process:
 
@@ -245,7 +245,6 @@ Construct the inferred directed graph from the validation-selected top-two edges
 - path precision: fraction of inferred length-two edge sequences that are true evaluator paths;
 - path recall: fraction of evaluator length-two paths recovered;
 - query coverage: fraction of ordered pairs with at least one inferred path;
-- witness validity: whether every edge in each returned witness is supported by the hidden evaluator graph.
 
 The learner is not given path queries or path truth during fitting. Path metrics are secondary and must not conceal poor edge recovery.
 
@@ -269,7 +268,7 @@ Path-witness validity is reported as a secondary gate: inferred length-two witne
 
 A failure at either rate blocks LG-01C. A pass at one rate does not imply a pass at the other. A mixed result must be reported as mixed, not averaged into an overall pass.
 
-These numerical thresholds are proposed for review before freeze. They must not be altered after execution. Any revision after a run requires a dated protocol revision and a fresh confirmation campaign.
+Compute 95% confidence intervals by a paired bootstrap over the 30 worlds (10,000 resamples; fixed bootstrap seed recorded in configuration). Do not treat timesteps or the two paired rates as independent worlds. These numerical thresholds are proposed for review before freeze. They must not be altered after execution. Any revision after a run requires a dated protocol revision and a fresh confirmation campaign.
 
 ## 11. Reproducibility and implementation requirements
 
