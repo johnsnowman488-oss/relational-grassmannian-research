@@ -14,6 +14,7 @@ def test_prequential_probe_challenges_correlated_sources():
     r=run_case("R2")
     assert [x["source_correlation"] for x in r["correlation_sweep"]]==[0.0,.5,.9,.99]
     assert r["preupdate_target_perturbation_prediction_error"] < 1e-12
+    assert r["next_prediction_responds_after_update"]
 
 def test_activation_is_stateful_across_threshold_band():
     r=run_case("R3")
