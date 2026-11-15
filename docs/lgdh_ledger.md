@@ -1,7 +1,7 @@
 # LGDH Cross-Experiment Ledger
 
 **Research stream:** Lepto-Graph Development Hypothesis  
-**Status:** LG-01A-v0.1 executed; restricted LG-01B operating envelope adopted; LG-01B protocol draft under review  
+**Status:** LG-01A-v0.1 executed; LG-01B-v0.1 frozen; implementation and campaign in progress  
 **Opened:** 2026-11-14
 
 ## 2026-11-14 — LGDH opened as a parallel mechanism hypothesis
@@ -69,3 +69,14 @@ The downstream operating envelope is restricted to γ=0.05 and γ=0.20, the two 
 A first LG-01B-v0.1 protocol draft has been added at docs/lg01b_protocol.md. It proposes a fixed eight-mode, 16-dimensional synthetic coupled system with a hidden two-outgoing-edge directed topology, smooth bounded independent inputs, causal tangent features, conditional ridge prediction, validation-only destination ranking, and independent held-out test episodes. It includes source-state, direction-blind, shuffled, reverse-time, symmetric-association and random controls, plus edge and two-hop path metrics.
 
 The protocol remains **draft / not frozen**. Internal review added the destination's own tangent to its autoregressive baseline, included the source-state mapping in the primary control comparison, and aligned the two-edge path threshold with the single-edge recovery target. No runner, CI campaign or scientific result is authorised until the user approves the remaining design choices and the protocol is frozen.
+
+
+## 2026-11-15 — LG-01B-v0.1 frozen; implementation authorised
+
+The user approved the first LG-01B question as **recovery of a hidden directed topology from coupled trajectories**, while explicitly deferring spontaneous graph emergence to a subsequent experiment. The protocol is frozen at `docs/lg01b_protocol.md` as LG-01B-v0.1.
+
+Frozen scope and gates: eight modes, dimension 16, hidden strongly connected digraph with known out-degree k=2, shared hidden orthogonal transform, exact ZOH integration, fixed physical Δt=0.125 and input correlation process, c=0.05 coupling, causal backward tangents, conditional ridge mapping, validation-only destination ranking, independent train/validation/test episodes, 30 worlds (seeds 301–330), paired rate conditions γ=0.05 and 0.20, all declared controls, precision@2 mean ≥0.60, ≥24/30 worlds ≥0.50, 95% paired-bootstrap lower bound above chance 2/7, ≥0.10 advantage over the strongest control with lower CI >0, positive selected-edge test contribution over unselected and paired uncoupled null, and path precision ≥0.30 with ≥0.10 advantage over the strongest path control. Bootstrap is 10,000 resamples, seed 4401.
+
+The k=2 prior is accepted to isolate destination identity recovery; unknown-degree discovery is not tested. Coupling c=0.05 is deliberately conservative and will not be raised post hoc. A failure at this strength remains a valid outcome. The two LG-01A-qualified rates are reported independently; γ=0.80 remains a valid LG-01A-v0.1 failure at 26/30 and is excluded without changing that result. LGDH remains parallel to the E-series; E03 is still the next mainline experiment.
+
+Implementation is on `research/lg01b-implementation`. No scientific result is available until the frozen 30-world campaign completes and its evidence bundle is inspected.
