@@ -237,3 +237,37 @@ See [LGDH hypothesis](lgdh_hypothesis.md), [LG experiment spine](lg_experiment_s
 The parallel Lepto-Graph Development Hypothesis stream has moved from specification to its first controlled execution. The LG-01A-v0.1 runner and tests are implemented. GitHub Actions run 43652121470 passed 122 repository tests on both Python 3.10 and 3.12 and executed 30 paired seeds. It found 30/30 passes at fast rates 0.05 and 0.2, but only 26/30 at 0.8, below the pre-registered 27/30 requirement. All mathematical, boundedness, washout, energy-match and conventional-SOE-null controls passed. The run bundle is artifact 14136786352.
 
 The result is a valid v0.1 scientific failure at the fastest declared rate, not an implementation failure. LG-01B is blocked until the scope of that result is reviewed. This does not change the main E-series ordering: E03 remains the next mainline milestone, and no Grassmannian or lepto-graph architecture has been selected.
+
+
+## 9. Hybrid relational Leptograph — mathematical foundation (2026-11-15)
+
+A hybrid dimensional architecture has been added as a parallel LGDH research extension. It preserves the Leptograph's n-dimensional information reception, internal processing and routing while making dimensional organisation explicit:
+
+- Modes are partitioned into groups; modes in a group share an ambient real inner-product space \(\mathcal E_g\cong\mathbb R^{d_g}\).
+- Different groups may have heterogeneous dimensions. The global state is a direct sum of local mode spaces, not an assertion that all modes share one representation.
+- A directed relation from group \(g\) to group \(h\) is a linear map \(K_e:\mathcal E_g\to\mathcal E_h\). An optional relation-specific interface factors it as \(K_e=D_eS_e\), with an explicit non-identifiability/gauge freedom in that factorization.
+- Reverse relations have independent operators; no inverse, transpose or symmetry is presumed.
+- Mode-level temporal memory and relationship-level history are distinct states. Relationship identity, context and confidence are recorded as separate design roles, but their inference/update rules remain open.
+- Provisional adaptation uses \(\dot H_e=\lambda_e(s_e-H_e)\) and \(\dot K_e=\eta_eH_es_e(\widehat K_e-K_e)-\delta_e(1-s_e)K_e\). Evidence construction must be non-circular and separately specified.
+
+The mathematical foundation records proofs for historical-state invariance, operator norm-ball invariance under bounded targets, exact dormancy and reactivation, conditional incremental stability of the mode subsystem, and noiseless operator identifiability under full source excitation. It states the additional assumptions needed for local/global well-posedness and explicitly does **not** claim full coupled-system stability.
+
+Grassmannian subspaces are retained as candidate relational signatures, not mandatory routing states or sufficient historical identities. Higher-order relations, endogenous topology and mode changes, identity recognition, false-reactivation control, and multi-source noisy identifiability remain open.
+
+See [Hybrid Relational Leptograph mathematical foundations](hybrid_leptograph_foundations.md).
+
+### M0 — analytical reference verification
+
+M0 implements and executes five independent analytical cases:
+
+| Case | Scope |
+|---|---|
+| M0-A | Exact mode-memory response and washout |
+| M0-B | Heterogeneous directed routing \(\mathbb R^2\to\mathbb R^4\to\mathbb R^5\) |
+| M0-C | Independent forward and reverse operators |
+| M0-D | Dormant history and operator decay |
+| M0-E | Reactivation after dormancy under renewed constant evidence |
+
+M0 is an equation/code verification milestone, not evidence of relation discovery or scientific utility. Each case is independently executable; CI runs the five cases concurrently and aggregates their evidence. Initial local verification on Python 3.13.5 / NumPy 2.3.5 / SciPy 1.17.0 passed all five cases, with maximum absolute differences from independent DOP853 integration between \(4.60\times10^{-13}\) and \(5.15\times10^{-12}\), against a \(2\times10^{-10}\) tolerance. The dedicated M0 test file passed 15 tests. Cross-version repository CI is the next independent validation.
+
+This extension does not modify LG-01A or LG-01B frozen protocols, alter LG-01B's scientific failure, or unblock LG-01C. It also does not displace E03 in the main E-series.

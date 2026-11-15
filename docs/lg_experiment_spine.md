@@ -122,3 +122,16 @@ Each experiment has its own ledger. Before any confirmation run, record:
 - decision: **pass**, **fail**, **inconclusive**, or **invalid run**.
 
 The cross-experiment LGDH ledger records changes in the hypothesis and decisions that affect more than one experiment. The repository experiment register gives current status. A CI pass is an execution result, not automatically a scientific pass.
+
+
+## 9. Hybrid relational Leptograph extension and M0
+
+The hybrid relational Leptograph is a mathematical extension under investigation, not a reinterpretation of LG-01A or LG-01B. It preserves multidimensional information reception and routing. Modes share a local vector space within a group, while different groups may have heterogeneous dimensions and communicate through directed, dimension-compatible relational operators. Optional relation-specific interface spaces provide encoder/decoder factorizations; reverse routes remain independent.
+
+The extension distinguishes mode state, mode-level temporal memory, relationship history, current routing operator, relational lineage/identity, context and confidence. A provisional evidence-driven operator adaptation law has been written, but its evidence generator must be separately defined to avoid circularity. Full coupled stability, relational identity recognition, false-reactivation control, endogenous edge/mode birth and death, group reorganisation, and higher-order relations remain open.
+
+The canonical definitions and proof obligations are in [hybrid_leptograph_foundations.md](hybrid_leptograph_foundations.md).
+
+**HLG-M0** is the first mathematical implementation gate, with five exact-reference cases: mode memory; heterogeneous forward routing; independent forward/reverse operators; dormancy; and reactivation. It uses independent analytical expressions and DOP853 integration as cross-checks. Each case is a separate concurrent CI job, followed by a required evidence aggregation job and a full Python 3.10/3.12 test matrix.
+
+M0's claim ceiling is strict: agreement with analytical references verifies only these equations and implementation paths. It does not demonstrate learned destination selection, historical identity recognition, autonomous relation formation, network-level adaptive stability or general reasoning. LG-01B's recorded v0.1 failure remains unchanged, and LG-01C remains blocked under its own prerequisites.

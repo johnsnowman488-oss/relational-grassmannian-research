@@ -60,3 +60,13 @@ A separate LGDH line now investigates whether fast, multidimensional, continuous
 - [LG-01B protocol draft](docs/lg01b_protocol.md)
 - [LGDH cross-experiment ledger](docs/lgdh_ledger.md)
 - [LG-01A experiment ledger](docs/lg01a_ledger.md)
+
+
+## Hybrid Relational Leptograph — mathematical foundation
+
+A parallel LGDH extension formalises a hybrid dimensional architecture: modes share a vector space within each group, groups may have heterogeneous dimensions, and directed relations route information through dimension-compatible operators and optional relation-specific interfaces. Mode memory and relationship history are separate dynamical states. Identity recognition, topology birth/death, group reorganisation and full coupled stability remain open.
+
+- [Hybrid Relational Leptograph mathematical foundations](docs/hybrid_leptograph_foundations.md)
+- [M0 analytical reference implementation](src/rgm/leptograph/m0.py)
+
+M0 verifies five closed-form reference cases: memory, heterogeneous routing, independent reverse routing, dormancy and reactivation. It is not a scientific-performance or relation-discovery result. Five analytical cases run as independent concurrent jobs, with a Python 3.10/3.12 full-test matrix and final evidence aggregation.
