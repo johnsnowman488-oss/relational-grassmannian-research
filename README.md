@@ -84,3 +84,14 @@ M1 verifies how directed routing maps between spaces of different dimensions tra
 - [M1 independent experiment runner](src/rgm/experiments/leptograph_m1.py)
 
 Six independent deterministic cases run concurrently, followed by aggregate evidence verification and a Python 3.10/3.12 full-repository test matrix. Canonical run [43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175) passed all six cases and both 183-test suites. M1 is algebraic/geometric verification of fixed operators, not evidence of learned relation discovery, semantic alignment or full adaptive-system stability.
+
+
+## HLG-M2 — Multi-Route Stability, Conditioning and Information Preservation
+
+M2 extends the fixed heterogeneous routing foundation to parallel paths and feedback networks. It distinguishes summing route contributions (where they can cancel) from keeping route outputs separately observable, measures information loss and route-erasure resilience, and tests spectral stability separately from non-normal transient amplification.
+
+- [Frozen HLG-M2 protocol](docs/hybrid_leptograph_m2_protocol.md)
+- [M2 implementation](src/rgm/leptograph/m2.py)
+- [M2 independent experiment runner](src/rgm/experiments/leptograph_m2.py)
+
+M2 is fixed-matrix algebra and LTI network verification only. It does not validate adaptive, delayed, nonlinear or learned-network stability, nor information-theoretic capacity or semantic retention.

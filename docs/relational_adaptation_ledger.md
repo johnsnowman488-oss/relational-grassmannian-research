@@ -367,3 +367,16 @@ The aggregate verifier required exactly M1-A through M1-F and reported all_cases
 | Aggregate summary | 14171175758 | 241c0cd8bb60bb6e22fde850e63943bb12f6fee5f7bf6875722955374f0db45b |
 
 **Interpretation:** HLG-M1 passes its algebraic/geometric implementation gate. The results verify covariance of fixed heterogeneous maps, metric transport, route composition, interface factorisation gauge freedom, linear rank diagnostics and Grassmannian invariance to floating-point tolerance. They do not establish learned relational operators, semantic alignment, causal attribution, noisy multi-source identifiability, temporal adaptation or stability of the complete adaptive network.
+
+
+## HLG-M2 — frozen multi-route protocol (2026-11-15)
+
+M2 moves beyond M1's single-map coordinate invariants to fixed parallel-route banks and synchronous feedback networks. The formal model, API obligations, six deterministic reference cases and interpretation limits are frozen in [hybrid_leptograph_m2_protocol.md](hybrid_leptograph_m2_protocol.md).
+
+The core distinctions are:
+- A coalesced transfer T=sum_p K_p can lose rank through destructive cancellation.
+- A separately observed route bank formed by vertically stacking its path maps preserves route outputs as separate channels and has nullspace equal to the intersection of the individual route nullspaces.
+- The fixed discrete-time LTI network is asymptotically stable exactly when the global block operator has spectral radius below one. Its induced 2-norm below one is only a sufficient contraction criterion; non-normal transient amplification must be separately reported.
+- Singular-spectrum conditioning and single-route erasure are diagnostics in the declared Euclidean coordinates, not semantic or Shannon-information measures. General coordinate changes require M1's metric transport.
+
+M2 leaves adaptive/time-varying/delayed/nonlinear/stochastic stability, information-theoretic capacity, semantic retention, learning and relation discovery open. It does not alter M0/M1 evidence, any frozen LG protocol/result, or E03's status as the next mainline E-series milestone.

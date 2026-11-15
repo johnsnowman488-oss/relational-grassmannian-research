@@ -62,3 +62,7 @@ This file records frozen choices, their scope, and what remains open. Changes re
 
 
 - **2026-11-15 — HLG-M1 execution accepted:** canonical run 43737461175 passed six independent invariance cases, the aggregate evidence gate, and 183 full-repository tests on each of Python 3.10 and Python 3.12. The result validates fixed-map algebraic and geometric invariants only; it does not establish learned or semantically correct relations, causal attribution, or full adaptive-network stability.
+
+
+- **2026-11-15 — HLG-M2 scope frozen:** move from single heterogeneous maps to fixed multi-route networks. Distinguish summed/coalesced paths from separately observed route outputs; track interference, rank/nullity, singular-spectrum conditioning and single-route erasure. Model feedback as a synchronous finite-dimensional discrete-time LTI block operator and use spectral radius for asymptotic stability, while reporting induced norm and finite-horizon transient amplification separately. Do not equate an induced-norm failure with instability or a finite-horizon peak with asymptotic instability.
+- **2026-11-15 — HLG-M2 claim ceiling:** M2 verifies fixed linear maps and synchronous finite-dimensional LTI networks only. No claims about adaptive, delayed, nonlinear, stochastic, learned or data-driven network stability; information-theoretic capacity; semantic preservation; relation discovery; or scientific task performance. Preserve M0/M1 evidence, LG-01A/LG-01B boundaries, and E03 as the next mainline E-series milestone.
