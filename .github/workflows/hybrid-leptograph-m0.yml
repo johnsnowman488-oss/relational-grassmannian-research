@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   unit-tests:
-    name: Full repository tests (Python \${{ matrix.python-version }})
+    name: Full repository tests (${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: \${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
@@ -41,7 +41,7 @@ jobs:
         run: python -m pytest
 
   analytical-cases:
-    name: Analytical reference \${{ matrix.case }}
+    name: Analytical reference ${{ matrix.case }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -59,13 +59,13 @@ jobs:
       - name: Execute analytical reference case
         run: >-
           python -m rgm.experiments.leptograph_m0
-          --case \${{ matrix.case }}
-          --output results/leptograph_m0/\${{ matrix.case }}.json
+          --case ${{ matrix.case }}
+          --output results/leptograph_m0/${{ matrix.case }}.json
       - name: Upload case evidence
         uses: actions/upload-artifact@v4
         with:
-          name: hybrid-leptograph-m0-\${{ matrix.case }}
-          path: results/leptograph_m0/\${{ matrix.case }}.json
+          name: hybrid-leptograph-m0-${{ matrix.case }}
+          path: results/leptograph_m0/${{ matrix.case }}.json
           if-no-files-found: error
 
   aggregate:
