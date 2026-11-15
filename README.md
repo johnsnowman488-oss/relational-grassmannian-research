@@ -52,11 +52,11 @@ See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathemat
 
 ## Parallel mechanism investigation: Lepto-Graph Development Hypothesis
 
-A separate LGDH line now investigates whether fast, multidimensional, continuously refreshed SOE-like modes can develop endogenous directed relational pathways from their own trajectories, with slower modes registering relevant history. This is a **parallel mechanism hypothesis**, not an established capability and not a replacement for E03. E03 remains the next mainline milestone. LG-01A-v0.1 has been implemented and executed over 30 paired seeds. Its mathematical and reproducibility tests passed on Python 3.10 and 3.12 (122 tests each); the scientific gate failed at the fastest declared rate (0.8: 26/30 seeds). LG-01B is in protocol review, restricted to the two passing LG-01A rates (0.05 and 0.20); 0.80 remains failed and excluded. No runner is authorised yet.
+A separate LGDH line now investigates whether fast, multidimensional, continuously refreshed SOE-like modes can develop endogenous directed relational pathways from their own trajectories, with slower modes registering relevant history. This is a **parallel mechanism hypothesis**, not an established capability and not a replacement for E03. E03 remains the next mainline milestone. LG-01A-v0.1 has been implemented and executed over 30 paired seeds. Its mathematical and reproducibility tests passed on Python 3.10 and 3.12 (122 tests each); the scientific gate failed at the fastest declared rate (0.8: 26/30 seeds). LG-01B-v0.1 is frozen and its hidden-topology-recovery runner and 30-world campaign are in progress, restricted to the two passing LG-01A rates (0.05 and 0.20); 0.80 remains a valid failure and excluded. Spontaneous graph emergence is deferred.
 
 - [LGDH hypothesis](docs/lgdh_hypothesis.md)
 - [LG experiment spine](docs/lg_experiment_spine.md)
 - [LG-01A protocol](docs/lg01a_protocol.md)
-- [LG-01B protocol draft](docs/lg01b_protocol.md)
+- [LG-01B-v0.1 frozen protocol](docs/lg01b_protocol.md)
 - [LGDH cross-experiment ledger](docs/lgdh_ledger.md)
 - [LG-01A experiment ledger](docs/lg01a_ledger.md)
