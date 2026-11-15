@@ -157,7 +157,7 @@ with a frozen numerical ε chosen from float64 machine-scale safeguards and reco
 
 ### 6.2 Primary mapping: conditional trajectory prediction
 
-For each destination j, fit a multivariate ridge predictor of its future state at horizon h=0.25τ, where τ=1/γ (a quarter of the mode time constant):
+For each destination j, fit a multivariate ridge predictor of its future state at horizon h=0.25τ, where τ=1/γ (a quarter of the mode time constant; Hγ=h/Δt is 40 steps at γ=0.05 and 10 steps at γ=0.20):
 
 \[
 \widehat z_j[k+5]
