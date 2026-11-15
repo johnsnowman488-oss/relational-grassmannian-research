@@ -133,6 +133,14 @@ class MultiSourceRidge:
             for key, slc in self._source_slices.items()
         }
 
+    def source_coefficient_norms(self) -> dict[str, float]:
+        """Return coefficient-block norms keyed by the declared source IDs."""
+        beta = self.coefficients()
+        return {
+            key: float(np.linalg.norm(beta[slc]))
+            for key, slc in self._source_slices.items()
+        }
+
     def resource_snapshot(self) -> dict[str, int | float]:
         return {
             "sufficient_statistic_bytes": int(self.gram.nbytes + self.cross.nbytes),

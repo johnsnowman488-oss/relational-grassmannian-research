@@ -57,16 +57,17 @@ def run_package(package_id: str) -> dict:
             model.update(sources, c, y)
             last_sources, last_context, last_target = sources, c, y
         contributions = model.marginal_loss_contributions(last_sources, last_context, last_target)
-        beta = model.coefficients()
-        all_sources_used = bool(np.linalg.norm(beta[:2]) > 0.1 and np.linalg.norm(beta[2:5]) > 0.1)
+        source_norms = model.source_coefficient_norms()
+        all_sources_used = all(value > 0.1 for value in source_norms.values())
         return {
             "campaign_id": CAMPAIGN_ID, "package_id": package_id,
             "samples": model.sample_count, "feature_dimension": model.feature_dimension,
             "final_window_mse": float(np.mean(errors[-100:])),
             "marginal_loss_contributions": contributions,
             "source_coefficients_nontrivial": all_sources_used,
+            "source_coefficient_norms": source_norms,
             "resource_snapshot": model.resource_snapshot(),
-            "execution_passed": model.sample_count == 700 and all_sources_used and np.mean(errors[-100:]) < 0.01,
+            "execution_passed": bool(model.sample_count == 700 and all_sources_used and np.mean(errors[-100:]) < 0.01),
             "interpretation": "The fitted prequential predictor includes every declared heterogeneous source and context feature; contribution is predictive, not causal.",
         }
     if package_id == "M3-C":
