@@ -68,7 +68,7 @@ def test_memory_controls_have_matched_state_budget_without_winner_claim() -> Non
 def test_integrated_benchmark_manifest_is_leakage_separated() -> None:
     result = case_f6()
     assert result["split_worlds_are_disjoint"]
-    assert result["evaluator_truth_excluded_from_learner_inputs"]
+    assert result["evaluator_truth_and_phase_metadata_excluded_from_learner_inputs"]
     assert result["observation_gap_masks_enforced"]
     assert result["heldout_composition_phase_is_test_only"]
 

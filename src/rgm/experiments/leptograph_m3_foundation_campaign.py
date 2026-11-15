@@ -474,6 +474,13 @@ def case_f6() -> dict[str, Any]:
         "passed": bool(passed),
         "interpretation": "The task generator exposes individual relation blocks in training and reserves their joint composition for test worlds. Phase identity, planted operators and evaluator truth remain outside learner inputs. This is a benchmark design probe, not a learner performance result.",
     }
+
+def _metric_operator_norm(k: np.ndarray, gs: np.ndarray, gt: np.ndarray) -> float:
+    cs = _chol_factor(gs)
+    ct = _chol_factor(gt)
+    return float(np.linalg.norm(ct @ k @ np.linalg.inv(cs), ord=2))
+
+
 def case_f7() -> dict[str, Any]:
     """Independent metric-invariance, switching and storage/activation challenge."""
     rng = np.random.default_rng(7707)
