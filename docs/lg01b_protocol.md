@@ -79,38 +79,41 @@ For destination mode j, define:
 \frac{dz_j}{dt}
 =
 -\gamma z_j
-+\gamma u_j(t)
-+\gamma c\sum_{i=1}^{N}G_{ij}Rz_i(t),
-\qquad c=0.05.
++u_j(t)
++\kappa\sum_{i=1}^{N}G_{ij}Rz_i(t),
+\qquad \kappa=0.05\gamma.
 \]
 
 Here z_j(t) is in R^16, and u_j(t) is an independent bounded input stream for mode j. The same decay rate is used across modes within a world. The graph determines only the hidden directed coupling; it is not exposed to the learner.
 
-The coupling is deliberately weak and stable. Since every source has out-degree two, ||G||_2 ≤ sqrt(14); with orthogonal R, c||G||_2 < 1. Thus the symmetric-part stability bound remains strictly dissipative relative to the -I decay term. The implementation must still check finite-state behaviour and verify the numerical transition matrix is stable.
+The coupling is deliberately weak and stable. Since every source has out-degree two, ||G||_2 ≤ sqrt(14); with orthogonal R, κ||G||_2 ≤ 0.05γsqrt(14) < γ. Thus the symmetric-part stability bound remains strictly dissipative relative to the -γ decay term. The implementation must still check finite-state behaviour and verify the numerical transition matrix is stable.
 
-### 4.4 Dimensionless integration and input process
+### 4.4 Physical-time integration and input process
 
-Use dimensionless time s=γt. The dynamics become:
+Use a fixed physical integration step Δt=0.125 for both rates. This deliberately preserves the same external input correlation time in physical units while the mode decay timescale changes. Hold each input constant over one integration step and use an exact zero-order-hold update from the full coupled linear system:
 
 \[
-\frac{dz_j}{ds}
-=
--z_j+u_j(s)+c\sum_iG_{ij}Rz_i.
+F_\gamma=-\gamma I+\kappa(G^T\otimes R),\qquad
+A_\gamma=e^{F_\gamma\Delta t},\qquad
+B_\gamma=F_\gamma^{-1}(A_\gamma-I),
+\]
+\[
+Z_{k+1}=A_\gamma Z_k+B_\gamma U_k.
 \]
 
-Use a fixed dimensionless step Δs=0.05 for both rates. Therefore physical Δt=Δs/γ. Hold each input constant over one integration step and use an exact zero-order-hold update from the full coupled linear system (matrix exponential / equivalent numerically verified exact transition). Do not use forward Euler.
+Use a numerically stable matrix-exponential / linear-solve implementation and verify it against an independent high-accuracy reference. Do not use forward Euler. Here Z and U stack all mode states and inputs in the same fixed mode order.
 
 For each mode, generate an independent smooth bounded vector input using a seeded first-order autoregressive process:
 
 \[
 v_{j,k+1}=\rho v_{j,k}+\sqrt{1-\rho^2}\,\xi_{j,k},
 \qquad
-\rho=e^{-\Delta s/2},
+\rho=e^{-\Delta t/2},
 \qquad
 u_{j,k}=\frac{v_{j,k}}{\|v_{j,k}\|_2}.
 \]
 
-The ξ vectors are independent standard-Gaussian innovations. The input process, graph, and R are deterministic from recorded seeds. Input streams are not supplied as features to the learner; only the resulting mode trajectories are visible.
+The ξ vectors are independent standard-Gaussian innovations; initialise each v from an independent standard-Gaussian vector. The normalised input has unit norm. The same physical input correlation time and per-mode input seeds are used across the paired rate conditions. The input process, graph, and R are deterministic from recorded seeds. Input streams are not supplied as features to the learner; only the resulting mode trajectories are visible.
 
 ## 5. Observation interface and leakage boundary
 
@@ -154,7 +157,7 @@ with a frozen numerical ε chosen from float64 machine-scale safeguards and reco
 
 ### 6.2 Primary mapping: conditional trajectory prediction
 
-For each destination j, fit a multivariate ridge predictor of its future state at horizon h=0.25 dimensionless time units (five integration steps):
+For each destination j, fit a multivariate ridge predictor of its future state at horizon h=0.25τ, where τ=1/γ (a quarter of the mode time constant):
 
 \[
 \widehat z_j[k+5]
@@ -200,8 +203,8 @@ All controls receive the same trajectory observations, data splits, mode count, 
 1. **Destination-only autoregressive null:** predicts each destination from its own current state and own current tangent only.
 2. **Source-state mapping:** replaces source tangent groups with source state vectors. This tests whether tangent direction contributes beyond ordinary source-state information.
 3. **Direction-blind activity mapping:** replaces each 16D unit tangent with its scalar tangent magnitude. This tests whether vector direction adds value beyond activity level.
-4. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one dimensionless time unit, preserving local marginal structure while breaking alignment to destination responses.
-5. **Reverse-time mapping:** predicts destination past state from later source tangents using the same horizon. This tests whether the apparent relation is specifically forward-directed.
+4. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one physical time unit, preserving local marginal structure while breaking alignment to destination responses.
+5. **Reverse-time mapping:** predicts destination past state from later source tangents using the same physical horizon h=0.25τ for the corresponding rate. This tests whether the apparent relation is specifically forward-directed.
 6. **Symmetric association baseline:** ranks pairs using direction-blind, symmetric association between mode activity traces; it cannot assign a direction from the association itself.
 7. **Random top-two baseline:** selects two destinations uniformly for each source using a separately recorded evaluator seed.
 
@@ -211,17 +214,17 @@ The E02 ObservedEventGraph is not treated as a competing learner here: it receiv
 
 ## 8. Worlds, seeds, and data splits
 
-Use 30 independent graph worlds, with world seeds 301–330. Each world is evaluated at both γ=0.05 and γ=0.20, paired on the same hidden graph, orthogonal transformation, and dimensionless input-generation seeds. The two rate conditions are not counted as 60 independent worlds.
+Use 30 independent graph worlds, with world seeds 301–330. Each world is evaluated at both γ=0.05 and γ=0.20, paired on the same hidden graph, orthogonal transformation, and per-mode input seeds. The input process uses the same physical correlation time in both conditions. The two rate conditions are not counted as 60 independent worlds.
 
 For each world/rate, generate independent train, validation, and test episodes with independent input innovations:
 
 | Episode | Burn-in | Recorded duration | Purpose |
 |---|---:|---:|---|
-| Train | 10 dimensionless units | 80 units | Fit regression parameters |
-| Validation | 10 units | 20 units | Select ridge coefficient and rank candidate destinations |
-| Test | 10 units | 40 units | Final held-out evaluation only |
+| Train | 10τ | 40τ | Fit regression parameters |
+| Validation | 10τ | 10τ | Select ridge coefficient and rank candidate destinations |
+| Test | 10τ | 20τ | Final held-out evaluation only |
 
-At Δs=0.05, the recorded episodes contain 1,600 training, 400 validation, and 800 test samples before causal-tangent and prediction-horizon boundary exclusions. No episode may share input innovations or state samples with another split.
+With Δt=0.125, the recorded episodes contain 6,400 train / 1,600 validation / 3,200 test samples at γ=0.05, and 1,600 / 400 / 800 samples at γ=0.20, before tangent and prediction-horizon boundary exclusions. No episode may share input innovations or state samples with another split. The unequal sample counts are an explicit consequence of matching episode duration in mode time constants while retaining the same physical sampling interval and input process.
 
 The same graph and R persist across the three episodes within a world. The learner does not receive graph identity or evaluator seed values. Record all seed derivations and episode hashes.
 
@@ -337,3 +340,8 @@ The first review pass identified and corrected three design issues before freeze
 - The length-two witness threshold is reduced to a level compatible with the single-edge acceptance threshold while still requiring a measurable advantage over controls.
 
 Remaining review questions are whether the fixed k=2 prior is acceptable for this first mechanism test, whether the linear coupled world is sufficiently discriminating without being mistaken for general graph emergence, and whether the proposed 0.60 edge-recovery threshold is appropriately demanding. These are scientific freeze decisions, not implementation details.
+
+
+### Additional review note: rate comparability
+
+The initial draft expressed the full system in dimensionless time and scaled the input amplitude with γ. That would have made the two rate conditions dynamically equivalent after time rescaling, undermining the purpose of retaining both LG-01A operating rates. The reviewed draft instead fixes physical Δt and the external input correlation time, keeps input amplitude bounded and rate-independent, and scales only the inter-mode coupling with γ. The two rate conditions therefore have different ratios between input correlation time and mode decay time. Their paired comparison is meaningful, while each rate retains its own independent pass/fail decision.
