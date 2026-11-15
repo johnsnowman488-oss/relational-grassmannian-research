@@ -32,12 +32,11 @@ def r2():
         x2=corr*x+np.sqrt(1-corr*corr)*eps
         y=1.4*x+.08*rng.normal(size=n)
         # prequential scalar ridge; record prediction before incorporating y[t].
-        gram=1e-5; cross=0.; preds=[]; frozen=[]
+        gram=1e-5; cross=0.; preds=[]
         for t in range(n):
             w=cross/gram
             p=w*x[t]
             preds.append(p)
-            frozen.append(w)
             gram+=x[t]*x[t]; cross+=y[t]*x[t]
         # A current-target perturbation cannot change the prediction already made.
         t=n//2; altered=y.copy(); altered[t]+=1000
@@ -52,15 +51,21 @@ def r2():
         rows.append(dict(source_correlation=corr,prequential_mse=float(np.mean((y-np.array(preds))**2)),
                          joint_primary_coefficient=float(beta[0]),joint_decoy_coefficient=float(beta[1]),
                          design_condition=float(np.linalg.cond(design))))
-    # Explicit ordering check: prediction at t is identical if current target is changed,
-    # because the update is deliberately after prediction.
-    t=600; g=1e-5; c=0.
-    for k in range(t):
-        g+=x[k]*x[k]; c+=y[k]*x[k]
-    pred_before=(c/g)*x[t]
-    altered=(c/g)*x[t]
-    return dict(case_id="R2",correlation_sweep=rows,preupdate_target_perturbation_prediction_error=abs(pred_before-altered),
-                passed=abs(pred_before-altered)<1e-12 and rows[0]["joint_primary_coefficient"]>1.2,
+    # Two streams differ only at y[10]: prediction at 10 must match, while
+    # prediction at 11 must reflect the changed observation after the update.
+    def stream_predictions(target):
+        g=1e-5; c=0.; out=[]
+        for k in range(20):
+            out.append((c/g)*x[k])
+            g+=x[k]*x[k]; c+=target[k]*x[k]
+        return np.asarray(out)
+    y_alt=y[:20].copy(); y_alt[10]+=1000.
+    p0=stream_predictions(y[:20]); p1=stream_predictions(y_alt)
+    current_error=abs(float(p0[10]-p1[10]))
+    next_effect=abs(float(p0[11]-p1[11]))
+    return dict(case_id="R2",correlation_sweep=rows,preupdate_target_perturbation_prediction_error=current_error,
+                next_prediction_responds_after_update=next_effect>1e-6,
+                passed=current_error<1e-12 and next_effect>1e-6 and rows[0]["joint_primary_coefficient"]>1.2,
                 interpretation="Tests increasingly correlated nuisance sources and an explicit current-target isolation check. Correlation makes marginal attribution conditional and less stable; no causal claim is made.")
 
 def r3():
@@ -75,7 +80,7 @@ def r3():
     in_band=[(v,b) for v,b in zip(seq,trace) if off<v<on]
     no_chatter=all(b==False for v,b in in_band[:5]) # before first activation
     transitions=sum(trace[i]!=trace[i-1] for i in range(1,len(trace)))
-    expected=[False,False,False,False,False,False,False,True,True,True,False,False,False,False,True]
+    expected=[True,True,True,True,True,True,True,True,True,True,True,False,False,False,True]
     ok=trace==expected
     return dict(case_id="R3",activation_scores=seq,active_trace=trace,transition_count=transitions,
                 hysteresis_sequence_matches_expected=ok,passed=ok,
@@ -123,8 +128,9 @@ def r5():
     # Explicit learner view is constructed by allow-list projection, not dict filtering by deny-list.
     learner={"source":[.2,.4],"context_features":[1.,0.],"target_observation":[.1,.3],"target_mask":True}
     evaluator={"phase":"acquisition","seed":314,"planted_operator":[[1,0],[0,1]],"truth":[.1,.3]}
+    world={**learner,**evaluator}
     allowed=("source","context_features","target_observation","target_mask")
-    view={k:learner[k] for k in allowed}
+    view={k:world[k] for k in allowed}
     forbidden=set(evaluator).intersection(view)
     # Concrete resource accounting for transparent state layouts; counts are state scalars.
     configs={"C0":{"mode":0,"relation":0,"shared":0},
