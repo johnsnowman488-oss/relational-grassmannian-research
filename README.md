@@ -118,3 +118,10 @@ The HLG-M3 foundation is adopted as a proposed design for review, extending the 
 - [Pre-implementation reference campaign runner](src/rgm/experiments/leptograph_m3_foundation_campaign.py)
 
 Seven concurrent mathematical design jobs (F1-F7) challenge evidence attribution, metric-aware operator estimation, context memory, evidence/activation/revision, memory controls, integrated task design, and independent mathematical limits. The implementation protocol remains explicitly unfrozen until their results are reviewed.
+
+
+### HLG-M3 foundation campaign results
+
+The canonical seven-job design campaign completed successfully (run 43756548407); all seven jobs, aggregate evidence verification, and 228-test full suites on Python 3.10/3.12 passed. The implementation protocol remains unfrozen pending research review.
+
+- [F1-F7 canonical results and interpretation boundaries](docs/hybrid_leptograph_m3_foundation_campaign_results.md)
