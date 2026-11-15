@@ -113,3 +113,19 @@ M1-A through M1-F test (A) orthonormal source/target basis covariance; (B) gener
 ### HLG-M1 canonical execution
 
 Canonical GitHub Actions run [43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175) completed successfully at source commit 63897b81ff043aa36418447e4372caf7b375a46f. Six independent analytical jobs, the aggregate evidence verifier, and both complete repository test matrices passed. The full suite reported 183 tests passed on Python 3.10 and 183 on Python 3.12. Numerical maxima, all artifact IDs and ZIP SHA-256 digests are in the relational adaptation ledger.
+
+
+## Parallel HLG mathematical implementation milestones
+
+| ID | Question | Status | Entry criterion | Exit evidence |
+|---|---|---|---|---|
+| HLG-M0 | Do memory traces and heterogeneous fixed routes match analytical references? | Accepted: 5 cases; 137 tests × Python 3.10/3.12 | Frozen equations and reference cases | Independent analytical references, DOP853 cross-checks, complete CI |
+| HLG-M1 | Are heterogeneous routes and geometric quantities covariant/invariant under coordinate changes? | Accepted: 6 cases; 183 tests × Python 3.10/3.12 | M0 accepted | Coordinate/metric covariance, route composition, interface gauge, Grassmannian checks |
+| HLG-M2 | How do multiple fixed routes interact, preserve information, compound conditioning and affect feedback stability? | Accepted: 6 cases; 198 tests × Python 3.10/3.12 | M1 accepted | Six route/network reference cases, erasure diagnostics, spectral/transient separation, Python 3.10/3.12 full-suite CI |
+
+HLG-M0/M1/M2 are a separate mathematical verification stream. Their passing CI does not establish relational discovery, semantic information, learned operators or adaptive-network capability; E03 remains the next mainline E-series specification.
+
+
+### HLG-M2 execution record
+
+Canonical branch-push run [43741891066](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43741891066) passed all six independent M2 cases, the evidence aggregation gate, and the complete repository suite on Python 3.10 and 3.12 (198 tests on each). The PR-triggered M2 run 43741942671 also passed all nine jobs. See the relational adaptation ledger for per-case metrics and artifact digests.

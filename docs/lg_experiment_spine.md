@@ -152,3 +152,17 @@ Six fixed deterministic cases M1-A through M1-F are run independently and concur
 ### HLG-M1 canonical execution
 
 Canonical Actions run [43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175) passed all six concurrent invariance cases, the aggregate evidence gate and both full-suite matrices (183 tests on Python 3.10 and 183 on Python 3.12). M1 is accepted as algebraic/geometric implementation verification only. Case metrics, artifact IDs and checksums are recorded in the relational adaptation ledger.
+
+
+## 11. HLG-M2 — Multi-Route Stability, Conditioning and Information Preservation
+
+HLG-M2 extends the fixed-operator analysis from one route to multi-route networks. It explicitly separates two measurement semantics: coalescing path operators by summation can create destructive cancellation, whereas retaining route outputs as separate channels corresponds to a vertical stack and can preserve information. It measures rank/nullity and nonzero-spectrum conditioning, tests single-route erasure, and assembles heterogeneous node spaces into a synchronous block transition matrix.
+
+For the fixed discrete-time LTI model, asymptotic stability is governed by the global transition matrix spectral radius. The induced 2-norm below one is sufficient but not necessary; non-normal stable systems can exhibit transient amplification. M2 therefore reports the spectral criterion, induced norm and finite-horizon power growth as distinct quantities.
+
+The six frozen cases and claim boundaries are in [the M2 protocol](hybrid_leptograph_m2_protocol.md). The implementation is fixed-matrix algebra only: it does not introduce route learning, online adaptation, delays, nonlinear dynamics, semantic information or adaptive-network stability. E03 remains the next mainline E-series milestone.
+
+
+### HLG-M2 canonical execution (2026-11-15)
+
+Canonical run [43741891066](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43741891066) passed all six multi-route cases, aggregate verification and 198 full-repository tests on each of Python 3.10 and 3.12. This verifies only the frozen fixed-route and synchronous LTI references. See the M2 section of the [relational adaptation ledger](relational_adaptation_ledger.md) for numerical metrics and artifact digests.
