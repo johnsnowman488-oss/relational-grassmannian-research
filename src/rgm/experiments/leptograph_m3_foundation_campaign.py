@@ -202,7 +202,7 @@ def case_f3() -> dict[str, Any]:
     for name, z in queries.items():
         scores = [_context_score(z, m, s, metric, eps) for m, s in zip(means, covs)]
         scores_by_query[name] = scores
-        decisions[name] = _context_decision(scores, fit_threshold=18.0, margin_threshold=2.0)
+        decisions[name] = _context_decision(scores, fit_threshold=18.0, margin_threshold=3.0)
 
     # Non-orthogonal context coordinate transform and transported covariance/metric.
     a = np.array([[2.0, 0.4], [0.1, 0.7]])
