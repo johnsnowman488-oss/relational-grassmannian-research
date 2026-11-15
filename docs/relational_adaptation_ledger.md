@@ -328,3 +328,42 @@ The frozen distinction is:
 The frozen six-case protocol is [hybrid_leptograph_m1_protocol.md](hybrid_leptograph_m1_protocol.md). Its cases use deterministic seeds 1101–1106 and float64 tolerances: M1-A/C/D/F \(2\\times10^{-10}\); M1-B \(2\\times10^{-9}\); M1-E uses exact rank/injectivity/surjectivity and factor-rank assertions. Each case writes its own result JSON; CI runs all six independently, then requires the complete evidence set. The full repository suite is checked on Python 3.10 and 3.12.
 
 M1 does not estimate or learn route operators. It does not establish semantic alignment, causal correctness, relation identity, noisy multi-source identifiability or full adaptive-network stability. Those remain separate research questions.
+
+
+## HLG-M1 canonical execution record (2026-11-15)
+
+**Canonical workflow:** [GitHub Actions run 43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175)  
+**Experiment source commit:** 63897b81ff043aa36418447e4372caf7b375a46f  
+**Workflow conclusion:** success; all 9 jobs passed.
+
+| Full repository test matrix | Result |
+|---|---:|
+| Python 3.10 | 183 passed |
+| Python 3.12 | 183 passed |
+
+### Case-level evidence
+
+| Case | Main maximum error / invariant | Result |
+|---|---:|---|
+| M1-A | Output covariance \(6.66\\times10^{-16}\); Frobenius and singular-spectrum errors at \(10^{-16}\) scale | Pass |
+| M1-B | Metric singular-spectrum error \(8.88\\times10^{-16}\); route-coordinate error \(5.55\\times10^{-17}\); metric norm errors 0 | Pass |
+| M1-C | Chain-composition covariance \(1.78\\times10^{-15}\); route covariance \(1.61\\times10^{-15}\) | Pass |
+| M1-D | GL-gauge composite error \(1.22\\times10^{-15}\); factor rank bound verified | Pass |
+| M1-E | Embedding rank 3/injective; projection rank 2/surjective; interface composite rank 2 with nullity 2 | Pass |
+| M1-F | Principal-angle error \(4.44\\times10^{-16}\); geodesic and projector errors \(2.22\\times10^{-16}\) | Pass |
+
+The aggregate verifier required exactly M1-A through M1-F and reported all_cases_passed=true with summary JSON SHA-256 c6e4e0d2381b077ee38ee71df6a26a04e9be15cd80d29013972351bfb3841096.
+
+### Evidence artifacts
+
+| Artifact | ID | ZIP SHA-256 |
+|---|---:|---|
+| M1-A | 14171445572 | 081472a4c8b8b1c01e40f1aba52976b44b86e673f53bf81104aa06ac204c9c21 |
+| M1-B | 14171021743 | 91cd74e365c9e5118e013c7a31e0785ac9870837442b84b8776f1c0a870d158a |
+| M1-C | 14171445545 | 08ee2d72ef7fdb805f2e52a5f2bafb3b3773d8f44af81536ab0d0157de26a9bb |
+| M1-D | 14170554945 | 7746ac54f04bee290fda94c6bcc14e63e5760ac1ce2a9818aa360a7e1c6cb2a2 |
+| M1-E | 14171535011 | f34048abd7b5647050731f6487ca0f32421a8de805d1fed19dbf326be0582b9c |
+| M1-F | 14170673258 | 5bfd2ef3d15411d57d204c548415b5986a505fe4e00550478507921e104123d9 |
+| Aggregate summary | 14171175758 | 241c0cd8bb60bb6e22fde850e63943bb12f6fee5f7bf6875722955374f0db45b |
+
+**Interpretation:** HLG-M1 passes its algebraic/geometric implementation gate. The results verify covariance of fixed heterogeneous maps, metric transport, route composition, interface factorisation gauge freedom, linear rank diagnostics and Grassmannian invariance to floating-point tolerance. They do not establish learned relational operators, semantic alignment, causal attribution, noisy multi-source identifiability, temporal adaptation or stability of the complete adaptive network.

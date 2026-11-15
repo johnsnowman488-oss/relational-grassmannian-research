@@ -105,6 +105,11 @@ The canonical GitHub Actions run is [43736121964](https://github.com/johnsnowman
 
 | ID | Question | Status | Entry criterion | Exit evidence |
 |---|---|---|---|---|
-| HLG-M1 | Do heterogeneous directed maps, route compositions, interface factorizations and Grassmannian signatures transform correctly under coordinate changes? | Implemented; six independent analytical cases and test suite prepared; CI pending | HLG-M0 passed; M1-v0.1 protocol frozen | Six passing invariance cases, aggregate evidence manifest, full repository tests on Python 3.10/3.12 |
+| HLG-M1 | Do heterogeneous directed maps, route compositions, interface factorizations and Grassmannian signatures transform correctly under coordinate changes? | Passed; six concurrent analytical cases, aggregate evidence gate and full Python 3.10/3.12 test suites (183 tests each) | HLG-M0 passed; M1-v0.1 protocol frozen | Six passing invariance cases, aggregate evidence manifest, full repository tests on Python 3.10/3.12 |
 
 M1-A through M1-F test (A) orthonormal source/target basis covariance; (B) general invertible coordinate covariance with metric transport; (C) a heterogeneous 2→4→3→5 route chain; (D) interface GL-gauge invariance and factorisation rank bounds; (E) rank-nullity and information-dimension diagnostics; and (F) Grassmannian principal-angle, distance and projector invariance. Each case is an independent concurrent job followed by aggregate evidence validation. This is a fixed-operator algebraic verification milestone, not evidence of learned relational discovery or adaptive-network stability. See [the frozen M1 protocol](hybrid_leptograph_m1_protocol.md).
+
+
+### HLG-M1 canonical execution
+
+Canonical GitHub Actions run [43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175) completed successfully at source commit 63897b81ff043aa36418447e4372caf7b375a46f. Six independent analytical jobs, the aggregate evidence verifier, and both complete repository test matrices passed. The full suite reported 183 tests passed on Python 3.10 and 183 on Python 3.12. Numerical maxima, all artifact IDs and ZIP SHA-256 digests are in the relational adaptation ledger.

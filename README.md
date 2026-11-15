@@ -83,4 +83,4 @@ M1 verifies how directed routing maps between spaces of different dimensions tra
 - [M1 implementation](src/rgm/leptograph/m1.py)
 - [M1 independent experiment runner](src/rgm/experiments/leptograph_m1.py)
 
-Six independent deterministic cases run concurrently, followed by aggregate evidence verification and a Python 3.10/3.12 full-repository test matrix. M1 is algebraic/geometric verification of fixed operators, not evidence of learned relation discovery, semantic alignment or full adaptive-system stability.
+Six independent deterministic cases run concurrently, followed by aggregate evidence verification and a Python 3.10/3.12 full-repository test matrix. Canonical run [43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175) passed all six cases and both 183-test suites. M1 is algebraic/geometric verification of fixed operators, not evidence of learned relation discovery, semantic alignment or full adaptive-system stability.

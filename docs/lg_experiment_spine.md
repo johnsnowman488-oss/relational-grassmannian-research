@@ -147,3 +147,8 @@ The hybrid extension's M0 milestone is implemented and the canonical GitHub Acti
 HLG-M1 follows M0 and focuses on the coordinate-free meaning of the hybrid architecture's heterogeneous maps. The key distinction is between orthonormal basis changes (isometries, \(K'=Q_t^\top KQ_s\)) and arbitrary invertible coordinate changes (\(K'=A_t^{-1}KA_s\)) with covariant metric transport. The protocol proves metric singular-spectrum invariance, chain-composition covariance, interface gauge non-identifiability/rank bounds, rank-nullity properties and Grassmannian principal-angle/projector invariance.
 
 Six fixed deterministic cases M1-A through M1-F are run independently and concurrently, followed by an aggregate evidence gate. The full repository suite is run on Python 3.10 and 3.12. Operators are fixed in this experiment: M1 does not estimate or learn them, and makes no claim about semantic alignment, relation discovery or full coupled-system stability. See [the frozen M1 protocol](hybrid_leptograph_m1_protocol.md).
+
+
+### HLG-M1 canonical execution
+
+Canonical Actions run [43737461175](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43737461175) passed all six concurrent invariance cases, the aggregate evidence gate and both full-suite matrices (183 tests on Python 3.10 and 183 on Python 3.12). M1 is accepted as algebraic/geometric implementation verification only. Case metrics, artifact IDs and checksums are recorded in the relational adaptation ledger.
