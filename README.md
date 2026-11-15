@@ -52,11 +52,13 @@ See [DECISIONS.md](DECISIONS.md), [the mathematical specification](docs/mathemat
 
 ## Parallel mechanism investigation: Lepto-Graph Development Hypothesis
 
-A separate LGDH line now investigates whether fast, multidimensional, continuously refreshed SOE-like modes can develop endogenous directed relational pathways from their own trajectories, with slower modes registering relevant history. This is a **parallel mechanism hypothesis**, not an established capability and not a replacement for E03. E03 remains the next mainline milestone. LG-01A-v0.1 has been implemented and executed over 30 paired seeds. Its mathematical and reproducibility tests passed on Python 3.10 and 3.12 (122 tests each); the scientific gate failed at the fastest declared rate (0.8: 26/30 seeds). LG-01B is in protocol review, restricted to the two passing LG-01A rates (0.05 and 0.20); 0.80 remains failed and excluded. No runner is authorised yet.
+A separate LGDH line now investigates whether fast, multidimensional, continuously refreshed SOE-like modes can develop endogenous directed relational pathways from their own trajectories, with slower modes registering relevant history. This is a **parallel mechanism hypothesis**, not an established capability and not a replacement for E03. E03 remains the next mainline milestone. LG-01A-v0.1 has been implemented and executed over 30 paired seeds. Its mathematical and reproducibility tests passed on Python 3.10 and 3.12 (122 tests each); the scientific gate failed at the fastest declared rate (0.8: 26/30 seeds). LG-01B-v0.1 has been executed over 30 paired worlds at the two LG-01A-qualified rates. Its pre-registered topology-recovery gate failed at both rates: mean precision@2 was 0.2729 at γ=0.05 and 0.3188 at γ=0.20, both below the 0.60 threshold and neither statistically above chance. The primary did not beat its strongest controls; path recovery and held-out predictive contribution also failed. γ=0.80 remains a valid LG-01A failure and excluded. LG-01C is blocked pending review; spontaneous graph emergence remains untested.
 
 - [LGDH hypothesis](docs/lgdh_hypothesis.md)
 - [LG experiment spine](docs/lg_experiment_spine.md)
 - [LG-01A protocol](docs/lg01a_protocol.md)
-- [LG-01B protocol draft](docs/lg01b_protocol.md)
+- [LG-01B-v0.1 frozen protocol](docs/lg01b_protocol.md)
 - [LGDH cross-experiment ledger](docs/lgdh_ledger.md)
 - [LG-01A experiment ledger](docs/lg01a_ledger.md)
+
+The LG-01B result and artifact references are recorded in [the experiment ledger](docs/lg01b_ledger.md).

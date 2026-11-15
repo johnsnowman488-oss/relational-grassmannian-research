@@ -1,7 +1,7 @@
 # LG — Lepto-Graph Experiment Spine
 
 **Research stream:** Lepto-Graph Development Hypothesis (LGDH)  
-**Status:** LG-01A-v0.1 complete; restricted operating envelope adopted; LG-01B protocol draft under scientific review  
+**Status:** LG-01A-v0.1 complete; LG-01B-v0.1 executed and scientifically failed at both qualified rates; LG-01C blocked pending failure review  
 **Programme relationship:** Parallel to the E-series; E03 remains the next mainline milestone
 
 ## 1. Research objective
@@ -22,8 +22,8 @@ A pass at one layer does not imply a pass at the next.
 | ID | Question | Isolated mechanism | Entry gate | Required exit evidence |
 |---|---|---|---|---|
 | **LG-01A — Transient mode behaviour** | Can fast multidimensional modes remain active under bounded refresh while tagged historical contributions decay? | Fixed leaky modes; no mode-to-mode edges or learning | Protocol frozen | Analytic decay, input-response, refresh activity, boundedness and reproducible run evidence |
-| **LG-01B — Trajectory-derived directional relations** | Can intrinsic mode trajectories support recovery of directed relations without a supplied target topology? | LG-01A rates γ=0.05 and 0.20 met 30/30; γ=0.80 excluded after its 26/30 failure; LG-01B protocol frozen before implementation | Held-out directed-edge recovery and valid path witnesses above source-state, direction-blind, shuffled, reverse-time and random controls |
-| **LG-01C — Slow historical registration and routing** | Does slow registration of trajectory history improve routing under delayed, ambiguous or context-dependent sequences? | Slow SOE registration and context-conditioned destination selection | LG-01B route formation is reproducible | Paired route/retrieval improvement over fast-only and slow-only controls; ablation evidence |
+| **LG-01B — Trajectory-derived directional relations** | Can intrinsic mode trajectories support recovery of directed relations without a supplied target topology? | LG-01B-v0.1 executed on 30 worlds at γ=0.05 and 0.20; both failed edge, control and path gates | No held-out directed-edge or path-witness success; primary did not beat strongest controls; see `lg01b_ledger.md` |
+| **LG-01C — Slow historical registration and routing** | Does slow registration of trajectory history improve routing under delayed, ambiguous or context-dependent sequences? | Slow SOE registration and context-conditioned destination selection | LG-01B-v0.1 recovery prerequisite is not met; LG-01C is blocked pending separate review | Paired route/retrieval improvement over fast-only and slow-only controls; ablation evidence |
 | **LG-01D — Relational reorganisation** | Can pathways revise after genuine relation changes without unnecessary destruction of stable relations? | Online route adaptation with fixed mode population | LG-01B and LG-01C pass separately | Change detection, adaptation latency, retained stable relations, low spurious rewiring and held-out task benefit |
 
 LG-01A is deliberately narrow. It does not test route formation or the graph claim. LG-01B begins with a fixed population so that mode birth/death cannot be used to rescue a failed routing mechanism.
@@ -108,7 +108,7 @@ The frozen LG-01A-v0.1 campaign ran 30 paired seeds. The 0.05 and 0.2 fast rates
 
 **Downstream scope decision (2026-11-14):** LG-01B is authorised for specification only at the two LG-01A-v0.1 fast rates that met the frozen per-seed gate: γ=0.05 and γ=0.20 (30/30 each). γ=0.80 remains a valid failure (26/30) and is excluded. This does not change the LG-01A-v0.1 result or its acceptance threshold.
 
-The LG-01B-v0.1 protocol is now drafted for scientific review. It is not frozen, and no runner or campaign is authorised. Before implementation, review the hidden coupled-world design, destination mapping, controls, split discipline, and acceptance thresholds. The conventional leaky SOE channel matched the LG-01A candidate as expected; that result does not show a distinct primitive.
+LG-01B-v0.1 is frozen and its runner/campaign are authorised. The frozen experiment tests hidden-topology recovery from coupled trajectories only; it does not test spontaneous graph emergence. The k=2 prior and conservative c=0.05 coupling remain fixed, with no post-hoc tuning. The conventional leaky SOE channel matched the LG-01A candidate as expected; that result does not show a distinct primitive.
 
 ## 8. Per-experiment ledger rule
 
@@ -122,3 +122,9 @@ Each experiment has its own ledger. Before any confirmation run, record:
 - decision: **pass**, **fail**, **inconclusive**, or **invalid run**.
 
 The cross-experiment LGDH ledger records changes in the hypothesis and decisions that affect more than one experiment. The repository experiment register gives current status. A CI pass is an execution result, not automatically a scientific pass.
+
+
+**2026-11-15 freeze:** user approved hidden directed-topology recovery as LG-01B's first operational question and deferred spontaneous emergence. See `lg01b_protocol.md` for frozen parameters, controls and gates. Only γ=0.05 and γ=0.20 are in scope.
+
+
+**2026-11-15 result:** LG-01B-v0.1 failed at γ=0.05 and γ=0.20 under its frozen criteria. Do not advance to LG-01C without a separately reviewed protocol decision. This is a result about the tested c=0.05 tangent-based system-identification mechanism, not a conclusion about spontaneous topology emergence or all relational dynamics. E03 remains next in the mainline E-series.
