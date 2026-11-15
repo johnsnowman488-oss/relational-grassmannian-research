@@ -142,7 +142,7 @@ The evaluator retains the hidden topology separately. All model-facing inputs mu
 Estimate the source tangent using a backward difference only:
 
 \[
-\dot z_i[k]\approx\frac{z_i[k]-z_i[k-1]}{\Delta s}.
+\dot z_i[k]\approx\frac{z_i[k]-z_i[k-1]}{\Delta t}.
 \]
 
 Do not use a centred difference, because it would use a future sample relative to the prediction origin.
@@ -205,11 +205,11 @@ All controls receive the same trajectory observations, data splits, mode count, 
 3. **Direction-blind activity mapping:** replaces each 16D unit tangent with the scalar raw tangent speed ||dot z_i[k]||_2. This tests whether vector direction adds value beyond activity level.
 4. **Uncoupled-world null:** repeat the same input and observation process with G=0. This paired negative control contains no inter-mode edges. Run the same mapping pipeline and report the selected-pair validation and test predictive-contribution distributions; top-two selections in this arm are false relations by construction.
 5. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one physical time unit, preserving local marginal structure while breaking alignment to destination responses.
-6. **Reverse-time mapping:** predicts destination past state from later source tangents using the same physical horizon h=0.25τ for the corresponding rate. This tests whether the apparent relation is specifically forward-directed.
+6. **Reverse-time mapping:** at origin k, predicts destination state z_j[k] from source tangents at k+Hγ, using destination state and tangent at k+Hγ as reverse-time autoregressive controls. This mirrors the forward horizon and tests whether the apparent relation is specifically forward-directed.
 7. **Symmetric association baseline:** ranks pairs using the absolute Pearson correlation between the state-energy traces ||z_i[k]||_2 and ||z_j[k]||_2, computed on validation data only. The pair score is symmetric (S_i_j=S_j_i), so it cannot identify direction from the association itself.
 8. **Random top-two baseline:** selects two destinations uniformly for each source using a separately recorded evaluator seed.
 
-The primary model must outperform the best source-state, non-directional, shuffled, reverse-time, symmetric-association, and uncoupled-null control, not merely random selection. The source-state control is separately reported because a successful result from state features alone would not establish the value of trajectory direction.
+The primary model must outperform the best source-state, direction-blind, shuffled, reverse-time, symmetric-association, and random control on topology recovery. The uncoupled-world null is evaluated separately through the paired predictive-contribution criterion below because it has no true edges and therefore no meaningful edge precision. The source-state control is separately reported because a successful result from state features alone would not establish the value of trajectory direction.
 
 The E02 ObservedEventGraph is not treated as a competing learner here: it receives explicit observed edges and answers a different question. It may be used later as an interface/reference comparison, with that information advantage stated.
 
@@ -265,9 +265,9 @@ A rate passes only if all of the following are met:
 4. Primary precision@2 exceeds the best of the source-state, direction-blind activity, temporally shuffled, reverse-time, and symmetric-association controls by at least **0.10 absolute**, with the paired 95% bootstrap confidence interval for the difference entirely above zero.
 5. Test-set selected-edge predictive contribution is positive on average, greater than that of non-selected pairs, and greater than the paired uncoupled-world top-two contribution, with the paired 95% bootstrap confidence interval for the coupled-minus-uncoupled difference entirely above zero.
 
-Path-witness validity is reported as a secondary gate: inferred length-two witnesses must have precision of at least **0.30** and exceed the best control by at least **0.10 absolute**. The lower absolute threshold is intentional: a two-edge witness requires both constituent edges to be recovered, so its expected precision is lower than single-edge precision. Path recall and query coverage are reported regardless of pass/fail.
+The path-witness criterion is an additional required exit gate: inferred length-two witnesses must have precision of at least **0.30** and exceed the best control by at least **0.10 absolute**. The lower absolute threshold is intentional: a two-edge witness requires both constituent edges to be recovered, so its expected precision is lower than single-edge precision. Path recall and query coverage are reported regardless of pass/fail.
 
-A failure at either rate blocks LG-01C. A pass at one rate does not imply a pass at the other. A mixed result must be reported as mixed, not averaged into an overall pass.
+A rate is a pass only if both its edge-recovery criteria and its path-witness criterion pass. A failure at either rate blocks LG-01C. A pass at one rate does not imply a pass at the other. A mixed result must be reported as mixed, not averaged into an overall pass.
 
 Compute 95% confidence intervals by a paired bootstrap over the 30 worlds (10,000 resamples; bootstrap seed 4401, recorded in configuration). Do not treat timesteps or the two paired rates as independent worlds. These numerical thresholds are proposed for review before freeze. They must not be altered after execution. Any revision after a run requires a dated protocol revision and a fresh confirmation campaign.
 
@@ -305,7 +305,7 @@ No campaign runner, workflow, or result artifacts should be added until this pro
 ## 12. Threats to validity and explicit limitations
 
 1. **Known out-degree:** top-two selection uses a declared k=2 prior. This experiment does not discover unknown degree distributions.
-2. **Synthetic linear coupling:** success may reflect recoverability of a stable linear system, not a general lepto-graph mechanism.
+2. **Synthetic linear coupling:** success may reflect recoverability of a stable linear system, not a general lepto-graph mechanism. The fixed c=0.05 coupling is conservative (the norm bound is below 0.19γ); detectability at this strength is not yet empirically established, and a failure does not justify increasing it post hoc.
 3. **Predictive relation versus causal proof:** hidden edges generate causal influence in the simulator, but observational prediction alone is not a general causal-identification guarantee.
 4. **Tangent estimator sensitivity:** backward finite differences can amplify noise. The input process is smooth and bounded, but sensitivity to sampling and noise remains a later robustness question.
 5. **Linear mapper:** ridge regression is a deliberately simple first mapping. A failure does not falsify every possible nonlinear or history-dependent destination map.
