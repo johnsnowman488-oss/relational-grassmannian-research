@@ -8,7 +8,7 @@
 
 ## 1. Research question
 
-Can a fixed population of transient multidimensional modes form a useful directed relational organisation from their own observed trajectories, without receiving the target adjacency, edge labels, or destination identities?
+Can a fixed population of transient multidimensional modes infer and recover a useful directed relational organisation from their observed trajectories, without receiving the target adjacency, edge labels, or destination identities?
 
 This experiment tests one narrow mechanism: whether the direction of a source mode's trajectory contains information that helps identify which other modes it causally influences, and whether a data-driven source-trajectory-to-destination mapping can recover those directed relations on held-out observations. The simulator contains a hidden coupling topology so recovery can be scored, but the learner never receives it. This is a controlled topology-reconstruction / system-identification test, not spontaneous creation of a graph from uncoupled modes.
 
@@ -16,7 +16,7 @@ It does **not** test slow historical registration, contextual routing, mode birt
 
 ## 2. Hypotheses and claim boundary
 
-### H1 — trajectory-derived directional relation formation
+### H1 — trajectory-derived directional relation recovery
 
 For a stable, fixed population of modes coupled through a hidden sparse directed structure:
 
