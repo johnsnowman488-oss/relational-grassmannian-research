@@ -10,7 +10,7 @@
 
 Can a fixed population of transient multidimensional modes form a useful directed relational organisation from their own observed trajectories, without receiving the target adjacency, edge labels, or destination identities?
 
-This experiment tests one narrow mechanism: whether the direction of a source mode's trajectory contains information that helps identify which other modes it causally influences, and whether a data-driven source-trajectory-to-destination mapping can recover those directed relations on held-out observations.
+This experiment tests one narrow mechanism: whether the direction of a source mode's trajectory contains information that helps identify which other modes it causally influences, and whether a data-driven source-trajectory-to-destination mapping can recover those directed relations on held-out observations. The simulator contains a hidden coupling topology so recovery can be scored, but the learner never receives it. This is a controlled topology-reconstruction / system-identification test, not spontaneous creation of a graph from uncoupled modes.
 
 It does **not** test slow historical registration, contextual routing, mode birth/death, connection plasticity, changing topology, Grassmannian geometry, or general reasoning.
 
@@ -26,7 +26,7 @@ For a stable, fixed population of modes coupled through a hidden sparse directed
 
 ### H0 — no useful directional mapping
 
-After conditioning on a destination mode's own present state and the other candidate source trajectories, the source tangent provides no reproducible destination-specific predictive contribution. Any apparent topology recovery is at or near the declared controls.
+After conditioning on a destination mode's own present state and own tangent and the other candidate source trajectories, the source tangent provides no reproducible destination-specific predictive contribution. Any apparent topology recovery is at or near the declared controls.
 
 ### Interpretation ceiling
 
@@ -170,7 +170,7 @@ z_j[k],d_j[k],
 
 The destination's current state and its own current tangent are included as autoregressive controls. This is essential because the destination's smooth external drive is temporally correlated; without its own tangent, the learner could misattribute destination-local dynamics to an incoming relation. All other modes' tangents are included jointly so that a candidate source is evaluated conditional on competing source trajectories, rather than by isolated pairwise correlation alone.
 
-Standardise features using training-set statistics only. Fit ridge regression on training data. Select the regularisation coefficient from the frozen grid {10^-4, 10^-3, 10^-2, 10^-1, 1, 10, 100} using validation prediction error only. The selected coefficient is then fixed before test evaluation.
+Standardise features using training-set statistics only. Fit ridge regression on training data. Select the regularisation coefficient from the frozen grid {10^-4, 10^-3, 10^-2, 10^-1, 1, 10, 100} using validation prediction error only. Apply the same selection procedure independently to the primary model and each learned control, using only its own validation prediction error. The selected coefficient is then fixed before test evaluation.
 
 For each ordered pair i≠j, calculate a validation group-ablation score:
 
@@ -203,12 +203,13 @@ All controls receive the same trajectory observations, data splits, mode count, 
 1. **Destination-only autoregressive null:** predicts each destination from its own current state and own current tangent only.
 2. **Source-state mapping:** replaces source tangent groups with source state vectors. This tests whether tangent direction contributes beyond ordinary source-state information.
 3. **Direction-blind activity mapping:** replaces each 16D unit tangent with the scalar raw tangent speed ||dot z_i[k]||_2. This tests whether vector direction adds value beyond activity level.
-4. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one physical time unit, preserving local marginal structure while breaking alignment to destination responses.
-5. **Reverse-time mapping:** predicts destination past state from later source tangents using the same physical horizon h=0.25τ for the corresponding rate. This tests whether the apparent relation is specifically forward-directed.
-6. **Symmetric association baseline:** ranks pairs using the absolute Pearson correlation between the state-energy traces ||z_i[k]||_2 and ||z_j[k]||_2, computed on validation data only. The pair score is symmetric (S_i_j=S_j_i), so it cannot identify direction from the association itself.
-7. **Random top-two baseline:** selects two destinations uniformly for each source using a separately recorded evaluator seed.
+4. **Uncoupled-world null:** repeat the same input and observation process with G=0. This paired negative control contains no inter-mode edges. Run the same mapping pipeline and report the selected-pair validation and test predictive-contribution distributions; top-two selections in this arm are false relations by construction.
+5. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one physical time unit, preserving local marginal structure while breaking alignment to destination responses.
+6. **Reverse-time mapping:** predicts destination past state from later source tangents using the same physical horizon h=0.25τ for the corresponding rate. This tests whether the apparent relation is specifically forward-directed.
+7. **Symmetric association baseline:** ranks pairs using the absolute Pearson correlation between the state-energy traces ||z_i[k]||_2 and ||z_j[k]||_2, computed on validation data only. The pair score is symmetric (S_i_j=S_j_i), so it cannot identify direction from the association itself.
+8. **Random top-two baseline:** selects two destinations uniformly for each source using a separately recorded evaluator seed.
 
-The primary model must outperform the best non-directional / shuffled control, not merely random selection. The source-state control is separately reported because a successful result from state features alone would not establish the value of trajectory direction.
+The primary model must outperform the best source-state, non-directional, shuffled, reverse-time, symmetric-association, and uncoupled-null control, not merely random selection. The source-state control is separately reported because a successful result from state features alone would not establish the value of trajectory direction.
 
 The E02 ObservedEventGraph is not treated as a competing learner here: it receives explicit observed edges and answers a different question. It may be used later as an interface/reference comparison, with that information advantage stated.
 
@@ -235,7 +236,7 @@ The same graph and R persist across the three episodes within a world. The learn
 - **Macro precision@2 / recall@2:** fraction of recovered top-two directed edges that match evaluator truth, averaged over sources. Since the true out-degree is two, precision@2 and recall@2 are numerically equal at the world level.
 - **World-level exact edge count:** number of correctly recovered directed edges out of 16.
 - **Paired improvement over controls:** difference in precision@2 between the primary tangent model and each declared control, paired by world.
-- **Test predictive contribution:** held-out group-ablation score for selected versus unselected pairs.
+- **Test predictive contribution:** held-out group-ablation score for selected versus unselected pairs, and for coupled-world selections versus paired uncoupled-world top-two selections.
 - **Directional asymmetry:** difference between forward source-to-destination score and the corresponding reverse-direction score.
 
 ### Path-witness metrics
@@ -262,7 +263,7 @@ A rate passes only if all of the following are met:
 2. The lower bound of a 95% paired-world bootstrap confidence interval for mean precision@2 is above the random-selection expectation 2/7.
 3. At least **24 of 30 worlds** achieve precision@2 of at least **0.50**.
 4. Primary precision@2 exceeds the best of the source-state, direction-blind activity, temporally shuffled, reverse-time, and symmetric-association controls by at least **0.10 absolute**, with the paired 95% bootstrap confidence interval for the difference entirely above zero.
-5. Test-set selected-edge predictive contribution is positive on average and greater than that of non-selected pairs.
+5. Test-set selected-edge predictive contribution is positive on average, greater than that of non-selected pairs, and greater than the paired uncoupled-world top-two contribution, with the paired 95% bootstrap confidence interval for the coupled-minus-uncoupled difference entirely above zero.
 
 Path-witness validity is reported as a secondary gate: inferred length-two witnesses must have precision of at least **0.30** and exceed the best control by at least **0.10 absolute**. The lower absolute threshold is intentional: a two-edge witness requires both constituent edges to be recovered, so its expected precision is lower than single-edge precision. Path recall and query coverage are reported regardless of pass/fail.
 
@@ -332,13 +333,15 @@ Before implementation, scientific review must explicitly accept or revise:
 
 ## 14. Internal protocol review notes
 
-The first review pass identified and corrected three design issues before freeze:
+The first review pass identified and corrected several design issues before freeze:
 
 - The destination's own tangent is now included in its autoregressive baseline to control for its temporally correlated local drive.
 - The source-state-only mapping is included in the primary competing-control comparison; otherwise the protocol could incorrectly attribute state-based prediction to tangent direction.
 - The length-two witness threshold is reduced to a level compatible with the single-edge acceptance threshold while still requiring a measurable advantage over controls.
+- A paired uncoupled-world null was added to measure false destination scores when no inter-mode coupling exists.
+- The control models use the same validation-only hyperparameter-selection procedure as the primary model.
 
-Remaining review questions are whether the fixed k=2 prior is acceptable for this first mechanism test, whether the linear coupled world is sufficiently discriminating without being mistaken for general graph emergence, and whether the proposed 0.60 edge-recovery threshold is appropriately demanding. These are scientific freeze decisions, not implementation details.
+Remaining review questions are whether the fixed k=2 prior is acceptable for this first mechanism test, whether the linear coupled world is sufficiently discriminating without being mistaken for general graph emergence, whether the proposed 0.60 edge-recovery threshold is appropriately demanding, and whether the chosen coupling strength c=0.05 is sufficiently detectable without being unrealistically strong. These are scientific freeze decisions, not implementation details.
 
 
 ### Additional review note: rate comparability
