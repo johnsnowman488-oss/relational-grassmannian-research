@@ -1,0 +1,98 @@
+name: Hybrid Relational Leptograph M3 Pre-implementation
+
+on:
+  push:
+    branches: [research/hybrid-relational-leptograph-m3-preflight]
+    paths:
+      - "docs/hybrid_leptograph_m3_preimplementation_protocol.md"
+      - "docs/hybrid_leptograph_m3_concurrency_plan.md"
+      - "src/rgm/experiments/leptograph_m3_preflight.py"
+      - "tests/test_leptograph_m3_preflight.py"
+      - ".github/workflows/hybrid-leptograph-m3-preflight.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/hybrid_leptograph_m3_preimplementation_protocol.md"
+      - "docs/hybrid_leptograph_m3_concurrency_plan.md"
+      - "src/rgm/experiments/leptograph_m3_preflight.py"
+      - "tests/test_leptograph_m3_preflight.py"
+      - ".github/workflows/hybrid-leptograph-m3-preflight.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: Full repository tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run full repository test suite
+        run: python -m pytest
+
+  preflight-cases:
+    name: M3 preflight ${{ matrix.case }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        case: [M3-A, M3-B, M3-C, M3-D, M3-E, M3-F, M3-G]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install experiment dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Execute independent preflight case
+        run: >-
+          python -m rgm.experiments.leptograph_m3_preflight
+          --case ${{ matrix.case }}
+          --output results/leptograph_m3_preflight/${{ matrix.case }}.json
+      - name: Upload case evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-leptograph-m3-${{ matrix.case }}
+          path: results/leptograph_m3_preflight/${{ matrix.case }}.json
+          if-no-files-found: error
+
+  aggregate:
+    name: Verify complete M3 preflight evidence
+    runs-on: ubuntu-latest
+    needs: [preflight-cases, unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Download all independent case artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: hybrid-leptograph-m3-M3-*
+          path: results/leptograph_m3_preflight
+          merge-multiple: true
+      - name: Require all seven executed cases and report design blockers
+        run: >-
+          python -m rgm.experiments.leptograph_m3_preflight
+          --verify-result-dir results/leptograph_m3_preflight
+          --output results/leptograph_m3_preflight/summary.json
+      - name: Upload canonical aggregate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hybrid-leptograph-m3-preflight-summary
+          path: results/leptograph_m3_preflight/summary.json
+          if-no-files-found: error

@@ -6,8 +6,8 @@ An independent, evidence-led research project investigating whether relational o
 
 - **Interpretation:** coupled relational-memory geometry.
 - **Memory:** fixed sum-of-exponentials (SOE) channels; four channels initially.
-- **Initial feature space:** \\(\\mathbb{R}^{16}\\).
-- **Initial Grassmannian:** \\(\\operatorname{Gr}(4,\\mathbb{R}^{16})\\).
+- **Initial feature space:** \(\mathbb{R}^{16}\).
+- **Initial Grassmannian:** \(\operatorname{Gr}(4,\mathbb{R}^{16})\).
 - **Scale:** small, deterministic synthetic experiments before larger models.
 
 ## Milestones
@@ -64,15 +64,14 @@ A separate LGDH line now investigates whether fast, multidimensional, continuous
 
 ## Hybrid Relational Leptograph — mathematical foundation
 
-A parallel LGDH extension formalises a hybrid dimensional architecture: modes share a vector space within each group, groups may have heterogeneous dimensions, and directed relations route information through dimension-compatible operators and optional relation-specific interfaces. Mode memory and relationship history are separate dynamical states. Identity recognition, topology birth/death, group reorganisation and full coupled stability remain open.
+A parallel LGDH extension formalises a hybrid dimensional architecture: modes share a vector space within each group, groups may have heterogeneous dimensions, and directed relations route information through dimension-compatible operators and optional relation-specific interfaces. Mode memory and relational history are separate dynamical states. Identity recognition, topology birth/death, group reorganisation and full coupled stability remain open.
 
 - [Hybrid Relational Leptograph mathematical foundations](docs/hybrid_leptograph_foundations.md)
 - [M0 analytical reference implementation](src/rgm/leptograph/m0.py)
 
 M0 verifies five closed-form reference cases: memory, heterogeneous routing, independent reverse routing, dormancy and reactivation. It is not a scientific-performance or relation-discovery result. Five analytical cases run as independent concurrent jobs, with a Python 3.10/3.12 full-test matrix and final evidence aggregation.
 
-
-Canonical GitHub Actions run [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) passed all five analytical jobs, the aggregation gate, and 137 full-repository tests on each of Python 3.10 and 3.12. Artifact IDs and SHA-256 digests are recorded in the relational adaptation ledger.
+Canonical GitHub Actions run [43736121964](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43736121964) passed all five analytical jobs, the aggregation gate, and 137 full-repository tests on each of Python 3.10 and 3.12.
 
 
 ## HLG-M1 — Heterogeneous Dimensional Routing and Geometric Invariance
@@ -96,5 +95,15 @@ M2 extends the fixed heterogeneous routing foundation to parallel paths and feed
 
 M2 is fixed-matrix algebra and LTI network verification only. It does not validate adaptive, delayed, nonlinear or learned-network stability, nor information-theoretic capacity or semantic retention.
 
+Canonical HLG-M2 run [43741891066](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43741891066) passed all six reference cases, the aggregate evidence gate, and 198 full-repository tests on each of Python 3.10 and 3.12.
 
-Canonical HLG-M2 run [43741891066](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/43741891066) passed all six reference cases, the aggregate evidence gate, and 198 full-repository tests on each of Python 3.10 and 3.12. This is fixed-matrix/LTI verification, not adaptive-network evidence.
+
+## HLG-M3 — Relational Memory and Adaptation: pre-implementation campaign
+
+M3 begins the adaptive-learning investigation while retaining the existing vector-space architecture and the provisional history/routing equations from M0. Before implementation, seven independent jobs test historical accumulation, decay, contextual retrieval ambiguity, adaptive-operator boundedness, memory-comparison readiness, sequential reacquisition and switched-system stability limits.
+
+- [M3 pre-implementation mathematical protocol](docs/hybrid_leptograph_m3_preimplementation_protocol.md)
+- [M3 parallel execution plan](docs/hybrid_leptograph_m3_concurrency_plan.md)
+- [M3 preflight reference runner](src/rgm/experiments/leptograph_m3_preflight.py)
+
+The preflight is not an M3 production implementation. In particular, the memory-architecture comparison is expected to remain blocked until a capacity-matched unified-memory control is mathematically specified. A green CI run means the preflight executed, not that M3 implementation is authorised.
