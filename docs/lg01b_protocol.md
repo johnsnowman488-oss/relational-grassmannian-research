@@ -198,12 +198,12 @@ After destination ranking is frozen from validation, evaluate the fitted predict
 
 ## 7. Controls and ablations
 
-All controls receive the same trajectory observations, data splits, mode count, out-degree prior, and training budget.
+All algorithmic controls receive the same coupled-world trajectory observations, data splits, mode count, out-degree prior, and training budget. The uncoupled-world null uses a separately generated G=0 trajectory set with the same per-mode input seeds, physical input process, and rate conditions.
 
 1. **Destination-only autoregressive null:** predicts each destination from its own current state and own current tangent only.
 2. **Source-state mapping:** replaces source tangent groups with source state vectors. This tests whether tangent direction contributes beyond ordinary source-state information.
 3. **Direction-blind activity mapping:** replaces each 16D unit tangent with the scalar raw tangent speed ||dot z_i[k]||_2. This tests whether vector direction adds value beyond activity level.
-4. **Uncoupled-world null:** repeat the same input and observation process with G=0. This paired negative control contains no inter-mode edges. Run the same mapping pipeline and report the selected-pair validation and test predictive-contribution distributions; top-two selections in this arm are false relations by construction.
+4. **Uncoupled-world null:** repeat the same input and observation process with G=0, using the same per-mode input seeds as the paired coupled world. This negative control contains no inter-mode edges. Run the same mapping pipeline and report the selected-pair validation and test predictive-contribution distributions; top-two selections in this arm are false relations by construction.
 5. **Temporally shuffled tangent mapping:** block-shuffles each source tangent sequence within an episode, using blocks of one physical time unit, preserving local marginal structure while breaking alignment to destination responses.
 6. **Reverse-time mapping:** at origin k, predicts destination state z_j[k] from source tangents at k+Hγ, using destination state and tangent at k+Hγ as reverse-time autoregressive controls. This mirrors the forward horizon and tests whether the apparent relation is specifically forward-directed.
 7. **Symmetric association baseline:** ranks pairs using the absolute Pearson correlation between the state-energy traces ||z_i[k]||_2 and ||z_j[k]||_2, computed on validation data only. The pair score is symmetric (S_i_j=S_j_i), so it cannot identify direction from the association itself.
