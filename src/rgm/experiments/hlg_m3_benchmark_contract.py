@@ -64,7 +64,6 @@ FORBIDDEN_LEARNER_FIELDS = (
     "world_configuration_seed", "replicate_seed", "composition_ids",
     "primitive_relations", "true_context_id", "latent_relation_operators",
     "change_schedule", "future_observations", "target", "target_truth",
-                "phase_id", "composition_id", "target_truth",
     "phase_id", "composition_id",
 )
 
@@ -252,7 +251,8 @@ def build_manifest() -> dict:
                 "world_id", "scenario_template_id", "split", "seed",
                 "world_configuration_seed", "replicate_seed", "composition_ids",
                 "primitive_relations", "true_context_id", "latent_relation_operators",
-                "change_schedule", "future_observations", "target",
+                "change_schedule", "future_observations", "target", "target_truth",
+                "phase_id", "composition_id",
             ],
         },
         "claim_limits": {
