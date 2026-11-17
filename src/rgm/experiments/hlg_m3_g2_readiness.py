@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from rgm.experiments.hlg_m3_benchmark_contract import validate_manifest
+from rgm.leptograph.m3.context import ContextBank
 from rgm.leptograph.m3.controls import MemoryArchitecture
 from rgm.leptograph.m3.estimation import MultiSourceRidge
 
@@ -76,6 +77,24 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
                 "The estimator cannot update sufficient statistics with explicit "
                 "per-source observation gates. Missing source vectors must not be "
                 "silently represented as observed zeros."
+            ),
+        })
+
+    context_conditioned_methods = {
+        "context_slot_operator_lookup": hasattr(ContextBank, "operator_for_slot"),
+        "context_conditioned_prediction": hasattr(MultiSourceRidge, "predict_context_conditioned"),
+    }
+    if not all(context_conditioned_methods.values()):
+        blockers.append({
+            "id": "context_conditioned_relation_store_missing",
+            "detail": (
+                "The generated REL-A..REL-D episodes use different latent operators "
+                "selected by evaluator-owned context identity. ContextBank stores "
+                "prototypes only and MultiSourceRidge exposes one shared source "
+                "operator per source block; there is no learner-side operator "
+                "retrieval keyed by an accepted context. The current predictor "
+                "therefore does not implement the generator's context-conditioned "
+                "relation task."
             ),
         })
 
@@ -163,6 +182,7 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
         "observed_interfaces": {
             "multi_source_ridge_update_parameters": update_parameters,
             "masked_online_update_available": masked_update,
+            "context_conditioned_methods": context_conditioned_methods,
             "memory_architecture_methods": {
                 name: hasattr(MemoryArchitecture, name)
                 for name in (
