@@ -97,6 +97,10 @@ jobs:
           assert validation["valid"] is True
           assert validation["world_configuration_count"] == 40
           assert validation["replicate_stream_count"] == 200
+          assert validation["resource_envelope"]["persistent_state_cap_bytes"] == 512
+          assert validation["resource_envelope"]["trainable_parameter_cap"] == 4096
+          assert validation["resource_envelope"]["update_multiply_add_cap_per_observed_update"] == 8192
+          assert validation["resource_envelope"]["query_multiply_add_cap_per_prediction"] == 4096
           assert validation["primary_test_compositions"] == 8
           assert validation["all_primary_test_atoms_seen_in_fit"] is True
           assert validation["primitive_ood_separately_excluded"] is True
@@ -108,6 +112,7 @@ jobs:
               "contract_execution_passed": True,
               "world_configuration_count": validation["world_configuration_count"],
               "replicate_stream_count": validation["replicate_stream_count"],
+              "resource_envelope": validation["resource_envelope"],
               "primary_test_compositions": validation["primary_test_compositions"],
               "scientific_benchmark_executed": False,
               "m3_protocol_frozen": False,

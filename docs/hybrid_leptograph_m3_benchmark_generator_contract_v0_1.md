@@ -42,9 +42,9 @@ Revealing a target before prediction, using a ticket for another step, revealing
 
 ## 5. Deterministic fixture
 
-BM-1 includes a one-step fixture generated from a supplied seed. It exists solely to test deterministic generation and the information boundary. It is not one of the eight scientific world families, is not included in the confirmatory split allocation, and must not be reported as an M3 result.
+BM-1 includes a one-step fixture generated from a supplied seed. It exists solely to test deterministic generation and the information boundary. It is not one of the historical F6 anchor worlds, is not included in the confirmatory split allocation, and must not be reported as an M3 result.
 
-BM-2 must implement the F6-derived sequential generator from the manifest, preserve this separation, materialise explicit factor-valued configurations, and add tests for all factor-level combinations and deterministic generator regeneration.
+BM-2 must implement the F6-derived sequential generator from the manifest, preserve the eight historical anchor outputs, materialise explicit factor-valued configurations, and add tests for factor-level coverage and deterministic generator regeneration.
 
 ## 6. Required contract tests
 

@@ -7,6 +7,7 @@ import pytest
 
 from rgm.experiments.hlg_m3_benchmark_contract import (
     CAMPAIGN_ID,
+    F5_RESOURCE_ENVELOPE,
     EvaluatorRecord,
     LearnerObservation,
     PrequentialGate,
@@ -31,7 +32,7 @@ def test_static_manifest_matches_deterministic_builder():
     assert static["campaign_id"] == CAMPAIGN_ID
 
 
-def test_predeclared_split_counts_seeds_and_world_family_coverage():
+def test_predeclared_split_counts_seeds_and_f6_template_coverage():
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     report = validate_manifest(manifest)
     assert report["valid"] is True
@@ -235,3 +236,22 @@ def test_reference_fixture_is_seed_deterministic_and_not_a_scientific_world():
     assert ev_a.target_vector != ev_c.target_vector
     assert ev_a.split == "fixture"
     assert ev_a.scenario_template_id == "FIXTURE-ONLY"
+
+
+def test_f5_resource_envelope_is_explicit_and_provisional():
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    report = validate_manifest(manifest)
+    assert manifest["resource_envelope"] == F5_RESOURCE_ENVELOPE
+    assert report["resource_envelope"] == F5_RESOURCE_ENVELOPE
+    assert F5_RESOURCE_ENVELOPE["persistent_state_cap_bytes"] == 512
+    assert F5_RESOURCE_ENVELOPE["trainable_parameter_cap"] == 4096
+    assert F5_RESOURCE_ENVELOPE["update_multiply_add_cap_per_observed_update"] == 8192
+    assert F5_RESOURCE_ENVELOPE["query_multiply_add_cap_per_prediction"] == 4096
+    assert "provisional" in F5_RESOURCE_ENVELOPE["status"]
+
+
+def test_manifest_validator_rejects_f6_anchor_seed_reuse():
+    manifest = build_manifest()
+    manifest["worlds"][0]["replicate_seeds"][0] = 110
+    with pytest.raises(ValueError, match="historical F6 anchor seeds"):
+        validate_manifest(manifest)

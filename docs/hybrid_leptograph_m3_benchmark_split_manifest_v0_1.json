@@ -1046,5 +1046,17 @@
       "world_configuration_seed": 910039,
       "world_id": "TEST-W20"
     }
-  ]
+  ],
+  "resource_envelope": {
+    "source_evidence": "F5 in docs/hybrid_leptograph_m3_foundation_campaign_results.md",
+    "reference_state_dimension_scalars": 64,
+    "precision": "float64",
+    "persistent_state_cap_bytes": 512,
+    "trainable_parameter_cap": 4096,
+    "update_multiply_add_cap_per_observed_update": 8192,
+    "query_multiply_add_cap_per_prediction": 4096,
+    "C0_role": "zero-persistent-memory-reference-floor-not-equal-used-memory",
+    "comparison_policy": "common-hard-ceilings-with-actual-use-and-measured-pareto-frontiers",
+    "status": "provisional_F5_ceiling_to_be_audited_on_actual_C0_C4_implementations_in_BM4"
+  }
 }

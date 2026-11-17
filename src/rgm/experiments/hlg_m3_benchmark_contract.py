@@ -39,6 +39,18 @@ F6_WORLD_TEMPLATE = {
     "steps_per_phase": 20,
     "historical_seeds_reused_in_confirmatory_campaign": False,
 }
+F5_RESOURCE_ENVELOPE = {
+    "source_evidence": "F5 in docs/hybrid_leptograph_m3_foundation_campaign_results.md",
+    "reference_state_dimension_scalars": 64,
+    "precision": "float64",
+    "persistent_state_cap_bytes": 512,
+    "trainable_parameter_cap": 4096,
+    "update_multiply_add_cap_per_observed_update": 8192,
+    "query_multiply_add_cap_per_prediction": 4096,
+    "C0_role": "zero-persistent-memory-reference-floor-not-equal-used-memory",
+    "comparison_policy": "common-hard-ceilings-with-actual-use-and-measured-pareto-frontiers",
+    "status": "provisional_F5_ceiling_to_be_audited_on_actual_C0_C4_implementations_in_BM4",
+}
 PRIMARY_ATOMS = ("REL-A", "REL-B", "REL-C", "REL-D")
 SEED_BASES = {
     "development_fit": 110_000,
@@ -93,6 +105,7 @@ def build_manifest() -> dict:
                 "world_id": world_id,
                 "split": split,
                 "scenario_template_id": F6_WORLD_TEMPLATE["template_id"],
+        "resource_envelope": dict(F5_RESOURCE_ENVELOPE),
                 "world_configuration_seed": WORLD_SEED_BASE + ordinal,
                 "replicate_seeds": replicate_seeds,
                 "composition_ids": split_composition_ids,
@@ -105,6 +118,7 @@ def build_manifest() -> dict:
         "status": "draft_amendable_not_frozen",
         "primary_relation_atoms": list(PRIMARY_ATOMS),
         "world_template": dict(F6_WORLD_TEMPLATE),
+        "resource_envelope": dict(F5_RESOURCE_ENVELOPE),
         "allocation": {
             "world_configurations_per_split": dict(SPLIT_COUNTS),
             "replicates_per_world": REPLICATES_PER_WORLD,
@@ -162,6 +176,9 @@ def validate_manifest(manifest: Mapping) -> dict:
 
     if manifest.get("world_template") != F6_WORLD_TEMPLATE:
         raise ValueError("world template must preserve the historical F6 eight-world scenario structure")
+
+    if manifest.get("resource_envelope") != F5_RESOURCE_ENVELOPE:
+        raise ValueError("provisional F5 common resource envelope mismatch")
 
     allocation = manifest.get("allocation", {})
     if allocation.get("world_configurations_per_split") != SPLIT_COUNTS:
@@ -226,6 +243,12 @@ def validate_manifest(manifest: Mapping) -> dict:
                     raise ValueError("replicate seeds must be globally unique")
                 replicate_seeds.add(seed)
             ordinal += 1
+
+    historical_seeds = {
+        seed for seeds in F6_WORLD_TEMPLATE["historical_seed_sets"].values() for seed in seeds
+    }
+    if historical_seeds.intersection(config_seeds | replicate_seeds):
+        raise ValueError("historical F6 anchor seeds must not be reused in the confirmatory campaign")
 
     partitions = manifest.get("composition_partitions", {})
     composition_ids, composition_sequences = set(), set()

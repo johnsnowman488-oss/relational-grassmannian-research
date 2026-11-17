@@ -25,7 +25,7 @@ The full confirmatory allocation is fixed in the manifest before benchmark outco
 | Held-out test | 20 | 5 | 100 |
 | **Total** | **40** | **5** | **200** |
 
-The historical F6 design contains eight pilot worlds (four development-fit, two validation and two test), not eight separately specified world-family generators. BM-0 therefore preserves F6 as the `F6-INTEGRATED-SEQUENTIAL-v1` scenario template: seven shared phases (acquisition, distractor, context switch, relation-2 isolation, observation gap, reactivation and within-context drift), plus the held-out-composition phase in test only. The historical F6 seeds are retained as provenance and are not reused in the confirmatory campaign. BM-2 must define explicit factor-valued world configurations from this template; each configuration receives a separate configuration seed and five independent stream seeds.
+The historical F6 design contains eight pilot worlds (four development-fit, two validation and two test), not eight separately specified world-family generators. BM-0 therefore preserves F6 as the `F6-INTEGRATED-SEQUENTIAL-v1` scenario template: seven shared phases (acquisition, distractor, context switch, relation-2 isolation, observation gap, reactivation and within-context drift), plus the held-out-composition phase in test only. The historical F6 seed-world records and their outputs remain unchanged as regression anchors; their seeds are retained as provenance and are not reused in the confirmatory campaign. BM-2 must define explicit factor-valued world configurations from this template; each configuration receives a separate configuration seed and five independent stream seeds.
 
 Do not run the full Cartesian product of every stress factor. It would be expensive and obscure which factor caused an effect. Use a structured design:
 - Each package first gets a one-factor-at-a-time core sweep with the same base stream definitions.
@@ -49,18 +49,19 @@ These levels are design factors, not results. The generator must record the real
 
 ### Decision 2 — common resource envelopes plus measured Pareto frontiers
 
-C0 remains the zero-persistent-memory reference floor. It is not described as having equal used memory to C1-C4.
+Carry forward the provisional **F5** envelope at the reference 64-scalar state dimension and float64 precision:
 
-C1-C4 receive the same hard resource ceilings at each comparison tier:
-- total persistent bytes, including state and trainable parameter storage;
-- parameter count and parameter precision;
-- update-compute ceiling per observed update;
-- query-compute ceiling per prediction;
-- identical source/task streams and evaluation windows.
+| Resource | Common hard cap |
+|---|---:|
+| Persistent state | 512 bytes (64 float64 scalars) |
+| Trainable parameters | 4,096 parameters |
+| Update compute | 8,192 multiply-adds per observed update |
+| Query compute | 4,096 multiply-adds per prediction |
+| Precision | float64 |
 
-Unused budget is permitted and reported. No architecture is padded with dummy parameters or artificial operations to claim equal use. Every comparison reports actual consumption and the common ceiling. Where a configuration cannot satisfy every ceiling, it is excluded from the matched-envelope analysis and may appear only in a clearly marked unmatched/Pareto appendix.
+C0 remains the zero-persistent-memory reference floor; it is not represented as an equal-used-memory competitor. C1-C4 receive the same hard ceilings. State bytes, parameter count/bytes and total persistent bytes are reported separately. Unused budget is permitted and reported. Do not pad with dummy parameters or operations to claim equal use. A configuration exceeding any cap is excluded from the matched-envelope analysis and may appear only in a clearly labelled unmatched/Pareto appendix.
 
-BM-4 must derive the numeric tier ceilings from the audited C0-C4 implementations and representative task dimensions before any C0-C4 performance ranking is run. The current 512-byte versus 2,560-byte C3/C4 mismatch is an explicit warning, not a baseline to conceal. The final report will show performance versus actual persistent bytes, parameter count, update work and query work; there is no single winner by default.
+The F5 envelope is a **provisional common ceiling**, not proof that current C0-C4 implementations fit it. BM-4 must instrument the actual implementations on common task dimensions and verify that each proposed matched point fits all caps before any task-performance ranking. If a control cannot fit, propose an explicit budget amendment with measured evidence for review before running the comparative experiment; do not silently relax one architecture's cap. The current 512-byte C3 versus 2,560-byte C4 total-persistent-storage mismatch remains a warning from the v0.2 refinement, not a baseline to conceal. Report performance against actual persistent bytes, parameter count, update work and query work; do not presume a single winner.
 
 ### Decision 3 — hold out compositions, not the primitive vocabulary
 
