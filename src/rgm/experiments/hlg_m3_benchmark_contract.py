@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import json
 import math
+from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -117,7 +118,7 @@ def build_manifest() -> dict:
         "schema_version": SCHEMA_VERSION,
         "status": "draft_amendable_not_frozen",
         "primary_relation_atoms": list(PRIMARY_ATOMS),
-        "world_template": dict(F6_WORLD_TEMPLATE),
+        "world_template": deepcopy(F6_WORLD_TEMPLATE),
         "resource_envelope": dict(F5_RESOURCE_ENVELOPE),
         "allocation": {
             "world_configurations_per_split": dict(SPLIT_COUNTS),
@@ -133,7 +134,7 @@ def build_manifest() -> dict:
             "all_configuration_and_replicate_seeds_must_be_unique": True,
         },
         "composition_partitions": {
-            split: [dict(item) for item in COMPOSITIONS[split]]
+            split: deepcopy(COMPOSITIONS[split])
             for split in SPLIT_COUNTS
         },
         "auxiliary_primitive_ood": {
@@ -204,6 +205,9 @@ def validate_manifest(manifest: Mapping) -> dict:
     if not isinstance(worlds, list) or len(worlds) != sum(SPLIT_COUNTS.values()):
         raise ValueError("world list has incorrect size")
 
+    historical_seeds = {
+        seed for seeds in F6_WORLD_TEMPLATE["historical_seed_sets"].values() for seed in seeds
+    }
     ids, config_seeds, replicate_seeds = set(), set(), set()
     split_world_counts = {key: 0 for key in SPLIT_COUNTS}
     ordinal = 0
@@ -225,6 +229,8 @@ def validate_manifest(manifest: Mapping) -> dict:
                 raise ValueError(f"{world_id}: unknown or inconsistent scenario template")
 
             config_seed = world.get("world_configuration_seed")
+            if config_seed in historical_seeds:
+                raise ValueError("historical F6 anchor seeds must not be reused in the confirmatory campaign")
             if not isinstance(config_seed, int) or config_seed in config_seeds:
                 raise ValueError("world configuration seeds must be unique integers")
             config_seeds.add(config_seed)
@@ -232,6 +238,9 @@ def validate_manifest(manifest: Mapping) -> dict:
             expected_config_seed = WORLD_SEED_BASE + ordinal
             if config_seed != expected_config_seed:
                 raise ValueError("world configuration seed does not match deterministic manifest policy")
+            observed_replicates = world.get("replicate_seeds", [])
+            if any(seed in historical_seeds for seed in observed_replicates):
+                raise ValueError("historical F6 anchor seeds must not be reused in the confirmatory campaign")
             expected_replicate_seeds = [
                 SEED_BASES[split] + ordinal * 10 + replicate
                 for replicate in range(REPLICATES_PER_WORLD)
