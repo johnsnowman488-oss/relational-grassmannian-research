@@ -26,7 +26,7 @@ def test_context_capacity_pressure_is_reported_without_assuming_all_slots_are_ma
 
     assert capacity["distinct_prototype_count"] == 6
     assert capacity["declared_capacity_levels"] == [2, 4, 8]
-    assert capacity["can_retain_all_declared_context_prototypes"] == {
+    assert capacity["can_retain_one_slot_per_prototype"] == {
         "2": False,
         "4": False,
         "8": True,
