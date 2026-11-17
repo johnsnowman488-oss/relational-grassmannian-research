@@ -59,6 +59,7 @@ class ContextBank:
     slots: list[ContextSlot] = field(default_factory=list)
     _next_id: int = 0
     _pending: list[np.ndarray] = field(default_factory=list)
+    _relation_operators: dict[int, dict[str, np.ndarray]] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
         self.metric = np.asarray(self.metric, dtype=float)
@@ -132,6 +133,53 @@ class ContextBank:
         if best_score >= self.novelty_threshold:
             return ContextDecision.NOVEL, None, scores
         return ContextDecision.ABSTAIN, None, scores
+
+    def set_operator(self, slot_id: int, source_id: str, operator: Sequence[Sequence[float]]) -> None:
+        """Store a learner-estimated source operator under an accepted context slot."""
+        if not source_id:
+            raise ValueError("source_id must be non-empty")
+        if not any(slot.slot_id == slot_id for slot in self.slots):
+            raise KeyError(slot_id)
+        value = np.asarray(operator, dtype=float)
+        if value.ndim != 2 or not np.all(np.isfinite(value)):
+            raise ValueError("operator must be a finite matrix")
+        self._relation_operators.setdefault(int(slot_id), {})[source_id] = value.copy()
+
+    def operator_for_slot(self, slot_id: int) -> dict[str, np.ndarray]:
+        """Return copies of operators learned for this accepted context slot."""
+        if not any(slot.slot_id == slot_id for slot in self.slots):
+            raise KeyError(slot_id)
+        return {key: value.copy() for key, value in self._relation_operators.get(int(slot_id), {}).items()}
+
+    def update_operator(
+        self, slot_id: int, source_id: str, source: Sequence[float],
+        residual_target: Sequence[float], *, rate: float = 0.1,
+    ) -> None:
+        """Apply a bounded online least-mean-squares update to one context relation."""
+        x = np.asarray(source, dtype=float)
+        y = np.asarray(residual_target, dtype=float)
+        if x.ndim != 1 or y.ndim != 1 or not x.size or not y.size:
+            raise ValueError("source and residual target must be non-empty vectors")
+        if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+            raise ValueError("source and residual target must be finite")
+        if not np.isfinite(rate) or not 0.0 < rate <= 1.0:
+            raise ValueError("rate must be in (0, 1]")
+        operators = self._relation_operators.setdefault(int(slot_id), {})
+        operator = operators.get(source_id)
+        if operator is None:
+            operator = np.zeros((y.size, x.size), dtype=float)
+        if operator.shape != (y.size, x.size):
+            raise ValueError("source/target dimensions differ from stored context operator")
+        error = y - operator @ x
+        operators[source_id] = operator + (rate / max(float(x @ x), 1.0)) * np.outer(error, x)
+
+    def relation_resource_snapshot(self) -> dict[str, int]:
+        """Count persistent numeric relation-operator buffers held by context slots."""
+        return {
+            "operator_count": sum(len(value) for value in self._relation_operators.values()),
+            "operator_bytes": int(sum(item.nbytes for group in self._relation_operators.values()
+                                       for item in group.values())),
+        }
 
     def observe_novel(self, point: Sequence[float]) -> int | None:
         """Accumulate repeated novelty evidence and create a slot when safe.
