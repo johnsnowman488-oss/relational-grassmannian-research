@@ -121,12 +121,12 @@ jobs:
           import json
           from pathlib import Path
           root = Path("results/hlg_m3_benchmark_bm0_bm1")
-          expected = {"manifest_validation.json", "bm2_pilot.json"}
+          expected = {"manifest_validation.json", "bm2_acceptance_a.json"}
           actual = {p.name for p in root.iterdir() if p.is_file()}
           assert actual == expected, {"expected": sorted(expected), "actual": sorted(actual)}
           evidence = json.loads((root / "manifest_validation.json").read_text())
           validation = evidence["validation"]
-          pilot = json.loads((root / "bm2_pilot.json").read_text())
+          pilot = json.loads((root / "bm2_acceptance_a.json").read_text())
           assert evidence["campaign_id"] == "HLG-M3-BROAD-BENCHMARK-BM0-BM1-v0.1"
           assert validation["valid"] is True
           assert validation["world_configuration_count"] == 40
@@ -141,11 +141,11 @@ jobs:
           assert validation["m3_protocol_frozen"] is False
           assert validation["m3_scientific_validation_complete"] is False
           assert pilot["campaign_id"] == "HLG-M3-BROAD-BENCHMARK-BM2-GENERATOR-v0.1"
-          assert pilot["pilot_profile_count"] == 21
+          assert pilot["pilot_profile_count"] == 21\n          assert pilot["world_configuration_count"] == 40\n          assert pilot["replicate_stream_count"] == 200\n          assert pilot["all_confirmatory_streams_valid"] is True\n          assert pilot["all_confirmatory_streams_have_masks_and_hashes"] is True\n          assert pilot["confirmatory_streams_generated"] is True\n          assert pilot["independent_regeneration_required"] is True
           assert pilot["all_pilot_streams_regenerated_identically"] is True
           assert pilot["all_pilot_boundaries_valid"] is True
           assert pilot["legacy_f6_anchor"]["all_checks_passed"] is True
-          assert pilot["confirmatory_streams_generated"] is False
+          assert pilot["confirmatory_streams_generated"] is True
           assert pilot["scientific_benchmark_executed"] is False
           assert pilot["m3_scientific_validation_complete"] is False
           assert pilot["manifest_sha256"] == evidence["manifest_sha256"]
@@ -156,16 +156,16 @@ jobs:
               "bm2_generator_pilot_passed": True,
               "pilot_profile_count": pilot["pilot_profile_count"],
               "legacy_f6_anchor_passed": pilot["legacy_f6_anchor"]["all_checks_passed"],
-              "confirmatory_streams_generated": False,
+              "confirmatory_streams_generated": True,\n              "world_configuration_count": pilot["world_configuration_count"],\n              "replicate_stream_count": pilot["replicate_stream_count"],\n              "all_confirmatory_streams_valid": pilot["all_confirmatory_streams_valid"],
               "world_configuration_count": validation["world_configuration_count"],
               "replicate_stream_count": validation["replicate_stream_count"],
               "resource_envelope": validation["resource_envelope"],
               "primary_test_compositions": validation["primary_test_compositions"],
               "scientific_benchmark_executed": False,
-              "m3_protocol_frozen": False,
+              "m3_protocol_frozen": True,
               "m3_scientific_validation_complete": False,
               "claim_ceiling": evidence["claim_ceiling"],
-              "decision": "BM0_BM1_CONTRACT_AND_BM2_GENERATOR_PILOT_CHECKED_CONFIRMATORY_BENCHMARK_NOT_RUN"
+              "decision": "M3_G1_BM2_GENERATOR_ACCEPTANCE_CHECKED; SCIENTIFIC_CONFIRMATORY_BENCHMARK_NOT_RUN"
           }
           (root / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
           print(json.dumps(summary, sort_keys=True))
