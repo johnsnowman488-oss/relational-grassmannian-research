@@ -13,7 +13,7 @@ class MultiSourceRidge:
     target_dimension: int
     ridge: float = 1e-5
     forgetting: float = 1.0
-    gram: np.ndarray = field(init=False)
+    _gram_upper: np.ndarray = field(init=False, repr=False)
     cross: np.ndarray = field(init=False)
     sample_count: int = 0
     prediction_count: int = 0
@@ -38,12 +38,21 @@ class MultiSourceRidge:
         self._context_slice = slice(offset, offset + self.context_dimension)
         offset += self.context_dimension
         self._intercept_index = offset
-        self.gram = np.zeros((offset + 1, offset + 1), dtype=float)
+        self._upper_rows, self._upper_cols = np.triu_indices(offset + 1)
+        self._gram_upper = np.zeros(self._upper_rows.size, dtype=float)
         self.cross = np.zeros((offset + 1, self.target_dimension), dtype=float)
 
     @property
     def feature_dimension(self) -> int:
-        return int(self.gram.shape[0])
+        return int(self.cross.shape[0])
+
+    @property
+    def gram(self) -> np.ndarray:
+        """Materialise the symmetric Gram matrix from packed upper-triangle state."""
+        matrix = np.zeros((self.feature_dimension, self.feature_dimension), dtype=float)
+        matrix[self._upper_rows, self._upper_cols] = self._gram_upper
+        matrix[self._upper_cols, self._upper_rows] = self._gram_upper
+        return matrix
 
     def _features(self, sources, context, source_gates=None) -> np.ndarray:
         if set(sources) != set(self.source_dimensions):
@@ -101,9 +110,9 @@ class MultiSourceRidge:
         y = np.asarray(target, dtype=float)
         if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
             raise ValueError("invalid target vector")
-        self.gram *= self.forgetting
+        self._gram_upper *= self.forgetting
         self.cross *= self.forgetting
-        self.gram += np.outer(phi, phi)
+        self._gram_upper += np.outer(phi, phi)[self._upper_rows, self._upper_cols]
         self.cross += np.outer(phi, y)
         self.sample_count += 1
         self.update_count += 1
@@ -160,7 +169,9 @@ class MultiSourceRidge:
 
     def resource_snapshot(self) -> dict[str, int | float]:
         return {
-            "sufficient_statistic_bytes": int(self.gram.nbytes + self.cross.nbytes),
+            "sufficient_statistic_bytes": int(self._gram_upper.nbytes + self.cross.nbytes),
+            "packed_gram_bytes": int(self._gram_upper.nbytes),
+            "equivalent_dense_gram_bytes": int(self.feature_dimension**2 * 8),
             "parameter_count": int(self.feature_dimension * self.target_dimension),
             "update_outer_product_multiply_adds": int(self.feature_dimension**2 + self.feature_dimension * self.target_dimension),
             "query_multiply_adds": int(self.feature_dimension * self.target_dimension),
