@@ -66,6 +66,92 @@ FORBIDDEN_LEARNER_FIELDS = (
     "change_schedule", "future_observations", "target",
 )
 
+FACTOR_LEVELS = {
+    "source_correlation": [0.0, 0.5, 0.9, 0.99, 1.0],
+    "context_separation_dprime": [4.0, 2.0, 1.0, 0.5],
+    "context_bank_capacity": [2, 4, 8],
+    "independent_observation_probability": [1.0, 0.95, 0.8],
+    "burst_outage_steps": [20, 50, 100],
+    "drift_family": ["stationary", "step", "gradual", "variance_only", "transient", "compound"],
+    "observation_noise_multiplier": [1.0, 2.0, 4.0],
+}
+PILOT_SEED_BASE = 970_000
+PILOT_CONFIGURATION_SEED_BASE = 980_000
+
+
+def factor_profile_for_world(split: str, local_index: int) -> dict:
+    """Deterministic balanced partial-factorial profile; never a full Cartesian grid."""
+    if split not in SPLIT_COUNTS or local_index < 0 or local_index >= SPLIT_COUNTS[split]:
+        raise ValueError("unknown split or out-of-range split-local world index")
+    levels = FACTOR_LEVELS
+    j = local_index
+    return {
+        "source_correlation": levels["source_correlation"][j % 5],
+        "context_separation_dprime": levels["context_separation_dprime"][j % 4],
+        "context_bank_capacity": levels["context_bank_capacity"][(j // 4) % 3],
+        "independent_observation_probability": levels["independent_observation_probability"][(j // 5) % 3],
+        "burst_outage_steps": levels["burst_outage_steps"][j % 3],
+        "drift_family": levels["drift_family"][j % 6],
+        "observation_noise_multiplier": levels["observation_noise_multiplier"][(j // 6) % 3],
+    }
+
+
+def build_one_factor_pilot_profiles() -> list[dict]:
+    """Baseline plus every non-baseline level of one factor at a time."""
+    baseline = {
+        key: values[0] for key, values in FACTOR_LEVELS.items()
+    }
+    profiles = [{
+        "pilot_id": "PILOT-BASELINE",
+        "varied_factor": "baseline",
+        "profile": dict(baseline),
+        "world_configuration_seed": PILOT_CONFIGURATION_SEED_BASE,
+        "replicate_seed": PILOT_SEED_BASE,
+    }]
+    ordinal = 1
+    for factor, values in FACTOR_LEVELS.items():
+        for value in values[1:]:
+            profile = dict(baseline)
+            profile[factor] = value
+            profiles.append({
+                "pilot_id": f"PILOT-{factor.upper()}-{ordinal:02d}",
+                "varied_factor": factor,
+                "profile": profile,
+                "world_configuration_seed": PILOT_CONFIGURATION_SEED_BASE + ordinal,
+                "replicate_seed": PILOT_SEED_BASE + ordinal,
+            })
+            ordinal += 1
+    return profiles
+
+
+def build_factor_design() -> dict:
+    return {
+        "method": "deterministic_balanced_partial_factorial_with_separate_ofat_pilot",
+        "factor_levels": deepcopy(FACTOR_LEVELS),
+        "world_profile_assignment": {
+            "source_correlation": "correlation_levels[split_local_index % 5]",
+            "independent_observation_probability": "missingness_levels[(split_local_index // 5) % 3]",
+            "context_separation_dprime": "context_levels[split_local_index % 4]",
+            "context_bank_capacity": "capacity_levels[(split_local_index // 4) % 3]",
+            "drift_family": "drift_levels[split_local_index % 6]",
+            "observation_noise_multiplier": "noise_levels[(split_local_index // 6) % 3]",
+            "burst_outage_steps": "outage_levels[split_local_index % 3]",
+        },
+        "predeclared_pairwise_interactions": [
+            ["context_separation_dprime", "context_bank_capacity"],
+            ["source_correlation", "independent_observation_probability"],
+            ["drift_family", "observation_noise_multiplier"],
+        ],
+        "pairwise_coverage_policy": {
+            "test_split": "all combinations covered for context separation x capacity and drift x noise; 15 of 15 combinations covered for source correlation x missingness",
+            "development_splits": "main-effect levels covered; interaction coverage is descriptive and not represented as complete",
+        },
+        "one_factor_pilot_profiles": build_one_factor_pilot_profiles(),
+        "pilot_is_separate_from_confirmatory_streams": True,
+        "full_cartesian_product_run": False,
+    }
+
+
 COMPOSITIONS = {
     "development_fit": [
         {"composition_id": "FIT-AB", "ordered_relations": ["REL-A", "REL-B"]},
@@ -109,6 +195,7 @@ def build_manifest() -> dict:
                 "world_configuration_seed": WORLD_SEED_BASE + ordinal,
                 "replicate_seeds": replicate_seeds,
                 "composition_ids": split_composition_ids,
+                "factor_profile": factor_profile_for_world(split, local_index),
             })
             ordinal += 1
 
@@ -119,6 +206,7 @@ def build_manifest() -> dict:
         "primary_relation_atoms": list(PRIMARY_ATOMS),
         "world_template": deepcopy(F6_WORLD_TEMPLATE),
         "resource_envelope": dict(F5_RESOURCE_ENVELOPE),
+        "factor_design": build_factor_design(),
         "allocation": {
             "world_configurations_per_split": dict(SPLIT_COUNTS),
             "replicates_per_world": REPLICATES_PER_WORLD,
@@ -180,6 +268,9 @@ def validate_manifest(manifest: Mapping) -> dict:
     if manifest.get("resource_envelope") != F5_RESOURCE_ENVELOPE:
         raise ValueError("provisional F5 common resource envelope mismatch")
 
+    if manifest.get("factor_design") != build_factor_design():
+        raise ValueError("factor-level design or one-factor pilot differs from its predeclared contract")
+
     allocation = manifest.get("allocation", {})
     if allocation.get("world_configurations_per_split") != SPLIT_COUNTS:
         raise ValueError("world allocation differs from the predeclared split counts")
@@ -226,6 +317,8 @@ def validate_manifest(manifest: Mapping) -> dict:
                 raise ValueError(f"{world_id}: composition assignment does not match split")
             if world.get("scenario_template_id") != F6_WORLD_TEMPLATE["template_id"]:
                 raise ValueError(f"{world_id}: unknown or inconsistent scenario template")
+            if world.get("factor_profile") != factor_profile_for_world(split, local_index):
+                raise ValueError(f"{world_id}: factor profile does not match deterministic split allocation")
 
             config_seed = world.get("world_configuration_seed")
             if config_seed in historical_seeds:
@@ -323,6 +416,7 @@ def validate_manifest(manifest: Mapping) -> dict:
         "scenario_template_id": F6_WORLD_TEMPLATE["template_id"],
         "historical_f6_world_count": F6_WORLD_TEMPLATE["historical_world_count"],
         "resource_envelope": dict(F5_RESOURCE_ENVELOPE),
+        "factor_design": build_factor_design(),
         "primary_composition_counts": {
             split: len(COMPOSITIONS[split]) for split in SPLIT_COUNTS
         },
@@ -388,6 +482,9 @@ class EvaluatorRecord:
     change_schedule: tuple[tuple[int, str], ...]
     target_vector: tuple[float, ...] | None
     target_observed: bool
+    target_truth: tuple[float, ...] | None = None
+    phase_id: str = ""
+    composition_id: str | None = None
 
     def __post_init__(self) -> None:
         if self.step_index < 0:
@@ -398,6 +495,10 @@ class EvaluatorRecord:
             not self.target_vector or any(not math.isfinite(float(v)) for v in self.target_vector)
         ):
             raise ValueError("observed target must be finite and non-empty")
+        if self.target_truth is not None and (
+            not self.target_truth or any(not math.isfinite(float(v)) for v in self.target_truth)
+        ):
+            raise ValueError("evaluator target truth must be finite and non-empty")
 
 
 @dataclass(frozen=True)
