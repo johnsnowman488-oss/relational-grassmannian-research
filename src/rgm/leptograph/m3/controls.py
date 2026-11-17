@@ -60,11 +60,11 @@ class MemoryArchitecture:
 
     @property
     def trainable_parameter_count(self) -> int:
-        return int(self.mode_readout.size + self.relation_readout.size)
+        return int(self.mode_readout.size + self.relation_readout.size + self.task_readout.size)
 
     @property
     def persistent_parameter_bytes(self) -> int:
-        return int(self.mode_readout.nbytes + self.relation_readout.nbytes)
+        return int(self.mode_readout.nbytes + self.relation_readout.nbytes + self.task_readout.nbytes)
 
     @property
     def persistent_bytes(self) -> int:
