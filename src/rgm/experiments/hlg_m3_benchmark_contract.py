@@ -117,7 +117,11 @@ def build_one_factor_pilot_profiles() -> list[dict]:
     }]
     ordinal = 1
     for factor, values in FACTOR_LEVELS.items():
-        for value in values[1:]:
+        # Factor baselines need not be the first declared level (capacity=4 is
+        # the middle level); exclude the baseline by value, not by position.
+        for value in values:
+            if value == baseline[factor]:
+                continue
             profile = dict(baseline)
             profile[factor] = value
             profiles.append({
