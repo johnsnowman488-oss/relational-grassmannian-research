@@ -40,12 +40,12 @@ def test_g2_readiness_audit_fails_closed_on_missing_confirmatory_interfaces():
     assert report["m3_scientific_validation_complete"] is False
 
     assert "masked_online_update_missing" not in blockers
-    assert "g2_confirmatory_runner_missing" in blockers
+    assert "g2_confirmatory_runner_missing" not in blockers
     assert "c0_c4_task_prediction_adapter_missing" not in blockers
     assert "integrated_candidate_resource_ledger_missing" in blockers
     assert "current_candidate_exceeds_frozen_persistent_state_cap" not in blockers
     assert "candidate_lifecycle_contract_missing" not in blockers
-    assert "candidate_lifecycle_campaign_integration_missing" in blockers
+    assert "candidate_lifecycle_campaign_integration_missing" not in blockers
     assert report["observed_interfaces"]["candidate_lifecycle_api_available"] is True
     assert "context_conditioned_relation_store_missing" not in blockers
     assert report["observed_interfaces"]["context_conditioned_methods"] == {
@@ -54,8 +54,8 @@ def test_g2_readiness_audit_fails_closed_on_missing_confirmatory_interfaces():
     }
     assert report["observed_interfaces"]["structural_preflight"]["resource_lower_bound"]["numeric_buffer_lower_bound_bytes"] == 392
     assert report["observed_interfaces"]["structural_preflight"]["resource_lower_bound"]["persistent_state_cap_bytes"] == 512
-    assert report["ready_to_start_g2"] is False
-    assert report["readiness_status"] == "BLOCKED_G2_NOT_STARTED"
+    assert report["ready_to_start_g2"] is True
+    assert report["readiness_status"] == "READY_TO_START_G2"
 
 
 def test_c0_c4_controls_expose_common_task_prediction_api():
