@@ -240,7 +240,7 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
         "world_configuration_seed": stream["world_configuration_seed"],
         "replicate_seed": stream["replicate_seed"], "factor_profile": profile,
         "stream_sha256": stream["stream_sha256"], "step_count": len(stream["learner_observations"]),
-        "m3_loss": _mean_loss(metrics["m3_sse"], metrics["m3_n]),
+        "m3_loss": _mean_loss(metrics["m3_sse"], metrics["m3_n"]),
         "m3_observed_targets": metrics["m3_n"],
         "control_losses": {
             name: _mean_loss(metrics["control_sse"][name], metrics["control_n"][name])
