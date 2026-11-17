@@ -122,6 +122,12 @@ class MemoryArchitecture:
         """Return the architecture's currently retained predictive state."""
         if self.name == "C0":
             return np.zeros(0, dtype=self.shared_state.dtype)
+        if self.name == "C1":
+            return self.mode_state
+        if self.name == "C2":
+            return self.relation_state
+        if self.name == "C3":
+            return np.concatenate((self.mode_state, self.relation_state))
         return np.concatenate((self.read_mode(), self.read_relation())).astype(
             self.shared_state.dtype, copy=False
         )
