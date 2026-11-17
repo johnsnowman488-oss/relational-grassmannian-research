@@ -93,7 +93,10 @@ def test_context_conditioned_relation_operators_are_stored_retrieved_and_updated
     assert float(model.predict_context_conditioned({"s": [2.0]}, [],
                  context_slot=slot, context_bank=bank)[0]) == pytest.approx(4.0)
     snapshot = bank.relation_resource_snapshot()
-    assert snapshot == {"operator_count": 1, "operator_bytes": 8}
+    assert snapshot["operator_count"] == 1
+    assert snapshot["operator_bytes"] == 8
+    assert snapshot["trainable_parameter_count"] == 1
+    assert snapshot["persistent_context_state_bytes"] == 24
 
 
 def test_context_conditioned_estimator_learns_slot_specific_operator():

@@ -97,6 +97,10 @@ class MultiSourceRidge:
                 if operator.shape != (self.target_dimension, self.source_dimensions[key]) or not np.all(np.isfinite(operator)):
                     raise ValueError(f"invalid operator override for {key}")
                 beta[self._source_slices[key], :] = operator.T
+            # A complete context-specific operator set is a complete relation
+            # model for this slot; do not add the shared fallback intercept.
+            if set(overrides) == set(self.source_dimensions):
+                beta[self._intercept_index, :] = 0.0
         self.prediction_count += 1
         return phi @ beta
 
@@ -120,20 +124,30 @@ class MultiSourceRidge:
         observed zeros. The shared estimator is also updated as the fallback
         operator for uninitialised/new contexts.
         """
-        phi = self._features(sources, context, source_gates)
+        self._features(sources, context, source_gates)  # validate observation
         y = np.asarray(target, dtype=float)
         if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
             raise ValueError("invalid target vector")
         gates = dict(source_gates or {})
         operators = context_bank.operator_for_slot(context_slot)
+        # Feedback-time arithmetic is not a learner query: compute once without
+        # incrementing prediction/query counters or refitting between sources.
+        beta = self.coefficients()
+        for key, value in operators.items():
+            operator = np.asarray(value, dtype=float)
+            if operator.shape != (self.target_dimension, self.source_dimensions[key]) or not np.all(np.isfinite(operator)):
+                raise ValueError(f"invalid operator override for {key}")
+            beta[self._source_slices[key], :] = operator.T
+        if set(operators) == set(self.source_dimensions):
+            beta[self._intercept_index, :] = 0.0
+        phi = self._features(sources, context, source_gates)
+        prediction = phi @ beta
         for key in sorted(self.source_dimensions):
             gate = float(gates.get(key, 1.0))
             if gate <= 0.0:
                 continue
             x = np.asarray(sources[key], dtype=float)
             current = operators.get(key, self.source_operator(key))
-            prediction = self.predict(sources, context, source_gates=source_gates,
-                                      operator_overrides=operators)
             contribution = gate * (current @ x)
             residual = y - (prediction - contribution)
             context_bank.update_operator(context_slot, key, x, residual, rate=rate)

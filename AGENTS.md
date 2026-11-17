@@ -16,6 +16,7 @@ Research progression takes priority over unnecessary investigative completeness.
 8. **Preserve and use progress.** Carry forward accepted results, frozen protocols, validated components, and prior evidence. Do not duplicate completed work or silently discard established progress.
 9. **Respect frozen criteria.** Do not change metrics, thresholds, splits, seeds, comparators, or claim boundaries after outcomes are visible. A necessary change requires an explicit reason, versioned decision, and appropriate new campaign.
 10. **Report decisions plainly.** State what objective was attempted, what criteria were met, what was accepted, what failed, and what the next objective is. Distinguish implementation execution from the agreed research objective without allowing workflow labels to substitute for the objective's acceptance criteria.
+11. **Gates serve the objective; they are not the objective.** Do not over-prioritise acceptance gates or allow a procedural gate to obstruct the agreed research target when the outstanding condition does not materially affect validity, safety, reproducibility, or interpretation. Continue useful bounded implementation and scientific work, record residual limitations, and state the affected claim boundary. Never bypass frozen scientific thresholds, conceal failed tests, fabricate evidence, leak evaluator information, or misstate resource compliance. Genuine integrity or validity conditions must remain visible, but unrelated administrative checks must not stop the research objective.
 
 ## Execution discipline
 
