@@ -68,7 +68,7 @@ class MemoryArchitecture:
 
     @property
     def persistent_bytes(self) -> int:
-        return self.persistent_state_bytes + self.persistent_parameter_bytes + int(self.task_readout.nbytes)
+        return self.persistent_state_bytes + self.persistent_parameter_bytes
 
     def update_mode(self, signal: np.ndarray, rate: float = 0.1) -> None:
         x = np.asarray(signal, dtype=float).reshape(-1)
