@@ -6,7 +6,7 @@
 
 ## 1. Separation model
 
-The generator/evaluator owns the complete experiment state: world configuration, world-family ID, split, seeds, relation composition, primitive labels, planted operators, true context identity, change schedule, current target and future state.
+The generator/evaluator owns the complete experiment state: world configuration, scenario-template ID, split, seeds, relation composition, primitive labels, planted operators, true context identity, change schedule, current target and future state.
 
 The learner may receive only a LearnerObservation. It must not receive the evaluator record, split manifest, generator object, world ID, seed, composition ID, planted operators, context truth or schedule labels.
 
@@ -44,7 +44,7 @@ Revealing a target before prediction, using a ticket for another step, revealing
 
 BM-1 includes a one-step fixture generated from a supplied seed. It exists solely to test deterministic generation and the information boundary. It is not one of the eight scientific world families, is not included in the confirmatory split allocation, and must not be reported as an M3 result.
 
-BM-2 must implement the actual eight-family generator from the manifest, preserve this separation, and add tests for all factor-level combinations and generator regeneration.
+BM-2 must implement the F6-derived sequential generator from the manifest, preserve this separation, materialise explicit factor-valued configurations, and add tests for all factor-level combinations and deterministic generator regeneration.
 
 ## 6. Required contract tests
 
