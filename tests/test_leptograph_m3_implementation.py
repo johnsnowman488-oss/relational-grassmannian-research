@@ -184,3 +184,19 @@ def test_context_bank_nearest_reuse_is_bounded_and_label_blind():
     assert bank.slots[1].novelty_hits == 0
     assert bank.slots[0].count == 2
     assert second == 1
+
+
+def test_compact_context_bank_keeps_centroids_and_operators_with_separate_accounting():
+    bank = ContextBank(np.eye(2), capacity=8, store_scatter=False,
+                       full_bank_policy="nearest_reuse")
+    for index in range(6):
+        slot = bank.add_initial([float(index), 0.0])
+        bank.set_operator(slot, "primary", np.eye(2))
+        bank.set_operator(slot, "secondary", 0.5 * np.eye(2))
+    assert len(bank.slots) == 6
+    assert all(slot.scatter.size == 0 for slot in bank.slots)
+    assert bank.route([2.01, 0.0])[0] is ContextDecision.ACCEPT
+    resources = bank.relation_resource_snapshot()
+    assert resources["trainable_parameter_count"] == 48
+    assert resources["operator_bytes"] == 384
+    assert resources["persistent_context_state_bytes"] == 32 + 6 * 16
