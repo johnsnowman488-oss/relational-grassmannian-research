@@ -58,3 +58,24 @@ def test_all_refinement_packages_emit_json_safe_records(package_id):
     assert record["package_id"]==package_id
     assert record["execution_passed"] is True
     assert "measurements" in record
+
+
+def test_packed_symmetric_gram_preserves_exact_sufficient_statistics():
+    model = MultiSourceRidge({"primary": 2, "secondary": 2}, 2, 2)
+    dense = np.zeros((7, 7), dtype=float)
+    cross = np.zeros((7, 2), dtype=float)
+    rows = [
+        ({"primary": [1.0, 2.0], "secondary": [-1.0, 0.5]}, [0.2, -0.3], [0.5, 1.2]),
+        ({"primary": [-0.5, 0.1], "secondary": [0.7, 1.1]}, [0.4, 0.2], [-0.2, 0.8]),
+    ]
+    for sources, context, target in rows:
+        phi = model._features(sources, context)
+        dense += np.outer(phi, phi)
+        cross += np.outer(phi, target)
+        model.update(sources, context, target)
+    assert np.allclose(model.gram, dense)
+    assert np.allclose(model.cross, cross)
+    snapshot = model.resource_snapshot()
+    assert snapshot["packed_gram_bytes"] == 28 * 8
+    assert snapshot["sufficient_statistic_bytes"] == 336
+    assert snapshot["sufficient_statistic_bytes"] < snapshot["equivalent_dense_gram_bytes"] + model.cross.nbytes
