@@ -79,3 +79,30 @@ def test_packed_symmetric_gram_preserves_exact_sufficient_statistics():
     assert snapshot["packed_gram_bytes"] == 28 * 8
     assert snapshot["sufficient_statistic_bytes"] == 336
     assert snapshot["sufficient_statistic_bytes"] < snapshot["equivalent_dense_gram_bytes"] + model.cross.nbytes
+
+
+def test_context_conditioned_relation_operators_are_stored_retrieved_and_updated():
+    from rgm.leptograph.m3.context import ContextBank
+    bank = ContextBank(np.eye(1), capacity=2)
+    slot = bank.add_initial([0.0], prior_covariance=np.eye(1))
+    model = MultiSourceRidge({"s": 1}, 0, 1)
+    bank.set_operator(slot, "s", [[3.0]])
+    assert float(model.predict_context_conditioned({"s": [2.0]}, [],
+                 context_slot=slot, context_bank=bank)[0]) == pytest.approx(6.0)
+    bank.update_operator(slot, "s", [2.0], [4.0], rate=1.0)
+    assert float(model.predict_context_conditioned({"s": [2.0]}, [],
+                 context_slot=slot, context_bank=bank)[0]) == pytest.approx(4.0)
+    snapshot = bank.relation_resource_snapshot()
+    assert snapshot == {"operator_count": 1, "operator_bytes": 8}
+
+
+def test_context_conditioned_estimator_learns_slot_specific_operator():
+    from rgm.leptograph.m3.context import ContextBank
+    bank = ContextBank(np.eye(1), capacity=2)
+    slot = bank.add_initial([0.0], prior_covariance=np.eye(1))
+    model = MultiSourceRidge({"s": 1}, 0, 1)
+    model.update_context_conditioned({"s": [2.0]}, [], [4.0],
+                                     context_slot=slot, context_bank=bank, rate=1.0)
+    prediction = model.predict_context_conditioned({"s": [2.0]}, [],
+                                                    context_slot=slot, context_bank=bank)
+    assert float(prediction[0]) == pytest.approx(4.0)
