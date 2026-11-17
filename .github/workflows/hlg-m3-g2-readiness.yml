@@ -1,6 +1,14 @@
 name: HLG-M3 G2 Implementation Readiness
 
 on:
+  push:
+    branches: [research/hlg-m3-g2-confirmatory-campaign]
+    paths:
+      - "src/rgm/experiments/hlg_m3_g2_readiness.py"
+      - "src/rgm/leptograph/m3/estimation.py"
+      - "tests/test_hlg_m3_g2_readiness.py"
+      - "docs/hybrid_leptograph_m3_g2_implementation_readiness_v0_1.md"
+      - ".github/workflows/hlg-m3-g2-readiness.yml"
   pull_request:
     branches: [main]
     paths:
