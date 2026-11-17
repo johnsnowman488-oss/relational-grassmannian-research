@@ -3,20 +3,21 @@ from rgm.experiments.hlg_m3_g2_structural_preflight import (
 )
 
 
-def test_current_minimal_integrated_numeric_buffers_exceed_frozen_state_cap():
+def test_packed_estimator_and_minimum_context_buffers_fit_frozen_state_cap():
     report = build_structural_preflight_report()
     lower_bound = report["resource_lower_bound"]
 
     assert lower_bound["components_bytes"] == {
-        "multi_source_ridge_sufficient_statistics_bytes": 504,
+        "multi_source_ridge_sufficient_statistics_bytes": 336,
         "context_metric_bytes": 32,
         "one_context_slot_mean_and_scatter_bytes": 48,
     }
-    assert lower_bound["numeric_buffer_lower_bound_bytes"] == 584
+    assert lower_bound["numeric_buffer_lower_bound_bytes"] == 416
     assert lower_bound["persistent_state_cap_bytes"] == 512
-    assert lower_bound["excess_bytes"] == 72
+    assert lower_bound["excess_bytes"] == 0
+    assert lower_bound["headroom_bytes"] == 96
     assert lower_bound["lower_bound_only"] is True
-    assert report["status"] == "BLOCKED_CURRENT_MINIMUM_EXCEEDS_FROZEN_STATE_CAP"
+    assert report["status"] == "MINIMUM_NUMERIC_BUFFERS_WITHIN_FROZEN_STATE_CAP"
     assert report["scientific_benchmark_executed"] is False
 
 
