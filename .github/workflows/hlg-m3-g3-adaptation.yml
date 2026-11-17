@@ -1,0 +1,96 @@
+name: HLG-M3 G3 Environmental Adaptation
+on:
+  push:
+    branches: [research/hlg-m3-g3-environmental-adaptation]
+    paths:
+      - "src/rgm/experiments/hlg_m3_g3_adaptation.py"
+      - "tests/test_hlg_m3_g3_adaptation.py"
+      - "docs/hybrid_leptograph_m3_g3_adaptation_protocol_v0_1.md"
+      - ".github/workflows/hlg-m3-g3-adaptation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/rgm/experiments/hlg_m3_g3_adaptation.py"
+      - "tests/test_hlg_m3_g3_adaptation.py"
+      - "docs/hybrid_leptograph_m3_g3_adaptation_protocol_v0_1.md"
+      - ".github/workflows/hlg-m3-g3-adaptation.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  environment:
+    name: G3 \${{ matrix.environment }} environment
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [stable, gradual, abrupt]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Execute paired environment campaign
+        run: >-
+          python -m rgm.experiments.hlg_m3_g3_adaptation
+          --manifest docs/hybrid_leptograph_m3_benchmark_split_manifest_v0_1.json
+          --environment "\${{ matrix.environment }}"
+          --output-dir results/hlg_m3_g3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hlg-m3-g3-\${{ matrix.environment }}
+          path: results/hlg_m3_g3/\${{ matrix.environment }}.json
+          if-no-files-found: error
+  full-tests:
+    name: Full repository tests (Python \${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: \${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - run: python -m pytest
+  aggregate:
+    name: Verify G3 environment evidence
+    runs-on: ubuntu-latest
+    needs: [environment, full-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hlg-m3-g3-*
+          path: results/hlg_m3_g3
+          merge-multiple: true
+      - name: Verify exact environment coverage and integrity
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("results/hlg_m3_g3")
+          expected = {"stable.json", "gradual.json", "abrupt.json"}
+          actual = {p.name for p in root.glob("*.json")}
+          assert actual == expected, {"expected": sorted(expected), "actual": sorted(actual)}
+          reports = {p.stem: json.loads(p.read_text()) for p in root.glob("*.json")}
+          for env, report in reports.items():
+              assert report["campaign_id"] == "HLG-M3-G3-ADAPTATION-v0.1"
+              assert report["environment"] == env
+              assert report["world_count"] == 20 and report["stream_count"] == 100
+              assert report["policy_arm_count"] == 4 and len(report["streams"]) == 400
+              assert report["integrity"]["held_out_test_worlds_only"]
+              assert report["integrity"]["same_streams_across_policy_arms"]
+              assert report["integrity"]["prequential_prediction_before_feedback"]
+          print(json.dumps({"environments": sorted(reports), "environment_streams": 300,
+              "policy_evaluations": 1200, "execution_status": "EVIDENCE_VERIFIED",
+              "scientific_pass_claimed": False}, sort_keys=True))
+          PY
