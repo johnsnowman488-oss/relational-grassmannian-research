@@ -14,13 +14,14 @@ from pathlib import Path
 from typing import Any
 
 from rgm.experiments.hlg_m3_benchmark_contract import validate_manifest
+from rgm.experiments.hlg_m3_g2_structural_preflight import build_structural_preflight_report
 from rgm.leptograph.m3.context import ContextBank
 from rgm.leptograph.m3.controls import MemoryArchitecture
 from rgm.leptograph.m3.estimation import MultiSourceRidge
 from rgm.leptograph.m3.revision_campaign import CandidateLifecycle
 
 CAMPAIGN_ID = "HLG-M3-BROAD-BENCHMARK-BM0-BM1-v0.1"
-READINESS_ID = "HLG-M3-G2-IMPLEMENTATION-READINESS-v0.1"
+READINESS_ID = "HLG-M3-G2-IMPLEMENTATION-READINESS-v0.2"
 G1_ACCEPTED_RUN_ID = 44111641084
 G1_ACCEPTED_RUN_URL = (
     "https://github.com/johnsnowman488-oss/relational-grassmannian-research/"
@@ -47,6 +48,7 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
     manifest_hash = hashlib.sha256(raw_manifest).hexdigest()
     manifest = json.loads(raw_manifest.decode("utf-8"))
     manifest_validation = validate_manifest(manifest)
+    structural_preflight = build_structural_preflight_report()
 
     blockers: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
@@ -66,6 +68,28 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
             "detail": (
                 "No runner consumes the frozen 200 streams and emits the six "
                 "confirmatory package records plus aggregate evidence."
+            ),
+        })
+
+    resource_lower_bound = structural_preflight["resource_lower_bound"]
+    if resource_lower_bound["numeric_buffer_lower_bound_bytes"] > resource_lower_bound["persistent_state_cap_bytes"]:
+        blockers.append({
+            "id": "current_candidate_exceeds_frozen_persistent_state_cap",
+            "detail": (
+                f"The measured lower bound is {resource_lower_bound['numeric_buffer_lower_bound_bytes']} bytes "
+                f"versus the frozen {resource_lower_bound['persistent_state_cap_bytes']}-byte cap. "
+                "This excludes activation, detector and candidate-revision state; G2 requires "
+                "a resource-feasible redesign or an explicitly approved pre-G2 budget amendment."
+            ),
+        })
+    if any(not value for value in structural_preflight["context_capacity_pressure"]["can_retain_all_declared_context_prototypes"].values()):
+        warnings.append({
+            "id": "context_capacity_admission_policy_required",
+            "detail": (
+                "The declared K=2 and K=4 settings cannot retain one slot for all six generated "
+                "context prototypes in the current non-evicting ContextBank. This is a design "
+                "pressure, not proof that all six must be stored simultaneously; the learner's "
+                "label-blind admission/reuse policy must be specified and tested."
             ),
         })
 
@@ -170,7 +194,7 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
     return {
         "readiness_id": READINESS_ID,
         "campaign_id": CAMPAIGN_ID,
-        "schema_version": 1,
+        "schema_version": 2,
         "g1": {
             "accepted": True,
             "workflow_run_id": G1_ACCEPTED_RUN_ID,
@@ -200,6 +224,7 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
             },
             "g2_runner_present": (root / G2_RUNNER_RELATIVE_PATH).is_file(),
             "candidate_lifecycle_api_available": candidate_lifecycle_api_available,
+            "structural_preflight": structural_preflight,
         },
         "blockers": blockers,
         "warnings": warnings,
