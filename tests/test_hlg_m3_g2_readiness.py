@@ -44,6 +44,11 @@ def test_g2_readiness_audit_fails_closed_on_missing_confirmatory_interfaces():
     assert "c0_c4_task_prediction_adapter_missing" in blockers
     assert "integrated_candidate_resource_ledger_missing" in blockers
     assert "candidate_lifecycle_contract_missing" in blockers
+    assert "context_conditioned_relation_store_missing" in blockers
+    assert report["observed_interfaces"]["context_conditioned_methods"] == {
+        "context_slot_operator_lookup": False,
+        "context_conditioned_prediction": False,
+    }
     assert report["ready_to_start_g2"] is False
     assert report["readiness_status"] == "BLOCKED_G2_NOT_STARTED"
 
