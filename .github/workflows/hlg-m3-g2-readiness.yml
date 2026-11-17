@@ -75,6 +75,10 @@ jobs:
           cache: pip
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - uses: actions/download-artifact@v4
+        with:
+          name: hlg-m3-g2-readiness-evidence
+          path: results/hlg_m3_g2_readiness
       - name: Confirm frozen G2 entry identity
         run: |
           python - <<'PY'
