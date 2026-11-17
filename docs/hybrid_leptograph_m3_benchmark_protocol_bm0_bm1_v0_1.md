@@ -27,11 +27,11 @@ The full confirmatory allocation is fixed in the manifest before benchmark outco
 
 The historical F6 design contains eight pilot worlds (four development-fit, two validation and two test), not eight separately specified world-family generators. BM-0 therefore preserves F6 as the `F6-INTEGRATED-SEQUENTIAL-v1` scenario template: seven shared phases (acquisition, distractor, context switch, relation-2 isolation, observation gap, reactivation and within-context drift), plus the held-out-composition phase in test only. The historical F6 seed-world records and their outputs remain unchanged as regression anchors; their seeds are retained as provenance and are not reused in the confirmatory campaign. BM-2 must define explicit factor-valued world configurations from this template; each configuration receives a separate configuration seed and five independent stream seeds.
 
-Do not run the full Cartesian product of every stress factor. It would be expensive and obscure which factor caused an effect. Use a structured design:
-- Each package first gets a one-factor-at-a-time core sweep with the same base stream definitions.
-- Predeclared pairwise interactions are context ambiguity × context capacity, source correlation × missingness, and drift family × observation noise.
-- The pilot uses a deliberately small diagnostic subset, fixed before execution.
-- The full 200-stream split allocation remains unchanged. Reducing the pilot does not reduce the confirmatory allocation.
+Do not run the full Cartesian product of every stress factor. Use two deliberately separate stages:
+- **Pilot sensitivity sweep:** the manifest predeclares 21 one-factor-at-a-time profiles: one baseline (rho 0, d-prime 4, K 4, missingness 1.0, outage 20, stationary drift, noise multiplier 1) plus every other level of one factor with all remaining factors held at baseline. These pilot streams are separately seeded and excluded from the 200 confirmatory streams.
+- **Confirmatory profile allocation:** each of the 40 world configurations receives a deterministic balanced partial-factorial profile. All factor levels appear within every split. The held-out test split covers all 12 context-separation × capacity combinations, all 15 source-correlation × independent-missingness combinations, and all 18 drift-family × noise combinations. Fit/validation interaction coverage is recorded but is not represented as complete.
+- Each pilot and confirmatory world configuration has separate world-configuration and replicate-stream seeds. A reduced pilot never reduces the 200-stream confirmatory allocation.
+- The confirmatory allocation is not itself a strict one-factor-at-a-time design: it supports balanced main-effect contrasts and the explicitly enumerated test-split pairwise interactions. The separate 21-profile pilot supplies pure one-factor-at-a-time sensitivity checks.
 
 Factor levels to carry into BM-2 and later packages:
 

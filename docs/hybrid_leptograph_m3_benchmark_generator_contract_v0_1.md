@@ -60,3 +60,18 @@ BM-2 must implement the F6-derived sequential generator from the manifest, prese
 - deterministic fixture output matches for equal seeds.
 
 No passing contract test is a scientific performance result.
+
+
+## 7. BM-2 generator semantics
+
+The generated stream preserves the seven common F6 phases in historical order; test split streams retain the additional historical F6 `heldout_composition` phase. A separate factorised burst-outage and reactivation segment is appended after those phases, so the historical phase definitions and original 20-step target gap remain intact.
+
+The REL-A-D extension is a sequential context/relation composition: each ordered primitive occupies its own context-conditioned segment. The learner receives only source vectors, observation masks and noisy context features. Primitive labels and composition IDs remain in evaluator records. This tests held-out ordered temporal compositions in the fixed topology; it does not define algebraic multiplication of the operators.
+
+For rho=1.0, the generated secondary source equals the primary source exactly. Lower correlations use a shared linear component plus an independent residual. Independent missingness is represented as null vectors plus false masks. The separate burst outage masks source, context and target observations for its declared contiguous length; evaluator truth remains available for scoring without entering TargetFeedback.
+
+The drift factor modifies only the additional F6 within-context drift phase: stationary, step, gradual, variance-only, transient or compound. The drift schedule is evaluator-only. Noise multiplier is applied separately; variance-only and compound cases make their added variance changes explicit in the evaluator schedule.
+
+The world-level context-bank capacity is learner-configuration metadata, not an extra input feature. The new generator does not train, score or select a learner. BM-2 pilot evidence is a deterministic generator/boundary smoke only.
+
+The inherited provisional F5 envelope remains a common cap, not a parity result. The pilot does not claim C0-C4 compliance; actual costs are audited in BM-4.
