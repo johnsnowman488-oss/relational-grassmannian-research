@@ -52,7 +52,7 @@ def test_g2_readiness_audit_fails_closed_on_missing_confirmatory_interfaces():
         "context_slot_operator_lookup": True,
         "context_conditioned_prediction": True,
     }
-    assert report["observed_interfaces"]["structural_preflight"]["resource_lower_bound"]["numeric_buffer_lower_bound_bytes"] == 416
+    assert report["observed_interfaces"]["structural_preflight"]["resource_lower_bound"]["numeric_buffer_lower_bound_bytes"] == 392
     assert report["observed_interfaces"]["structural_preflight"]["resource_lower_bound"]["persistent_state_cap_bytes"] == 512
     assert report["ready_to_start_g2"] is False
     assert report["readiness_status"] == "BLOCKED_G2_NOT_STARTED"
