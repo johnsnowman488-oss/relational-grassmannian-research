@@ -24,9 +24,10 @@ The implementation audit checks the frozen manifest identity, G1 allocation, mas
 The repository state at the canonical base has these substantive gaps:
 
 1. **No G2 confirmatory runner.** The current generator creates the 200 streams but explicitly does not execute scientific performance. The current refinement runner executes isolated deterministic probes, not six packages over the confirmatory allocation.
-2. **C0-C4 are not task predictors.** `MemoryArchitecture` implements memory writes, reads and resource counters. It exposes no target-prediction or target-scoring interface. It therefore cannot produce held-out primary-composition loss as the required matched comparator. A memory-only resource snapshot is not a predictive comparison.
-3. **No integrated candidate resource ledger.** Existing snapshots account for estimator sufficient statistics or a standalone C0-C4 control, not all persistent context, estimator, activation and revision state of the selected candidate.
-4. **The 32/32/64 lifecycle is not implemented over confirmatory streams.** The existing candidate revision primitive can accept or reject a supplied matrix, but the campaign-level chronological fit, validation and untouched post-promotion windows, 24-observed-row minimum and insufficient-evidence accounting are absent.
+2. **The learner has no context-conditioned relation store.** The new REL-A..REL-D episodes use distinct latent operators selected by evaluator-owned context identity. `ContextBank` stores context prototypes only; `MultiSourceRidge` exposes one shared source operator per source block. There is no accepted-context-to-operator lookup or context-conditioned prediction interface. The current learner therefore does not implement the generated relation task.
+3. **C0-C4 are not task predictors.** `MemoryArchitecture` implements memory writes, reads and resource counters. It exposes no target-prediction or target-scoring interface. It therefore cannot produce held-out primary-composition loss as the required matched comparator. A memory-only resource snapshot is not a predictive comparison.
+4. **No integrated candidate resource ledger.** Existing snapshots account for estimator sufficient statistics or a standalone C0-C4 control, not all persistent context, estimator, activation and revision state of the selected candidate.
+5. **The 32/32/64 lifecycle is not implemented over confirmatory streams.** The existing candidate revision primitive can accept or reject a supplied matrix, but the campaign-level chronological fit, validation and untouched post-promotion windows, 24-observed-row minimum and insufficient-evidence accounting are absent.
 
 The source-mask issue was addressed on this branch; it is no longer a blocker in the readiness audit.
 
