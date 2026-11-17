@@ -100,6 +100,46 @@ class MultiSourceRidge:
         self.prediction_count += 1
         return phi @ beta
 
+    def predict_context_conditioned(
+        self, sources, context, *, context_slot: int, context_bank,
+        source_gates=None,
+    ) -> np.ndarray:
+        """Predict using operators retrieved from an accepted learner context slot."""
+        overrides = context_bank.operator_for_slot(context_slot)
+        return self.predict(sources, context, source_gates=source_gates,
+                            operator_overrides=overrides)
+
+    def update_context_conditioned(
+        self, sources, context, target, *, context_slot: int, context_bank,
+        source_gates=None, rate: float = 0.1,
+    ) -> None:
+        """Update slot-specific source operators after target feedback is observed.
+
+        Each source is updated against the residual left after the other current
+        source contributions. Missing sources are skipped, never treated as
+        observed zeros. The shared estimator is also updated as the fallback
+        operator for uninitialised/new contexts.
+        """
+        phi = self._features(sources, context, source_gates)
+        y = np.asarray(target, dtype=float)
+        if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
+            raise ValueError("invalid target vector")
+        gates = dict(source_gates or {})
+        operators = context_bank.operator_for_slot(context_slot)
+        for key in sorted(self.source_dimensions):
+            gate = float(gates.get(key, 1.0))
+            if gate <= 0.0:
+                continue
+            x = np.asarray(sources[key], dtype=float)
+            current = operators.get(key, self.source_operator(key))
+            prediction = self.predict(sources, context, source_gates=source_gates,
+                                      operator_overrides=operators)
+            contribution = gate * (current @ x)
+            residual = y - (prediction - contribution)
+            context_bank.update_operator(context_slot, key, x, residual, rate=rate)
+            operators[key] = context_bank.operator_for_slot(context_slot)[key]
+        self.update(sources, context, y, source_gates=source_gates)
+
     def update(self, sources, context, target, *, source_gates=None) -> None:
         """Update from current observed inputs, with explicit per-source gates.
 
