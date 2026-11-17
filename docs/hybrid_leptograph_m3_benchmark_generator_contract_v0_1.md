@@ -34,7 +34,7 @@ The generator/evaluator can retain this record for scoring, but the learner-faci
 
 For each step:
 - begin_prediction accepts a LearnerObservation and issues a step-scoped PredictionTicket;
-- mark_prediction confirms the model has produced its prediction;
+- mark_prediction records the model's non-empty finite prediction vector for that ticket;
 - reveal_target accepts the matching ticket and evaluator record, then emits only TargetFeedback;
 - no next step begins until the current ticket has been resolved.
 
