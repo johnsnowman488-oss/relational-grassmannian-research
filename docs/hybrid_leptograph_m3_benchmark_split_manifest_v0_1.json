@@ -239,7 +239,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910000,
-      "world_id": "DEVELOPMENT_FIT-W01"
+      "world_id": "DEVELOPMENT_FIT-W01",
+      "factor_profile": {
+        "source_correlation": 0,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 20,
+        "drift_family": "stationary",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -258,7 +267,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910001,
-      "world_id": "DEVELOPMENT_FIT-W02"
+      "world_id": "DEVELOPMENT_FIT-W02",
+      "factor_profile": {
+        "source_correlation": 0.5,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 50,
+        "drift_family": "step",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -277,7 +295,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910002,
-      "world_id": "DEVELOPMENT_FIT-W03"
+      "world_id": "DEVELOPMENT_FIT-W03",
+      "factor_profile": {
+        "source_correlation": 0.9,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 100,
+        "drift_family": "gradual",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -296,7 +323,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910003,
-      "world_id": "DEVELOPMENT_FIT-W04"
+      "world_id": "DEVELOPMENT_FIT-W04",
+      "factor_profile": {
+        "source_correlation": 0.99,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 20,
+        "drift_family": "variance_only",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -315,7 +351,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910004,
-      "world_id": "DEVELOPMENT_FIT-W05"
+      "world_id": "DEVELOPMENT_FIT-W05",
+      "factor_profile": {
+        "source_correlation": 1,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 50,
+        "drift_family": "transient",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -334,7 +379,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910005,
-      "world_id": "DEVELOPMENT_FIT-W06"
+      "world_id": "DEVELOPMENT_FIT-W06",
+      "factor_profile": {
+        "source_correlation": 0,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 100,
+        "drift_family": "compound",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -353,7 +407,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910006,
-      "world_id": "DEVELOPMENT_FIT-W07"
+      "world_id": "DEVELOPMENT_FIT-W07",
+      "factor_profile": {
+        "source_correlation": 0.5,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 20,
+        "drift_family": "stationary",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -372,7 +435,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910007,
-      "world_id": "DEVELOPMENT_FIT-W08"
+      "world_id": "DEVELOPMENT_FIT-W08",
+      "factor_profile": {
+        "source_correlation": 0.9,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 50,
+        "drift_family": "step",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -391,7 +463,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910008,
-      "world_id": "DEVELOPMENT_FIT-W09"
+      "world_id": "DEVELOPMENT_FIT-W09",
+      "factor_profile": {
+        "source_correlation": 0.99,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 8,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 100,
+        "drift_family": "gradual",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -410,7 +491,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910009,
-      "world_id": "DEVELOPMENT_FIT-W10"
+      "world_id": "DEVELOPMENT_FIT-W10",
+      "factor_profile": {
+        "source_correlation": 1,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 8,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 20,
+        "drift_family": "variance_only",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -429,7 +519,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910010,
-      "world_id": "DEVELOPMENT_FIT-W11"
+      "world_id": "DEVELOPMENT_FIT-W11",
+      "factor_profile": {
+        "source_correlation": 0,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 8,
+        "independent_observation_probability": 0.8,
+        "burst_outage_steps": 50,
+        "drift_family": "transient",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -448,7 +547,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_fit",
       "world_configuration_seed": 910011,
-      "world_id": "DEVELOPMENT_FIT-W12"
+      "world_id": "DEVELOPMENT_FIT-W12",
+      "factor_profile": {
+        "source_correlation": 0.5,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 8,
+        "independent_observation_probability": 0.8,
+        "burst_outage_steps": 100,
+        "drift_family": "compound",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -465,7 +573,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_validation",
       "world_configuration_seed": 910012,
-      "world_id": "DEVELOPMENT_VALIDATION-W01"
+      "world_id": "DEVELOPMENT_VALIDATION-W01",
+      "factor_profile": {
+        "source_correlation": 0,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 20,
+        "drift_family": "stationary",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -482,7 +599,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_validation",
       "world_configuration_seed": 910013,
-      "world_id": "DEVELOPMENT_VALIDATION-W02"
+      "world_id": "DEVELOPMENT_VALIDATION-W02",
+      "factor_profile": {
+        "source_correlation": 0.5,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 50,
+        "drift_family": "step",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -499,7 +625,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_validation",
       "world_configuration_seed": 910014,
-      "world_id": "DEVELOPMENT_VALIDATION-W03"
+      "world_id": "DEVELOPMENT_VALIDATION-W03",
+      "factor_profile": {
+        "source_correlation": 0.9,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 100,
+        "drift_family": "gradual",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -516,7 +651,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_validation",
       "world_configuration_seed": 910015,
-      "world_id": "DEVELOPMENT_VALIDATION-W04"
+      "world_id": "DEVELOPMENT_VALIDATION-W04",
+      "factor_profile": {
+        "source_correlation": 0.99,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 20,
+        "drift_family": "variance_only",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -533,7 +677,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_validation",
       "world_configuration_seed": 910016,
-      "world_id": "DEVELOPMENT_VALIDATION-W05"
+      "world_id": "DEVELOPMENT_VALIDATION-W05",
+      "factor_profile": {
+        "source_correlation": 1,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 50,
+        "drift_family": "transient",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -550,7 +703,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_validation",
       "world_configuration_seed": 910017,
-      "world_id": "DEVELOPMENT_VALIDATION-W06"
+      "world_id": "DEVELOPMENT_VALIDATION-W06",
+      "factor_profile": {
+        "source_correlation": 0,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 100,
+        "drift_family": "compound",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -567,7 +729,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_validation",
       "world_configuration_seed": 910018,
-      "world_id": "DEVELOPMENT_VALIDATION-W07"
+      "world_id": "DEVELOPMENT_VALIDATION-W07",
+      "factor_profile": {
+        "source_correlation": 0.5,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 20,
+        "drift_family": "stationary",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -584,7 +755,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "development_validation",
       "world_configuration_seed": 910019,
-      "world_id": "DEVELOPMENT_VALIDATION-W08"
+      "world_id": "DEVELOPMENT_VALIDATION-W08",
+      "factor_profile": {
+        "source_correlation": 0.9,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 50,
+        "drift_family": "step",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -607,7 +787,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910020,
-      "world_id": "TEST-W01"
+      "world_id": "TEST-W01",
+      "factor_profile": {
+        "source_correlation": 0,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 20,
+        "drift_family": "stationary",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -630,7 +819,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910021,
-      "world_id": "TEST-W02"
+      "world_id": "TEST-W02",
+      "factor_profile": {
+        "source_correlation": 0.5,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 50,
+        "drift_family": "step",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -653,7 +851,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910022,
-      "world_id": "TEST-W03"
+      "world_id": "TEST-W03",
+      "factor_profile": {
+        "source_correlation": 0.9,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 100,
+        "drift_family": "gradual",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -676,7 +883,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910023,
-      "world_id": "TEST-W04"
+      "world_id": "TEST-W04",
+      "factor_profile": {
+        "source_correlation": 0.99,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 20,
+        "drift_family": "variance_only",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -699,7 +915,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910024,
-      "world_id": "TEST-W05"
+      "world_id": "TEST-W05",
+      "factor_profile": {
+        "source_correlation": 1,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 50,
+        "drift_family": "transient",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -722,7 +947,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910025,
-      "world_id": "TEST-W06"
+      "world_id": "TEST-W06",
+      "factor_profile": {
+        "source_correlation": 0,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 100,
+        "drift_family": "compound",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -745,7 +979,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910026,
-      "world_id": "TEST-W07"
+      "world_id": "TEST-W07",
+      "factor_profile": {
+        "source_correlation": 0.5,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 20,
+        "drift_family": "stationary",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -768,7 +1011,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910027,
-      "world_id": "TEST-W08"
+      "world_id": "TEST-W08",
+      "factor_profile": {
+        "source_correlation": 0.9,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 50,
+        "drift_family": "step",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -791,7 +1043,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910028,
-      "world_id": "TEST-W09"
+      "world_id": "TEST-W09",
+      "factor_profile": {
+        "source_correlation": 0.99,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 8,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 100,
+        "drift_family": "gradual",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -814,7 +1075,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910029,
-      "world_id": "TEST-W10"
+      "world_id": "TEST-W10",
+      "factor_profile": {
+        "source_correlation": 1,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 8,
+        "independent_observation_probability": 0.95,
+        "burst_outage_steps": 20,
+        "drift_family": "variance_only",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -837,7 +1107,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910030,
-      "world_id": "TEST-W11"
+      "world_id": "TEST-W11",
+      "factor_profile": {
+        "source_correlation": 0,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 8,
+        "independent_observation_probability": 0.8,
+        "burst_outage_steps": 50,
+        "drift_family": "transient",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -860,7 +1139,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910031,
-      "world_id": "TEST-W12"
+      "world_id": "TEST-W12",
+      "factor_profile": {
+        "source_correlation": 0.5,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 8,
+        "independent_observation_probability": 0.8,
+        "burst_outage_steps": 100,
+        "drift_family": "compound",
+        "observation_noise_multiplier": 2
+      }
     },
     {
       "composition_ids": [
@@ -883,7 +1171,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910032,
-      "world_id": "TEST-W13"
+      "world_id": "TEST-W13",
+      "factor_profile": {
+        "source_correlation": 0.9,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 0.8,
+        "burst_outage_steps": 20,
+        "drift_family": "stationary",
+        "observation_noise_multiplier": 4
+      }
     },
     {
       "composition_ids": [
@@ -906,7 +1203,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910033,
-      "world_id": "TEST-W14"
+      "world_id": "TEST-W14",
+      "factor_profile": {
+        "source_correlation": 0.99,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 0.8,
+        "burst_outage_steps": 50,
+        "drift_family": "step",
+        "observation_noise_multiplier": 4
+      }
     },
     {
       "composition_ids": [
@@ -929,7 +1235,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910034,
-      "world_id": "TEST-W15"
+      "world_id": "TEST-W15",
+      "factor_profile": {
+        "source_correlation": 1,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 0.8,
+        "burst_outage_steps": 100,
+        "drift_family": "gradual",
+        "observation_noise_multiplier": 4
+      }
     },
     {
       "composition_ids": [
@@ -952,7 +1267,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910035,
-      "world_id": "TEST-W16"
+      "world_id": "TEST-W16",
+      "factor_profile": {
+        "source_correlation": 0,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 2,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 20,
+        "drift_family": "variance_only",
+        "observation_noise_multiplier": 4
+      }
     },
     {
       "composition_ids": [
@@ -975,7 +1299,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910036,
-      "world_id": "TEST-W17"
+      "world_id": "TEST-W17",
+      "factor_profile": {
+        "source_correlation": 0.5,
+        "context_separation_dprime": 4,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 50,
+        "drift_family": "transient",
+        "observation_noise_multiplier": 4
+      }
     },
     {
       "composition_ids": [
@@ -998,7 +1331,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910037,
-      "world_id": "TEST-W18"
+      "world_id": "TEST-W18",
+      "factor_profile": {
+        "source_correlation": 0.9,
+        "context_separation_dprime": 2,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 100,
+        "drift_family": "compound",
+        "observation_noise_multiplier": 4
+      }
     },
     {
       "composition_ids": [
@@ -1021,7 +1363,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910038,
-      "world_id": "TEST-W19"
+      "world_id": "TEST-W19",
+      "factor_profile": {
+        "source_correlation": 0.99,
+        "context_separation_dprime": 1,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 20,
+        "drift_family": "stationary",
+        "observation_noise_multiplier": 1
+      }
     },
     {
       "composition_ids": [
@@ -1044,7 +1395,16 @@
       "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
       "split": "test",
       "world_configuration_seed": 910039,
-      "world_id": "TEST-W20"
+      "world_id": "TEST-W20",
+      "factor_profile": {
+        "source_correlation": 1,
+        "context_separation_dprime": 0.5,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 1,
+        "burst_outage_steps": 50,
+        "drift_family": "step",
+        "observation_noise_multiplier": 1
+      }
     }
   ],
   "resource_envelope": {
@@ -1058,5 +1418,397 @@
     "C0_role": "zero-persistent-memory-reference-floor-not-equal-used-memory",
     "comparison_policy": "common-hard-ceilings-with-actual-use-and-measured-pareto-frontiers",
     "status": "provisional_F5_ceiling_to_be_audited_on_actual_C0_C4_implementations_in_BM4"
+  },
+  "factor_design": {
+    "method": "deterministic_balanced_partial_factorial_with_separate_ofat_pilot",
+    "factor_levels": {
+      "source_correlation": [
+        0,
+        0.5,
+        0.9,
+        0.99,
+        1
+      ],
+      "context_separation_dprime": [
+        4,
+        2,
+        1,
+        0.5
+      ],
+      "context_bank_capacity": [
+        2,
+        4,
+        8
+      ],
+      "independent_observation_probability": [
+        1,
+        0.95,
+        0.8
+      ],
+      "burst_outage_steps": [
+        20,
+        50,
+        100
+      ],
+      "drift_family": [
+        "stationary",
+        "step",
+        "gradual",
+        "variance_only",
+        "transient",
+        "compound"
+      ],
+      "observation_noise_multiplier": [
+        1,
+        2,
+        4
+      ]
+    },
+    "world_profile_assignment": {
+      "source_correlation": "correlation_levels[split_local_index % 5]",
+      "independent_observation_probability": "missingness_levels[(split_local_index // 5) % 3]",
+      "context_separation_dprime": "context_levels[split_local_index % 4]",
+      "context_bank_capacity": "capacity_levels[(split_local_index // 4) % 3]",
+      "drift_family": "drift_levels[split_local_index % 6]",
+      "observation_noise_multiplier": "noise_levels[(split_local_index // 6) % 3]",
+      "burst_outage_steps": "outage_levels[split_local_index % 3]"
+    },
+    "predeclared_pairwise_interactions": [
+      [
+        "context_separation_dprime",
+        "context_bank_capacity"
+      ],
+      [
+        "source_correlation",
+        "independent_observation_probability"
+      ],
+      [
+        "drift_family",
+        "observation_noise_multiplier"
+      ]
+    ],
+    "pairwise_coverage_policy": {
+      "test_split": "all combinations covered for context separation x capacity and drift x noise; 15 of 15 combinations covered for source correlation x missingness",
+      "development_splits": "main-effect levels covered; interaction coverage is descriptive and not represented as complete"
+    },
+    "one_factor_pilot_profiles": [
+      {
+        "pilot_id": "PILOT-BASELINE",
+        "varied_factor": "baseline",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980000,
+        "replicate_seed": 970000
+      },
+      {
+        "pilot_id": "PILOT-SOURCE_CORRELATION-01",
+        "varied_factor": "source_correlation",
+        "profile": {
+          "source_correlation": 0.5,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980001,
+        "replicate_seed": 970001
+      },
+      {
+        "pilot_id": "PILOT-SOURCE_CORRELATION-02",
+        "varied_factor": "source_correlation",
+        "profile": {
+          "source_correlation": 0.9,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980002,
+        "replicate_seed": 970002
+      },
+      {
+        "pilot_id": "PILOT-SOURCE_CORRELATION-03",
+        "varied_factor": "source_correlation",
+        "profile": {
+          "source_correlation": 0.99,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980003,
+        "replicate_seed": 970003
+      },
+      {
+        "pilot_id": "PILOT-SOURCE_CORRELATION-04",
+        "varied_factor": "source_correlation",
+        "profile": {
+          "source_correlation": 1,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980004,
+        "replicate_seed": 970004
+      },
+      {
+        "pilot_id": "PILOT-CONTEXT_SEPARATION_DPRIME-05",
+        "varied_factor": "context_separation_dprime",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 2,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980005,
+        "replicate_seed": 970005
+      },
+      {
+        "pilot_id": "PILOT-CONTEXT_SEPARATION_DPRIME-06",
+        "varied_factor": "context_separation_dprime",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 1,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980006,
+        "replicate_seed": 970006
+      },
+      {
+        "pilot_id": "PILOT-CONTEXT_SEPARATION_DPRIME-07",
+        "varied_factor": "context_separation_dprime",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 0.5,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980007,
+        "replicate_seed": 970007
+      },
+      {
+        "pilot_id": "PILOT-CONTEXT_BANK_CAPACITY-08",
+        "varied_factor": "context_bank_capacity",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 2,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980008,
+        "replicate_seed": 970008
+      },
+      {
+        "pilot_id": "PILOT-CONTEXT_BANK_CAPACITY-09",
+        "varied_factor": "context_bank_capacity",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 8,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980009,
+        "replicate_seed": 970009
+      },
+      {
+        "pilot_id": "PILOT-INDEPENDENT_OBSERVATION_PROBABILITY-10",
+        "varied_factor": "independent_observation_probability",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 0.95,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980010,
+        "replicate_seed": 970010
+      },
+      {
+        "pilot_id": "PILOT-INDEPENDENT_OBSERVATION_PROBABILITY-11",
+        "varied_factor": "independent_observation_probability",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 0.8,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980011,
+        "replicate_seed": 970011
+      },
+      {
+        "pilot_id": "PILOT-BURST_OUTAGE_STEPS-12",
+        "varied_factor": "burst_outage_steps",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 50,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980012,
+        "replicate_seed": 970012
+      },
+      {
+        "pilot_id": "PILOT-BURST_OUTAGE_STEPS-13",
+        "varied_factor": "burst_outage_steps",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 100,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980013,
+        "replicate_seed": 970013
+      },
+      {
+        "pilot_id": "PILOT-DRIFT_FAMILY-14",
+        "varied_factor": "drift_family",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "step",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980014,
+        "replicate_seed": 970014
+      },
+      {
+        "pilot_id": "PILOT-DRIFT_FAMILY-15",
+        "varied_factor": "drift_family",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "gradual",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980015,
+        "replicate_seed": 970015
+      },
+      {
+        "pilot_id": "PILOT-DRIFT_FAMILY-16",
+        "varied_factor": "drift_family",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "variance_only",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980016,
+        "replicate_seed": 970016
+      },
+      {
+        "pilot_id": "PILOT-DRIFT_FAMILY-17",
+        "varied_factor": "drift_family",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "transient",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980017,
+        "replicate_seed": 970017
+      },
+      {
+        "pilot_id": "PILOT-DRIFT_FAMILY-18",
+        "varied_factor": "drift_family",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "compound",
+          "observation_noise_multiplier": 1
+        },
+        "world_configuration_seed": 980018,
+        "replicate_seed": 970018
+      },
+      {
+        "pilot_id": "PILOT-OBSERVATION_NOISE_MULTIPLIER-19",
+        "varied_factor": "observation_noise_multiplier",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 2
+        },
+        "world_configuration_seed": 980019,
+        "replicate_seed": 970019
+      },
+      {
+        "pilot_id": "PILOT-OBSERVATION_NOISE_MULTIPLIER-20",
+        "varied_factor": "observation_noise_multiplier",
+        "profile": {
+          "source_correlation": 0,
+          "context_separation_dprime": 4,
+          "context_bank_capacity": 4,
+          "independent_observation_probability": 1,
+          "burst_outage_steps": 20,
+          "drift_family": "stationary",
+          "observation_noise_multiplier": 4
+        },
+        "world_configuration_seed": 980020,
+        "replicate_seed": 970020
+      }
+    ],
+    "pilot_is_separate_from_confirmatory_streams": true,
+    "full_cartesian_product_run": false
   }
 }
