@@ -156,6 +156,8 @@ class ContextBank:
         residual_target: Sequence[float], *, rate: float = 0.1,
     ) -> None:
         """Apply a bounded online least-mean-squares update to one context relation."""
+        if not source_id or not any(slot.slot_id == slot_id for slot in self.slots):
+            raise KeyError(slot_id)
         x = np.asarray(source, dtype=float)
         y = np.asarray(residual_target, dtype=float)
         if x.ndim != 1 or y.ndim != 1 or not x.size or not y.size:
