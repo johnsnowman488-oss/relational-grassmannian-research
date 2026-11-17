@@ -153,7 +153,10 @@
       "latent_relation_operators",
       "change_schedule",
       "future_observations",
-      "target"
+      "target",
+      "target_truth",
+      "phase_id",
+      "composition_id"
     ],
     "evaluator_record_type": "EvaluatorRecord",
     "learner_observation_type": "LearnerObservation",
