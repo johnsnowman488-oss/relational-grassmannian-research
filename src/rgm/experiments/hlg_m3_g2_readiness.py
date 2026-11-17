@@ -137,9 +137,11 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
             ),
         })
 
+    from rgm.leptograph.m3.resource import integrated_resource_snapshot
     resource_method = hasattr(MultiSourceRidge, "resource_snapshot")
     control_resource_method = hasattr(MemoryArchitecture, "resource_snapshot")
-    if not (resource_method and control_resource_method):
+    integrated_resource_method = callable(integrated_resource_snapshot)
+    if not (resource_method and control_resource_method and integrated_resource_method):
         blockers.append({
             "id": "resource_instrumentation_missing",
             "detail": "One or more existing model/control resource snapshots are absent.",
@@ -147,11 +149,7 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
     else:
         blockers.append({
             "id": "integrated_candidate_resource_ledger_missing",
-            "detail": (
-                "Current resource snapshots account for estimator statistics or "
-                "individual C0-C4 controls, not the complete persistent state of "
-                "the integrated context/estimator/evidence/revision candidate."
-            ),
+            "detail": "Integrated candidate resource accounting is unavailable.",
         })
 
     candidate_lifecycle_api_available = (
@@ -221,6 +219,7 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
             "integrated_resource_snapshots_available": {
                 "multi_source_ridge": resource_method,
                 "memory_architecture": control_resource_method,
+                "integrated_candidate_ledger": integrated_resource_method,
             },
             "g2_runner_present": (root / G2_RUNNER_RELATIVE_PATH).is_file(),
             "candidate_lifecycle_api_available": candidate_lifecycle_api_available,
