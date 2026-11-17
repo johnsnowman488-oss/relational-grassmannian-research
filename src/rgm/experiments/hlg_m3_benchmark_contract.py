@@ -99,7 +99,13 @@ def factor_profile_for_world(split: str, local_index: int) -> dict:
 def build_one_factor_pilot_profiles() -> list[dict]:
     """Baseline plus every non-baseline level of one factor at a time."""
     baseline = {
-        key: values[0] for key, values in FACTOR_LEVELS.items()
+        "source_correlation": 0.0,
+        "context_separation_dprime": 4.0,
+        "context_bank_capacity": 4,
+        "independent_observation_probability": 1.0,
+        "burst_outage_steps": 20,
+        "drift_family": "stationary",
+        "observation_noise_multiplier": 1.0,
     }
     profiles = [{
         "pilot_id": "PILOT-BASELINE",
