@@ -17,7 +17,6 @@ on:
       - "results/e01_b/**"
       - "results/e01_c/**"
       - "results/e02/**"
-      - ".github/workflows/e-series-validation.yml"
   pull_request:
     branches: [main]
     paths:
