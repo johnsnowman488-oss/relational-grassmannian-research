@@ -87,9 +87,9 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
             "id": "context_capacity_admission_policy_required",
             "detail": (
                 "The declared K=2 and K=4 settings cannot retain one slot for all six generated "
-                "context prototypes in the current non-evicting ContextBank. This is a design "
-                "pressure, not proof that all six must be stored simultaneously; the learner's "
-                "label-blind admission/reuse policy must be specified and tested."
+                "context prototypes simultaneously. The learner now supports an explicit "
+                "label-blind nearest-slot reuse policy; G2 must freeze that policy and report "
+                "its effect on context routing and relation prediction."
             ),
         })
 
