@@ -1,6 +1,6 @@
 # HLG-M3 G2 implementation readiness — v0.2
 
-**Status:** implementation audit v0.3; G2 has not started. The implementation work is actively closing the original blockers.  
+**Status:** implementation audit v0.5; G2 has not started. The implementation work is actively closing the original blockers.  
 **Canonical base at audit:** `e00ddca0df6f2de11d6113e994475ccce02842c1`.  
 **G1:** accepted by workflow run [44111641084](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44111641084).  
 **Frozen manifest SHA-256:** `8548f2a72de09a81f79a57a19b3cd8196dbeae185db9432619e6ac5cc2f49101`.
@@ -38,16 +38,17 @@ A new machine-readable preflight now measures the current implementation's minim
 
 | Component | Numeric bytes |
 |---|---:|
-| Packed symmetric MultiSourceRidge Gram and cross sufficient statistics | 336 |
+| Packed symmetric fallback estimator statistics (context dimension 0) | 200 |
 | 2-D context metric | 32 |
-| One ContextSlot mean and scatter | 48 |
-| **Numeric-buffer subtotal** | **416** |
+| Six context centroids (scatter omitted) | 96 |
+| Candidate lifecycle fit Gram/cross statistics | 64 |
+| **Measured numeric-buffer subtotal** | **392** |
 | Frozen persistent-state ceiling | **512** |
-| **Remaining headroom before other candidate state** | **96** |
+| **Remaining headroom for other persistent state** | **120** |
 
-The estimator now stores only the upper triangle of its symmetric Gram matrix and reconstructs the dense matrix transiently for solves and identifiability calculations. This preserves the mathematical sufficient statistics while reducing their persistent numeric storage from 504 to 336 bytes for the declared dimensions. The 416-byte subtotal is not a complete candidate ledger: it excludes additional context slots and novelty buffers, activation/evidence, detector state, candidate lifecycle/revision state and ordinary metadata. The compact estimator therefore removes the previous immediate 72-byte overrun, but integrated resource accounting remains required. The frozen 512-byte ceiling is unchanged.
+The estimator now stores only the upper triangle of its symmetric Gram matrix and reconstructs the dense matrix transiently for solves and identifiability calculations. The G2 context path uses a context-free shared fallback estimator (source blocks plus intercept) and a compact centroid-only context bank. Six centroids and the context metric consume 128 bytes; the packed fallback estimator consumes 200 bytes; the candidate lifecycle fit Gram/cross buffers consume 64 bytes. The subtotal is 392 bytes, leaving 120 bytes for detector, activation, candidate decision and other persistent numeric state. Context-specific relation operators are counted as trainable parameters, not state: six contexts × two sources × 2×2 operators = 48 parameters (384 bytes), well below the 4096-parameter cap. This is a bounded-state design path, not yet a complete integrated resource proof; the runner must measure actual peak simultaneous state and update/query compute. The frozen ceilings are unchanged.
 
-The generator emits six distinct context prototypes: F6-CONTEXT-A/B and REL-A/B/C/D. The declared context-capacity sweep is K=2, 4, 8. The current ContextBank supports an explicit label-blind `nearest_reuse` policy when full, while retaining abstention as the default. This lets K=2 and K=4 continue operating without evaluator labels or hidden identity-based eviction. The confirmatory runner must select the declared policy before outcomes and report reuse/abstention behaviour.
+The generator emits six distinct context prototypes: F6-CONTEXT-A/B and REL-A/B/C/D. The declared context-capacity sweep is K=2, 4, 8. The current ContextBank supports an explicit label-blind `nearest_reuse` policy when full, while retaining abstention as the default. For G2, centroid-only storage avoids per-slot covariance matrices; nearest-slot reuse keeps the active context state bounded at K=2, 4 or 8. Context-specific operators are separately counted as trainable parameters. The confirmatory runner must select the policy before outcomes and report reuse/abstention behaviour.
 
 The diagnostic is exposed as `src/rgm/experiments/hlg_m3_g2_structural_preflight.py` and is included in the readiness artifact. Its tests assert the 416-byte compact numeric-buffer subtotal and report the capacity issue without assuming that all six context slots are mandatory at once.
 
@@ -70,4 +71,4 @@ G2 remains untriggered until the blockers above are closed and the confirmatory 
 
 The frozen 5% effects, paired 95% world-clustered interval and 15/20 held-out-world consistency requirements are unchanged. No test-driven tuning or protocol relaxation is allowed.
 
-**Decision at v0.4:** G1 accepted; packed symmetric sufficient statistics reduce the measured estimator-plus-minimum-context numeric subtotal to 416 bytes, leaving 96 bytes before omitted candidate state. Context-conditioned operator storage and C0-C4 task prediction interfaces now exist, but integrated resource accounting, lifecycle/stream integration, full runner and campaign execution remain outstanding. G2 is not started. No M3 scientific result is claimed.
+**Decision at v0.5:** G1 accepted; the compact context-free fallback estimator, six centroid-only context slots and candidate fit statistics use 392 bytes in the structural preflight, leaving 120 bytes for remaining persistent numeric state. Context-conditioned operator storage and C0-C4 task prediction interfaces exist. The full peak-state/compute ledger, integrated lifecycle and stream runner, and campaign execution remain outstanding. G2 is not started. No M3 scientific result is claimed.
