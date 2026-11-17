@@ -662,8 +662,15 @@ def generate_confirmatory_acceptance(manifest: Mapping[str, Any]) -> dict[str, A
 
 
 def validate_manifest_and_generate_acceptance(manifest_path: Path) -> dict[str, Any]:
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    return generate_confirmatory_acceptance(manifest)
+    raw = manifest_path.read_bytes()
+    manifest = json.loads(raw.decode("utf-8"))
+    evidence = generate_confirmatory_acceptance(manifest)
+    evidence["manifest_sha256"] = hashlib.sha256(raw).hexdigest()
+    unsigned = dict(evidence)
+    unsigned.pop("acceptance_evidence_sha256", None)
+    canonical = json.dumps(unsigned, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    evidence["acceptance_evidence_sha256"] = hashlib.sha256(canonical).hexdigest()
+    return evidence
 
 
 def validate_manifest_and_generate_pilot(manifest_path: Path) -> dict[str, Any]:
