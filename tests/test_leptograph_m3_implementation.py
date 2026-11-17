@@ -121,7 +121,7 @@ def test_c0_c4_controls_are_distinct_and_measure_real_resources():
     assert systems[0].persistent_bytes == 0
     assert systems[3].persistent_state_bytes == 64 * 8
     assert systems[4].persistent_state_bytes == 64 * 8
-    assert systems[4].trainable_parameter_count == 256
+    assert systems[4].trainable_parameter_count == 264
     assert systems[4].update_multiply_adds > 0 and systems[4].query_multiply_adds > 0
 
 
@@ -140,3 +140,33 @@ def test_each_independent_work_package_emits_valid_execution_record(package_id):
     assert result["campaign_id"] == "HLG-M3-IMPLEMENTATION-v0.1"
     assert result["package_id"] == package_id
     assert result["execution_passed"] is True
+
+
+def test_c0_c4_expose_common_prequential_target_prediction_api():
+    systems = [MemoryArchitecture(k, 2, 2, 64, target_dimension=2)
+               for k in ("C0", "C1", "C2", "C3", "C4")]
+    for system in systems:
+        system.update_mode(np.array([0.2, -0.1]))
+        system.update_relation(np.array([0.1, 0.3]))
+        before = system.predict()
+        assert before.shape == (2,)
+        loss = system.score_target(np.array([0.5, -0.25]))
+        assert np.isfinite(loss)
+        system.update_target(np.array([0.5, -0.25]))
+        after = system.predict()
+        assert after.shape == (2,)
+        if system.name == "C0":
+            assert np.array_equal(before, after)
+        else:
+            assert np.linalg.norm(after - before) > 0.0
+        snapshot = system.resource_snapshot()
+        assert snapshot["task_readout_parameters"] == system.task_readout.size
+        assert snapshot["persistent_bytes_total"] == system.persistent_bytes
+
+
+def test_control_task_prediction_rejects_invalid_target():
+    system = MemoryArchitecture("C3", 2, 2, 64)
+    with pytest.raises(ValueError):
+        system.update_target(np.array([1.0]))
+    with pytest.raises(ValueError):
+        system.score_target(np.array([np.nan, 0.0]))
