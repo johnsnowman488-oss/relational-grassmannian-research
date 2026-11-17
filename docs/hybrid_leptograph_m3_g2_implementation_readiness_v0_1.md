@@ -1,6 +1,6 @@
-# HLG-M3 G2 implementation readiness — v0.1
+# HLG-M3 G2 implementation readiness — v0.2
 
-**Status:** implementation audit; G2 has not started.  
+**Status:** implementation audit v0.2; G2 has not started.  
 **Canonical base at audit:** `e00ddca0df6f2de11d6113e994475ccce02842c1`.  
 **G1:** accepted by workflow run [44111641084](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44111641084).  
 **Frozen manifest SHA-256:** `8548f2a72de09a81f79a57a19b3cd8196dbeae185db9432619e6ac5cc2f49101`.
@@ -31,6 +31,26 @@ The repository state at the canonical base has these substantive gaps:
 
 The source-mask issue and the isolated candidate-lifecycle core have been addressed on this branch. Their confirmatory campaign integration remains open.
 
+
+## 3A. Structural feasibility findings added in v0.2
+
+A new machine-readable preflight now measures the current implementation's minimum numeric-buffer footprint using the declared 2-D primary and secondary sources, 2-D context and 2-D target:
+
+| Component | Numeric bytes |
+|---|---:|
+| MultiSourceRidge Gram and cross sufficient statistics | 504 |
+| 2-D context metric | 32 |
+| One ContextSlot mean and scatter | 48 |
+| **Lower bound** | **584** |
+| Frozen persistent-state ceiling | **512** |
+| **Excess before other candidate state** | **72** |
+
+This is a measured lower bound, not a complete resource ledger. It excludes additional context slots and novelty buffers, activation/evidence, detector state, candidate lifecycle/revision state and ordinary metadata. The existing implementation therefore cannot meet the frozen state ceiling by merely adding a ledger; the candidate representation must be redesigned to fit, or the user must explicitly approve a budget amendment before G2. The accepted ceiling is not silently relaxed.
+
+The generator emits six distinct context prototypes: F6-CONTEXT-A/B and REL-A/B/C/D. The declared context-capacity sweep is K=2, 4, 8. The current ContextBank is non-evicting, so K=2 and K=4 cannot retain one distinct slot for all six prototypes. This is recorded as a design-pressure warning rather than an automatic blocker: a learner could use a label-blind admission/reuse policy, but no such policy is currently implemented or validated. It must not consult evaluator-only context labels.
+
+The diagnostic is exposed as `src/rgm/experiments/hlg_m3_g2_structural_preflight.py` and is included in the readiness artifact. Its tests assert the measured 584-byte lower bound and report the capacity issue without assuming that all six context slots are mandatory at once.
+
 ## 4. Interpretation constraint
 
 The generator describes each declared ordered composition as a sequence of context-conditioned primitive episodes; it explicitly says this is not an algebraic product of operators. G2 must report held-out ordered-sequence performance under that operational definition. It must not claim algebraic relation-composition generalisation.
@@ -50,4 +70,4 @@ G2 remains untriggered until the blockers above are closed and the confirmatory 
 
 The frozen 5% effects, paired 95% world-clustered interval and 15/20 held-out-world consistency requirements are unchanged. No test-driven tuning or protocol relaxation is allowed.
 
-**Decision at v0.1:** G1 accepted; G2 implementation incomplete; G2 not started; no M3 scientific result is claimed.
+**Decision at v0.2:** G1 accepted; structural preflight identifies a 584-byte minimum numeric-buffer footprint against the frozen 512-byte cap; G2 implementation remains incomplete and G2 is not started. No M3 scientific result is claimed.
