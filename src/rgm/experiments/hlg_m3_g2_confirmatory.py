@@ -104,7 +104,9 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
     alarm_steps = []
     source_observed_total = {"primary": 0, "secondary": 0}
     target_observed_total = 0
-    candidate_primary = None
+    baseline_losses = []
+    baseline_mean = None
+    baseline_scale = None
 
     for observation, evaluator in zip(stream["learner_observations"], stream["evaluator_records"]):
         # Route only on the current observed context. No evaluator context ID is read.
@@ -190,8 +192,21 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
                     context_score=context_score,
                     context_slot=slot_id,
                 )
-            detector_score = loss / (1.0 + loss)
-            alarm = detector.update(detector_score)
+            # Freeze a per-stream acquisition baseline, then feed the CUSUM
+            # a standardized prequential loss innovation. The detector's
+            # allowance/threshold remain the frozen 0.25/5.0 settings.
+            if evaluator.phase_id == "acquisition":
+                baseline_losses.append(loss)
+                alarm = False
+            else:
+                if baseline_mean is None:
+                    baseline_mean = float(np.mean(baseline_losses)) if baseline_losses else 0.0
+                    baseline_scale = max(
+                        float(np.std(baseline_losses, ddof=1)) if len(baseline_losses) > 1 else 0.0,
+                        0.1 * baseline_mean, 0.01,
+                    )
+                detector_score = (loss - baseline_mean) / baseline_scale
+                alarm = detector.update(float(detector_score))
             if alarm:
                 alarm_steps.append(observation.step_index)
                 if lifecycle is None:
@@ -399,11 +414,19 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
             "max_observed_or_declared_query_multiply_adds",
         )
     }
+    control_compute_pass = all(
+        max(row["control_resources"][name]["update_multiply_adds_per_observed_update_upper_bound"] for row in test_rows)
+            <= RESOURCE_CAPS["update_multiply_adds"]
+        and max(row["control_resources"][name]["query_multiply_adds_per_prediction_upper_bound"] for row in test_rows)
+            <= RESOURCE_CAPS["query_multiply_adds"]
+        for name in COMPARATOR_NAMES
+    )
     resource_pass = all((
         resource_max["persistent_state_bytes"] <= RESOURCE_CAPS["persistent_state_bytes"],
         resource_max["trainable_parameter_count"] <= RESOURCE_CAPS["trainable_parameter_count"],
         resource_max["max_observed_or_declared_update_multiply_adds"] <= RESOURCE_CAPS["update_multiply_adds"],
         resource_max["max_observed_or_declared_query_multiply_adds"] <= RESOURCE_CAPS["query_multiply_adds"],
+        control_compute_pass,
     ))
 
     packages = {
@@ -447,6 +470,7 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
         },
         "M3-D": {
             "package_id": "M3-D", "title": "Drift detection and candidate revision",
+            "detector_signal": "prequential squared-loss innovation standardized against the observed acquisition phase; CUSUM allowance=0.25, threshold=5.0",
             "test_streams_with_alarms": sum(bool(row["alarm_steps"]) for row in test_rows),
             "total_detector_alarms": sum(int(row["detector_alarms"]) for row in test_rows),
             "alarms_by_drift_family": {
@@ -472,6 +496,8 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
                     "state_bytes_min": min(row["control_resources"][name]["persistent_state_bytes"] for row in test_rows),
                     "state_bytes_max": max(row["control_resources"][name]["persistent_state_bytes"] for row in test_rows),
                     "parameter_count_max": max(row["control_resources"][name]["trainable_parameter_count"] for row in test_rows),
+                    "update_multiply_adds_per_observed_update_upper_bound": max(row["control_resources"][name]["update_multiply_adds_per_observed_update_upper_bound"] for row in test_rows),
+                    "query_multiply_adds_per_prediction_upper_bound": max(row["control_resources"][name]["query_multiply_adds_per_prediction_upper_bound"] for row in test_rows),
                 } for name in COMPARATOR_NAMES
             },
         },

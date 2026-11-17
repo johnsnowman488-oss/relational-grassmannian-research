@@ -169,6 +169,32 @@ class MemoryArchitecture:
         return float(np.sum((y - prediction) ** 2))
 
     def resource_snapshot(self) -> dict[str, int | str]:
+        task_width = int(self.task_readout.shape[1])
+        task_update = 2 * int(self.task_readout.size) + task_width
+        if self.name == "C0":
+            memory_update = 0
+            memory_query = 0
+        elif self.name == "C1":
+            memory_update = 2 * min(self.mode_dimension, self.mode_state.size)
+            memory_query = 0
+        elif self.name == "C2":
+            memory_update = 2 * min(self.relation_dimension, self.relation_state.size)
+            memory_query = 0
+        elif self.name == "C3":
+            memory_update = 2 * (
+                min(self.mode_dimension, self.mode_state.size)
+                + min(self.relation_dimension, self.relation_state.size)
+            )
+            memory_query = 0
+        else:
+            # Two shared writes (mode and relation), their readout outer
+            # products, and both readout matrix-vector queries.
+            memory_update = 2 * (
+                3 * self.shared_state.size
+                + 2 * self.mode_dimension * self.shared_state.size
+                + 2 * self.relation_dimension * self.shared_state.size
+            )
+            memory_query = int(self.mode_readout.size + self.relation_readout.size)
         return {
             "architecture": self.name, "precision": self.precision,
             "persistent_state_bytes": self.persistent_state_bytes,
@@ -177,6 +203,8 @@ class MemoryArchitecture:
             "task_readout_bytes": int(self.task_readout.nbytes),
             "task_readout_parameters": int(self.task_readout.size),
             "persistent_bytes_total": self.persistent_bytes,
+            "update_multiply_adds_per_observed_update_upper_bound": int(memory_update + task_update),
+            "query_multiply_adds_per_prediction_upper_bound": int(memory_query + self.task_readout.size),
             "update_multiply_adds_observed": self.update_multiply_adds,
             "query_multiply_adds_observed": self.query_multiply_adds,
         }

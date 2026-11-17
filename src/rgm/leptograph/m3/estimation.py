@@ -224,12 +224,20 @@ class MultiSourceRidge:
         }
 
     def resource_snapshot(self) -> dict[str, int | float]:
+        feature = self.feature_dimension
+        target = self.target_dimension
+        normal_update = feature**2 + feature * target
+        # Conservative solve accounting: a context-conditioned feedback update
+        # may solve once for the joint residual and once per uninitialised source.
+        context_update = 3 * feature**3 + normal_update
         return {
             "sufficient_statistic_bytes": int(self._gram_upper.nbytes + self.cross.nbytes),
             "packed_gram_bytes": int(self._gram_upper.nbytes),
             "equivalent_dense_gram_bytes": int(self.feature_dimension**2 * 8),
-            "parameter_count": int(self.feature_dimension * self.target_dimension),
-            "update_outer_product_multiply_adds": int(self.feature_dimension**2 + self.feature_dimension * self.target_dimension),
-            "query_multiply_adds": int(self.feature_dimension * self.target_dimension),
+            "parameter_count": int(feature * target),
+            "parameter_bytes": int(feature * target * np.dtype(np.float64).itemsize),
+            "update_outer_product_multiply_adds": int(normal_update),
+            "context_conditioned_update_multiply_adds": int(context_update),
+            "query_multiply_adds": int(feature**3 + feature * target),
             "sample_count": self.sample_count,
         }

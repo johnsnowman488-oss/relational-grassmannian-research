@@ -52,15 +52,38 @@ def integrated_resource_snapshot(
     control_state_bytes = 0
     control_parameter_bytes = 0
     control_parameter_count = 0
-    update_costs = [int(estimator_snapshot["update_outer_product_multiply_adds"])]
-    query_costs = [int(estimator_snapshot["query_multiply_adds"])]
+    dimension = int(context_bank.dimension)
+    slot_count = len(context_bank.slots)
+    context_query_upper = slot_count * (8 * dimension**3 + 8 * dimension**2)
+    source_update_upper = sum(
+        4 * int(estimator.target_dimension) * int(width) + int(width)
+        for width in estimator.source_dimensions.values()
+    )
+    context_update_upper = 2 * dimension**2 + source_update_upper
+    lifecycle_update_upper = 0
+    if lifecycle is not None:
+        lifecycle_update_upper = (
+            2 * int(lifecycle.source_dimension)**2
+            + 8 * int(lifecycle.source_dimension) * int(lifecycle.target_dimension)
+        )
+    activation_update_upper = 64 * max(1, len(activation.states))
+    detector_update_upper = 8 if detector is not None else 0
+    estimator_update_upper = max(
+        int(estimator_snapshot["update_outer_product_multiply_adds"]),
+        int(estimator_snapshot["context_conditioned_update_multiply_adds"]),
+    )
+    update_costs = [
+        estimator_update_upper + context_update_upper
+        + lifecycle_update_upper + activation_update_upper + detector_update_upper
+    ]
+    query_costs = [int(estimator_snapshot["query_multiply_adds"]) + context_query_upper]
     for control in controls:
         snapshot = control.resource_snapshot()
         control_state_bytes += int(snapshot["persistent_state_bytes"])
         control_parameter_bytes += int(snapshot["persistent_parameter_bytes"])
         control_parameter_count += int(snapshot["trainable_parameter_count"])
-        update_costs.append(int(snapshot["update_multiply_adds_observed"]))
-        query_costs.append(int(snapshot["query_multiply_adds_observed"]))
+        update_costs.append(int(snapshot["update_multiply_adds_per_observed_update_upper_bound"]))
+        query_costs.append(int(snapshot["query_multiply_adds_per_prediction_upper_bound"]))
 
     revision_parameter_bytes = 0
     revision_parameter_count = 0
@@ -80,13 +103,17 @@ def integrated_resource_snapshot(
         + lifecycle_state_bytes
         + control_state_bytes
     )
+    estimator_parameter_bytes = int(estimator_snapshot.get("parameter_bytes", 0))
+    estimator_parameter_count = int(estimator_snapshot.get("parameter_count", 0))
     trainable_parameter_bytes = (
-        int(context_snapshot["operator_bytes"])
+        estimator_parameter_bytes
+        + int(context_snapshot["operator_bytes"])
         + control_parameter_bytes
         + revision_parameter_bytes
     )
     trainable_parameter_count = (
-        int(context_snapshot["trainable_parameter_count"])
+        estimator_parameter_count
+        + int(context_snapshot["trainable_parameter_count"])
         + control_parameter_count
         + revision_parameter_count
     )
@@ -98,7 +125,7 @@ def integrated_resource_snapshot(
     max_update = max(update_costs, default=0)
     max_query = max(query_costs, default=0)
     return {
-        "accounting_scope": "live numeric payloads; Python object/container overhead excluded",
+        "accounting_scope": "live numeric payloads; Python object/container overhead excluded; operation costs are conservative upper bounds including context routing, context LMS updates, candidate-window arithmetic and scalar controllers",
         "components_bytes": {
             "estimator_sufficient_statistics": int(estimator_snapshot["sufficient_statistic_bytes"]),
             "context_metric_slots_and_pending": context_state_bytes,
