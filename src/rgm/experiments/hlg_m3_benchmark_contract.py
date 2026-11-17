@@ -47,7 +47,7 @@ SEED_BASES = {
 }
 WORLD_SEED_BASE = 910_000
 FORBIDDEN_LEARNER_FIELDS = (
-    "world_id", "world_family_id", "split", "seed",
+    "world_id", "scenario_template_id", "split", "seed",
     "world_configuration_seed", "replicate_seed", "composition_ids",
     "primitive_relations", "true_context_id", "latent_relation_operators",
     "change_schedule", "future_observations", "target",
@@ -135,7 +135,7 @@ def build_manifest() -> dict:
             "evaluator_record_type": "EvaluatorRecord",
             "target_revealed_only_after_prediction": True,
             "evaluator_fields_forbidden_in_learner": [
-                "world_id", "world_family_id", "split", "seed",
+                "world_id", "scenario_template_id", "split", "seed",
                 "world_configuration_seed", "replicate_seed", "composition_ids",
                 "primitive_relations", "true_context_id", "latent_relation_operators",
                 "change_schedule", "future_observations", "target",
@@ -345,7 +345,7 @@ class EvaluatorRecord:
     """Evaluator-owned truth. Never pass this object to learner functions."""
     step_index: int
     world_id: str
-    world_family_id: str
+    scenario_template_id: str
     split: str
     world_configuration_seed: int
     replicate_seed: int
@@ -469,7 +469,7 @@ def build_reference_fixture(seed: int = 1701, step_index: int = 0) -> tuple[Lear
     evaluator = EvaluatorRecord(
         step_index=step_index,
         world_id="CONTRACT-FIXTURE",
-        world_family_id="FIXTURE-ONLY",
+        scenario_template_id="FIXTURE-ONLY",
         split="fixture",
         world_configuration_seed=seed,
         replicate_seed=seed,
