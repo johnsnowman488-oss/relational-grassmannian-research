@@ -1,0 +1,77 @@
+# HLG-M3 BM-1 generator and evaluator-boundary contract
+
+**Version:** v0.1 draft  
+**Parent:** HLG-M3 broader benchmark protocol BM-0/BM-1  
+**Status:** amendable contract; not a full benchmark generator
+
+## 1. Separation model
+
+The generator/evaluator owns the complete experiment state: world configuration, scenario-template ID, split, seeds, relation composition, primitive labels, planted operators, true context identity, change schedule, current target and future state.
+
+The learner may receive only a LearnerObservation. It must not receive the evaluator record, split manifest, generator object, world ID, seed, composition ID, planted operators, context truth or schedule labels.
+
+Target values are a special case: they are not part of the observation. A PrequentialGate requires the caller to register that a prediction has been produced before it can reveal TargetFeedback. Feedback contains only the current target vector and observation flag, not the evaluator metadata.
+
+## 2. Typed learner observation
+
+The BM-1 implementation uses a frozen LearnerObservation with exactly these fields:
+- step_index;
+- sorted source_ids;
+- corresponding source_vectors;
+- corresponding source_observed masks;
+- context_vector;
+- context_observed.
+
+A missing source is represented by a false observation mask and a null vector. A missing context follows the same rule. This is a data representation, not a choice of how a particular learner imputes or processes missing inputs; those mechanisms are later benchmark work. Input validation rejects inconsistent masks, non-finite values, duplicate IDs, and undeclared metadata.
+
+## 3. Evaluator record
+
+EvaluatorRecord is stored on the evaluator side and contains world and split identity, seeds, composition and primitive identifiers, true context identity, latent relation operators, change schedule, and the current target/mask. It is not an argument to learner prediction, context routing, activation, detection or candidate fitting.
+
+The generator/evaluator can retain this record for scoring, but the learner-facing function signature receives only LearnerObservation. The explicit PrequentialGate exposes a TargetFeedback object only after a prediction ticket has been marked as predicted.
+
+## 4. Prequential state machine
+
+For each step:
+- begin_prediction accepts a LearnerObservation and issues a step-scoped PredictionTicket;
+- mark_prediction records the model's non-empty finite prediction vector for that ticket;
+- reveal_target accepts the matching ticket and evaluator record, then emits only TargetFeedback;
+- no next step begins until the current ticket has been resolved.
+
+Revealing a target before prediction, using a ticket for another step, revealing twice, or starting a second unresolved step is an error. The gate enforces temporal order; it cannot prevent an application from deliberately bypassing the API, so workflow and code review must also verify that learner calls receive only the typed observation and later target feedback.
+
+## 5. Deterministic fixture
+
+BM-1 includes a one-step fixture generated from a supplied seed. It exists solely to test deterministic generation and the information boundary. It is not one of the historical F6 anchor worlds, is not included in the confirmatory split allocation, and must not be reported as an M3 result.
+
+BM-2 must implement the F6-derived sequential generator from the manifest, preserve the eight historical anchor outputs, materialise explicit factor-valued configurations, and add tests for factor-level coverage and deterministic generator regeneration.
+
+## 6. Required contract tests
+
+- manifest regeneration is byte-stable;
+- exact split and seed counts are respected;
+- primary relation composition IDs and ordered sequences are disjoint across splits;
+- all primary test primitive atoms are present during fit;
+- the auxiliary REL-E primitive-OOD stratum is explicitly excluded from the primary claim;
+- learner observation types reject evaluator-only metadata;
+- missing observations preserve masks rather than clean values;
+- target feedback cannot be revealed before prediction;
+- the feedback object contains no world/split/seed/composition/truth fields;
+- deterministic fixture output matches for equal seeds.
+
+No passing contract test is a scientific performance result.
+
+
+## 7. BM-2 generator semantics
+
+The generated stream preserves the seven common F6 phases in historical order; test split streams retain the additional historical F6 `heldout_composition` phase. A separate factorised burst-outage and reactivation segment is appended after those phases, so the historical phase definitions and original 20-step target gap remain intact.
+
+The REL-A-D extension is a sequential context/relation composition: each ordered primitive occupies its own context-conditioned segment. The learner receives only source vectors, observation masks and noisy context features. Primitive labels and composition IDs remain in evaluator records. This tests held-out ordered temporal compositions in the fixed topology; it does not define algebraic multiplication of the operators.
+
+For rho=1.0, the generated secondary source equals the primary source exactly. Lower correlations use a shared linear component plus an independent residual. Independent missingness is represented as null vectors plus false masks. The separate burst outage masks source, context and target observations for its declared contiguous length; evaluator truth remains available for scoring without entering TargetFeedback.
+
+The drift factor modifies only the additional F6 within-context drift phase: stationary, step, gradual, variance-only, transient or compound. The drift schedule is evaluator-only. Noise multiplier is applied separately; variance-only and compound cases make their added variance changes explicit in the evaluator schedule.
+
+The world-level context-bank capacity is learner-configuration metadata, not an extra input feature. The new generator does not train, score or select a learner. BM-2 pilot evidence is a deterministic generator/boundary smoke only.
+
+The inherited provisional F5 envelope remains a common cap, not a parity result. The pilot does not claim C0-C4 compliance; actual costs are audited in BM-4.
