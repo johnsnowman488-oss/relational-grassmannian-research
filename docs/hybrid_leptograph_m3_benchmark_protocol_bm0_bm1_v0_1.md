@@ -2,7 +2,7 @@
 
 **Campaign:** HLG-M3-BROAD-BENCHMARK-BM0-BM1-v0.1  
 **Parent evidence:** M3 preflight; F1-F7; R1-R5; HLG-M3 implementation v0.1; HLG-M3 final refinement v0.2  
-**Status:** draft, amendable, review required; not frozen  
+**Status:** frozen for HLG-M3 confirmatory campaign; exit criteria v0.2 accepted 2026-11-17  
 **Current scope:** BM-0 benchmark contract and BM-1 deterministic manifest/information-boundary validation  
 **M3 boundary:** supplied fixed candidate topology; topology birth/death is excluded; global coupled stability remains M4
 
@@ -182,12 +182,16 @@ One aggregate waits for all package jobs and both test jobs. It verifies exact a
 
 BM-0/BM-1 has its own contract gate workflow with the same one-workflow principle: manifest/leakage validation and Python 3.10/3.12 full suites run concurrently; an aggregate verifies the contract evidence and preserves the claim ceiling.
 
-## 10. Claim ceiling and milestone boundaries
+## 10. Frozen M3 exit thresholds and claim ceiling
+
+The M3 exit criteria are frozen in `docs/hlg_m3_exit_criteria_m4_entry_gate_v0_1.md` (decision version v0.2, accepted 2026-11-17). The binding M4-entry thresholds are: (1) at least 5% relative reduction in held-out primary-composition loss against the strongest eligible matched C0-C4 comparator, paired 95% world-clustered CI lower bound above zero, and positive paired effect in at least 15/20 held-out worlds; (2) at least 5% relative reduction in untouched post-promotion loss against retaining the incumbent, the same CI rule, and positive effect in at least 15 held-out worlds with sufficient eligible evidence; and (3) common resource ceilings of 512 persistent-state bytes, 4,096 trainable parameters, 8,192 multiply-adds per observed update, and 4,096 multiply-adds per prediction, float64. These thresholds are frozen before G2. Insufficient-evidence cases remain explicit and are not silently dropped. The resource ceilings are acceptance limits; each candidate and comparator must demonstrate actual compliance.
+
+## 11. Claim ceiling and milestone boundaries
 
 Passing BM-0/BM-1 demonstrates only that the split manifest, composition partition and learner/evaluator boundary are machine-checked and deterministic. It is not evidence of predictive generalisation, context robustness, detector calibration, successful candidate adaptation, a C0-C4 winner, or M3 completion.
 
 M3 remains bounded to the supplied fixed candidate topology. It does not introduce topology birth/death. Predictive ablation is not causal attribution. No global coupled adaptive stability claim is made; that remains M4.
 
-**Protocol frozen:** no.  
+**Protocol frozen:** yes — exit thresholds v0.2 accepted 2026-11-17; benchmark execution protocol remains versioned and immutable for G2.  
 **Scientific benchmark executed:** no.  
 **BM-0/BM-1 executable status:** to be established by the contract workflow.
