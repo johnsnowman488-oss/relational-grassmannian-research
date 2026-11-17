@@ -1,25 +1,16 @@
-name: HLG-M3 BM-0/BM-1 Benchmark Contract Gate
+name: HLG-M3 BM-0/BM-1 and BM-2 generator acceptance
 
 on:
-  push:
-    branches: [research/hlg-m3-benchmark-bm0-bm1]
-    paths:
-      - "docs/hybrid_leptograph_m3_benchmark_protocol_bm0_bm1_v0_1.md"
-      - "docs/hybrid_leptograph_m3_benchmark_split_manifest_v0_1.json"
-      - "docs/hybrid_leptograph_m3_benchmark_generator_contract_v0_1.md"
-      - "src/rgm/experiments/hlg_m3_benchmark_contract.py"
-      - "src/rgm/experiments/hlg_m3_benchmark_generator.py"
-      - "tests/test_hlg_m3_benchmark_contract.py"
-      - "tests/test_hlg_m3_benchmark_generator.py"
-      - ".github/workflows/hlg-m3-benchmark-contract.yml"
   pull_request:
     branches: [main]
     paths:
       - "docs/hybrid_leptograph_m3_benchmark_protocol_bm0_bm1_v0_1.md"
       - "docs/hybrid_leptograph_m3_benchmark_split_manifest_v0_1.json"
-      - "docs/hybrid_leptograph_m3_benchmark_generator_contract_v0_1.md"
+      - "docs/hlg_m3_exit_criteria_m4_entry_gate_v0_1.md"
       - "src/rgm/experiments/hlg_m3_benchmark_contract.py"
+      - "src/rgm/experiments/hlg_m3_benchmark_generator.py"
       - "tests/test_hlg_m3_benchmark_contract.py"
+      - "tests/test_hlg_m3_benchmark_generator.py"
       - ".github/workflows/hlg-m3-benchmark-contract.yml"
   workflow_dispatch:
 
@@ -53,7 +44,7 @@ jobs:
           if-no-files-found: error
 
   bm2-generator:
-    name: BM-2 F6-derived generator pilot
+    name: BM-2 full generator acceptance (two independent executions)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,17 +56,25 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Run BM-2 generator tests
         run: python -m pytest tests/test_hlg_m3_benchmark_generator.py
-      - name: Generate deterministic OFAT pilot evidence
+      - name: Generate complete 40-world / 200-stream acceptance evidence
         run: >-
           python -m rgm.experiments.hlg_m3_benchmark_generator
           --manifest docs/hybrid_leptograph_m3_benchmark_split_manifest_v0_1.json
-          --output results/hlg_m3_benchmark_bm0_bm1/bm2_pilot.json
-          --pilot
-      - name: Upload BM-2 pilot evidence
+          --output results/hlg_m3_benchmark_bm0_bm1/bm2_acceptance_a.json
+          --acceptance
+      - name: Independently regenerate complete acceptance evidence
+        run: >-
+          python -m rgm.experiments.hlg_m3_benchmark_generator
+          --manifest docs/hybrid_leptograph_m3_benchmark_split_manifest_v0_1.json
+          --output results/hlg_m3_benchmark_bm0_bm1/bm2_acceptance_b.json
+          --acceptance
+      - name: Require byte-identical independent acceptance evidence
+        run: diff -u results/hlg_m3_benchmark_bm0_bm1/bm2_acceptance_a.json results/hlg_m3_benchmark_bm0_bm1/bm2_acceptance_b.json
+      - name: Upload BM-2 generator acceptance
         uses: actions/upload-artifact@v4
         with:
-          name: hlg-m3-bm2-generator-pilot
-          path: results/hlg_m3_benchmark_bm0_bm1/bm2_pilot.json
+          name: hlg-m3-bm2-generator-acceptance
+          path: results/hlg_m3_benchmark_bm0_bm1/bm2_acceptance_a.json
           if-no-files-found: error
 
   full-tests:
@@ -97,7 +96,7 @@ jobs:
         run: python -m pytest
 
   aggregate:
-    name: Aggregate BM-0/BM-1 contract evidence
+    name: Aggregate BM-0/BM-1 and BM-2 acceptance evidence
     runs-on: ubuntu-latest
     needs: [benchmark-contract, bm2-generator, full-tests]
     steps:
@@ -105,29 +104,29 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Download BM-0/BM-1 contract artifact
+      - name: Download BM-0/BM-1 contract evidence
         uses: actions/download-artifact@v4
         with:
           name: hlg-m3-bm0-bm1-contract-evidence
           path: results/hlg_m3_benchmark_bm0_bm1
-      - name: Download BM-2 generator pilot
+      - name: Download BM-2 generator acceptance
         uses: actions/download-artifact@v4
         with:
-          name: hlg-m3-bm2-generator-pilot
+          name: hlg-m3-bm2-generator-acceptance
           path: results/hlg_m3_benchmark_bm0_bm1
-      - name: Verify contract and BM-2 evidence while preserving claim ceiling
+      - name: Verify contract, full generator coverage and claim ceiling
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
           root = Path("results/hlg_m3_benchmark_bm0_bm1")
-          expected = {"manifest_validation.json", "bm2_pilot.json"}
+          expected = {"manifest_validation.json", "bm2_acceptance_a.json"}
           actual = {p.name for p in root.iterdir() if p.is_file()}
           assert actual == expected, {"expected": sorted(expected), "actual": sorted(actual)}
-          evidence = json.loads((root / "manifest_validation.json").read_text())
-          validation = evidence["validation"]
-          pilot = json.loads((root / "bm2_pilot.json").read_text())
-          assert evidence["campaign_id"] == "HLG-M3-BROAD-BENCHMARK-BM0-BM1-v0.1"
+          contract = json.loads((root / "manifest_validation.json").read_text())
+          validation = contract["validation"]
+          acceptance = json.loads((root / "bm2_acceptance_a.json").read_text())
+          assert contract["campaign_id"] == "HLG-M3-BROAD-BENCHMARK-BM0-BM1-v0.1"
           assert validation["valid"] is True
           assert validation["world_configuration_count"] == 40
           assert validation["replicate_stream_count"] == 200
@@ -138,34 +137,39 @@ jobs:
           assert validation["primary_test_compositions"] == 8
           assert validation["all_primary_test_atoms_seen_in_fit"] is True
           assert validation["primitive_ood_separately_excluded"] is True
-          assert validation["m3_protocol_frozen"] is False
           assert validation["m3_scientific_validation_complete"] is False
-          assert pilot["campaign_id"] == "HLG-M3-BROAD-BENCHMARK-BM2-GENERATOR-v0.1"
-          assert pilot["pilot_profile_count"] == 21
-          assert pilot["all_pilot_streams_regenerated_identically"] is True
-          assert pilot["all_pilot_boundaries_valid"] is True
-          assert pilot["legacy_f6_anchor"]["all_checks_passed"] is True
-          assert pilot["confirmatory_streams_generated"] is False
-          assert pilot["scientific_benchmark_executed"] is False
-          assert pilot["m3_scientific_validation_complete"] is False
-          assert pilot["manifest_sha256"] == evidence["manifest_sha256"]
+          assert acceptance["campaign_id"] == "HLG-M3-BROAD-BENCHMARK-BM2-GENERATOR-v0.1"
+          assert acceptance["pilot_profile_count"] == 21
+          assert acceptance["world_configuration_count"] == 40
+          assert acceptance["replicate_stream_count"] == 200
+          assert acceptance["split_world_counts"] == {"development_fit": 12, "development_validation": 8, "test": 20}
+          assert acceptance["all_confirmatory_streams_valid"] is True
+          assert acceptance["all_confirmatory_streams_have_masks_and_hashes"] is True
+          assert acceptance["all_pilot_streams_regenerated_identically"] is True
+          assert acceptance["all_pilot_boundaries_valid"] is True
+          assert acceptance["legacy_f6_anchor"]["all_checks_passed"] is True
+          assert acceptance["confirmatory_streams_generated"] is True
+          assert acceptance["scientific_benchmark_executed"] is False
+          assert acceptance["m3_protocol_frozen"] is True
+          assert acceptance["m3_scientific_validation_complete"] is False
+          assert acceptance["manifest_sha256"] == contract["manifest_sha256"]
           summary = {
-              "campaign_id": evidence["campaign_id"],
-              "manifest_sha256": evidence["manifest_sha256"],
+              "campaign_id": contract["campaign_id"],
+              "manifest_sha256": contract["manifest_sha256"],
               "contract_execution_passed": True,
-              "bm2_generator_pilot_passed": True,
-              "pilot_profile_count": pilot["pilot_profile_count"],
-              "legacy_f6_anchor_passed": pilot["legacy_f6_anchor"]["all_checks_passed"],
-              "confirmatory_streams_generated": False,
-              "world_configuration_count": validation["world_configuration_count"],
-              "replicate_stream_count": validation["replicate_stream_count"],
+              "bm2_generator_acceptance_passed": True,
+              "pilot_profile_count": acceptance["pilot_profile_count"],
+              "world_configuration_count": acceptance["world_configuration_count"],
+              "replicate_stream_count": acceptance["replicate_stream_count"],
+              "all_confirmatory_streams_valid": acceptance["all_confirmatory_streams_valid"],
+              "independent_execution_artifact_hash": acceptance["acceptance_evidence_sha256"],
               "resource_envelope": validation["resource_envelope"],
               "primary_test_compositions": validation["primary_test_compositions"],
               "scientific_benchmark_executed": False,
-              "m3_protocol_frozen": False,
+              "m3_protocol_frozen": True,
               "m3_scientific_validation_complete": False,
-              "claim_ceiling": evidence["claim_ceiling"],
-              "decision": "BM0_BM1_CONTRACT_AND_BM2_GENERATOR_PILOT_CHECKED_CONFIRMATORY_BENCHMARK_NOT_RUN"
+              "claim_ceiling": acceptance["claim_ceiling"],
+              "decision": "M3_G1_BM2_GENERATOR_ACCEPTED; SCIENTIFIC_CONFIRMATORY_BENCHMARK_NOT_RUN"
           }
           (root / "summary.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
           print(json.dumps(summary, sort_keys=True))
@@ -173,6 +177,6 @@ jobs:
       - name: Upload aggregate evidence
         uses: actions/upload-artifact@v4
         with:
-          name: hlg-m3-bm0-bm1-aggregate
+          name: hlg-m3-bm2-acceptance-aggregate
           path: results/hlg_m3_benchmark_bm0_bm1/summary.json
           if-no-files-found: error

@@ -1,6 +1,6 @@
-# HLG-M3 completion and M4 entry gate — proposal v0.1
+# HLG-M3 completion and M4 entry gate — frozen v0.2
 
-**Status:** Proposed decision record; not frozen.  
+**Status:** Frozen decision record v0.2; accepted 2026-11-17.  
 **Applies to:** HLG-M3 broader benchmark BM-0 through confirmatory execution.  
 **Purpose:** Define a finite completion target for M3 and a clear evidence gate for M4. Prevent open-ended inspections, repeated sensitivity sweeps, or scope expansion.
 
@@ -62,9 +62,9 @@ Produce one report from the confirmatory artifacts. It must:
 
 No further inspection phase is required after this report unless a specific integrity defect is found.
 
-## 3. Proposed scientific thresholds to freeze before G2
+## 3. Frozen scientific thresholds for G2
 
-The BM-0/BM-1 protocol currently defines metrics and hypotheses but does not yet state a single practical effect threshold for M4 entry. The following are proposed so the decision cannot be selected after seeing test results:
+The following thresholds are accepted and frozen before BM-2 acceptance and before any confirmatory outcome is inspected. They cannot be changed after G2 begins.
 
 ### Primary capability gate — held-out composition
 
@@ -96,7 +96,7 @@ The selected candidate and the comparator used for the primary claim must both r
 
 An unmatched result cannot satisfy the M4 resource gate.
 
-**These thresholds are proposals, not frozen protocol terms.** They must be accepted or amended before G2 starts. They must not be tuned after confirmatory results are visible.
+**Frozen decision:** the 5% relative-effect thresholds, paired 95% world-clustered confidence-interval rule, 15/20 held-out-world consistency rule, and resource ceilings above are binding for this campaign. They must not be tuned after confirmatory results are visible.
 
 ## 4. M4 entry decision
 
@@ -126,4 +126,4 @@ Topology birth/death or additional adaptive mechanisms are not automatically inc
 - No requirement that every H1-H7 hypothesis pass.
 - No M4 advancement without a qualifying frozen M3 candidate.
 
-**Current decision:** proposed; awaiting review and acceptance before BM-2 acceptance is declared and before the confirmatory campaign is authorised.
+**Current decision:** ACCEPTED AND FROZEN v0.2 on 2026-11-17. BM-2 G1 acceptance remains pending full generator acceptance evidence. G2 is not authorised until G1 passes and the confirmatory implementation packages and aggregate verifier are ready.
