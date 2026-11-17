@@ -38,8 +38,8 @@ class MultiSourceRidge:
         self._context_slice = slice(offset, offset + self.context_dimension)
         offset += self.context_dimension
         self._intercept_index = offset
-        self._upper_rows, self._upper_cols = np.triu_indices(offset + 1)
-        self._gram_upper = np.zeros(self._upper_rows.size, dtype=float)
+        upper_rows, upper_cols = np.triu_indices(offset + 1)
+        self._gram_upper = np.zeros(upper_rows.size, dtype=float)
         self.cross = np.zeros((offset + 1, self.target_dimension), dtype=float)
 
     @property
@@ -50,8 +50,9 @@ class MultiSourceRidge:
     def gram(self) -> np.ndarray:
         """Materialise the symmetric Gram matrix from packed upper-triangle state."""
         matrix = np.zeros((self.feature_dimension, self.feature_dimension), dtype=float)
-        matrix[self._upper_rows, self._upper_cols] = self._gram_upper
-        matrix[self._upper_cols, self._upper_rows] = self._gram_upper
+        upper_rows, upper_cols = np.triu_indices(self.feature_dimension)
+        matrix[upper_rows, upper_cols] = self._gram_upper
+        matrix[upper_cols, upper_rows] = self._gram_upper
         return matrix
 
     def _features(self, sources, context, source_gates=None) -> np.ndarray:
@@ -112,7 +113,8 @@ class MultiSourceRidge:
             raise ValueError("invalid target vector")
         self._gram_upper *= self.forgetting
         self.cross *= self.forgetting
-        self._gram_upper += np.outer(phi, phi)[self._upper_rows, self._upper_cols]
+        upper_rows, upper_cols = np.triu_indices(self.feature_dimension)
+        self._gram_upper += np.outer(phi, phi)[upper_rows, upper_cols]
         self.cross += np.outer(phi, y)
         self.sample_count += 1
         self.update_count += 1
