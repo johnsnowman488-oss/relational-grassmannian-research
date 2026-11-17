@@ -42,7 +42,7 @@ def test_g2_readiness_audit_fails_closed_on_missing_confirmatory_interfaces():
     assert "masked_online_update_missing" not in blockers
     assert "g2_confirmatory_runner_missing" not in blockers
     assert "c0_c4_task_prediction_adapter_missing" not in blockers
-    assert "integrated_candidate_resource_ledger_missing" in blockers
+    assert "integrated_candidate_resource_ledger_missing" not in blockers
     assert "current_candidate_exceeds_frozen_persistent_state_cap" not in blockers
     assert "candidate_lifecycle_contract_missing" not in blockers
     assert "candidate_lifecycle_campaign_integration_missing" not in blockers
