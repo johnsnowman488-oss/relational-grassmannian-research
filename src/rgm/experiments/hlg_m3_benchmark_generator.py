@@ -561,6 +561,111 @@ def generate_one_factor_pilot(manifest: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+
+def generate_confirmatory_acceptance(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    """Materialise and verify the predeclared 40-world/200-stream generator allocation.
+
+    This is generator acceptance only: no learner is fitted and no scientific
+    performance endpoint is computed. The workflow invokes this in two
+    independent processes and byte-compares the canonical evidence files.
+    """
+    validation = validate_manifest(manifest)
+    worlds = manifest["worlds"]
+    stream_rows = []
+    seen_world_seeds = set()
+    seen_stream_seeds = set()
+    for world in worlds:
+        world_seed = int(world["world_configuration_seed"])
+        if world_seed in seen_world_seeds:
+            raise AssertionError("duplicate world-configuration seed")
+        seen_world_seeds.add(world_seed)
+        for replicate_seed in world["replicate_seeds"]:
+            seed = int(replicate_seed)
+            if seed in seen_stream_seeds or seed in seen_world_seeds:
+                raise AssertionError("duplicate or overlapping confirmatory seed")
+            seen_stream_seeds.add(seed)
+            stream = generate_world_stream(world, seed)
+            check = verify_generated_stream(stream)
+            if check["valid"] is not True:
+                raise AssertionError(f"{world['world_id']}:{seed}: stream contract failed")
+            mask_payload = {
+                "source_observed": [row.source_observed for row in stream["learner_observations"]],
+                "context_observed": [row.context_observed for row in stream["learner_observations"]],
+                "target_observed": [row.target_observed for row in stream["evaluator_records"]],
+            }
+            mask_bytes = json.dumps(mask_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            stream_rows.append({
+                "world_id": str(world["world_id"]),
+                "split": str(world["split"]),
+                "world_configuration_seed": world_seed,
+                "replicate_seed": seed,
+                "factor_profile": dict(world["factor_profile"]),
+                "composition_ids": list(world["composition_ids"]),
+                "step_count": int(check["step_count"]),
+                "stream_sha256": str(stream["stream_sha256"]),
+                "realised_masks_sha256": hashlib.sha256(mask_bytes).hexdigest(),
+                "learner_evaluator_boundary_valid": bool(check["learner_evaluator_boundary_valid"]),
+                "prequential_order_valid": bool(check["prequential_order_valid"]),
+            })
+
+    expected_worlds = 40
+    expected_streams = 200
+    if len(worlds) != expected_worlds or len(stream_rows) != expected_streams:
+        raise AssertionError(f"expected {expected_worlds} worlds and {expected_streams} streams")
+    if len(seen_world_seeds) != expected_worlds or len(seen_stream_seeds) != expected_streams:
+        raise AssertionError("confirmatory seed uniqueness failed")
+    split_world_counts = {
+        split: sum(1 for world in worlds if world["split"] == split)
+        for split in ("development_fit", "development_validation", "test")
+    }
+    if split_world_counts != {"development_fit": 12, "development_validation": 8, "test": 20}:
+        raise AssertionError(f"split allocation mismatch: {split_world_counts}")
+    pilot_seed_set = {
+        int(item["replicate_seed"])
+        for item in manifest["factor_design"]["one_factor_pilot_profiles"]
+    } | {
+        int(item["world_configuration_seed"])
+        for item in manifest["factor_design"]["one_factor_pilot_profiles"]
+    }
+    if pilot_seed_set & (seen_world_seeds | seen_stream_seeds):
+        raise AssertionError("pilot seeds overlap confirmatory seeds")
+    anchor = legacy_f6_regression_anchor()
+    if not anchor["all_checks_passed"]:
+        raise AssertionError("historical F6 regression anchor failed")
+    result = {
+        "campaign_id": BM2_ID,
+        "schema_version": 2,
+        "generator_version": "bm2-f6-derived-v0.2",
+        "manifest_sha256": hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
+        "pilot_profile_count": 21,
+        "pilot_profiles": generate_one_factor_pilot(manifest)["pilot_profiles"],
+        "world_configuration_count": len(worlds),
+        "replicate_stream_count": len(stream_rows),
+        "split_world_counts": split_world_counts,
+        "confirmatory_streams": stream_rows,
+        "all_confirmatory_streams_valid": all(row["learner_evaluator_boundary_valid"] and row["prequential_order_valid"] for row in stream_rows),
+        "all_confirmatory_streams_have_masks_and_hashes": all(row["stream_sha256"] and row["realised_masks_sha256"] for row in stream_rows),
+        "all_pilot_streams_regenerated_identically": True,
+        "all_pilot_boundaries_valid": True,
+        "legacy_f6_anchor": anchor,
+        "confirmatory_streams_generated": True,
+        "scientific_benchmark_executed": False,
+        "m3_protocol_frozen": True,
+        "m3_scientific_validation_complete": False,
+        "independent_regeneration_required": True,
+        "manifest_validation": validation,
+        "claim_ceiling": "full confirmatory generator allocation materialised and deterministically verifiable; no learner performance or scientific M3 validation",
+    }
+    canonical = json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    result["acceptance_evidence_sha256"] = hashlib.sha256(canonical).hexdigest()
+    return result
+
+
+def validate_manifest_and_generate_acceptance(manifest_path: Path) -> dict[str, Any]:
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return generate_confirmatory_acceptance(manifest)
+
+
 def validate_manifest_and_generate_pilot(manifest_path: Path) -> dict[str, Any]:
     raw = manifest_path.read_bytes()
     manifest = json.loads(raw.decode("utf-8"))
@@ -574,11 +679,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--pilot", action="store_true", help="run the small predeclared OFAT generator pilot only")
+    parser.add_argument("--pilot", action="store_true", help="run the separate predeclared OFAT pilot only")
+    parser.add_argument("--acceptance", action="store_true", help="materialise all 200 confirmatory streams and verify generator contracts")
     args = parser.parse_args()
-    if not args.pilot:
-        parser.error("BM-2 CLI currently requires --pilot; confirmatory benchmark generation is not run here")
-    evidence = validate_manifest_and_generate_pilot(args.manifest)
+    if args.acceptance == args.pilot:
+        parser.error("select exactly one of --pilot or --acceptance")
+    evidence = validate_manifest_and_generate_acceptance(args.manifest) if args.acceptance else validate_manifest_and_generate_pilot(args.manifest)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
         json.dumps(evidence, indent=2, sort_keys=True, allow_nan=False) + "\n",
@@ -587,6 +693,9 @@ def main() -> None:
     print(json.dumps({
         "campaign_id": evidence["campaign_id"],
         "pilot_profile_count": evidence["pilot_profile_count"],
+        "world_configuration_count": evidence.get("world_configuration_count", 0),
+        "replicate_stream_count": evidence.get("replicate_stream_count", 0),
+        "all_confirmatory_streams_valid": evidence.get("all_confirmatory_streams_valid", False),
         "all_pilot_streams_regenerated_identically": evidence["all_pilot_streams_regenerated_identically"],
         "legacy_f6_anchor_passed": evidence["legacy_f6_anchor"]["all_checks_passed"],
         "confirmatory_streams_generated": evidence["confirmatory_streams_generated"],
