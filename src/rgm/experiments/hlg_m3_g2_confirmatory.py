@@ -280,6 +280,11 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
         },
         "routing": routing, "identifiability": dict(identifiability),
         "source_observed": source_observed_total, "target_observed": target_observed_total,
+        "detector_baseline": {
+            "observed_acquisition_rows": len(baseline_losses),
+            "mean_squared_loss": baseline_mean,
+            "scale": baseline_scale,
+        },
         "alarm_steps": alarm_steps, "detector_alarms": detector.alarms,
         "candidate_lifecycle": lifecycle.result() if lifecycle is not None else None,
         "candidate_lifecycle_records": lifecycle_records,
@@ -414,8 +419,12 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
             "max_observed_or_declared_query_multiply_adds",
         )
     }
-    control_compute_pass = all(
-        max(row["control_resources"][name]["update_multiply_adds_per_observed_update_upper_bound"] for row in test_rows)
+    control_resource_pass = all(
+        max(row["control_resources"][name]["persistent_state_bytes"] for row in test_rows)
+            <= RESOURCE_CAPS["persistent_state_bytes"]
+        and max(row["control_resources"][name]["trainable_parameter_count"] for row in test_rows)
+            <= RESOURCE_CAPS["trainable_parameter_count"]
+        and max(row["control_resources"][name]["update_multiply_adds_per_observed_update_upper_bound"] for row in test_rows)
             <= RESOURCE_CAPS["update_multiply_adds"]
         and max(row["control_resources"][name]["query_multiply_adds_per_prediction_upper_bound"] for row in test_rows)
             <= RESOURCE_CAPS["query_multiply_adds"]
@@ -426,7 +435,7 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
         resource_max["trainable_parameter_count"] <= RESOURCE_CAPS["trainable_parameter_count"],
         resource_max["max_observed_or_declared_update_multiply_adds"] <= RESOURCE_CAPS["update_multiply_adds"],
         resource_max["max_observed_or_declared_query_multiply_adds"] <= RESOURCE_CAPS["query_multiply_adds"],
-        control_compute_pass,
+        control_resource_pass,
     ))
 
     packages = {
@@ -471,6 +480,12 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
         "M3-D": {
             "package_id": "M3-D", "title": "Drift detection and candidate revision",
             "detector_signal": "prequential squared-loss innovation standardized against the observed acquisition phase; CUSUM allowance=0.25, threshold=5.0",
+            "baseline_observed_rows_min": min(row["detector_baseline"]["observed_acquisition_rows"] for row in test_rows),
+            "baseline_observed_rows_max": max(row["detector_baseline"]["observed_acquisition_rows"] for row in test_rows),
+            "baseline_mean_loss_range": [
+                float(min(row["detector_baseline"]["mean_squared_loss"] for row in test_rows if row["detector_baseline"]["mean_squared_loss"] is not None)),
+                float(max(row["detector_baseline"]["mean_squared_loss"] for row in test_rows if row["detector_baseline"]["mean_squared_loss"] is not None)),
+            ],
             "test_streams_with_alarms": sum(bool(row["alarm_steps"]) for row in test_rows),
             "total_detector_alarms": sum(int(row["detector_alarms"]) for row in test_rows),
             "alarms_by_drift_family": {
@@ -490,7 +505,8 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
             "package_id": "M3-E", "title": "Common-envelope and Pareto comparison",
             "resource_caps": RESOURCE_CAPS, "test_m3_resource_maxima": resource_max,
             "resource_gate_passed": resource_pass,
-            "accounting_scope": "integrated numeric payloads and estimator/control operation counters; Python object overhead excluded",
+            "control_resource_gate_passed": control_resource_pass,
+            "accounting_scope": "live numeric payloads with conservative per-operation upper bounds for estimator solves/updates, context routing/LMS, lifecycle windows, activation and detector; Python object/container overhead excluded",
             "control_resource_ranges": {
                 name: {
                     "state_bytes_min": min(row["control_resources"][name]["persistent_state_bytes"] for row in test_rows),

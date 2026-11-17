@@ -23,3 +23,6 @@ def test_confirmatory_stream_runs_prequentially_with_all_controls():
     assert set(row["control_losses"]) == {"C0", "C1", "C2", "C3", "C4"}
     assert all(value is not None for value in row["control_losses"].values())
     assert row["stream_sha256"]
+    assert row["detector_baseline"]["observed_acquisition_rows"] > 0
+    assert row["detector_baseline"]["mean_squared_loss"] is not None
+    assert row["detector_baseline"]["scale"] > 0
