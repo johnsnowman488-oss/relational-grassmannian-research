@@ -25,7 +25,7 @@ The full confirmatory allocation is fixed in the manifest before benchmark outco
 | Held-out test | 20 | 5 | 100 |
 | **Total** | **40** | **5** | **200** |
 
-The eight existing world-family definitions are retained as WF-01 through WF-08. BM-0/BM-1 does not silently redefine those families; BM-2 will bind each stable family ID to its existing generator implementation and configuration schema. Each world configuration has its own configuration seed; each replicate has a separate stream seed. World configuration IDs, configuration seeds and replicate seeds are disjoint across splits.
+The historical F6 design contains eight pilot worlds (four development-fit, two validation and two test), not eight separately specified world-family generators. BM-0 therefore preserves F6 as the `F6-INTEGRATED-SEQUENTIAL-v1` scenario template: seven shared phases (acquisition, distractor, context switch, relation-2 isolation, observation gap, reactivation and within-context drift), plus the held-out-composition phase in test only. The historical F6 seeds are retained as provenance and are not reused in the confirmatory campaign. BM-2 must define explicit factor-valued world configurations from this template; each configuration receives a separate configuration seed and five independent stream seeds.
 
 Do not run the full Cartesian product of every stress factor. It would be expensive and obscure which factor caused an effect. Use a structured design:
 - Each package first gets a one-factor-at-a-time core sweep with the same base stream definitions.
@@ -95,7 +95,7 @@ The machine-readable split manifest is docs/hybrid_leptograph_m3_benchmark_split
 - 12 development-fit world configurations, each with five independent replicate seeds.
 - 8 development-validation world configurations, each with five independent replicate seeds.
 - 20 held-out-test world configurations, each with five independent replicate seeds.
-- World-family IDs are distributed round-robin across the existing eight-family registry in each split.
+- Every confirmatory world configuration references the F6 scenario template. The 40 configuration seeds and 200 replicate stream seeds are new and disjoint across splits; BM-2 materialises the factor-valued configuration associated with each configuration ID.
 - World configuration seeds and replicate stream seeds use separate, non-overlapping deterministic ranges.
 - The manifest is immutable within a campaign run and its SHA-256 is recorded in every evidence record.
 - Test split membership, relation compositions, context truth, operator parameters, change schedules and future observations are evaluator-only data.
@@ -104,7 +104,7 @@ A new seed is not a new world configuration. The reporting unit for uncertainty 
 
 ## 5. Data-generation and benchmark factor protocol
 
-BM-2 implements the full world generator against the existing eight world families. Every world configuration is parameterised by a manifest entry and a configuration seed. Each replicate uses a separate stream seed. Generator version, configuration, all factor levels, composition IDs, realised masks and content hashes are recorded.
+BM-2 implements the full sequential world generator from the F6 scenario template. It must bind each of the 40 configuration IDs to explicit factor values before generating streams; a configuration seed and replicate stream seed are distinct inputs. Generator version, configuration values, factor levels, composition IDs, realised masks and content hashes are recorded.
 
 The data-generation plan must include:
 - heterogeneous source groups with controlled correlation, shared factors and exact collinearity;
@@ -138,7 +138,7 @@ The event order remains:
 
 A NOVEL or ABSTAIN context must not leak raw context-conditioned features into the effective predictor. A missing source or target must not be converted into negative evidence. The learner may keep its own history and internal state, but evaluator metadata must not enter that state.
 
-BM-1 implements a deterministic one-step contract fixture and prequential gate. It tests the information boundary and event order; it does not claim to implement or scientifically validate the full eight-world generator. The full generator is BM-2.
+BM-1 implements a deterministic one-step contract fixture and prequential gate. It tests the information boundary and event order; it does not claim to implement or scientifically validate the full F6-derived sequential generator. The full generator is BM-2.
 
 ## 7. Candidate revision protocol
 
