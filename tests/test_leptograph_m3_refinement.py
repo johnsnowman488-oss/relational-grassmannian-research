@@ -91,7 +91,7 @@ def test_integrated_resource_ledger_counts_live_candidate_components():
     assert report["resource_envelope_complete"] is True
     assert report["components_bytes"]["estimator_sufficient_statistics"] == 200
     assert report["components_bytes"]["context_metric_slots_and_pending"] >= 48
-    assert report["components_bytes"]["activation_evidence"] == 49
+    assert report["components_bytes"]["activation_evidence"] == 23
     assert report["components_bytes"]["drift_detector"] == 24
     assert report["persistent_state_bytes"] == sum(report["components_bytes"].values())
     assert report["trainable_parameter_count"] >= 5

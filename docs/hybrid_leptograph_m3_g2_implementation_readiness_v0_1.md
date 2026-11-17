@@ -1,6 +1,6 @@
 # HLG-M3 G2 implementation readiness — v0.2
 
-**Status:** implementation audit v0.6; confirmatory runner and evidence verifier are implemented. G2 execution is triggered by the dedicated workflow on this branch.  
+**Status:** implementation audit v0.7; confirmatory runner and evidence verifier are implemented. G2 execution is triggered by the dedicated workflow on this branch.  
 **Canonical base at audit:** `e00ddca0df6f2de11d6113e994475ccce02842c1`.  
 **G1:** accepted by workflow run [44111641084](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44111641084).  
 **Frozen manifest SHA-256:** `8548f2a72de09a81f79a57a19b3cd8196dbeae185db9432619e6ac5cc2f49101`.
@@ -51,6 +51,11 @@ The estimator now stores only the upper triangle of its symmetric Gram matrix an
 The generator emits six distinct context prototypes: F6-CONTEXT-A/B and REL-A/B/C/D. The declared context-capacity sweep is K=2, 4, 8. The current ContextBank supports an explicit label-blind `nearest_reuse` policy when full, while retaining abstention as the default. For G2, centroid-only storage avoids per-slot covariance matrices; nearest-slot reuse keeps the active context state bounded at K=2, 4 or 8. Context-specific operators are separately counted as trainable parameters. The confirmatory runner must select the policy before outcomes and report reuse/abstention behaviour.
 
 The diagnostic is exposed as `src/rgm/experiments/hlg_m3_g2_structural_preflight.py` and is included in the readiness artifact. Its tests assert the 416-byte compact numeric-buffer subtotal and report the capacity issue without assuming that all six context slots are mandatory at once.
+
+
+## 3B. Integrated state and compute accounting refinements
+
+The G2 candidate ledger now counts estimator solve/update work, context-bank routing and LMS updates, candidate-window arithmetic, activation updates, and detector updates using conservative per-operation upper bounds. C0-C4 each expose separate per-update and per-query upper bounds. The candidate operator is owned and counted once by the revision component rather than duplicated in lifecycle state. Activation evidence uses compact float32 masses/scores with int32 observation counts and int16 context-slot indices. These are state-representation changes only; they do not change the frozen 5% scientific thresholds, stream allocation, or candidate 32/32/64 windows.
 
 ## 4. Interpretation constraint
 
