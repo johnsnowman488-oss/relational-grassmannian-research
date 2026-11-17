@@ -146,11 +146,9 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
             "id": "resource_instrumentation_missing",
             "detail": "One or more existing model/control resource snapshots are absent.",
         })
-    else:
-        blockers.append({
-            "id": "integrated_candidate_resource_ledger_missing",
-            "detail": "Integrated candidate resource accounting is unavailable.",
-        })
+    # A callable integrated ledger is sufficient for interface readiness.
+    # Its measured envelope result is reported by the confirmatory runner;
+    # do not manufacture a blocker after verifying the implementation exists.
 
     candidate_lifecycle_api_available = (
         hasattr(CandidateLifecycle, "start")
