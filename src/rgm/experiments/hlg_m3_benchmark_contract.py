@@ -29,6 +29,12 @@ SEED_BASES = {
     "test": 330_000,
 }
 WORLD_SEED_BASE = 910_000
+FORBIDDEN_LEARNER_FIELDS = (
+    "world_id", "world_family_id", "split", "seed",
+    "world_configuration_seed", "replicate_seed", "composition_ids",
+    "primitive_relations", "true_context_id", "latent_relation_operators",
+    "change_schedule", "future_observations", "target",
+)
 
 COMPOSITIONS = {
     "development_fit": [
@@ -141,11 +147,31 @@ def validate_manifest(manifest: Mapping) -> dict:
     if manifest.get("status") != "draft_amendable_not_frozen":
         raise ValueError("manifest must remain draft and amendable")
 
+    registry = manifest.get("world_family_registry", {})
+    if registry.get("family_ids") != list(WORLD_FAMILIES):
+        raise ValueError("world-family registry differs from the existing eight-family contract")
+    if registry.get("definition_policy") != "reuse_existing_definitions_without_redefinition_in_BM0_BM1":
+        raise ValueError("BM-0/BM-1 must reuse, not redefine, the existing world families")
+
     allocation = manifest.get("allocation", {})
     if allocation.get("world_configurations_per_split") != SPLIT_COUNTS:
         raise ValueError("world allocation differs from the predeclared split counts")
     if allocation.get("replicates_per_world") != REPLICATES_PER_WORLD:
         raise ValueError("replicate count mismatch")
+    if allocation.get("total_world_configurations") != sum(SPLIT_COUNTS.values()):
+        raise ValueError("total world-configuration count mismatch")
+    if allocation.get("total_streams") != sum(SPLIT_COUNTS.values()) * REPLICATES_PER_WORLD:
+        raise ValueError("total replicate-stream count mismatch")
+
+    seed_policy = manifest.get("seed_policy", {})
+    if seed_policy.get("world_configuration_seed_base") != WORLD_SEED_BASE:
+        raise ValueError("world-configuration seed base mismatch")
+    if seed_policy.get("replicate_seed_bases") != SEED_BASES:
+        raise ValueError("replicate seed bases mismatch")
+    if seed_policy.get("replicate_index_range") != [0, REPLICATES_PER_WORLD - 1]:
+        raise ValueError("replicate seed index range mismatch")
+    if seed_policy.get("all_configuration_and_replicate_seeds_must_be_unique") is not True:
+        raise ValueError("global seed uniqueness must be required")
 
     worlds = manifest.get("worlds")
     if not isinstance(worlds, list) or len(worlds) != sum(SPLIT_COUNTS.values()):
@@ -172,6 +198,8 @@ def validate_manifest(manifest: Mapping) -> dict:
             family = world.get("world_family_id")
             if family not in WORLD_FAMILIES:
                 raise ValueError(f"{world_id}: unknown world family")
+            if family != WORLD_FAMILIES[ordinal % len(WORLD_FAMILIES)]:
+                raise ValueError(f"{world_id}: world-family allocation is not deterministic")
             family_coverage[split].add(family)
 
             config_seed = world.get("world_configuration_seed")
@@ -234,10 +262,14 @@ def validate_manifest(manifest: Mapping) -> dict:
         raise ValueError("auxiliary primitive-OOD stratum must introduce REL-E")
 
     boundary = manifest.get("learner_boundary", {})
+    if boundary.get("learner_observation_type") != "LearnerObservation":
+        raise ValueError("learner observation type mismatch")
+    if boundary.get("evaluator_record_type") != "EvaluatorRecord":
+        raise ValueError("evaluator record type mismatch")
     if boundary.get("target_revealed_only_after_prediction") is not True:
         raise ValueError("target feedback must be prequential")
-    if not boundary.get("evaluator_fields_forbidden_in_learner"):
-        raise ValueError("evaluator-only forbidden field list is required")
+    if set(boundary.get("evaluator_fields_forbidden_in_learner", [])) != set(FORBIDDEN_LEARNER_FIELDS):
+        raise ValueError("evaluator-only forbidden field list is incomplete or contains unexpected fields")
 
     limits = manifest.get("claim_limits", {})
     if limits.get("topology") != "fixed_candidate_topology":
@@ -378,6 +410,7 @@ class PrequentialGate:
     def __init__(self) -> None:
         self._pending_step: int | None = None
         self._prediction_recorded = False
+        self._prediction: tuple[float, ...] | None = None
         self._last_resolved_step = -1
 
     def begin_prediction(self, observation: LearnerObservation) -> PredictionTicket:
@@ -388,11 +421,16 @@ class PrequentialGate:
             raise RuntimeError("step indices must increase strictly")
         self._pending_step = observation.step_index
         self._prediction_recorded = False
+        self._prediction = None
         return PredictionTicket(observation.step_index)
 
-    def mark_prediction(self, ticket: PredictionTicket) -> None:
-        if self._pending_step != ticket.step_index or self._prediction_recorded:
+    def mark_prediction(self, ticket: PredictionTicket, prediction: Sequence[float]) -> None:
+        if type(ticket) is not PredictionTicket or self._pending_step != ticket.step_index or self._prediction_recorded:
             raise RuntimeError("prediction ticket is stale, duplicated or out of sequence")
+        values = tuple(float(value) for value in prediction)
+        if not values or any(not math.isfinite(value) for value in values):
+            raise ValueError("recorded prediction must be a non-empty finite vector")
+        self._prediction = values
         self._prediction_recorded = True
 
     def reveal_target(self, ticket: PredictionTicket, evaluator: EvaluatorRecord) -> TargetFeedback:
@@ -408,6 +446,7 @@ class PrequentialGate:
         self._last_resolved_step = ticket.step_index
         self._pending_step = None
         self._prediction_recorded = False
+        self._prediction = None
         return feedback
 
 
