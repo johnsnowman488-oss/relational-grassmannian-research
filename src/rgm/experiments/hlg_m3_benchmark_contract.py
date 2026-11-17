@@ -21,7 +21,24 @@ SPLIT_COUNTS = {
     "test": 20,
 }
 REPLICATES_PER_WORLD = 5
-WORLD_FAMILIES = tuple(f"WF-{i:02d}" for i in range(1, 9))
+F6_WORLD_TEMPLATE = {
+    "template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+    "source_evidence": "F6",
+    "historical_world_count": 8,
+    "historical_split_counts": {"development_fit": 4, "development_validation": 2, "test": 2},
+    "historical_seed_sets": {
+        "development_fit": [110, 111, 112, 113],
+        "development_validation": [210, 211],
+        "test": [310, 311],
+    },
+    "common_phases": [
+        "acquisition", "distractor", "context_switch", "relation2_isolation",
+        "observation_gap", "reactivation", "within_context_drift",
+    ],
+    "test_only_phases": ["heldout_composition"],
+    "steps_per_phase": 20,
+    "historical_seeds_reused_in_confirmatory_campaign": False,
+}
 PRIMARY_ATOMS = ("REL-A", "REL-B", "REL-C", "REL-D")
 SEED_BASES = {
     "development_fit": 110_000,
@@ -75,7 +92,7 @@ def build_manifest() -> dict:
             worlds.append({
                 "world_id": world_id,
                 "split": split,
-                "world_family_id": WORLD_FAMILIES[ordinal % len(WORLD_FAMILIES)],
+                "scenario_template_id": F6_WORLD_TEMPLATE["template_id"],
                 "world_configuration_seed": WORLD_SEED_BASE + ordinal,
                 "replicate_seeds": replicate_seeds,
                 "composition_ids": split_composition_ids,
@@ -87,11 +104,7 @@ def build_manifest() -> dict:
         "schema_version": SCHEMA_VERSION,
         "status": "draft_amendable_not_frozen",
         "primary_relation_atoms": list(PRIMARY_ATOMS),
-        "world_family_registry": {
-            "registry_id": "existing-eight-world-family",
-            "family_ids": list(WORLD_FAMILIES),
-            "definition_policy": "reuse_existing_definitions_without_redefinition_in_BM0_BM1",
-        },
+        "world_template": dict(F6_WORLD_TEMPLATE),
         "allocation": {
             "world_configurations_per_split": dict(SPLIT_COUNTS),
             "replicates_per_world": REPLICATES_PER_WORLD,
@@ -147,11 +160,8 @@ def validate_manifest(manifest: Mapping) -> dict:
     if manifest.get("status") != "draft_amendable_not_frozen":
         raise ValueError("manifest must remain draft and amendable")
 
-    registry = manifest.get("world_family_registry", {})
-    if registry.get("family_ids") != list(WORLD_FAMILIES):
-        raise ValueError("world-family registry differs from the existing eight-family contract")
-    if registry.get("definition_policy") != "reuse_existing_definitions_without_redefinition_in_BM0_BM1":
-        raise ValueError("BM-0/BM-1 must reuse, not redefine, the existing world families")
+    if manifest.get("world_template") != F6_WORLD_TEMPLATE:
+        raise ValueError("world template must preserve the historical F6 eight-world scenario structure")
 
     allocation = manifest.get("allocation", {})
     if allocation.get("world_configurations_per_split") != SPLIT_COUNTS:
@@ -179,7 +189,6 @@ def validate_manifest(manifest: Mapping) -> dict:
 
     ids, config_seeds, replicate_seeds = set(), set(), set()
     split_world_counts = {key: 0 for key in SPLIT_COUNTS}
-    family_coverage = {key: set() for key in SPLIT_COUNTS}
     ordinal = 0
     for split, count in SPLIT_COUNTS.items():
         expected_compositions = [item["composition_id"] for item in COMPOSITIONS[split]]
@@ -195,12 +204,8 @@ def validate_manifest(manifest: Mapping) -> dict:
             ids.add(world_id)
             if world.get("composition_ids") != expected_compositions:
                 raise ValueError(f"{world_id}: composition assignment does not match split")
-            family = world.get("world_family_id")
-            if family not in WORLD_FAMILIES:
-                raise ValueError(f"{world_id}: unknown world family")
-            if family != WORLD_FAMILIES[ordinal % len(WORLD_FAMILIES)]:
-                raise ValueError(f"{world_id}: world-family allocation is not deterministic")
-            family_coverage[split].add(family)
+            if world.get("scenario_template_id") != F6_WORLD_TEMPLATE["template_id"]:
+                raise ValueError(f"{world_id}: unknown or inconsistent scenario template")
 
             config_seed = world.get("world_configuration_seed")
             if not isinstance(config_seed, int) or config_seed in config_seeds:
@@ -221,9 +226,6 @@ def validate_manifest(manifest: Mapping) -> dict:
                     raise ValueError("replicate seeds must be globally unique")
                 replicate_seeds.add(seed)
             ordinal += 1
-
-    if any(family_coverage[split] != set(WORLD_FAMILIES) for split in SPLIT_COUNTS):
-        raise ValueError("each split must cover all eight existing world families")
 
     partitions = manifest.get("composition_partitions", {})
     composition_ids, composition_sequences = set(), set()
@@ -287,9 +289,8 @@ def validate_manifest(manifest: Mapping) -> dict:
         "world_configuration_count": len(ids),
         "replicate_stream_count": len(replicate_seeds),
         "replicates_per_world": REPLICATES_PER_WORLD,
-        "world_families_covered_per_split": {
-            split: sorted(families) for split, families in family_coverage.items()
-        },
+        "scenario_template_id": F6_WORLD_TEMPLATE["template_id"],
+        "historical_f6_world_count": F6_WORLD_TEMPLATE["historical_world_count"],
         "primary_composition_counts": {
             split: len(COMPOSITIONS[split]) for split in SPLIT_COUNTS
         },
