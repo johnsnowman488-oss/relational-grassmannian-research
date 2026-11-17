@@ -30,10 +30,13 @@ class ContextSlot:
         old_mean = self.mean.copy()
         self.count += 1
         self.mean += (x - self.mean) / self.count
-        self.scatter += np.outer(x - old_mean, x - self.mean)
+        if self.scatter.size:
+            self.scatter += np.outer(x - old_mean, x - self.mean)
 
     @property
     def covariance(self) -> np.ndarray:
+        if not self.scatter.size:
+            return np.zeros((self.mean.size, self.mean.size), dtype=float)
         if self.count <= 1:
             return self.scatter.copy()
         return self.scatter / max(1, self.count - 1)
@@ -56,6 +59,7 @@ class ContextBank:
     ambiguity_margin: float = 0.25
     novelty_repeats: int = 3
     full_bank_policy: str = "abstain"
+    store_scatter: bool = True
     slots: list[ContextSlot] = field(default_factory=list)
     _next_id: int = 0
     _pending: list[np.ndarray] = field(default_factory=list)
@@ -113,7 +117,8 @@ class ContextBank:
             raise ValueError("prior covariance must be positive definite")
         slot_id = self._next_id
         self._next_id += 1
-        self.slots.append(ContextSlot(slot_id, x.copy(), cov.copy(), count=1))
+        scatter = cov.copy() if self.store_scatter else np.zeros(0, dtype=float)
+        self.slots.append(ContextSlot(slot_id, x.copy(), scatter, count=1))
         return slot_id
 
     def route(self, point: Sequence[float]) -> tuple[ContextDecision, int | None, dict[int, float]]:
@@ -181,6 +186,11 @@ class ContextBank:
             "operator_count": sum(len(value) for value in self._relation_operators.values()),
             "operator_bytes": int(sum(item.nbytes for group in self._relation_operators.values()
                                        for item in group.values())),
+            "trainable_parameter_count": int(sum(item.size for group in self._relation_operators.values()
+                                                  for item in group.values())),
+            "persistent_context_state_bytes": int(self.metric.nbytes + sum(
+                slot.mean.nbytes + slot.scatter.nbytes for slot in self.slots
+            )),
         }
 
     def observe_novel(self, point: Sequence[float]) -> int | None:
