@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 import numpy as np
 
-CAMPAIGN_ID = "HLG-M3-G3-ADAPTATION-v0.1"
+CAMPAIGN_ID = "HLG-M3-G3-ADAPTATION-v0.2"
 ENVIRONMENTS = ("stable", "gradual", "abrupt")
 POLICIES = ("no_revision", "immediate_revision", "validated_revision", "delayed_validated_revision")
 STEPS, INITIAL_FIT_STEPS = 512, 128
