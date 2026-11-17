@@ -90,8 +90,14 @@ class MultiSourceRidge:
         self.prediction_count += 1
         return phi @ beta
 
-    def update(self, sources, context, target) -> None:
-        phi = self._features(sources, context)
+    def update(self, sources, context, target, *, source_gates=None) -> None:
+        """Update from current observed inputs, with explicit per-source gates.
+
+        Callers represent a missing source with a zero placeholder and a zero
+        gate. This preserves the declared source layout without treating
+        absence as a measured zero-valued relationship contribution.
+        """
+        phi = self._features(sources, context, source_gates)
         y = np.asarray(target, dtype=float)
         if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
             raise ValueError("invalid target vector")
@@ -102,8 +108,8 @@ class MultiSourceRidge:
         self.sample_count += 1
         self.update_count += 1
 
-    def marginal_loss_contributions(self, sources, context, target) -> dict[str, float]:
-        phi = self._features(sources, context)
+    def marginal_loss_contributions(self, sources, context, target, *, source_gates=None) -> dict[str, float]:
+        phi = self._features(sources, context, source_gates)
         y = np.asarray(target, dtype=float)
         if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
             raise ValueError("invalid target vector")
