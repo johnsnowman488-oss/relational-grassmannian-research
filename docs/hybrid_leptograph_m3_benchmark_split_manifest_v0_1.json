@@ -142,7 +142,7 @@
   "learner_boundary": {
     "evaluator_fields_forbidden_in_learner": [
       "world_id",
-      "world_family_id",
+      "scenario_template_id",
       "split",
       "seed",
       "world_configuration_seed",
