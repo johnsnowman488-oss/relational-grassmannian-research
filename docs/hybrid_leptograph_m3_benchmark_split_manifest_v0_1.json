@@ -1,0 +1,1024 @@
+{
+  "campaign_id": "HLG-M3-BROAD-BENCHMARK-BM0-BM1-v0.1",
+  "schema_version": 1,
+  "status": "draft_amendable_not_frozen",
+  "primary_relation_atoms": [
+    "REL-A",
+    "REL-B",
+    "REL-C",
+    "REL-D"
+  ],
+  "world_family_registry": {
+    "registry_id": "existing-eight-world-family",
+    "family_ids": [
+      "WF-01",
+      "WF-02",
+      "WF-03",
+      "WF-04",
+      "WF-05",
+      "WF-06",
+      "WF-07",
+      "WF-08"
+    ],
+    "definition_policy": "reuse_existing_definitions_without_redefinition_in_BM0_BM1"
+  },
+  "allocation": {
+    "world_configurations_per_split": {
+      "development_fit": 12,
+      "development_validation": 8,
+      "test": 20
+    },
+    "replicates_per_world": 5,
+    "total_world_configurations": 40,
+    "total_streams": 200
+  },
+  "seed_policy": {
+    "world_configuration_seed_base": 910000,
+    "replicate_seed_bases": {
+      "development_fit": 110000,
+      "development_validation": 220000,
+      "test": 330000
+    },
+    "replicate_seed_formula": "split_base + global_world_ordinal * 10 + replicate_index",
+    "replicate_index_range": [
+      0,
+      4
+    ],
+    "all_configuration_and_replicate_seeds_must_be_unique": true
+  },
+  "composition_partitions": {
+    "development_fit": [
+      {
+        "composition_id": "FIT-AB",
+        "ordered_relations": [
+          "REL-A",
+          "REL-B"
+        ]
+      },
+      {
+        "composition_id": "FIT-BC",
+        "ordered_relations": [
+          "REL-B",
+          "REL-C"
+        ]
+      },
+      {
+        "composition_id": "FIT-CD",
+        "ordered_relations": [
+          "REL-C",
+          "REL-D"
+        ]
+      },
+      {
+        "composition_id": "FIT-DA",
+        "ordered_relations": [
+          "REL-D",
+          "REL-A"
+        ]
+      }
+    ],
+    "development_validation": [
+      {
+        "composition_id": "VAL-AC",
+        "ordered_relations": [
+          "REL-A",
+          "REL-C"
+        ]
+      },
+      {
+        "composition_id": "VAL-BD",
+        "ordered_relations": [
+          "REL-B",
+          "REL-D"
+        ]
+      }
+    ],
+    "test": [
+      {
+        "composition_id": "TEST-BA",
+        "ordered_relations": [
+          "REL-B",
+          "REL-A"
+        ]
+      },
+      {
+        "composition_id": "TEST-CB",
+        "ordered_relations": [
+          "REL-C",
+          "REL-B"
+        ]
+      },
+      {
+        "composition_id": "TEST-DC",
+        "ordered_relations": [
+          "REL-D",
+          "REL-C"
+        ]
+      },
+      {
+        "composition_id": "TEST-AD",
+        "ordered_relations": [
+          "REL-A",
+          "REL-D"
+        ]
+      },
+      {
+        "composition_id": "TEST-ABC",
+        "ordered_relations": [
+          "REL-A",
+          "REL-B",
+          "REL-C"
+        ]
+      },
+      {
+        "composition_id": "TEST-BCD",
+        "ordered_relations": [
+          "REL-B",
+          "REL-C",
+          "REL-D"
+        ]
+      },
+      {
+        "composition_id": "TEST-CDA",
+        "ordered_relations": [
+          "REL-C",
+          "REL-D",
+          "REL-A"
+        ]
+      },
+      {
+        "composition_id": "TEST-DAB",
+        "ordered_relations": [
+          "REL-D",
+          "REL-A",
+          "REL-B"
+        ]
+      }
+    ]
+  },
+  "auxiliary_primitive_ood": {
+    "stratum_id": "AUX-REL-E-PRIMITIVE-OOD",
+    "relation_atoms": [
+      "REL-E",
+      "REL-A"
+    ],
+    "composition_ids": [
+      "AUX-EA"
+    ],
+    "excluded_from_primary_scoring": true,
+    "interpretation": "separate primitive-OOD question; never pool with primary composition-generalisation results"
+  },
+  "worlds": [
+    {
+      "world_id": "DEVELOPMENT_FIT-W01",
+      "split": "development_fit",
+      "world_family_id": "WF-01",
+      "world_configuration_seed": 910000,
+      "replicate_seeds": [
+        110000,
+        110001,
+        110002,
+        110003,
+        110004
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W02",
+      "split": "development_fit",
+      "world_family_id": "WF-02",
+      "world_configuration_seed": 910001,
+      "replicate_seeds": [
+        110010,
+        110011,
+        110012,
+        110013,
+        110014
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W03",
+      "split": "development_fit",
+      "world_family_id": "WF-03",
+      "world_configuration_seed": 910002,
+      "replicate_seeds": [
+        110020,
+        110021,
+        110022,
+        110023,
+        110024
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W04",
+      "split": "development_fit",
+      "world_family_id": "WF-04",
+      "world_configuration_seed": 910003,
+      "replicate_seeds": [
+        110030,
+        110031,
+        110032,
+        110033,
+        110034
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W05",
+      "split": "development_fit",
+      "world_family_id": "WF-05",
+      "world_configuration_seed": 910004,
+      "replicate_seeds": [
+        110040,
+        110041,
+        110042,
+        110043,
+        110044
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W06",
+      "split": "development_fit",
+      "world_family_id": "WF-06",
+      "world_configuration_seed": 910005,
+      "replicate_seeds": [
+        110050,
+        110051,
+        110052,
+        110053,
+        110054
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W07",
+      "split": "development_fit",
+      "world_family_id": "WF-07",
+      "world_configuration_seed": 910006,
+      "replicate_seeds": [
+        110060,
+        110061,
+        110062,
+        110063,
+        110064
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W08",
+      "split": "development_fit",
+      "world_family_id": "WF-08",
+      "world_configuration_seed": 910007,
+      "replicate_seeds": [
+        110070,
+        110071,
+        110072,
+        110073,
+        110074
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W09",
+      "split": "development_fit",
+      "world_family_id": "WF-01",
+      "world_configuration_seed": 910008,
+      "replicate_seeds": [
+        110080,
+        110081,
+        110082,
+        110083,
+        110084
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W10",
+      "split": "development_fit",
+      "world_family_id": "WF-02",
+      "world_configuration_seed": 910009,
+      "replicate_seeds": [
+        110090,
+        110091,
+        110092,
+        110093,
+        110094
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W11",
+      "split": "development_fit",
+      "world_family_id": "WF-03",
+      "world_configuration_seed": 910010,
+      "replicate_seeds": [
+        110100,
+        110101,
+        110102,
+        110103,
+        110104
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_FIT-W12",
+      "split": "development_fit",
+      "world_family_id": "WF-04",
+      "world_configuration_seed": 910011,
+      "replicate_seeds": [
+        110110,
+        110111,
+        110112,
+        110113,
+        110114
+      ],
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_VALIDATION-W01",
+      "split": "development_validation",
+      "world_family_id": "WF-05",
+      "world_configuration_seed": 910012,
+      "replicate_seeds": [
+        220120,
+        220121,
+        220122,
+        220123,
+        220124
+      ],
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_VALIDATION-W02",
+      "split": "development_validation",
+      "world_family_id": "WF-06",
+      "world_configuration_seed": 910013,
+      "replicate_seeds": [
+        220130,
+        220131,
+        220132,
+        220133,
+        220134
+      ],
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_VALIDATION-W03",
+      "split": "development_validation",
+      "world_family_id": "WF-07",
+      "world_configuration_seed": 910014,
+      "replicate_seeds": [
+        220140,
+        220141,
+        220142,
+        220143,
+        220144
+      ],
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_VALIDATION-W04",
+      "split": "development_validation",
+      "world_family_id": "WF-08",
+      "world_configuration_seed": 910015,
+      "replicate_seeds": [
+        220150,
+        220151,
+        220152,
+        220153,
+        220154
+      ],
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_VALIDATION-W05",
+      "split": "development_validation",
+      "world_family_id": "WF-01",
+      "world_configuration_seed": 910016,
+      "replicate_seeds": [
+        220160,
+        220161,
+        220162,
+        220163,
+        220164
+      ],
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_VALIDATION-W06",
+      "split": "development_validation",
+      "world_family_id": "WF-02",
+      "world_configuration_seed": 910017,
+      "replicate_seeds": [
+        220170,
+        220171,
+        220172,
+        220173,
+        220174
+      ],
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_VALIDATION-W07",
+      "split": "development_validation",
+      "world_family_id": "WF-03",
+      "world_configuration_seed": 910018,
+      "replicate_seeds": [
+        220180,
+        220181,
+        220182,
+        220183,
+        220184
+      ],
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ]
+    },
+    {
+      "world_id": "DEVELOPMENT_VALIDATION-W08",
+      "split": "development_validation",
+      "world_family_id": "WF-04",
+      "world_configuration_seed": 910019,
+      "replicate_seeds": [
+        220190,
+        220191,
+        220192,
+        220193,
+        220194
+      ],
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ]
+    },
+    {
+      "world_id": "TEST-W01",
+      "split": "test",
+      "world_family_id": "WF-05",
+      "world_configuration_seed": 910020,
+      "replicate_seeds": [
+        330200,
+        330201,
+        330202,
+        330203,
+        330204
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W02",
+      "split": "test",
+      "world_family_id": "WF-06",
+      "world_configuration_seed": 910021,
+      "replicate_seeds": [
+        330210,
+        330211,
+        330212,
+        330213,
+        330214
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W03",
+      "split": "test",
+      "world_family_id": "WF-07",
+      "world_configuration_seed": 910022,
+      "replicate_seeds": [
+        330220,
+        330221,
+        330222,
+        330223,
+        330224
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W04",
+      "split": "test",
+      "world_family_id": "WF-08",
+      "world_configuration_seed": 910023,
+      "replicate_seeds": [
+        330230,
+        330231,
+        330232,
+        330233,
+        330234
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W05",
+      "split": "test",
+      "world_family_id": "WF-01",
+      "world_configuration_seed": 910024,
+      "replicate_seeds": [
+        330240,
+        330241,
+        330242,
+        330243,
+        330244
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W06",
+      "split": "test",
+      "world_family_id": "WF-02",
+      "world_configuration_seed": 910025,
+      "replicate_seeds": [
+        330250,
+        330251,
+        330252,
+        330253,
+        330254
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W07",
+      "split": "test",
+      "world_family_id": "WF-03",
+      "world_configuration_seed": 910026,
+      "replicate_seeds": [
+        330260,
+        330261,
+        330262,
+        330263,
+        330264
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W08",
+      "split": "test",
+      "world_family_id": "WF-04",
+      "world_configuration_seed": 910027,
+      "replicate_seeds": [
+        330270,
+        330271,
+        330272,
+        330273,
+        330274
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W09",
+      "split": "test",
+      "world_family_id": "WF-05",
+      "world_configuration_seed": 910028,
+      "replicate_seeds": [
+        330280,
+        330281,
+        330282,
+        330283,
+        330284
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W10",
+      "split": "test",
+      "world_family_id": "WF-06",
+      "world_configuration_seed": 910029,
+      "replicate_seeds": [
+        330290,
+        330291,
+        330292,
+        330293,
+        330294
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W11",
+      "split": "test",
+      "world_family_id": "WF-07",
+      "world_configuration_seed": 910030,
+      "replicate_seeds": [
+        330300,
+        330301,
+        330302,
+        330303,
+        330304
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W12",
+      "split": "test",
+      "world_family_id": "WF-08",
+      "world_configuration_seed": 910031,
+      "replicate_seeds": [
+        330310,
+        330311,
+        330312,
+        330313,
+        330314
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W13",
+      "split": "test",
+      "world_family_id": "WF-01",
+      "world_configuration_seed": 910032,
+      "replicate_seeds": [
+        330320,
+        330321,
+        330322,
+        330323,
+        330324
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W14",
+      "split": "test",
+      "world_family_id": "WF-02",
+      "world_configuration_seed": 910033,
+      "replicate_seeds": [
+        330330,
+        330331,
+        330332,
+        330333,
+        330334
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W15",
+      "split": "test",
+      "world_family_id": "WF-03",
+      "world_configuration_seed": 910034,
+      "replicate_seeds": [
+        330340,
+        330341,
+        330342,
+        330343,
+        330344
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W16",
+      "split": "test",
+      "world_family_id": "WF-04",
+      "world_configuration_seed": 910035,
+      "replicate_seeds": [
+        330350,
+        330351,
+        330352,
+        330353,
+        330354
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W17",
+      "split": "test",
+      "world_family_id": "WF-05",
+      "world_configuration_seed": 910036,
+      "replicate_seeds": [
+        330360,
+        330361,
+        330362,
+        330363,
+        330364
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W18",
+      "split": "test",
+      "world_family_id": "WF-06",
+      "world_configuration_seed": 910037,
+      "replicate_seeds": [
+        330370,
+        330371,
+        330372,
+        330373,
+        330374
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W19",
+      "split": "test",
+      "world_family_id": "WF-07",
+      "world_configuration_seed": 910038,
+      "replicate_seeds": [
+        330380,
+        330381,
+        330382,
+        330383,
+        330384
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    },
+    {
+      "world_id": "TEST-W20",
+      "split": "test",
+      "world_family_id": "WF-08",
+      "world_configuration_seed": 910039,
+      "replicate_seeds": [
+        330390,
+        330391,
+        330392,
+        330393,
+        330394
+      ],
+      "composition_ids": [
+        "TEST-BA",
+        "TEST-CB",
+        "TEST-DC",
+        "TEST-AD",
+        "TEST-ABC",
+        "TEST-BCD",
+        "TEST-CDA",
+        "TEST-DAB"
+      ]
+    }
+  ],
+  "learner_boundary": {
+    "learner_observation_type": "LearnerObservation",
+    "evaluator_record_type": "EvaluatorRecord",
+    "target_revealed_only_after_prediction": true,
+    "evaluator_fields_forbidden_in_learner": [
+      "world_id",
+      "world_family_id",
+      "split",
+      "seed",
+      "world_configuration_seed",
+      "replicate_seed",
+      "composition_ids",
+      "primitive_relations",
+      "true_context_id",
+      "latent_relation_operators",
+      "change_schedule",
+      "future_observations",
+      "target"
+    ]
+  },
+  "claim_limits": {
+    "topology": "fixed_candidate_topology",
+    "topology_birth_death": false,
+    "causal_attribution": false,
+    "m4_global_coupled_stability": false,
+    "m3_scientific_validation_complete": false
+  }
+}
