@@ -87,7 +87,8 @@ class ContextBank:
     def _score(self, point: np.ndarray, slot: ContextSlot) -> float:
         delta = point - slot.mean
         metric_inverse = np.linalg.solve(self.metric, np.eye(self.dimension))
-        covariance = slot.covariance + self.regularisation * metric_inverse
+        base_covariance = (metric_inverse if not slot.scatter.size else slot.covariance)
+        covariance = base_covariance + self.regularisation * metric_inverse
         sign, logdet_product = np.linalg.slogdet(self.metric @ covariance)
         if sign <= 0:
             raise np.linalg.LinAlgError("generalised context covariance is not positive definite")
