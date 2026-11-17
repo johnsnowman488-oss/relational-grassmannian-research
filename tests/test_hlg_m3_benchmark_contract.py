@@ -67,6 +67,25 @@ def test_primitive_ood_is_separate_from_primary_composition_claim():
     assert "REL-E" not in manifest["primary_relation_atoms"]
 
 
+def test_validator_rejects_incomplete_world_registry_and_seed_accounting():
+    manifest = build_manifest()
+    manifest["world_family_registry"]["family_ids"].pop()
+    with pytest.raises(ValueError, match="world-family registry"):
+        validate_manifest(manifest)
+
+    manifest = build_manifest()
+    manifest["allocation"]["total_streams"] -= 1
+    with pytest.raises(ValueError, match="total replicate-stream"):
+        validate_manifest(manifest)
+
+
+def test_validator_rejects_incomplete_evaluator_forbidden_field_contract():
+    manifest = build_manifest()
+    manifest["learner_boundary"]["evaluator_fields_forbidden_in_learner"].remove("target")
+    with pytest.raises(ValueError, match="forbidden field list"):
+        validate_manifest(manifest)
+
+
 def test_validator_rejects_duplicate_world_identity():
     manifest = build_manifest()
     manifest["worlds"][1]["world_id"] = manifest["worlds"][0]["world_id"]
@@ -150,7 +169,7 @@ def test_prequential_gate_reveals_target_only_after_prediction():
     ticket = gate.begin_prediction(observation)
     with pytest.raises(RuntimeError, match="before"):
         gate.reveal_target(ticket, evaluator)
-    gate.mark_prediction(ticket)
+    gate.mark_prediction(ticket, (0.25,))
     feedback = gate.reveal_target(ticket, evaluator)
     assert type(feedback) is TargetFeedback
     assert feedback.target_vector == evaluator.target_vector
@@ -158,6 +177,20 @@ def test_prequential_gate_reveals_target_only_after_prediction():
     assert not hasattr(feedback, "world_id")
     assert not hasattr(feedback, "true_context_id")
     assert not hasattr(feedback, "latent_relation_operators")
+
+
+def test_prequential_gate_requires_a_finite_recorded_prediction():
+    observation, evaluator = build_reference_fixture(seed=90, step_index=1)
+    gate = PrequentialGate()
+    ticket = gate.begin_prediction(observation)
+    with pytest.raises(ValueError, match="finite"):
+        gate.mark_prediction(ticket, (float("nan"),))
+    with pytest.raises(ValueError, match="finite"):
+        gate.mark_prediction(ticket, ())
+    gate.mark_prediction(ticket, (0.1, -0.2))
+    with pytest.raises(RuntimeError, match="duplicated"):
+        gate.mark_prediction(ticket, (0.1, -0.2))
+    gate.reveal_target(ticket, evaluator)
 
 
 def test_prequential_gate_requires_matching_step_and_one_open_exchange():
@@ -173,7 +206,7 @@ def test_prequential_gate_requires_matching_step_and_one_open_exchange():
     feedback = gate.reveal_target(ticket, evaluator)
     assert feedback.step_index == 5
     next_ticket = gate.begin_prediction(later_observation)
-    gate.mark_prediction(next_ticket)
+    gate.mark_prediction(next_ticket, (0.5,))
     assert gate.reveal_target(next_ticket, later_evaluator).step_index == 6
 
 
