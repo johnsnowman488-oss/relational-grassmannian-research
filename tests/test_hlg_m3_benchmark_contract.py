@@ -42,8 +42,18 @@ def test_predeclared_split_counts_seeds_and_world_family_coverage():
     }
     assert report["world_configuration_count"] == 40
     assert report["replicate_stream_count"] == 200
-    for split, families in report["world_families_covered_per_split"].items():
-        assert len(families) == 8, split
+    assert report["scenario_template_id"] == "F6-INTEGRATED-SEQUENTIAL-v1"
+    assert report["historical_f6_world_count"] == 8
+    assert all(
+        world["scenario_template_id"] == "F6-INTEGRATED-SEQUENTIAL-v1"
+        for world in manifest["worlds"]
+    )
+    assert manifest["world_template"]["historical_split_counts"] == {
+        "development_fit": 4,
+        "development_validation": 2,
+        "test": 2,
+    }
+    assert manifest["world_template"]["historical_seeds_reused_in_confirmatory_campaign"] is False
 
 
 def test_primary_compositions_are_disjoint_and_test_atoms_are_seen_in_fit():
@@ -67,15 +77,20 @@ def test_primitive_ood_is_separate_from_primary_composition_claim():
     assert "REL-E" not in manifest["primary_relation_atoms"]
 
 
-def test_validator_rejects_incomplete_world_registry_and_seed_accounting():
+def test_validator_rejects_world_template_drift_and_seed_accounting():
     manifest = build_manifest()
-    manifest["world_family_registry"]["family_ids"].pop()
-    with pytest.raises(ValueError, match="world-family registry"):
+    manifest["world_template"]["common_phases"].pop()
+    with pytest.raises(ValueError, match="F6 eight-world scenario"):
         validate_manifest(manifest)
 
     manifest = build_manifest()
     manifest["allocation"]["total_streams"] -= 1
     with pytest.raises(ValueError, match="total replicate-stream"):
+        validate_manifest(manifest)
+
+    manifest = build_manifest()
+    manifest["worlds"][0]["scenario_template_id"] = "UNDECLARED"
+    with pytest.raises(ValueError, match="scenario template"):
         validate_manifest(manifest)
 
 
