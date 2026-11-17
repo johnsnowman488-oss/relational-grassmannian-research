@@ -149,7 +149,15 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
                 sources, [], context_slot=slot_id, context_bank=bank, source_gates=gates
             )
         else:
-            prediction = model.predict(sources, [], source_gates=gates)
+            # CandidateRevision owns the active shared fallback primary operator.
+            # Accepted context-slot operators remain context-specific and untouched.
+            fallback_overrides = bank.operator_for_slot(slot_id) if slot_id is not None else {}
+            if revision is not None:
+                fallback_overrides.setdefault("primary", revision.accepted_operator)
+            prediction = model.predict(
+                sources, [], source_gates=gates,
+                operator_overrides=fallback_overrides or None,
+            )
         control_predictions = {name: control.predict() for name, control in controls.items()}
 
         # Candidate lifecycle consumes only feedback after the current prediction.
@@ -219,10 +227,15 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
             if lifecycle is not None and lifecycle.is_open and observation.step_index > lifecycle.alarm_step:
                 primary = sources["primary"]
                 primary_seen = bool(gates["primary"])
-                local_ops = bank.operator_for_slot(slot_id) if slot_id is not None else {}
-                primary_operator = local_ops.get("primary", model.source_operator("primary"))
-                primary_contribution = primary_operator @ primary
-                residual_target = target - (prediction - primary_contribution)
+                # Candidate windows use the same shared-fallback predictor that
+                # CandidateRevision will replace, not a context-slot operator.
+                incumbent_operator = revision.accepted_operator
+                fallback_prediction = model.predict(
+                    sources, [], source_gates=gates,
+                    operator_overrides={"primary": incumbent_operator},
+                )
+                primary_contribution = incumbent_operator @ primary
+                residual_target = target - (fallback_prediction - primary_contribution)
                 decision_record = lifecycle.observe(
                     step_index=observation.step_index,
                     source=primary if primary_seen else None,
@@ -288,6 +301,7 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
         "alarm_steps": alarm_steps, "detector_alarms": detector.alarms,
         "candidate_lifecycle": lifecycle.result() if lifecycle is not None else None,
         "candidate_lifecycle_records": lifecycle_records,
+        "candidate_revision_applied_to_fallback": bool(revision is not None and revision.revision_count > 0),
         "resource": resource, "control_resources": control_resources,
     }
 
@@ -488,6 +502,10 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
             ],
             "test_streams_with_alarms": sum(bool(row["alarm_steps"]) for row in test_rows),
             "total_detector_alarms": sum(int(row["detector_alarms"]) for row in test_rows),
+            "candidate_revisions_applied_to_fallback": sum(
+                bool(row["candidate_revision_applied_to_fallback"]) for row in test_rows
+            ),
+            "candidate_revision_scope": "shared fallback primary operator; context-slot operators remain independently learned",
             "alarms_by_drift_family": {
                 family: sum(int(row["detector_alarms"]) for row in test_rows
                             if row["factor_profile"]["drift_family"] == family)

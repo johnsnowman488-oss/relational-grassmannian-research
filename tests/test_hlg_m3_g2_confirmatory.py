@@ -26,3 +26,4 @@ def test_confirmatory_stream_runs_prequentially_with_all_controls():
     assert row["detector_baseline"]["observed_acquisition_rows"] > 0
     assert row["detector_baseline"]["mean_squared_loss"] is not None
     assert row["detector_baseline"]["scale"] > 0
+    assert isinstance(row["candidate_revision_applied_to_fallback"], bool)
