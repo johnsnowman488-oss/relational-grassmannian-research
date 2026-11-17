@@ -17,6 +17,8 @@ from rgm.experiments.hlg_m3_benchmark_contract import (
     PRIMARY_ATOMS,
 )
 from rgm.leptograph.m3.context import ContextBank
+from rgm.leptograph.m3.revision import CandidateRevision
+from rgm.leptograph.m3.revision_campaign import CandidateLifecycle
 from rgm.leptograph.m3.estimation import MultiSourceRidge
 
 
@@ -30,7 +32,7 @@ def build_structural_preflight_report() -> dict[str, Any]:
     """Measure minimal existing learner buffers and expose context-capacity pressure."""
     estimator = MultiSourceRidge(
         source_dimensions=PRIMARY_SOURCE_DIMENSIONS,
-        context_dimension=CONTEXT_DIMENSION,
+        context_dimension=0,
         target_dimension=TARGET_DIMENSION,
         ridge=1e-3,
     )
@@ -38,19 +40,24 @@ def build_structural_preflight_report() -> dict[str, Any]:
 
     # Count the context metric and one real ContextSlot. This intentionally
     # ignores additional slots, novelty buffers, activation and revision state.
-    context_bank = ContextBank(metric=np.eye(CONTEXT_DIMENSION), capacity=8)
-    slot_id = context_bank.add_initial(
-        np.zeros(CONTEXT_DIMENSION),
-        prior_covariance=np.eye(CONTEXT_DIMENSION),
-    )
+    context_bank = ContextBank(metric=np.eye(CONTEXT_DIMENSION), capacity=8,
+                               store_scatter=False, full_bank_policy="nearest_reuse")
+    for index in range(6):
+        slot_id = context_bank.add_initial([float(index), 0.0])
+        context_bank.set_operator(slot_id, "primary", np.eye(2))
+        context_bank.set_operator(slot_id, "secondary", 0.5 * np.eye(2))
     context_metric_bytes = int(context_bank.metric.nbytes)
-    slot = next(item for item in context_bank.slots if item.slot_id == slot_id)
-    context_slot_bytes = int(slot.mean.nbytes + slot.scatter.nbytes)
+    context_centroid_bytes = int(sum(item.mean.nbytes for item in context_bank.slots))
+    relation_parameters = context_bank.relation_resource_snapshot()
+    lifecycle = CandidateLifecycle(CandidateRevision(np.eye(2)), 2, 2)
+    lifecycle_bytes = int(lifecycle.resource_snapshot()["fit_gram_bytes"] +
+                           lifecycle.resource_snapshot()["fit_cross_bytes"])
 
     components = {
         "multi_source_ridge_sufficient_statistics_bytes": estimator_bytes,
         "context_metric_bytes": context_metric_bytes,
-        "one_context_slot_mean_and_scatter_bytes": context_slot_bytes,
+        "six_context_centroid_bytes": context_centroid_bytes,
+        "candidate_lifecycle_fit_statistics_bytes": lifecycle_bytes,
     }
     numeric_buffer_lower_bound = int(sum(components.values()))
     state_cap = int(F5_RESOURCE_ENVELOPE["persistent_state_cap_bytes"])
@@ -84,11 +91,19 @@ def build_structural_preflight_report() -> dict[str, Any]:
                 "other Python-side persistent metadata",
             ],
             "interpretation": (
-                "The current estimator plus the minimum context representation "
-                "already exceeds the frozen 512-byte persistent-state ceiling; "
-                "the omitted state can only increase the total. A redesign or "
-                "explicit pre-G2 budget amendment is required."
+                "The compact centroid-only context representation, context-free "
+                "shared fallback estimator and candidate fit statistics are counted. "
+                "Context-conditioned operators are trainable parameters and are "
+                "reported separately against the 4096-parameter ceiling. The ledger "
+                "still excludes activation, detector, candidate decision scalars and "
+                "other metadata; the remaining headroom must be checked in the "
+                "integrated runner."
             ),
+        },
+        "trainable_relation_operator_parameters": {
+            "parameter_count": relation_parameters["trainable_parameter_count"],
+            "parameter_bytes": relation_parameters["operator_bytes"],
+            "parameter_cap": int(F5_RESOURCE_ENVELOPE["trainable_parameter_cap"]),
         },
         "context_capacity_pressure": {
             "distinct_generated_context_prototypes": context_labels,
