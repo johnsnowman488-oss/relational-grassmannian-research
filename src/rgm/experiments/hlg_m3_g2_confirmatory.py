@@ -7,6 +7,7 @@ package-level evidence files and one aggregate decision record.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 from collections import defaultdict
@@ -59,22 +60,33 @@ def _mean_loss(sse: float, count: int) -> float | None:
     return float(sse / count) if count else None
 
 
-def _run_stream(world: dict, replicate_seed: int) -> dict:
+def _new_bundle(capacity: int) -> dict:
+    """Create one capacity-stratified learner shared across development streams."""
+    return {
+        "model": MultiSourceRidge({"primary": 2, "secondary": 2}, 0, 2, ridge=1e-3),
+        "bank": ContextBank(
+            np.eye(2), capacity=int(capacity), store_scatter=False,
+            full_bank_policy="nearest_reuse", novelty_repeats=3,
+            accept_threshold=8.0, novelty_threshold=16.0,
+        ),
+        "activation": EvidenceActivation(),
+        "controls": {
+            name: MemoryArchitecture(name, 2, 2, state_budget=64, target_dimension=2)
+            for name in COMPARATOR_NAMES
+        },
+    }
+
+
+def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) -> dict:
     """Run one stream; evaluator records are read only after prediction."""
     stream = generate_world_stream(world, replicate_seed)
     profile = stream["factor_profile"]
-    model = MultiSourceRidge({"primary": 2, "secondary": 2}, 0, 2, ridge=1e-3)
-    bank = ContextBank(
-        np.eye(2), capacity=int(profile["context_bank_capacity"]),
-        store_scatter=False, full_bank_policy="nearest_reuse",
-        novelty_repeats=3, accept_threshold=8.0, novelty_threshold=16.0,
-    )
-    activation = EvidenceActivation()
+    bundle = _new_bundle(int(profile["context_bank_capacity"])) if bundle is None else bundle
+    model, bank = bundle["model"], bundle["bank"]
+    activation, controls = bundle["activation"], bundle["controls"]
+    if bank.capacity != int(profile["context_bank_capacity"]):
+        raise ValueError("learner bundle capacity does not match this world's frozen profile")
     detector = CUSUMDetector()
-    controls = {
-        name: MemoryArchitecture(name, 2, 2, state_budget=64, target_dimension=2)
-        for name in COMPARATOR_NAMES
-    }
     revision = None
     lifecycle = None
     lifecycle_records = []
@@ -183,7 +195,7 @@ def _run_stream(world: dict, replicate_seed: int) -> dict:
                 elif lifecycle.is_open:
                     lifecycle.record_alarm(observation.step_index)
 
-            if lifecycle is not None and lifecycle.is_open:
+            if lifecycle is not None and lifecycle.is_open and observation.step_index > lifecycle.alarm_step:
                 primary = sources["primary"]
                 primary_seen = bool(gates["primary"])
                 local_ops = bank.operator_for_slot(slot_id) if slot_id is not None else {}
@@ -210,7 +222,7 @@ def _run_stream(world: dict, replicate_seed: int) -> dict:
                 model.update(sources, [], target, source_gates=gates)
             for control in controls.values():
                 control.update_target(target)
-        elif lifecycle is not None and lifecycle.is_open:
+        elif lifecycle is not None and lifecycle.is_open and observation.step_index > lifecycle.alarm_step:
             decision_record = lifecycle.observe(
                 step_index=observation.step_index, source=None, residual_target=None,
                 observed=False, identifiable=False,
@@ -265,16 +277,30 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
     if validation["world_configuration_count"] != 40 or validation["replicate_stream_count"] != 200:
         raise ValueError("G2 manifest must contain exactly 40 worlds and 200 streams")
 
-    rows = []
+    bundles = {capacity: _new_bundle(capacity) for capacity in (2, 4, 8)}
+    fit_rows, validation_rows, test_rows = [], [], []
+    # Persistent capacity-stratified learners consume development fit and
+    # validation streams in manifest order. Validation chooses the comparator.
     for world in manifest["worlds"]:
+        if world["split"] == "test":
+            continue
+        capacity = int(world["factor_profile"]["context_bank_capacity"])
+        destination = fit_rows if world["split"] == "development_fit" else validation_rows
         for seed in world["replicate_seeds"]:
-            rows.append(_run_stream(world, int(seed)))
+            destination.append(_run_stream(world, int(seed), bundles[capacity]))
+
+    # Each test stream starts from an independent copy of its capacity-matched
+    # fit+validation learner; no test replicate trains another test replicate.
+    for world in manifest["worlds"]:
+        if world["split"] != "test":
+            continue
+        capacity = int(world["factor_profile"]["context_bank_capacity"])
+        for seed in world["replicate_seeds"]:
+            test_bundle = copy.deepcopy(bundles[capacity])
+            test_rows.append(_run_stream(world, int(seed), test_bundle))
+    rows = fit_rows + validation_rows + test_rows
     if len(rows) != 200:
         raise AssertionError("confirmatory runner did not execute all 200 streams")
-
-    validation_rows = [row for row in rows if row["split"] == "development_validation"]
-    test_rows = [row for row in rows if row["split"] == "test"]
-    fit_rows = [row for row in rows if row["split"] == "development_fit"]
     comparator_losses = {
         name: float(np.mean([row["control_losses"][name] for row in validation_rows
                               if row["control_losses"][name] is not None]))
@@ -410,6 +436,7 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
     aggregate = {
         "campaign_id": CAMPAIGN_ID, "manifest_sha256": manifest_sha,
         "stream_count": len(rows), "world_count": len(manifest["worlds"]),
+        "test_world_count": len({row["world_id"] for row in test_rows}),
         "split_stream_counts": {
             split: sum(1 for row in rows if row["split"] == split)
             for split in ("development_fit", "development_validation", "test")
