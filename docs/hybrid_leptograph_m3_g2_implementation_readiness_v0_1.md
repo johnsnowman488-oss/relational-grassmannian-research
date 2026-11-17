@@ -1,6 +1,6 @@
 # HLG-M3 G2 implementation readiness — v0.2
 
-**Status:** implementation audit v0.5; G2 has not started. The implementation work is actively closing the original blockers.  
+**Status:** implementation audit v0.6; confirmatory runner and evidence verifier are implemented. G2 execution is triggered by the dedicated workflow on this branch.  
 **Canonical base at audit:** `e00ddca0df6f2de11d6113e994475ccce02842c1`.  
 **G1:** accepted by workflow run [44111641084](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44111641084).  
 **Frozen manifest SHA-256:** `8548f2a72de09a81f79a57a19b3cd8196dbeae185db9432619e6ac5cc2f49101`.
