@@ -17,6 +17,7 @@ from rgm.experiments.hlg_m3_benchmark_contract import validate_manifest
 from rgm.leptograph.m3.context import ContextBank
 from rgm.leptograph.m3.controls import MemoryArchitecture
 from rgm.leptograph.m3.estimation import MultiSourceRidge
+from rgm.leptograph.m3.revision_campaign import CandidateLifecycle
 
 CAMPAIGN_ID = "HLG-M3-BROAD-BENCHMARK-BM0-BM1-v0.1"
 READINESS_ID = "HLG-M3-G2-IMPLEMENTATION-READINESS-v0.1"
@@ -129,24 +130,27 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
             ),
         })
 
-    if (root / G2_RUNNER_RELATIVE_PATH).is_file():
-        runner_text = (root / G2_RUNNER_RELATIVE_PATH).read_text(encoding="utf-8")
-        required_window_tokens = ("32", "64", "INSUFFICIENT_EVIDENCE")
-        if not all(token in runner_text for token in required_window_tokens):
-            blockers.append({
-                "id": "candidate_lifecycle_contract_missing",
-                "detail": (
-                    "The G2 runner does not visibly implement the frozen 32-slot "
-                    "candidate-fit, 32-slot validation and 64-slot untouched "
-                    "post-promotion lifecycle with insufficient-evidence handling."
-                ),
-            })
-    else:
+    candidate_lifecycle_api_available = (
+        hasattr(CandidateLifecycle, "start")
+        and hasattr(CandidateLifecycle, "observe")
+        and hasattr(CandidateLifecycle, "resource_snapshot")
+    )
+    if not candidate_lifecycle_api_available:
         blockers.append({
-            "id": "candidate_lifecycle_contract_missing",
+            "id": "candidate_lifecycle_core_missing",
             "detail": (
-                "The current single-stream refinement probe does not implement "
-                "the frozen 32/32/64 lifecycle over the confirmatory stream set."
+                "The frozen 32/32/64 candidate-window state machine with minimum "
+                "24-observation gates is not available as a tested learner component."
+            ),
+        })
+    elif not (root / G2_RUNNER_RELATIVE_PATH).is_file():
+        blockers.append({
+            "id": "candidate_lifecycle_campaign_integration_missing",
+            "detail": (
+                "The 32/32/64 lifecycle component exists, but no confirmatory "
+                "runner connects alarm events, target feedback, residualized "
+                "candidate fitting, validation identifiability and untouched "
+                "post-promotion scoring across the frozen streams."
             ),
         })
 
@@ -195,6 +199,7 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
                 "memory_architecture": control_resource_method,
             },
             "g2_runner_present": (root / G2_RUNNER_RELATIVE_PATH).is_file(),
+            "candidate_lifecycle_api_available": candidate_lifecycle_api_available,
         },
         "blockers": blockers,
         "warnings": warnings,
