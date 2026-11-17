@@ -39,7 +39,7 @@ jobs:
           path: results/hlg_m3_g3/detector_calibration.json
           if-no-files-found: error
   environment:
-    name: G3 \${{ matrix.environment }} environment
+    name: G3 ${{ matrix.environment }} environment
     needs: [calibration]
     runs-on: ubuntu-latest
     strategy:
@@ -60,14 +60,14 @@ jobs:
       - name: Execute paired environment campaign with frozen threshold
         run: |
           THRESHOLD=$(python -c "import json; print(json.load(open('results/hlg_m3_g3/detector_calibration.json'))['selected_threshold'])")
-          python -m rgm.experiments.hlg_m3_g3_adaptation --manifest docs/hybrid_leptograph_m3_benchmark_split_manifest_v0_1.json --environment "\${{ matrix.environment }}" --detector-threshold "$THRESHOLD" --output-dir results/hlg_m3_g3
+          python -m rgm.experiments.hlg_m3_g3_adaptation --manifest docs/hybrid_leptograph_m3_benchmark_split_manifest_v0_1.json --environment "${{ matrix.environment }}" --detector-threshold "$THRESHOLD" --output-dir results/hlg_m3_g3
       - uses: actions/upload-artifact@v4
         with:
-          name: hlg-m3-g3-\${{ matrix.environment }}
-          path: results/hlg_m3_g3/\${{ matrix.environment }}.json
+          name: hlg-m3-g3-${{ matrix.environment }}
+          path: results/hlg_m3_g3/${{ matrix.environment }}.json
           if-no-files-found: error
   full-tests:
-    name: Full repository tests (Python \${{ matrix.python-version }})
+    name: Full repository tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -77,7 +77,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: \${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
           cache: pip
       - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - run: python -m pytest
