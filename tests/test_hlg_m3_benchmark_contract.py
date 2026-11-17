@@ -200,7 +200,7 @@ def test_prequential_gate_requires_matching_step_and_one_open_exchange():
     ticket = gate.begin_prediction(observation)
     with pytest.raises(RuntimeError, match="previous step"):
         gate.begin_prediction(later_observation)
-    gate.mark_prediction(ticket)
+    gate.mark_prediction(ticket, (0.25,))
     with pytest.raises(TypeError, match="matching evaluator"):
         gate.reveal_target(ticket, later_evaluator)
     feedback = gate.reveal_target(ticket, evaluator)
