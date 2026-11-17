@@ -16,8 +16,11 @@ on:
     branches: [main]
     paths:
       - "src/rgm/experiments/hlg_m3_g2_readiness.py"
+      - "src/rgm/leptograph/m3/revision_campaign.py"
+      - "src/rgm/leptograph/m3/__init__.py"
       - "src/rgm/leptograph/m3/estimation.py"
       - "tests/test_hlg_m3_g2_readiness.py"
+      - "tests/test_hlg_m3_candidate_lifecycle.py"
       - "docs/hybrid_leptograph_m3_g2_implementation_readiness_v0_1.md"
       - ".github/workflows/hlg-m3-g2-readiness.yml"
   workflow_dispatch:
@@ -37,8 +40,7 @@ jobs:
           cache: pip
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
-      - name: Test explicit missing-source update semantics and fail-closed audit
-        run: python -m pytest tests/test_hlg_m3_g2_readiness.py
+      - name: Test masked updates, candidate lifecycle and G2 readiness
         run: python -m pytest tests/test_hlg_m3_g2_readiness.py tests/test_hlg_m3_candidate_lifecycle.py
       - name: Produce G2 readiness evidence
         run: >-
