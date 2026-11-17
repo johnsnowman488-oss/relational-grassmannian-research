@@ -89,11 +89,11 @@ def factor_profile_for_world(split: str, local_index: int) -> dict:
     return {
         "source_correlation": levels["source_correlation"][j % 5],
         "context_separation_dprime": levels["context_separation_dprime"][j % 4],
-        "context_bank_capacity": levels["context_bank_capacity"][(j // 4) % 3],
-        "independent_observation_probability": levels["independent_observation_probability"][(j // 5) % 3],
+        "context_bank_capacity": levels["context_bank_capacity"][(j // 4 + j % 4) % 3],
+        "independent_observation_probability": levels["independent_observation_probability"][(j // 5 + j % 5) % 3],
         "burst_outage_steps": levels["burst_outage_steps"][j % 3],
         "drift_family": levels["drift_family"][j % 6],
-        "observation_noise_multiplier": levels["observation_noise_multiplier"][(j // 6) % 3],
+        "observation_noise_multiplier": levels["observation_noise_multiplier"][(j // 6 + (j % 6) // 2) % 3],
     }
 
 
@@ -141,11 +141,11 @@ def build_factor_design() -> dict:
         "factor_levels": deepcopy(FACTOR_LEVELS),
         "world_profile_assignment": {
             "source_correlation": "correlation_levels[split_local_index % 5]",
-            "independent_observation_probability": "missingness_levels[(split_local_index // 5) % 3]",
+            "independent_observation_probability": "missingness_levels[(split_local_index // 5 + split_local_index % 5) % 3]",
             "context_separation_dprime": "context_levels[split_local_index % 4]",
-            "context_bank_capacity": "capacity_levels[(split_local_index // 4) % 3]",
+            "context_bank_capacity": "capacity_levels[(split_local_index // 4 + split_local_index % 4) % 3]",
             "drift_family": "drift_levels[split_local_index % 6]",
-            "observation_noise_multiplier": "noise_levels[(split_local_index // 6) % 3]",
+            "observation_noise_multiplier": "noise_levels[(split_local_index // 6 + (split_local_index % 6) // 2) % 3]",
             "burst_outage_steps": "outage_levels[split_local_index % 3]",
         },
         "predeclared_pairwise_interactions": [
