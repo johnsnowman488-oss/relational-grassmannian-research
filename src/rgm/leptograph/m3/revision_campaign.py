@@ -151,7 +151,10 @@ class CandidateLifecycle:
             self._validation_slots_seen += 1
             if x is not None and y is not None:
                 incumbent_error = y - self._incumbent_at_start @ x
-                candidate_error = y - self._candidate @ x
+                candidate_operator = self.revision.candidate_operator
+                if candidate_operator is None:
+                    raise RuntimeError("candidate operator missing during validation")
+                candidate_error = y - candidate_operator @ x
                 self._validation_incumbent_sse += float(incumbent_error @ incumbent_error)
                 self._validation_candidate_sse += float(candidate_error @ candidate_error)
                 self._validation_observed += 1
@@ -174,7 +177,13 @@ class CandidateLifecycle:
     def _close(self, status: str) -> dict:
         self.phase = "COMPLETE"
         self.status = status
-        return self.result()
+        result = self.result()
+        self._candidate = None
+        self._incumbent_at_start = None
+        if self.revision.candidate_active:
+            self.revision.candidate_operator = None
+            self.revision.candidate_active = False
+        return result
 
     def _finish_fit(self) -> dict | None:
         if self._fit_observed < self.minimum_observed_rows:
@@ -183,6 +192,8 @@ class CandidateLifecycle:
         scale = max(float(np.max(np.abs(eigenvalues))), 1.0)
         self._fit_rank = int(np.sum(eigenvalues > self.fit_rcond * scale))
         self._candidate = self._fit_cross @ np.linalg.pinv(self._fit_gram, rcond=self.fit_rcond)
+        self.revision.start_candidate(self._candidate)
+        self._candidate = None
         self.phase = "VALIDATION"
         return None
 
@@ -192,7 +203,6 @@ class CandidateLifecycle:
         candidate_identifiable = self._fit_rank == self.source_dimension and externally_identifiable
         incumbent_loss = self._validation_incumbent_sse / self._validation_observed
         candidate_loss = self._validation_candidate_sse / self._validation_observed
-        self.revision.start_candidate(self._candidate)
         self._promoted = self.revision.evaluate(
             incumbent_loss=incumbent_loss,
             candidate_loss=candidate_loss,
@@ -268,7 +278,9 @@ class CandidateLifecycle:
 
     def resource_snapshot(self) -> dict[str, int | str]:
         """Report numeric buffers held by this lifecycle, not Python allocator overhead."""
-        candidate_bytes = int(self._candidate.nbytes) if self._candidate is not None else 0
+        # Candidate matrices are owned and counted once by CandidateRevision;
+        # the lifecycle stores only its fit statistics and incumbent snapshot.
+        candidate_bytes = 0
         incumbent_bytes = (
             int(self._incumbent_at_start.nbytes) if self._incumbent_at_start is not None else 0
         )

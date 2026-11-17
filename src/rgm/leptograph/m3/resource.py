@@ -35,10 +35,10 @@ def integrated_resource_snapshot(
     activation_state_bytes = 0
     for state in activation.states.values():
         activation_state_bytes += (
-            4 * np.dtype(np.float64).itemsize  # masses, usefulness, activation score
-            + np.dtype(np.int64).itemsize     # observed count
-            + np.dtype(np.bool_).itemsize     # active flag
-            + np.dtype(np.int64).itemsize     # last context slot sentinel/index
+            4 * np.dtype(np.float32).itemsize  # masses, usefulness, activation score
+            + np.dtype(np.int32).itemsize      # observed count
+            + np.dtype(np.bool_).itemsize      # active flag
+            + np.dtype(np.int16).itemsize      # last context slot sentinel/index
         )
 
     detector_state_bytes = (
