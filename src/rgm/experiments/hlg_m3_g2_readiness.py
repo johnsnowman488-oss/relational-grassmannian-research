@@ -82,7 +82,7 @@ def build_readiness_report(root: Path) -> dict[str, Any]:
                 "a resource-feasible redesign or an explicitly approved pre-G2 budget amendment."
             ),
         })
-    if any(not value for value in structural_preflight["context_capacity_pressure"]["can_retain_all_declared_context_prototypes"].values()):
+    if any(not value for value in structural_preflight["context_capacity_pressure"]["can_retain_one_slot_per_prototype"].values()):
         warnings.append({
             "id": "context_capacity_admission_policy_required",
             "detail": (
