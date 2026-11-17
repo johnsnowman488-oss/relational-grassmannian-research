@@ -170,3 +170,17 @@ def test_control_task_prediction_rejects_invalid_target():
         system.update_target(np.array([1.0]))
     with pytest.raises(ValueError):
         system.score_target(np.array([np.nan, 0.0]))
+
+
+def test_context_bank_nearest_reuse_is_bounded_and_label_blind():
+    bank = ContextBank(np.eye(2), capacity=2, full_bank_policy="nearest_reuse",
+                       accept_threshold=2.0, novelty_threshold=4.0)
+    first = bank.add_initial([0.0, 0.0], prior_covariance=0.2 * np.eye(2))
+    second = bank.add_initial([5.0, 5.0], prior_covariance=0.2 * np.eye(2))
+    reused = bank.observe_novel([0.1, -0.1])
+    assert reused == first
+    assert len(bank.slots) == 2
+    assert bank.slots[0].novelty_hits == 1
+    assert bank.slots[1].novelty_hits == 0
+    assert bank.slots[0].count == 2
+    assert second == 1
