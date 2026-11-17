@@ -43,6 +43,7 @@ def test_g2_readiness_audit_fails_closed_on_missing_confirmatory_interfaces():
     assert "g2_confirmatory_runner_missing" in blockers
     assert "c0_c4_task_prediction_adapter_missing" in blockers
     assert "integrated_candidate_resource_ledger_missing" in blockers
+    assert "current_candidate_exceeds_frozen_persistent_state_cap" in blockers
     assert "candidate_lifecycle_contract_missing" not in blockers
     assert "candidate_lifecycle_campaign_integration_missing" in blockers
     assert report["observed_interfaces"]["candidate_lifecycle_api_available"] is True
@@ -51,6 +52,8 @@ def test_g2_readiness_audit_fails_closed_on_missing_confirmatory_interfaces():
         "context_slot_operator_lookup": False,
         "context_conditioned_prediction": False,
     }
+    assert report["observed_interfaces"]["structural_preflight"]["resource_lower_bound"]["numeric_buffer_lower_bound_bytes"] == 584
+    assert report["observed_interfaces"]["structural_preflight"]["resource_lower_bound"]["persistent_state_cap_bytes"] == 512
     assert report["ready_to_start_g2"] is False
     assert report["readiness_status"] == "BLOCKED_G2_NOT_STARTED"
 
