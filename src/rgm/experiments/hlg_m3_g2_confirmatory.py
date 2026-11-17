@@ -94,6 +94,8 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
         "m3_sse": 0.0, "m3_n": 0,
         "control_sse": {name: 0.0 for name in COMPARATOR_NAMES},
         "control_n": {name: 0 for name in COMPARATOR_NAMES},
+        "control_composition_sse": {name: 0.0 for name in COMPARATOR_NAMES},
+        "control_composition_n": {name: 0 for name in COMPARATOR_NAMES},
     }
     phase = defaultdict(lambda: [0.0, 0])
     composition = defaultdict(lambda: [0.0, 0])
@@ -164,8 +166,12 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
                 composition[evaluator.composition_id][1] += 1
             for name, control_prediction in control_predictions.items():
                 control_error = target - control_prediction
-                metrics["control_sse"][name] += float(control_error @ control_error)
+                control_loss = float(control_error @ control_error)
+                metrics["control_sse"][name] += control_loss
                 metrics["control_n"][name] += 1
+                if evaluator.composition_id:
+                    metrics["control_composition_sse"][name] += control_loss
+                    metrics["control_composition_n"][name] += 1
 
             # Relationship activation uses prequential marginal loss, not evaluator labels.
             contributions = model.marginal_loss_contributions(sources, [], target, source_gates=gates)
@@ -248,6 +254,15 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
         },
         "phase_losses": {key: _mean_loss(value[0], value[1]) for key, value in phase.items()},
         "composition_losses": {key: _mean_loss(value[0], value[1]) for key, value in composition.items()},
+        "composition_m3_loss": _mean_loss(
+            sum(value[0] for value in composition.values()),
+            sum(value[1] for value in composition.values()),
+        ),
+        "composition_control_losses": {
+            name: _mean_loss(metrics["control_composition_sse"][name],
+                             metrics["control_composition_n"][name])
+            for name in COMPARATOR_NAMES
+        },
         "routing": routing, "identifiability": dict(identifiability),
         "source_observed": source_observed_total, "target_observed": target_observed_total,
         "alarm_steps": alarm_steps, "detector_alarms": detector.alarms,
@@ -302,8 +317,8 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
     if len(rows) != 200:
         raise AssertionError("confirmatory runner did not execute all 200 streams")
     comparator_losses = {
-        name: float(np.mean([row["control_losses"][name] for row in validation_rows
-                              if row["control_losses"][name] is not None]))
+        name: float(np.mean([row["composition_control_losses"][name] for row in validation_rows
+                              if row["composition_control_losses"][name] is not None]))
         for name in COMPARATOR_NAMES
     }
     strongest = min(COMPARATOR_NAMES, key=lambda name: (comparator_losses[name], name))
@@ -311,8 +326,10 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
     capability_world_improvements = _world_cluster_means(
         test_rows,
         lambda row: (
-            (row["control_losses"][strongest] - row["m3_loss"]) / row["control_losses"][strongest]
-            if row["m3_loss"] is not None and row["control_losses"][strongest] not in (None, 0.0)
+            (row["composition_control_losses"][strongest] - row["composition_m3_loss"])
+            / row["composition_control_losses"][strongest]
+            if row["composition_m3_loss"] is not None
+            and row["composition_control_losses"][strongest] not in (None, 0.0)
             else None
         ),
     )
@@ -347,11 +364,25 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
 
     # Aggregate package evidence. No package uses evaluator context labels as learner inputs.
     routing_totals = defaultdict(int)
+    routing_by_capacity = defaultdict(lambda: defaultdict(int))
     phase_losses = defaultdict(list)
     composition_losses = defaultdict(list)
+    composition_control_losses = defaultdict(list)
+    identifiability_totals = defaultdict(int)
+    correlation_composition_losses = defaultdict(list)
     for row in test_rows:
+        capacity = str(row["factor_profile"]["context_bank_capacity"])
         for key, value in row["routing"].items():
             routing_totals[key] += int(value)
+            routing_by_capacity[capacity][key] += int(value)
+        for key, value in row["identifiability"].items():
+            identifiability_totals[key] += int(value)
+        correlation_composition_losses[str(row["factor_profile"]["source_correlation"])].append(
+            row["composition_m3_loss"]
+        )
+        for key, value in row["composition_control_losses"].items():
+            if value is not None:
+                composition_control_losses[key].append(value)
         for key, value in row["phase_losses"].items():
             if value is not None:
                 phase_losses[key].append(value)
@@ -379,6 +410,7 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
         "M3-A": {
             "package_id": "M3-A", "title": "Context ambiguity and capacity",
             "test_stream_count": len(test_rows), "routing_totals": dict(routing_totals),
+            "routing_totals_by_capacity": {key: dict(value) for key, value in routing_by_capacity.items()},
             "capacity_levels": sorted({int(row["factor_profile"]["context_bank_capacity"]) for row in test_rows}),
             "context_reuse_is_label_blind": True,
         },
@@ -386,6 +418,14 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
             "package_id": "M3-B", "title": "Held-out composition, correlation and identifiability",
             "strongest_validation_comparator": strongest, "validation_comparator_losses": comparator_losses,
             "test_composition_mean_losses": {key: float(np.mean(values)) for key, values in composition_losses.items()},
+            "test_composition_mean_losses_by_comparator": {
+                name: float(np.mean(values)) for name, values in composition_control_losses.items()
+            },
+            "test_composition_loss_by_source_correlation": {
+                key: float(np.mean(values)) for key, values in correlation_composition_losses.items()
+            },
+            "test_identifiability_counts": dict(identifiability_totals),
+            "capability_endpoint": "observed target loss restricted to composition_extension rows",
             "capability_world_clustered_relative_improvement": capability_ci,
             "capability_threshold": 0.05, "capability_gate_passed": capability_pass,
         },
@@ -394,11 +434,26 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
             "test_phase_mean_losses": {key: float(np.mean(values)) for key, values in phase_losses.items()},
             "missingness_profiles": sorted({float(row["factor_profile"]["independent_observation_probability"]) for row in test_rows}),
             "burst_outage_profiles": sorted({int(row["factor_profile"]["burst_outage_steps"]) for row in test_rows}),
+            "observed_source_rates": {
+                source: sum(row["source_observed"][source] for row in test_rows)
+                / max(1, sum(row["step_count"] for row in test_rows))
+                for source in ("primary", "secondary")
+            },
+            "observed_context_rate": sum(
+                row["step_count"] - row["routing"]["missing_context"] for row in test_rows
+            ) / max(1, sum(row["step_count"] for row in test_rows)),
+            "observed_target_rate": sum(row["target_observed"] for row in test_rows)
+            / max(1, sum(row["step_count"] for row in test_rows)),
         },
         "M3-D": {
             "package_id": "M3-D", "title": "Drift detection and candidate revision",
             "test_streams_with_alarms": sum(bool(row["alarm_steps"]) for row in test_rows),
             "total_detector_alarms": sum(int(row["detector_alarms"]) for row in test_rows),
+            "alarms_by_drift_family": {
+                family: sum(int(row["detector_alarms"]) for row in test_rows
+                            if row["factor_profile"]["drift_family"] == family)
+                for family in sorted({row["factor_profile"]["drift_family"] for row in test_rows})
+            },
             "candidate_lifecycle_status_counts": {
                 status: sum(1 for row in test_rows if row["candidate_lifecycle"] and row["candidate_lifecycle"]["status"] == status)
                 for status in ("IN_PROGRESS", "INSUFFICIENT_EVIDENCE_FIT", "INSUFFICIENT_EVIDENCE_VALIDATION",
@@ -424,6 +479,9 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
             "package_id": "M3-I", "title": "Integrated sequential benchmark",
             "test_stream_count": len(test_rows), "test_world_count": len({row["world_id"] for row in test_rows}),
             "test_mean_m3_loss": float(np.mean([row["m3_loss"] for row in test_rows if row["m3_loss"] is not None])),
+            "test_mean_heldout_composition_loss": float(np.mean([
+                row["composition_m3_loss"] for row in test_rows if row["composition_m3_loss"] is not None
+            ])),
             "test_mean_control_losses": {
                 name: float(np.mean([row["control_losses"][name] for row in test_rows if row["control_losses"][name] is not None]))
                 for name in COMPARATOR_NAMES
@@ -444,6 +502,7 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
         "fit_streams_processed": len(fit_rows), "validation_streams_processed": len(validation_rows),
         "test_streams_processed": len(test_rows),
         "strongest_eligible_comparator": strongest,
+        "strongest_comparator_selection_endpoint": "development_validation composition_extension loss",
         "capability_gate": {"threshold_relative_improvement": 0.05, "result": capability_ci, "passed": capability_pass},
         "adaptation_gate": {"threshold_relative_improvement": 0.05, "result": adaptation_ci, "passed": adaptation_pass},
         "resource_gate": {"caps": RESOURCE_CAPS, "maxima": resource_max, "passed": resource_pass},
@@ -454,6 +513,15 @@ def run_campaign(manifest_path: Path, output_dir: Path) -> dict:
             "G2 200-stream confirmatory campaign. M4 is authorised only if capability, "
             "adaptation, benchmark integrity and resource gates all pass."
         ),
+        "stream_manifest": [
+            {
+                "world_id": row["world_id"], "split": row["split"],
+                "world_configuration_seed": row["world_configuration_seed"],
+                "replicate_seed": row["replicate_seed"],
+                "stream_sha256": row["stream_sha256"],
+                "step_count": row["step_count"],
+            } for row in rows
+        ],
         "integrity": {
             "prequential_prediction_before_feedback": True,
             "learner_evaluator_separation": True,
