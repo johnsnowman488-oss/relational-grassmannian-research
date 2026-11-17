@@ -106,7 +106,6 @@ def build_manifest() -> dict:
                 "world_id": world_id,
                 "split": split,
                 "scenario_template_id": F6_WORLD_TEMPLATE["template_id"],
-        "resource_envelope": dict(F5_RESOURCE_ENVELOPE),
                 "world_configuration_seed": WORLD_SEED_BASE + ordinal,
                 "replicate_seeds": replicate_seeds,
                 "composition_ids": split_composition_ids,
@@ -323,6 +322,7 @@ def validate_manifest(manifest: Mapping) -> dict:
         "replicates_per_world": REPLICATES_PER_WORLD,
         "scenario_template_id": F6_WORLD_TEMPLATE["template_id"],
         "historical_f6_world_count": F6_WORLD_TEMPLATE["historical_world_count"],
+        "resource_envelope": dict(F5_RESOURCE_ENVELOPE),
         "primary_composition_counts": {
             split: len(COMPOSITIONS[split]) for split in SPLIT_COUNTS
         },
