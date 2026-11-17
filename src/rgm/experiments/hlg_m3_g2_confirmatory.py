@@ -152,7 +152,9 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
             # CandidateRevision owns the active shared fallback primary operator.
             # Accepted context-slot operators remain context-specific and untouched.
             fallback_overrides = bank.operator_for_slot(slot_id) if slot_id is not None else {}
-            if revision is not None:
+            if revision is not None and (
+                revision.revision_count > 0 or (lifecycle is not None and lifecycle.is_open)
+            ):
                 fallback_overrides.setdefault("primary", revision.accepted_operator)
             prediction = model.predict(
                 sources, [], source_gates=gates,
