@@ -130,7 +130,7 @@ def test_learner_observation_contains_only_current_permitted_fields():
         "context_observed",
     }
     evaluator_only = {
-        "world_id", "world_family_id", "split", "world_configuration_seed",
+        "world_id", "scenario_template_id", "split", "world_configuration_seed",
         "replicate_seed", "composition_ids", "primitive_relations",
         "true_context_id", "latent_relation_operators", "change_schedule",
         "future_observations", "target_vector",
@@ -234,4 +234,4 @@ def test_reference_fixture_is_seed_deterministic_and_not_a_scientific_world():
     assert obs_a != obs_c
     assert ev_a.target_vector != ev_c.target_vector
     assert ev_a.split == "fixture"
-    assert ev_a.world_family_id == "FIXTURE-ONLY"
+    assert ev_a.scenario_template_id == "FIXTURE-ONLY"
