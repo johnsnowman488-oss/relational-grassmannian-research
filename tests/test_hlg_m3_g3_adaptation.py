@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from rgm.experiments.hlg_m3_g3_adaptation import ENVIRONMENTS, POLICIES, evaluate_policy, generate_stream, run_environment
+from rgm.experiments.hlg_m3_g3_adaptation import ENVIRONMENTS, POLICIES, calibrate_detector_threshold, evaluate_policy, generate_stream, run_environment
 
 def test_environment_paths_are_deterministic_and_distinct():
     streams={n:generate_stream(world_seed=910001,replicate_seed=110001,environment=n) for n in ENVIRONMENTS}
@@ -27,3 +27,12 @@ def test_runner_pairs_policy_arms_and_rejects_non_test_worlds():
     assert len(report["streams"])==8 and report["integrity"]["same_streams_across_policy_arms"]
     with pytest.raises(ValueError,match="held-out test"):
         run_environment([{**world,"split":"development_fit"}],"stable")
+
+
+def test_detector_calibration_uses_development_worlds_and_checks_validation():
+    fit=[{"split":"development_fit","world_configuration_seed":920001,"replicate_seeds":[120001,120002],"factor_profile":{}}]
+    validation=[{"split":"development_validation","world_configuration_seed":920002,"replicate_seeds":[120003,120004],"factor_profile":{}}]
+    report=calibrate_detector_threshold(fit,validation,candidate_thresholds=(8,16,32,64,128))
+    assert report["test_worlds_used"] is False
+    assert report["selected_threshold"] in (8.0,16.0,32.0,64.0,128.0)
+    assert 0 <= report["validation_false_alarm_rate"] <= 1

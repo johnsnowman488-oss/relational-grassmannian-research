@@ -1,53 +1,38 @@
 # HLG-M3 G3 — Adaptive Relational Revision Across Environmental Regimes
 
-**Protocol:** HLG-M3-G3-ADAPTATION-v0.1  
-**Status:** authorised implementation and diagnostic campaign; amendable before execution.
+**Protocol:** HLG-M3-G3-ADAPTATION-v0.2  
+**Status:** revised after the v0.1 detector pilot; calibration precedes held-out execution.
 
-## 1. Relationship to G2
+## 1. Relationship to G2 and G3-v0.1
 
-G2 remains the immutable confirmatory baseline. Its 200-stream allocation, frozen thresholds, resource envelope, results and claim boundary are not modified. G3 is a separate focused diagnostic motivated by G2's strong capability result and unsuccessful aggregate adaptation endpoint.
+G2 remains the immutable confirmatory baseline. Its allocation, thresholds, resource envelope, results and M4 gate are unchanged. G3 is a separate diagnostic.
 
-G2 did execute the candidate-revision path and recorded promotions. G3 therefore does not assume adaptation was disabled. It tests whether revision is appropriately challenged and selective under known environmental demand.
+G3-v0.1 exposed a detector-calibration defect: the threshold produced frequent alarms in stable streams and alarms before the programmed change in gradual/abrupt streams. Its apparent adaptation gains are not accepted as confirmatory evidence. Preserve its artifacts and findings as a pilot; do not pool them with v0.2.
 
-## 2. Three environments, implemented concurrently
+## 2. Three environments, concurrently
 
-All variants use one generator contract, one learner/policy interface, the same held-out world identities and paired replicate seeds.
+The same stable, gradual and abrupt variants, generator, policy arms, held-out identities and paired seeds are retained. The only methodological refinement is that the detector threshold is calibrated without using held-out test outcomes.
 
-| Variant | Environment | Diagnostic |
-|---|---|---|
-| G3-S | Stable relation | Negative control: revision should generally remain inactive; false alarms or harmful revisions count against selectivity |
-| G3-G | Gradual relation change | Tracking: determine whether detection and validated revision follow a slowly moving operator |
-| G3-A | Abrupt relation change | Recovery: measure detection delay, candidate quality, promotion and post-change recovery |
+## 3. Detector calibration and data separation
 
-These are independent CI jobs, not sequential stages.
+- Use the frozen 12 development-fit worlds and their five replicate seeds to select the smallest threshold from the predeclared grid [8, 12, 16, 20, 24, 32, 48, 64] with stable-negative-control false-alarm rate no greater than 5%.
+- Verify that selected threshold on the separate eight development-validation worlds; require stable false-alarm rate no greater than 5%.
+- If validation fails, do not execute or interpret the held-out environment campaign. Record calibration failure and discuss a new versioned detector design.
+- Freeze the selected threshold across all three held-out environments. No per-environment tuning is allowed.
+- The 20 held-out test worlds × five replicate seeds remain untouched until calibration passes.
 
-## 3. Matched design
+## 4. Matched policy arms and endpoints
 
-- Reuse the frozen G2 manifest's 20 held-out test-world identities and five replicate seeds per world.
-- Each environment has 100 streams; the campaign has 300 environment-streams.
-- Four policy arms receive identical observations and targets:
-  1. no revision: retain the initial operator;
-  2. immediate revision: fit on 32 post-alarm observations and promote without a separate validation gate;
-  3. validated revision: 32 fit observations, 32 separate validation observations, promote only on positive validation improvement;
-  4. delayed validated revision: wait 32 observations after alarm, then use the same 32/32 windows.
-- Initial operator fitting uses only the first 128 observations. Every prediction is recorded before current target feedback is consumed.
-- Stable keeps the operator fixed; gradual interpolates over steps 160–320; abrupt changes at step 160.
-- No evaluator labels, future samples, or split metadata enter prediction, detection, fitting or validation.
+All four policy arms receive identical observations: no revision, immediate revision, validated revision (32 fit / 32 validation), and delayed validated revision (32-step delay followed by the same windows). Initial operator fit remains the first 128 observations. Prediction precedes current target feedback.
 
-## 4. Endpoints
+Primary diagnostic remains paired post-change loss reduction of validated revision relative to no revision, with a held-out-world bootstrap interval. Secondary endpoints include stable false alarms/promotions, detection delay, validation quality, promotion frequency and overall loss.
 
-Primary diagnostic: paired post-change loss reduction of validated revision relative to no revision, summarized by held-out-world means and a 95% world-cluster bootstrap interval.
+The G2 5% threshold remains a reference only, not a retroactive G3 pass gate.
 
-Secondary endpoints: stable false alarms/promotions; gradual and abrupt detection delay; promotion frequency; validation loss; post-change loss for all policy arms; and overall loss.
+## 5. Parallel execution
 
-The frozen G2 5% threshold is reported as a reference, not silently reused as a G3 pass/fail gate. G3 is diagnostic: stable may show revision is unnecessary, while gradual and abrupt reveal whether it helps when change is present.
+One detector-calibration job runs first using development splits only. After it passes, the three independent environment jobs run concurrently, alongside Python 3.10/3.12 full tests. One aggregate verifies the calibration artifact, exact environment coverage, 20 test worlds × five seeds, four policy arms, integrity flags and evidence hashes.
 
-## 5. Interpretation and claim limits
+## 6. Claim ceiling
 
-A stable no-revision result is a valid finding, not an adaptation failure. An alarm alone is not evidence of true change. Immediate revision is a permissive comparator, not the preferred policy. Candidate promotion and post-promotion benefit are separate outcomes.
-
-This controlled two-dimensional experiment does not establish broad relational generalisation, causal attribution, or global coupled stability (M4). G2 protocol and results remain unchanged.
-
-## 6. Parallel execution
-
-Three environment jobs (G3-S/G3-G/G3-A) run concurrently. Python 3.10 and 3.12 full test suites run concurrently with them. One aggregate verifies exact environment coverage, 20 held-out worlds, five seeds per world, four policy arms, stream counts, integrity flags and evidence hashes. No environment job depends on another.
+G3 is a controlled synthetic adaptation diagnostic. It does not establish general relational discovery, causal attribution, or global coupled stability (M4). A stable no-revision result is valid; adaptation should not be forced when no change is present.
