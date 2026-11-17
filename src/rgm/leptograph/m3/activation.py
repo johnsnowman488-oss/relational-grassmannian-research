@@ -1,16 +1,18 @@
 """Predictive evidence, sufficiency and stateful activation are separated."""
 from __future__ import annotations
 from dataclasses import dataclass, field
+import numpy as np
 
 @dataclass
 class RelationshipEvidence:
-    positive_mass: float = 0.0
-    negative_mass: float = 0.0
-    usefulness: float = 0.0
-    observed_count: int = 0
+    # Compact numeric state: float32 masses/scores, int32 count, int16 slot.
+    positive_mass: np.float32 = np.float32(0.0)
+    negative_mass: np.float32 = np.float32(0.0)
+    usefulness: np.float32 = np.float32(0.0)
+    observed_count: np.int32 = np.int32(0)
     active: bool = False
-    activation_score: float = 0.0
-    last_context_slot: int | None = None
+    activation_score: np.float32 = np.float32(0.0)
+    last_context_slot: np.int16 | None = None
 
     @property
     def balance(self) -> float:
@@ -54,18 +56,20 @@ class EvidenceActivation:
             return state
         if not (-1.0 <= predictive_improvement <= 1.0):
             raise ValueError("predictive_improvement must be in [-1, 1]")
-        state.observed_count += 1
+        state.observed_count = np.int32(int(state.observed_count) + 1)
         positive = max(0.0, predictive_improvement)
         negative = max(0.0, -predictive_improvement)
         rate = self.evidence_rate
-        state.positive_mass = (1 - rate) * state.positive_mass + rate * positive
-        state.negative_mass = (1 - rate) * state.negative_mass + rate * negative
+        state.positive_mass = np.float32((1 - rate) * float(state.positive_mass) + rate * positive)
+        state.negative_mass = np.float32((1 - rate) * float(state.negative_mass) + rate * negative)
         urate = self.usefulness_rate
-        state.usefulness = (1 - urate) * state.usefulness + urate * predictive_improvement
-        state.last_context_slot = context_slot
+        state.usefulness = np.float32((1 - urate) * float(state.usefulness) + urate * predictive_improvement)
+        state.last_context_slot = np.int16(context_slot) if context_slot is not None else None
         confidence = 1.0 - (1.0 / (state.observed_count + 1.0) ** 0.5)
-        evidence_strength = max(0.0, state.balance)
-        state.activation_score = max(0.0, min(1.0, 0.65 * state.usefulness + 0.35 * evidence_strength)) * confidence
+        evidence_strength = max(0.0, float(state.balance))
+        state.activation_score = np.float32(
+            max(0.0, min(1.0, 0.65 * float(state.usefulness) + 0.35 * evidence_strength)) * confidence
+        )
         admissible = identifiable and context_score <= self.context_score_limit
         if state.active:
             if (not admissible) or state.activation_score <= self.off_threshold:
@@ -81,9 +85,9 @@ class EvidenceActivation:
     def snapshot(self, relation_id: str) -> dict[str, float | int | bool | None]:
         state = self.states[relation_id]
         return {
-            "positive_mass": state.positive_mass, "negative_mass": state.negative_mass,
-            "balance": state.balance, "usefulness": state.usefulness,
-            "observed_count": state.observed_count, "sufficiency": state.sufficiency,
-            "activation_score": state.activation_score, "active": state.active,
-            "last_context_slot": state.last_context_slot,
+            "positive_mass": float(state.positive_mass), "negative_mass": float(state.negative_mass),
+            "balance": float(state.balance), "usefulness": float(state.usefulness),
+            "observed_count": int(state.observed_count), "sufficiency": float(state.sufficiency),
+            "activation_score": float(state.activation_score), "active": state.active,
+            "last_context_slot": int(state.last_context_slot) if state.last_context_slot is not None else None,
         }

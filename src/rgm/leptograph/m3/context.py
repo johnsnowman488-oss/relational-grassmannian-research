@@ -30,10 +30,13 @@ class ContextSlot:
         old_mean = self.mean.copy()
         self.count += 1
         self.mean += (x - self.mean) / self.count
-        self.scatter += np.outer(x - old_mean, x - self.mean)
+        if self.scatter.size:
+            self.scatter += np.outer(x - old_mean, x - self.mean)
 
     @property
     def covariance(self) -> np.ndarray:
+        if not self.scatter.size:
+            return np.zeros((self.mean.size, self.mean.size), dtype=float)
         if self.count <= 1:
             return self.scatter.copy()
         return self.scatter / max(1, self.count - 1)
@@ -55,9 +58,12 @@ class ContextBank:
     novelty_threshold: float = 16.0
     ambiguity_margin: float = 0.25
     novelty_repeats: int = 3
+    full_bank_policy: str = "abstain"
+    store_scatter: bool = True
     slots: list[ContextSlot] = field(default_factory=list)
     _next_id: int = 0
     _pending: list[np.ndarray] = field(default_factory=list)
+    _relation_operators: dict[int, dict[str, np.ndarray]] = field(default_factory=dict, repr=False)
 
     def __post_init__(self) -> None:
         self.metric = np.asarray(self.metric, dtype=float)
@@ -69,6 +75,8 @@ class ContextBank:
             raise ValueError("metric must be positive definite")
         if self.capacity < 1 or self.regularisation <= 0 or self.novelty_repeats < 1:
             raise ValueError("capacity, regularisation and novelty_repeats must be positive")
+        if self.full_bank_policy not in {"abstain", "nearest_reuse"}:
+            raise ValueError("full_bank_policy must be 'abstain' or 'nearest_reuse'")
         if self.novelty_threshold < self.accept_threshold:
             raise ValueError("novelty_threshold must be >= accept_threshold")
 
@@ -79,7 +87,8 @@ class ContextBank:
     def _score(self, point: np.ndarray, slot: ContextSlot) -> float:
         delta = point - slot.mean
         metric_inverse = np.linalg.solve(self.metric, np.eye(self.dimension))
-        covariance = slot.covariance + self.regularisation * metric_inverse
+        base_covariance = (metric_inverse if not slot.scatter.size else slot.covariance)
+        covariance = base_covariance + self.regularisation * metric_inverse
         sign, logdet_product = np.linalg.slogdet(self.metric @ covariance)
         if sign <= 0:
             raise np.linalg.LinAlgError("generalised context covariance is not positive definite")
@@ -109,7 +118,8 @@ class ContextBank:
             raise ValueError("prior covariance must be positive definite")
         slot_id = self._next_id
         self._next_id += 1
-        self.slots.append(ContextSlot(slot_id, x.copy(), cov.copy(), count=1))
+        scatter = cov.copy() if self.store_scatter else np.zeros(0, dtype=float)
+        self.slots.append(ContextSlot(slot_id, x.copy(), scatter, count=1))
         return slot_id
 
     def route(self, point: Sequence[float]) -> tuple[ContextDecision, int | None, dict[int, float]]:
@@ -130,6 +140,60 @@ class ContextBank:
             return ContextDecision.NOVEL, None, scores
         return ContextDecision.ABSTAIN, None, scores
 
+    def set_operator(self, slot_id: int, source_id: str, operator: Sequence[Sequence[float]]) -> None:
+        """Store a learner-estimated source operator under an accepted context slot."""
+        if not source_id:
+            raise ValueError("source_id must be non-empty")
+        if not any(slot.slot_id == slot_id for slot in self.slots):
+            raise KeyError(slot_id)
+        value = np.asarray(operator, dtype=float)
+        if value.ndim != 2 or not np.all(np.isfinite(value)):
+            raise ValueError("operator must be a finite matrix")
+        self._relation_operators.setdefault(int(slot_id), {})[source_id] = value.copy()
+
+    def operator_for_slot(self, slot_id: int) -> dict[str, np.ndarray]:
+        """Return copies of operators learned for this accepted context slot."""
+        if not any(slot.slot_id == slot_id for slot in self.slots):
+            raise KeyError(slot_id)
+        return {key: value.copy() for key, value in self._relation_operators.get(int(slot_id), {}).items()}
+
+    def update_operator(
+        self, slot_id: int, source_id: str, source: Sequence[float],
+        residual_target: Sequence[float], *, rate: float = 0.1,
+    ) -> None:
+        """Apply a bounded online least-mean-squares update to one context relation."""
+        if not source_id or not any(slot.slot_id == slot_id for slot in self.slots):
+            raise KeyError(slot_id)
+        x = np.asarray(source, dtype=float)
+        y = np.asarray(residual_target, dtype=float)
+        if x.ndim != 1 or y.ndim != 1 or not x.size or not y.size:
+            raise ValueError("source and residual target must be non-empty vectors")
+        if not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):
+            raise ValueError("source and residual target must be finite")
+        if not np.isfinite(rate) or not 0.0 < rate <= 1.0:
+            raise ValueError("rate must be in (0, 1]")
+        operators = self._relation_operators.setdefault(int(slot_id), {})
+        operator = operators.get(source_id)
+        if operator is None:
+            operator = np.zeros((y.size, x.size), dtype=float)
+        if operator.shape != (y.size, x.size):
+            raise ValueError("source/target dimensions differ from stored context operator")
+        error = y - operator @ x
+        operators[source_id] = operator + (rate / max(float(x @ x), 1.0)) * np.outer(error, x)
+
+    def relation_resource_snapshot(self) -> dict[str, int]:
+        """Count persistent numeric relation-operator buffers held by context slots."""
+        return {
+            "operator_count": sum(len(value) for value in self._relation_operators.values()),
+            "operator_bytes": int(sum(item.nbytes for group in self._relation_operators.values()
+                                       for item in group.values())),
+            "trainable_parameter_count": int(sum(item.size for group in self._relation_operators.values()
+                                                  for item in group.values())),
+            "persistent_context_state_bytes": int(self.metric.nbytes + sum(
+                slot.mean.nbytes + slot.scatter.nbytes for slot in self.slots
+            )),
+        }
+
     def observe_novel(self, point: Sequence[float]) -> int | None:
         """Accumulate repeated novelty evidence and create a slot when safe.
 
@@ -140,7 +204,12 @@ class ContextBank:
         if x.shape != (self.dimension,) or not np.all(np.isfinite(x)):
             raise ValueError("context point has invalid shape or non-finite values")
         if len(self.slots) >= self.capacity:
-            return None
+            if self.full_bank_policy == "abstain":
+                return None
+            nearest = min(self.slots, key=lambda slot: (self._score(x, slot), slot.slot_id))
+            nearest.update(x)
+            nearest.novelty_hits += 1
+            return nearest.slot_id
         self._pending.append(x.copy())
         if len(self._pending) < self.novelty_repeats:
             return None

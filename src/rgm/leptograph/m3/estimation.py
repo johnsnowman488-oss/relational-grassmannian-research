@@ -13,7 +13,7 @@ class MultiSourceRidge:
     target_dimension: int
     ridge: float = 1e-5
     forgetting: float = 1.0
-    gram: np.ndarray = field(init=False)
+    _gram_upper: np.ndarray = field(init=False, repr=False)
     cross: np.ndarray = field(init=False)
     sample_count: int = 0
     prediction_count: int = 0
@@ -38,12 +38,22 @@ class MultiSourceRidge:
         self._context_slice = slice(offset, offset + self.context_dimension)
         offset += self.context_dimension
         self._intercept_index = offset
-        self.gram = np.zeros((offset + 1, offset + 1), dtype=float)
+        upper_rows, upper_cols = np.triu_indices(offset + 1)
+        self._gram_upper = np.zeros(upper_rows.size, dtype=float)
         self.cross = np.zeros((offset + 1, self.target_dimension), dtype=float)
 
     @property
     def feature_dimension(self) -> int:
-        return int(self.gram.shape[0])
+        return int(self.cross.shape[0])
+
+    @property
+    def gram(self) -> np.ndarray:
+        """Materialise the symmetric Gram matrix from packed upper-triangle state."""
+        matrix = np.zeros((self.feature_dimension, self.feature_dimension), dtype=float)
+        upper_rows, upper_cols = np.triu_indices(self.feature_dimension)
+        matrix[upper_rows, upper_cols] = self._gram_upper
+        matrix[upper_cols, upper_rows] = self._gram_upper
+        return matrix
 
     def _features(self, sources, context, source_gates=None) -> np.ndarray:
         if set(sources) != set(self.source_dimensions):
@@ -87,23 +97,84 @@ class MultiSourceRidge:
                 if operator.shape != (self.target_dimension, self.source_dimensions[key]) or not np.all(np.isfinite(operator)):
                     raise ValueError(f"invalid operator override for {key}")
                 beta[self._source_slices[key], :] = operator.T
+            # A complete context-specific operator set is a complete relation
+            # model for this slot; do not add the shared fallback intercept.
+            if set(overrides) == set(self.source_dimensions):
+                beta[self._intercept_index, :] = 0.0
         self.prediction_count += 1
         return phi @ beta
 
-    def update(self, sources, context, target) -> None:
-        phi = self._features(sources, context)
+    def predict_context_conditioned(
+        self, sources, context, *, context_slot: int, context_bank,
+        source_gates=None,
+    ) -> np.ndarray:
+        """Predict using operators retrieved from an accepted learner context slot."""
+        overrides = context_bank.operator_for_slot(context_slot)
+        return self.predict(sources, context, source_gates=source_gates,
+                            operator_overrides=overrides)
+
+    def update_context_conditioned(
+        self, sources, context, target, *, context_slot: int, context_bank,
+        source_gates=None, rate: float = 0.1,
+    ) -> None:
+        """Update slot-specific source operators after target feedback is observed.
+
+        Each source is updated against the residual left after the other current
+        source contributions. Missing sources are skipped, never treated as
+        observed zeros. The shared estimator is also updated as the fallback
+        operator for uninitialised/new contexts.
+        """
+        self._features(sources, context, source_gates)  # validate observation
         y = np.asarray(target, dtype=float)
         if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
             raise ValueError("invalid target vector")
-        self.gram *= self.forgetting
+        gates = dict(source_gates or {})
+        operators = context_bank.operator_for_slot(context_slot)
+        # Feedback-time arithmetic is not a learner query: compute once without
+        # incrementing prediction/query counters or refitting between sources.
+        beta = self.coefficients()
+        for key, value in operators.items():
+            operator = np.asarray(value, dtype=float)
+            if operator.shape != (self.target_dimension, self.source_dimensions[key]) or not np.all(np.isfinite(operator)):
+                raise ValueError(f"invalid operator override for {key}")
+            beta[self._source_slices[key], :] = operator.T
+        if set(operators) == set(self.source_dimensions):
+            beta[self._intercept_index, :] = 0.0
+        phi = self._features(sources, context, source_gates)
+        prediction = phi @ beta
+        for key in sorted(self.source_dimensions):
+            gate = float(gates.get(key, 1.0))
+            if gate <= 0.0:
+                continue
+            x = np.asarray(sources[key], dtype=float)
+            current = operators.get(key, self.source_operator(key))
+            contribution = gate * (current @ x)
+            residual = y - (prediction - contribution)
+            context_bank.update_operator(context_slot, key, x, residual, rate=rate)
+            operators[key] = context_bank.operator_for_slot(context_slot)[key]
+        self.update(sources, context, y, source_gates=source_gates)
+
+    def update(self, sources, context, target, *, source_gates=None) -> None:
+        """Update from current observed inputs, with explicit per-source gates.
+
+        Callers represent a missing source with a zero placeholder and a zero
+        gate. This preserves the declared source layout without treating
+        absence as a measured zero-valued relationship contribution.
+        """
+        phi = self._features(sources, context, source_gates)
+        y = np.asarray(target, dtype=float)
+        if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
+            raise ValueError("invalid target vector")
+        self._gram_upper *= self.forgetting
         self.cross *= self.forgetting
-        self.gram += np.outer(phi, phi)
+        upper_rows, upper_cols = np.triu_indices(self.feature_dimension)
+        self._gram_upper += np.outer(phi, phi)[upper_rows, upper_cols]
         self.cross += np.outer(phi, y)
         self.sample_count += 1
         self.update_count += 1
 
-    def marginal_loss_contributions(self, sources, context, target) -> dict[str, float]:
-        phi = self._features(sources, context)
+    def marginal_loss_contributions(self, sources, context, target, *, source_gates=None) -> dict[str, float]:
+        phi = self._features(sources, context, source_gates)
         y = np.asarray(target, dtype=float)
         if y.shape != (self.target_dimension,) or not np.all(np.isfinite(y)):
             raise ValueError("invalid target vector")
@@ -153,10 +224,20 @@ class MultiSourceRidge:
         }
 
     def resource_snapshot(self) -> dict[str, int | float]:
+        feature = self.feature_dimension
+        target = self.target_dimension
+        normal_update = feature**2 + feature * target
+        # Conservative solve accounting: a context-conditioned feedback update
+        # may solve once for the joint residual and once per uninitialised source.
+        context_update = 3 * feature**3 + normal_update
         return {
-            "sufficient_statistic_bytes": int(self.gram.nbytes + self.cross.nbytes),
-            "parameter_count": int(self.feature_dimension * self.target_dimension),
-            "update_outer_product_multiply_adds": int(self.feature_dimension**2 + self.feature_dimension * self.target_dimension),
-            "query_multiply_adds": int(self.feature_dimension * self.target_dimension),
+            "sufficient_statistic_bytes": int(self._gram_upper.nbytes + self.cross.nbytes),
+            "packed_gram_bytes": int(self._gram_upper.nbytes),
+            "equivalent_dense_gram_bytes": int(self.feature_dimension**2 * 8),
+            "parameter_count": int(feature * target),
+            "parameter_bytes": int(feature * target * np.dtype(np.float64).itemsize),
+            "update_outer_product_multiply_adds": int(normal_update),
+            "context_conditioned_update_multiply_adds": int(context_update),
+            "query_multiply_adds": int(feature**3 + feature * target),
             "sample_count": self.sample_count,
         }

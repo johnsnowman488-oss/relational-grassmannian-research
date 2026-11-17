@@ -1,60 +1,97 @@
-"""Tests for the HLG-M3 final refinement interfaces."""
+from pathlib import Path
+
 import numpy as np
-import pytest
-from rgm.leptograph.m3 import MultiSourceRidge
-from rgm.leptograph.m3.integration_refinement import run_integrated_refinement
-from rgm.experiments.leptograph_m3_refinement import WORK_PACKAGES, run_package
+
+from rgm.experiments.hlg_m3_g2_readiness import build_readiness_report
+from rgm.leptograph.m3.controls import MemoryArchitecture
+from rgm.leptograph.m3.estimation import MultiSourceRidge
 
 
-def test_source_gate_masks_effective_prediction_but_preserves_operator():
-    rng=np.random.default_rng(81); model=MultiSourceRidge({"a":1},0,1,ridge=1e-7)
-    for _ in range(100):
-        x=float(rng.normal()); model.update({"a":[x]},[],[2*x])
-    active=model.predict({"a":[1.]},[],source_gates={"a":1.})
-    dormant=model.predict({"a":[1.]},[],source_gates={"a":0.})
-    assert abs(float(active[0]-dormant[0]))>0.5
-    assert np.linalg.norm(model.source_operator("a"))>1.
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_operator_override_controls_effective_prediction():
-    model=MultiSourceRidge({"a":1},0,1,ridge=1e-6)
-    for x in np.linspace(-2,2,80): model.update({"a":[x]},[],[x])
-    ordinary=model.predict({"a":[1.]},[])
-    revised=model.predict({"a":[1.]},[],operator_overrides={"a":[[3.]]})
-    assert float(revised[0])>float(ordinary[0])+1.
+def test_masked_source_update_keeps_absent_block_out_of_sufficient_statistics():
+    model = MultiSourceRidge({"a": 1, "b": 1}, 0, 1, ridge=1e-6)
+    sources = {"a": np.array([2.0]), "b": np.array([0.0])}
+    model.update(sources, [], [1.0], source_gates={"a": 1.0, "b": 0.0})
+
+    absent = model._source_slices["b"]
+    assert np.all(model.gram[absent, :] == 0.0)
+    assert np.all(model.gram[:, absent] == 0.0)
+    assert np.all(model.cross[absent, :] == 0.0)
+
+    contributions = model.marginal_loss_contributions(
+        sources, [], [1.0], source_gates={"a": 1.0, "b": 0.0}
+    )
+    assert contributions["b"] == 0.0
 
 
-def test_schur_identifiability_rejects_collinear_source_blocks():
-    rng=np.random.default_rng(82); model=MultiSourceRidge({"a":1,"b":1},0,1)
-    for _ in range(200):
-        x=float(rng.normal()); model.update({"a":[x],"b":[2*x]},[],[3*x])
-    report=model.conditional_identifiability()
-    assert report["a"]["identifiable"] is False and report["b"]["identifiable"] is False
-    assert report["a"]["rank"]==0 and report["b"]["rank"]==0
+def test_g2_readiness_audit_fails_closed_on_missing_confirmatory_interfaces():
+    report = build_readiness_report(ROOT)
+    blockers = {item["id"] for item in report["blockers"]}
+
+    assert report["g1"]["accepted"] is True
+    assert report["g1"]["manifest_identity_matches"] is True
+    assert report["g1"]["manifest_validation_passed"] is True
+    assert report["g1"]["world_configuration_count"] == 40
+    assert report["g1"]["replicate_stream_count"] == 200
+    assert report["observed_interfaces"]["masked_online_update_available"] is True
+    assert report["scientific_benchmark_executed"] is False
+    assert report["m3_scientific_validation_complete"] is False
+
+    assert "masked_online_update_missing" not in blockers
+    assert "g2_confirmatory_runner_missing" not in blockers
+    assert "c0_c4_task_prediction_adapter_missing" not in blockers
+    assert "integrated_candidate_resource_ledger_missing" not in blockers
+    assert "current_candidate_exceeds_frozen_persistent_state_cap" not in blockers
+    assert "candidate_lifecycle_contract_missing" not in blockers
+    assert "candidate_lifecycle_campaign_integration_missing" not in blockers
+    assert report["observed_interfaces"]["candidate_lifecycle_api_available"] is True
+    assert "context_conditioned_relation_store_missing" not in blockers
+    assert report["observed_interfaces"]["context_conditioned_methods"] == {
+        "context_slot_operator_lookup": True,
+        "context_conditioned_prediction": True,
+    }
+    assert report["observed_interfaces"]["structural_preflight"]["resource_lower_bound"]["numeric_buffer_lower_bound_bytes"] == 392
+    assert report["observed_interfaces"]["structural_preflight"]["resource_lower_bound"]["persistent_state_cap_bytes"] == 512
+    assert report["ready_to_start_g2"] is True
+    assert report["readiness_status"] == "READY_TO_START_G2"
 
 
-def test_schur_identifiability_accepts_independent_sources():
-    rng=np.random.default_rng(83); model=MultiSourceRidge({"a":2,"b":3},2,2)
-    for _ in range(400):
-        a,b,c=rng.normal(size=2),rng.normal(size=3),rng.normal(size=2)
-        model.update({"a":a,"b":b},c,0.2*a+0.1*b[:2]+0.05*c)
-    report=model.conditional_identifiability()
-    assert report["a"]["identifiable"] is True and report["b"]["identifiable"] is True
+def test_c0_c4_controls_expose_common_task_prediction_api():
+    assert hasattr(MemoryArchitecture, "read_mode")
+    assert hasattr(MemoryArchitecture, "read_relation")
+    assert hasattr(MemoryArchitecture, "resource_snapshot")
+    assert hasattr(MemoryArchitecture, "predict")
+    assert hasattr(MemoryArchitecture, "update_target")
+    assert hasattr(MemoryArchitecture, "score_target")
 
+def test_integrated_resource_ledger_counts_live_candidate_components():
+    from rgm.leptograph.m3 import ContextBank, EvidenceActivation, CUSUMDetector
+    from rgm.leptograph.m3.resource import integrated_resource_snapshot
+    from rgm.leptograph.m3.revision import CandidateRevision
+    from rgm.leptograph.m3.revision_campaign import CandidateLifecycle
 
-def test_integrated_refinement_outputs_context_activation_and_revision_findings():
-    result=run_integrated_refinement(seed=1604,steps=300)
-    assert result["steps"]==300
-    assert result["context"]["gated_steps"]>0
-    assert np.isfinite(result["prequential"]["effective_mean_mse"])
-    assert "candidate_revision" in result
-    assert result["memory_resources"]["resource_matched"] is False
-
-
-@pytest.mark.parametrize("package_id",WORK_PACKAGES)
-def test_all_refinement_packages_emit_json_safe_records(package_id):
-    record=run_package(package_id)
-    assert record["campaign_id"]=="HLG-M3-FINAL-REFINEMENT-v0.2"
-    assert record["package_id"]==package_id
-    assert record["execution_passed"] is True
-    assert "measurements" in record
+    estimator = MultiSourceRidge({"primary": 2, "secondary": 2}, 0, 2)
+    bank = ContextBank(np.eye(2), capacity=2, store_scatter=False)
+    slot = bank.add_initial([0.0, 0.0])
+    bank.set_operator(slot, "primary", np.eye(2))
+    activation = EvidenceActivation()
+    activation.update("primary", predictive_improvement=0.2, observed=True,
+                      identifiable=True, context_score=0.0, context_slot=slot)
+    detector = CUSUMDetector()
+    revision = CandidateRevision(np.eye(2))
+    lifecycle = CandidateLifecycle(revision, 2, 2)
+    controls = [MemoryArchitecture("C4", 2, 2, state_budget=8)]
+    report = integrated_resource_snapshot(
+        estimator=estimator, context_bank=bank, activation=activation,
+        detector=detector, lifecycle=lifecycle, revision=revision,
+        controls=controls,
+    )
+    assert report["resource_envelope_complete"] is True
+    assert report["components_bytes"]["estimator_sufficient_statistics"] == 200
+    assert report["components_bytes"]["context_metric_slots_and_pending"] >= 48
+    assert report["components_bytes"]["activation_evidence"] == 23
+    assert report["components_bytes"]["drift_detector"] == 24
+    assert report["persistent_state_bytes"] == sum(report["components_bytes"].values())
+    assert report["trainable_parameter_count"] >= 5

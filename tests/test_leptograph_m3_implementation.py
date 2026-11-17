@@ -121,7 +121,7 @@ def test_c0_c4_controls_are_distinct_and_measure_real_resources():
     assert systems[0].persistent_bytes == 0
     assert systems[3].persistent_state_bytes == 64 * 8
     assert systems[4].persistent_state_bytes == 64 * 8
-    assert systems[4].trainable_parameter_count == 256
+    assert systems[4].trainable_parameter_count == 264
     assert systems[4].update_multiply_adds > 0 and systems[4].query_multiply_adds > 0
 
 
@@ -140,3 +140,63 @@ def test_each_independent_work_package_emits_valid_execution_record(package_id):
     assert result["campaign_id"] == "HLG-M3-IMPLEMENTATION-v0.1"
     assert result["package_id"] == package_id
     assert result["execution_passed"] is True
+
+
+def test_c0_c4_expose_common_prequential_target_prediction_api():
+    systems = [MemoryArchitecture(k, 2, 2, 64, target_dimension=2)
+               for k in ("C0", "C1", "C2", "C3", "C4")]
+    for system in systems:
+        system.update_mode(np.array([0.2, -0.1]))
+        system.update_relation(np.array([0.1, 0.3]))
+        before = system.predict()
+        assert before.shape == (2,)
+        loss = system.score_target(np.array([0.5, -0.25]))
+        assert np.isfinite(loss)
+        system.update_target(np.array([0.5, -0.25]))
+        after = system.predict()
+        assert after.shape == (2,)
+        if system.name == "C0":
+            assert np.array_equal(before, after)
+        else:
+            assert np.linalg.norm(after - before) > 0.0
+        snapshot = system.resource_snapshot()
+        assert snapshot["task_readout_parameters"] == system.task_readout.size
+        assert snapshot["persistent_bytes_total"] == system.persistent_bytes
+
+
+def test_control_task_prediction_rejects_invalid_target():
+    system = MemoryArchitecture("C3", 2, 2, 64)
+    with pytest.raises(ValueError):
+        system.update_target(np.array([1.0]))
+    with pytest.raises(ValueError):
+        system.score_target(np.array([np.nan, 0.0]))
+
+
+def test_context_bank_nearest_reuse_is_bounded_and_label_blind():
+    bank = ContextBank(np.eye(2), capacity=2, full_bank_policy="nearest_reuse",
+                       accept_threshold=2.0, novelty_threshold=4.0)
+    first = bank.add_initial([0.0, 0.0], prior_covariance=0.2 * np.eye(2))
+    second = bank.add_initial([5.0, 5.0], prior_covariance=0.2 * np.eye(2))
+    reused = bank.observe_novel([0.1, -0.1])
+    assert reused == first
+    assert len(bank.slots) == 2
+    assert bank.slots[0].novelty_hits == 1
+    assert bank.slots[1].novelty_hits == 0
+    assert bank.slots[0].count == 2
+    assert second == 1
+
+
+def test_compact_context_bank_keeps_centroids_and_operators_with_separate_accounting():
+    bank = ContextBank(np.eye(2), capacity=8, store_scatter=False,
+                       full_bank_policy="nearest_reuse")
+    for index in range(6):
+        slot = bank.add_initial([float(index), 0.0])
+        bank.set_operator(slot, "primary", np.eye(2))
+        bank.set_operator(slot, "secondary", 0.5 * np.eye(2))
+    assert len(bank.slots) == 6
+    assert all(slot.scatter.size == 0 for slot in bank.slots)
+    assert bank.route([2.01, 0.0])[0] is ContextDecision.ACCEPT
+    resources = bank.relation_resource_snapshot()
+    assert resources["trainable_parameter_count"] == 48
+    assert resources["operator_bytes"] == 384
+    assert resources["persistent_context_state_bytes"] == 32 + 6 * 16
