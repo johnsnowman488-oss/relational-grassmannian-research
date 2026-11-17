@@ -7,9 +7,10 @@ from .context import ContextBank, ContextDecision
 from .estimation import MultiSourceRidge
 from .activation import EvidenceActivation
 from .revision import CUSUMDetector, CandidateRevision
+from .revision_campaign import CandidateLifecycle
 from .controls import MemoryArchitecture
 
 __all__ = [
     "ContextBank", "ContextDecision", "MultiSourceRidge", "EvidenceActivation",
-    "CUSUMDetector", "CandidateRevision", "MemoryArchitecture",
+    "CUSUMDetector", "CandidateRevision", "CandidateLifecycle", "MemoryArchitecture",
 ]
