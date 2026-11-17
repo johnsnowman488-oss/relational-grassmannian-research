@@ -30,3 +30,14 @@ Research progression takes priority over unnecessary investigative completeness.
 ## Continuity for new contributors and agents
 
 Before acting, inspect this file, `DECISIONS.md`, the relevant frozen protocol/acceptance record, and the latest implementation/results relevant to the active objective. Treat accepted decisions as authoritative unless a consequential flaw is demonstrated. Do not assume that a previous chat's unrecorded discussion overrides repository decisions; record newly accepted decisions here or in the appropriate decision document.
+
+## Parallel implementation and CI execution
+
+- Prefer parallel implementation of independent work packages when their interfaces and shared-file ownership are clear. For the active research objective, split work into genuinely independent components (for example learner representation, context/relation storage, control predictors, campaign integration, and evidence aggregation) and execute them concurrently where practical.
+- Before parallelizing, define the shared contracts, input/output schemas, frozen protocol assumptions, and file ownership. Avoid concurrent edits to the same files; integrate through small, explicit interfaces.
+- Do not serialize independent work merely for process convenience. Equally, do not parallelize tightly coupled changes before their contracts are agreed. Implement dependency foundations first, then launch dependent packages as soon as their required interfaces are stable.
+- Run CI concurrently with implementation when it validates an unchanged or independently changing surface. Trigger focused tests/workflows for completed packages while other independent packages continue. Run the full required acceptance suite after integration.
+- Where one CI workflow depends on another workflow's artifacts or outputs, preserve that dependency and wait for the upstream result; do not launch a downstream workflow with missing inputs. Where workflows are independent, run them concurrently.
+- Reuse existing successful CI evidence when the relevant commit and inputs are unchanged. Do not rerun successful workflows without a code/input change or a specific acceptance requirement.
+- Keep a concise dependency map and report which implementation packages and CI jobs ran in parallel, which required sequencing, and why.
+- Parallelism must accelerate the agreed objective, not create redundant experiments, duplicate work, merge conflicts, or extra validation gates.
