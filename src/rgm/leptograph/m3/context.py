@@ -55,6 +55,7 @@ class ContextBank:
     novelty_threshold: float = 16.0
     ambiguity_margin: float = 0.25
     novelty_repeats: int = 3
+    full_bank_policy: str = "abstain"
     slots: list[ContextSlot] = field(default_factory=list)
     _next_id: int = 0
     _pending: list[np.ndarray] = field(default_factory=list)
@@ -69,6 +70,8 @@ class ContextBank:
             raise ValueError("metric must be positive definite")
         if self.capacity < 1 or self.regularisation <= 0 or self.novelty_repeats < 1:
             raise ValueError("capacity, regularisation and novelty_repeats must be positive")
+        if self.full_bank_policy not in {"abstain", "nearest_reuse"}:
+            raise ValueError("full_bank_policy must be 'abstain' or 'nearest_reuse'")
         if self.novelty_threshold < self.accept_threshold:
             raise ValueError("novelty_threshold must be >= accept_threshold")
 
@@ -140,7 +143,12 @@ class ContextBank:
         if x.shape != (self.dimension,) or not np.all(np.isfinite(x)):
             raise ValueError("context point has invalid shape or non-finite values")
         if len(self.slots) >= self.capacity:
-            return None
+            if self.full_bank_policy == "abstain":
+                return None
+            nearest = min(self.slots, key=lambda slot: (self._score(x, slot), slot.slot_id))
+            nearest.update(x)
+            nearest.novelty_hits += 1
+            return nearest.slot_id
         self._pending.append(x.copy())
         if len(self._pending) < self.novelty_repeats:
             return None
