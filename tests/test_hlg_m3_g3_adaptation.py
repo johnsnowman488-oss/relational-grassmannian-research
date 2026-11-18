@@ -30,8 +30,8 @@ def test_runner_pairs_policy_arms_and_rejects_non_test_worlds():
 
 
 def test_detector_calibration_uses_development_worlds_and_checks_validation():
-    fit=[{"split":"development_fit","world_configuration_seed":920001,"replicate_seeds":[120001,120002],"factor_profile":{}}]
-    validation=[{"split":"development_validation","world_configuration_seed":920002,"replicate_seeds":[120003,120004],"factor_profile":{}}]
+    fit=[{"world_id":"CAL-FIT-TEST","split":"development_fit","world_configuration_seed":920001,"replicate_seeds":[120001,120002],"factor_profile":{}}]
+    validation=[{"world_id":"CAL-VALIDATION-TEST","split":"development_validation","world_configuration_seed":920002,"replicate_seeds":[120003,120004],"factor_profile":{}}]
     report=calibrate_detector_threshold(fit,validation,candidate_thresholds=(8,16,32,64,128))
     assert report["test_worlds_used"] is False
     assert report["selected_threshold"] in (8.0,16.0,32.0,64.0,128.0)
