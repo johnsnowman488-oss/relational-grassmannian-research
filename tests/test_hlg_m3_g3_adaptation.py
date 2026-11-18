@@ -35,4 +35,7 @@ def test_detector_calibration_uses_development_worlds_and_checks_validation():
     report=calibrate_detector_threshold(fit,validation,candidate_thresholds=(8,16,32,64,128))
     assert report["test_worlds_used"] is False
     assert report["selected_threshold"] in (8.0,16.0,32.0,64.0,128.0)
-    assert 0 <= report["validation_false_alarm_rate"] <= 1
+    assert report["fit_false_alarm_rate"] == 0.0
+    assert report["fit_false_alarm_count"] == 0
+    assert report["threshold_selection_rule"].startswith("lowest predeclared threshold with zero")
+    assert 0 <= report["validation_false_alarm_rate"] <= 0.05
