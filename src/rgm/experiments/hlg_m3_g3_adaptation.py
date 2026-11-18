@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 import numpy as np
 
-CAMPAIGN_ID = "HLG-M3-G3-ADAPTATION-v0.2"
+CAMPAIGN_ID = "HLG-M3-G3-ADAPTATION-v0.3"
 ENVIRONMENTS = ("stable", "gradual", "abrupt")
 POLICIES = ("no_revision", "immediate_revision", "validated_revision", "delayed_validated_revision")
 STEPS, INITIAL_FIT_STEPS = 512, 128
@@ -143,7 +143,7 @@ def run_environment(worlds, environment, detector_threshold=8.0):
 
 
 def calibrate_detector_threshold(fit_worlds, validation_worlds, candidate_thresholds=(8,12,16,20,24,32,48,64)):
-    """Select detector threshold on development-fit stable streams; verify on validation."""
+    """Select the lowest zero-false-alarm fit threshold; verify once on fresh validation worlds."""
     def rate(worlds, threshold):
         alarms=0; total=0
         for world in worlds:
@@ -155,19 +155,33 @@ def calibrate_detector_threshold(fit_worlds, validation_worlds, candidate_thresh
                     noise_std=NOISE_STD*float(world.get("factor_profile",{}).get("observation_noise_multiplier",1)))
                 result=evaluate_policy(stream,"validated_revision",detector_threshold=float(threshold))
                 alarms += int(result["alarm_step"] is not None); total += 1
-        return alarms/total if total else 1.0
+        return {"false_alarm_rate":alarms/total if total else 1.0,
+                "false_alarm_count":alarms,"stream_count":total}
     thresholds=sorted({float(v) for v in candidate_thresholds})
     if not thresholds or any(v<=0 for v in thresholds): raise ValueError("candidate thresholds must be positive")
-    fit_rates=[{"threshold":t,"false_alarm_rate":rate(fit_worlds,t)} for t in thresholds]
-    eligible=[r for r in fit_rates if r["false_alarm_rate"]<=0.05]
-    selected=eligible[0]["threshold"] if eligible else thresholds[-1]
-    validation_rate=rate(validation_worlds,selected)
+    fit_rates=[{"threshold":t,**rate(fit_worlds,t)} for t in thresholds]
+    eligible=[r for r in fit_rates if r["stream_count"]>0 and r["false_alarm_count"]==0]
+    selected=eligible[0]["threshold"] if eligible else None
+    validation=rate(validation_worlds,selected) if selected is not None else {
+        "false_alarm_rate":None,"false_alarm_count":None,"stream_count":0}
+    selected_fit=next((r for r in fit_rates if r["threshold"]==selected),None)
+    validation_passed=(selected is not None and validation["stream_count"]>0
+        and validation["false_alarm_rate"]<=0.05)
     return {"campaign_id":CAMPAIGN_ID,"calibration":"stable_negative_control",
-        "selected_threshold":selected,"fit_false_alarm_rate":next(r["false_alarm_rate"] for r in fit_rates if r["threshold"]==selected),
-        "validation_false_alarm_rate":validation_rate,"fit_threshold_sweep":fit_rates,
+        "threshold_selection_rule":"lowest predeclared threshold with zero observed false alarms on independent fit worlds",
+        "validation_rule":"one-time fresh validation false-alarm rate <= 5%; no retuning on validation",
+        "selected_threshold":selected,
+        "fit_false_alarm_rate":selected_fit["false_alarm_rate"] if selected_fit else None,
+        "fit_false_alarm_count":selected_fit["false_alarm_count"] if selected_fit else None,
+        "fit_stream_count":selected_fit["stream_count"] if selected_fit else 0,
+        "validation_false_alarm_rate":validation["false_alarm_rate"],
+        "validation_false_alarm_count":validation["false_alarm_count"],
+        "validation_stream_count":validation["stream_count"],
+        "fit_threshold_sweep":fit_rates,
+        "fit_world_ids":[w["world_id"] for w in fit_worlds],
+        "validation_world_ids":[w["world_id"] for w in validation_worlds],
         "fit_world_count":len(fit_worlds),"validation_world_count":len(validation_worlds),
-        "calibration_passed":bool(next(r["false_alarm_rate"] for r in fit_rates if r["threshold"]==selected)<=0.05 and validation_rate<=0.05),
-        "test_worlds_used":False}
+        "calibration_passed":bool(validation_passed),"test_worlds_used":False}
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
@@ -179,10 +193,16 @@ def main():
     args=parser.parse_args(); manifest=json.loads(args.manifest.read_text(encoding="utf-8"))
     args.output_dir.mkdir(parents=True,exist_ok=True)
     if args.calibrate:
+        if manifest.get("campaign_id")!="HLG-M3-G3-CALIBRATION-v0.3":
+            raise ValueError("G3-v0.3 calibration requires its independent calibration manifest")
         fit=[w for w in manifest["worlds"] if w["split"]=="development_fit"]
         validation=[w for w in manifest["worlds"] if w["split"]=="development_validation"]
-        if len(fit)!=12 or len(validation)!=8: raise ValueError("G3 calibration requires frozen 12/8 development worlds")
+        if len(fit)!=12 or len(validation)!=8 or any(len(w["replicate_seeds"])!=5 for w in fit+validation):
+            raise ValueError("G3-v0.3 calibration requires 12 fit and 8 fresh validation worlds × 5 seeds")
         report=calibrate_detector_threshold(fit,validation)
+        report["calibration_manifest_id"]=manifest["campaign_id"]
+        report["calibration_manifest_sha256"]=hashlib.sha256(args.manifest.read_bytes()).hexdigest()
+        report["source_benchmark_manifest_git_blob_sha"]=manifest["source_benchmark_manifest_git_blob_sha"]
         report["evidence_sha256"]=_hash(report)
         path=args.output_dir/"detector_calibration.json"
         path.write_text(json.dumps(report,indent=2,sort_keys=True,allow_nan=False)+"\n",encoding="utf-8")
