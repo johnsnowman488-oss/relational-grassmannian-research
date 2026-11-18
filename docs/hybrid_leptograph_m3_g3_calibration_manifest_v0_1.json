@@ -1,0 +1,559 @@
+{
+  "campaign_id": "HLG-M3-G3-CALIBRATION-v0.3",
+  "purpose": "Independent calibration-only allocation for G3-v0.3; contains no held-out test worlds.",
+  "source_benchmark_manifest_git_blob_sha": "5029b8781cb45a863854bb003ef2b83dd32e1329",
+  "seed_policy": "All world-configuration and replicate seeds are new and disjoint from the BM0/BM1 fit, validation, test, and pilot allocations.",
+  "allocation": {
+    "fit_worlds": 12,
+    "validation_worlds": 8,
+    "replicates_per_world": 5,
+    "total_worlds": 20,
+    "total_streams": 100
+  },
+  "worlds": [
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 20,
+        "context_bank_capacity": 2,
+        "context_separation_dprime": 4,
+        "drift_family": "stationary",
+        "independent_observation_probability": 1,
+        "observation_noise_multiplier": 1,
+        "source_correlation": 0
+      },
+      "replicate_seeds": [
+        440000,
+        440001,
+        440002,
+        440003,
+        440004
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920000,
+      "world_id": "G3-CAL-FIT-W01"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 50,
+        "context_bank_capacity": 4,
+        "context_separation_dprime": 2,
+        "drift_family": "step",
+        "independent_observation_probability": 0.95,
+        "observation_noise_multiplier": 1,
+        "source_correlation": 0.5
+      },
+      "replicate_seeds": [
+        440010,
+        440011,
+        440012,
+        440013,
+        440014
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920001,
+      "world_id": "G3-CAL-FIT-W02"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 100,
+        "context_bank_capacity": 8,
+        "context_separation_dprime": 1,
+        "drift_family": "gradual",
+        "independent_observation_probability": 0.8,
+        "observation_noise_multiplier": 2,
+        "source_correlation": 0.9
+      },
+      "replicate_seeds": [
+        440020,
+        440021,
+        440022,
+        440023,
+        440024
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920002,
+      "world_id": "G3-CAL-FIT-W03"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 20,
+        "context_bank_capacity": 2,
+        "context_separation_dprime": 0.5,
+        "drift_family": "variance_only",
+        "independent_observation_probability": 1,
+        "observation_noise_multiplier": 2,
+        "source_correlation": 0.99
+      },
+      "replicate_seeds": [
+        440030,
+        440031,
+        440032,
+        440033,
+        440034
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920003,
+      "world_id": "G3-CAL-FIT-W04"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 50,
+        "context_bank_capacity": 4,
+        "context_separation_dprime": 4,
+        "drift_family": "transient",
+        "independent_observation_probability": 0.95,
+        "observation_noise_multiplier": 4,
+        "source_correlation": 1
+      },
+      "replicate_seeds": [
+        440040,
+        440041,
+        440042,
+        440043,
+        440044
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920004,
+      "world_id": "G3-CAL-FIT-W05"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 100,
+        "context_bank_capacity": 8,
+        "context_separation_dprime": 2,
+        "drift_family": "compound",
+        "independent_observation_probability": 0.95,
+        "observation_noise_multiplier": 4,
+        "source_correlation": 0
+      },
+      "replicate_seeds": [
+        440050,
+        440051,
+        440052,
+        440053,
+        440054
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920005,
+      "world_id": "G3-CAL-FIT-W06"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 20,
+        "context_bank_capacity": 2,
+        "context_separation_dprime": 1,
+        "drift_family": "stationary",
+        "independent_observation_probability": 0.8,
+        "observation_noise_multiplier": 2,
+        "source_correlation": 0.5
+      },
+      "replicate_seeds": [
+        440060,
+        440061,
+        440062,
+        440063,
+        440064
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920006,
+      "world_id": "G3-CAL-FIT-W07"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 50,
+        "context_bank_capacity": 4,
+        "context_separation_dprime": 0.5,
+        "drift_family": "step",
+        "independent_observation_probability": 1,
+        "observation_noise_multiplier": 2,
+        "source_correlation": 0.9
+      },
+      "replicate_seeds": [
+        440070,
+        440071,
+        440072,
+        440073,
+        440074
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920007,
+      "world_id": "G3-CAL-FIT-W08"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 100,
+        "context_bank_capacity": 8,
+        "context_separation_dprime": 4,
+        "drift_family": "gradual",
+        "independent_observation_probability": 0.95,
+        "observation_noise_multiplier": 4,
+        "source_correlation": 0.99
+      },
+      "replicate_seeds": [
+        440080,
+        440081,
+        440082,
+        440083,
+        440084
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920008,
+      "world_id": "G3-CAL-FIT-W09"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 20,
+        "context_bank_capacity": 2,
+        "context_separation_dprime": 2,
+        "drift_family": "variance_only",
+        "independent_observation_probability": 0.8,
+        "observation_noise_multiplier": 4,
+        "source_correlation": 1
+      },
+      "replicate_seeds": [
+        440090,
+        440091,
+        440092,
+        440093,
+        440094
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920009,
+      "world_id": "G3-CAL-FIT-W10"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 50,
+        "context_bank_capacity": 4,
+        "context_separation_dprime": 1,
+        "drift_family": "transient",
+        "independent_observation_probability": 0.8,
+        "observation_noise_multiplier": 1,
+        "source_correlation": 0
+      },
+      "replicate_seeds": [
+        440100,
+        440101,
+        440102,
+        440103,
+        440104
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920010,
+      "world_id": "G3-CAL-FIT-W11"
+    },
+    {
+      "composition_ids": [
+        "FIT-AB",
+        "FIT-BC",
+        "FIT-CD",
+        "FIT-DA"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 100,
+        "context_bank_capacity": 8,
+        "context_separation_dprime": 0.5,
+        "drift_family": "compound",
+        "independent_observation_probability": 1,
+        "observation_noise_multiplier": 1,
+        "source_correlation": 0.5
+      },
+      "replicate_seeds": [
+        440110,
+        440111,
+        440112,
+        440113,
+        440114
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_fit",
+      "world_configuration_seed": 920011,
+      "world_id": "G3-CAL-FIT-W12"
+    },
+    {
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 20,
+        "context_bank_capacity": 2,
+        "context_separation_dprime": 4,
+        "drift_family": "stationary",
+        "independent_observation_probability": 1,
+        "observation_noise_multiplier": 1,
+        "source_correlation": 0
+      },
+      "replicate_seeds": [
+        441000,
+        441001,
+        441002,
+        441003,
+        441004
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_validation",
+      "world_configuration_seed": 920100,
+      "world_id": "G3-CAL-VALIDATION-W01"
+    },
+    {
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 50,
+        "context_bank_capacity": 4,
+        "context_separation_dprime": 2,
+        "drift_family": "step",
+        "independent_observation_probability": 0.95,
+        "observation_noise_multiplier": 1,
+        "source_correlation": 0.5
+      },
+      "replicate_seeds": [
+        441010,
+        441011,
+        441012,
+        441013,
+        441014
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_validation",
+      "world_configuration_seed": 920101,
+      "world_id": "G3-CAL-VALIDATION-W02"
+    },
+    {
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 100,
+        "context_bank_capacity": 8,
+        "context_separation_dprime": 1,
+        "drift_family": "gradual",
+        "independent_observation_probability": 0.8,
+        "observation_noise_multiplier": 2,
+        "source_correlation": 0.9
+      },
+      "replicate_seeds": [
+        441020,
+        441021,
+        441022,
+        441023,
+        441024
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_validation",
+      "world_configuration_seed": 920102,
+      "world_id": "G3-CAL-VALIDATION-W03"
+    },
+    {
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 20,
+        "context_bank_capacity": 2,
+        "context_separation_dprime": 0.5,
+        "drift_family": "variance_only",
+        "independent_observation_probability": 1,
+        "observation_noise_multiplier": 2,
+        "source_correlation": 0.99
+      },
+      "replicate_seeds": [
+        441030,
+        441031,
+        441032,
+        441033,
+        441034
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_validation",
+      "world_configuration_seed": 920103,
+      "world_id": "G3-CAL-VALIDATION-W04"
+    },
+    {
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 50,
+        "context_bank_capacity": 4,
+        "context_separation_dprime": 4,
+        "drift_family": "transient",
+        "independent_observation_probability": 0.95,
+        "observation_noise_multiplier": 4,
+        "source_correlation": 1
+      },
+      "replicate_seeds": [
+        441040,
+        441041,
+        441042,
+        441043,
+        441044
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_validation",
+      "world_configuration_seed": 920104,
+      "world_id": "G3-CAL-VALIDATION-W05"
+    },
+    {
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 100,
+        "context_bank_capacity": 8,
+        "context_separation_dprime": 2,
+        "drift_family": "compound",
+        "independent_observation_probability": 0.95,
+        "observation_noise_multiplier": 4,
+        "source_correlation": 0
+      },
+      "replicate_seeds": [
+        441050,
+        441051,
+        441052,
+        441053,
+        441054
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_validation",
+      "world_configuration_seed": 920105,
+      "world_id": "G3-CAL-VALIDATION-W06"
+    },
+    {
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 20,
+        "context_bank_capacity": 2,
+        "context_separation_dprime": 1,
+        "drift_family": "stationary",
+        "independent_observation_probability": 0.8,
+        "observation_noise_multiplier": 2,
+        "source_correlation": 0.5
+      },
+      "replicate_seeds": [
+        441060,
+        441061,
+        441062,
+        441063,
+        441064
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_validation",
+      "world_configuration_seed": 920106,
+      "world_id": "G3-CAL-VALIDATION-W07"
+    },
+    {
+      "composition_ids": [
+        "VAL-AC",
+        "VAL-BD"
+      ],
+      "factor_profile": {
+        "burst_outage_steps": 50,
+        "context_bank_capacity": 4,
+        "context_separation_dprime": 0.5,
+        "drift_family": "step",
+        "independent_observation_probability": 1,
+        "observation_noise_multiplier": 2,
+        "source_correlation": 0.9
+      },
+      "replicate_seeds": [
+        441070,
+        441071,
+        441072,
+        441073,
+        441074
+      ],
+      "scenario_template_id": "F6-INTEGRATED-SEQUENTIAL-v1",
+      "split": "development_validation",
+      "world_configuration_seed": 920107,
+      "world_id": "G3-CAL-VALIDATION-W08"
+    }
+  ]
+}
