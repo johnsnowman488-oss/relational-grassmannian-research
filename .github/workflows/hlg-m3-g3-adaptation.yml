@@ -6,6 +6,8 @@ on:
       - "src/rgm/experiments/hlg_m3_g3_adaptation.py"
       - "tests/test_hlg_m3_g3_adaptation.py"
       - "docs/hybrid_leptograph_m3_g3_adaptation_protocol_v0_2.md"
+      - "docs/hybrid_leptograph_m3_g3_adaptation_protocol_v0_3.md"
+      - "docs/hybrid_leptograph_m3_g3_calibration_manifest_v0_1.json"
       - ".github/workflows/hlg-m3-g3-adaptation.yml"
   pull_request:
     branches: [main]
@@ -31,7 +33,7 @@ jobs:
       - name: Calibrate and validate stable false-alarm rate
         run: >-
           python -m rgm.experiments.hlg_m3_g3_adaptation
-          --manifest docs/hybrid_leptograph_m3_benchmark_split_manifest_v0_1.json
+          --manifest docs/hybrid_leptograph_m3_g3_calibration_manifest_v0_1.json
           --calibrate --output-dir results/hlg_m3_g3
       - uses: actions/upload-artifact@v4
         with:
@@ -101,11 +103,21 @@ jobs:
           actual={p.name for p in root.glob("*.json")}
           assert actual==expected, {"expected":sorted(expected),"actual":sorted(actual)}
           calibration=json.loads((root/"detector_calibration.json").read_text())
+          assert calibration["campaign_id"]=="HLG-M3-G3-ADAPTATION-v0.3"
+          assert calibration["calibration_manifest_id"]=="HLG-M3-G3-CALIBRATION-v0.3"
           assert calibration["calibration_passed"] is True
           assert calibration["test_worlds_used"] is False
+          assert calibration["fit_false_alarm_rate"]==0.0
+          assert calibration["fit_false_alarm_count"]==0
+          assert calibration["validation_false_alarm_rate"]<=0.05
+          assert calibration["fit_stream_count"]==60
+          assert calibration["validation_stream_count"]==40
+          assert len(calibration["fit_world_ids"])==12
+          assert len(calibration["validation_world_ids"])==8
+          assert len(calibration["calibration_manifest_sha256"])==64
           reports={p.stem:json.loads(p.read_text()) for p in root.glob("*.json") if p.stem!="detector_calibration"}
           for env,report in reports.items():
-              assert report["campaign_id"]=="HLG-M3-G3-ADAPTATION-v0.2"
+              assert report["campaign_id"]=="HLG-M3-G3-ADAPTATION-v0.3"
               assert report["environment"]==env and report["world_count"]==20
               assert report["stream_count"]==100 and report["policy_arm_count"]==4
               assert len(report["streams"])==400
