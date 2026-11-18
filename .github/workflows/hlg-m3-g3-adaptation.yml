@@ -1,0 +1,132 @@
+name: HLG-M3 G3 Environmental Adaptation
+on:
+  push:
+    branches: [research/hlg-m3-g3-environmental-adaptation]
+    paths:
+      - "src/rgm/experiments/hlg_m3_g3_adaptation.py"
+      - "tests/test_hlg_m3_g3_adaptation.py"
+      - "docs/hybrid_leptograph_m3_g3_adaptation_protocol_v0_2.md"
+      - "docs/hybrid_leptograph_m3_g3_adaptation_protocol_v0_3.md"
+      - "docs/hybrid_leptograph_m3_g3_calibration_manifest_v0_1.json"
+      - ".github/workflows/hlg-m3-g3-adaptation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/rgm/experiments/hlg_m3_g3_adaptation.py"
+      - "tests/test_hlg_m3_g3_adaptation.py"
+      - "docs/hybrid_leptograph_m3_g3_adaptation_protocol_v0_2.md"
+      - ".github/workflows/hlg-m3-g3-adaptation.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  calibration:
+    name: Calibrate detector on development worlds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Calibrate and validate stable false-alarm rate
+        run: >-
+          python -m rgm.experiments.hlg_m3_g3_adaptation
+          --manifest docs/hybrid_leptograph_m3_g3_calibration_manifest_v0_1.json
+          --calibrate --output-dir results/hlg_m3_g3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hlg-m3-g3-calibration
+          path: results/hlg_m3_g3/detector_calibration.json
+          if-no-files-found: error
+  environment:
+    name: G3 ${{ matrix.environment }} environment
+    needs: [calibration]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [stable, gradual, abrupt]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - uses: actions/download-artifact@v4
+        with:
+          name: hlg-m3-g3-calibration
+          path: results/hlg_m3_g3
+      - name: Execute paired environment campaign with frozen threshold
+        run: |
+          THRESHOLD=$(python -c "import json; print(json.load(open('results/hlg_m3_g3/detector_calibration.json'))['selected_threshold'])")
+          python -m rgm.experiments.hlg_m3_g3_adaptation --manifest docs/hybrid_leptograph_m3_benchmark_split_manifest_v0_1.json --environment "${{ matrix.environment }}" --detector-threshold "$THRESHOLD" --output-dir results/hlg_m3_g3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hlg-m3-g3-${{ matrix.environment }}
+          path: results/hlg_m3_g3/${{ matrix.environment }}.json
+          if-no-files-found: error
+  full-tests:
+    name: Full repository tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - run: python -m pytest
+  aggregate:
+    name: Verify G3 calibration and environment evidence
+    runs-on: ubuntu-latest
+    needs: [calibration, environment, full-tests]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hlg-m3-g3-*
+          path: results/hlg_m3_g3
+          merge-multiple: true
+      - name: Verify exact environment coverage and calibration
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("results/hlg_m3_g3")
+          expected={"detector_calibration.json","stable.json","gradual.json","abrupt.json"}
+          actual={p.name for p in root.glob("*.json")}
+          assert actual==expected, {"expected":sorted(expected),"actual":sorted(actual)}
+          calibration=json.loads((root/"detector_calibration.json").read_text())
+          assert calibration["campaign_id"]=="HLG-M3-G3-ADAPTATION-v0.3"
+          assert calibration["calibration_manifest_id"]=="HLG-M3-G3-CALIBRATION-v0.3"
+          assert calibration["calibration_passed"] is True
+          assert calibration["test_worlds_used"] is False
+          assert calibration["fit_false_alarm_rate"]==0.0
+          assert calibration["fit_false_alarm_count"]==0
+          assert calibration["validation_false_alarm_rate"]<=0.05
+          assert calibration["fit_stream_count"]==60
+          assert calibration["validation_stream_count"]==40
+          assert len(calibration["fit_world_ids"])==12
+          assert len(calibration["validation_world_ids"])==8
+          assert len(calibration["calibration_manifest_sha256"])==64
+          reports={p.stem:json.loads(p.read_text()) for p in root.glob("*.json") if p.stem!="detector_calibration"}
+          for env,report in reports.items():
+              assert report["campaign_id"]=="HLG-M3-G3-ADAPTATION-v0.3"
+              assert report["environment"]==env and report["world_count"]==20
+              assert report["stream_count"]==100 and report["policy_arm_count"]==4
+              assert len(report["streams"])==400
+              assert report["detector_threshold"]==calibration["selected_threshold"]
+              assert report["integrity"]["held_out_test_worlds_only"]
+              assert report["integrity"]["same_streams_across_policy_arms"]
+              assert report["integrity"]["prequential_prediction_before_feedback"]
+          print(json.dumps({"selected_threshold":calibration["selected_threshold"],
+              "environments":sorted(reports),"environment_streams":300,
+              "policy_evaluations":1200,"execution_status":"EVIDENCE_VERIFIED",
+              "scientific_pass_claimed":False},sort_keys=True))
+          PY
