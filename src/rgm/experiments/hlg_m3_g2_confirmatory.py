@@ -77,7 +77,7 @@ def _new_bundle(capacity: int) -> dict:
     }
 
 
-def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) -> dict:
+def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None, *, include_detector_trace: bool = False) -> dict:
     """Run one stream; evaluator records are read only after prediction."""
     stream = generate_world_stream(world, replicate_seed)
     profile = stream["factor_profile"]
@@ -102,6 +102,7 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
     routing = {"ACCEPT": 0, "ABSTAIN": 0, "NOVEL": 0, "missing_context": 0, "novel_slots_created": 0, "nearest_reuse": 0}
     identifiability = defaultdict(int)
     alarm_steps = []
+    detector_trace = []
     source_observed_total = {"primary": 0, "secondary": 0}
     target_observed_total = 0
     baseline_losses = []
@@ -216,7 +217,17 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
                         0.1 * baseline_mean, 0.01,
                     )
                 detector_score = (loss - baseline_mean) / baseline_scale
+                cusum_before = float(detector.statistic)
                 alarm = detector.update(float(detector_score))
+                if include_detector_trace:
+                    detector_trace.append({
+                        "step_index": int(observation.step_index),
+                        "phase_id": str(evaluator.phase_id),
+                        "standardized_loss_innovation": float(detector_score),
+                        "cusum_before": cusum_before,
+                        "cusum_after": float(detector.statistic),
+                        "alarm": bool(alarm),
+                    })
             if alarm:
                 alarm_steps.append(observation.step_index)
                 if lifecycle is None:
@@ -301,6 +312,8 @@ def _run_stream(world: dict, replicate_seed: int, bundle: dict | None = None) ->
             "scale": baseline_scale,
         },
         "alarm_steps": alarm_steps, "detector_alarms": detector.alarms,
+        "change_schedule": [{"step": int(step), "event": str(event)} for step, event in stream["change_schedule"]],
+        "detector_trace": detector_trace if include_detector_trace else None,
         "candidate_lifecycle": lifecycle.result() if lifecycle is not None else None,
         "candidate_lifecycle_records": lifecycle_records,
         "candidate_revision_applied_to_fallback": bool(revision is not None and revision.revision_count > 0),
