@@ -1,28 +1,28 @@
 # HLG-M4 implementation cross-audit: C0-C4, P0 and P6
 
 **Version:** 0.1
-**Audited repository ref:** \`main\` at \`56fa16ffa1fd66730e351cccafea7ee899cc2bc0\`
-**M4 planning branch prior to this audit update:** \`research/hlg-m4-preimplementation-ledger\` at \`c21c3700102122e93acaaaebf9fc30ec5979df6e\`
-**Policy:** \`AGENTS.md\` read in full; \`DECISIONS.md\`, M3 implementation/refinement protocols, M3 implementation results and M3/M4 exit records reviewed.
+**Audited repository ref:** `main` at `56fa16ffa1fd66730e351cccafea7ee899cc2bc0`
+**M4 planning branch prior to this audit update:** `research/hlg-m4-preimplementation-ledger` at `c21c3700102122e93acaaaebf9fc30ec5979df6e`
+**Policy:** `AGENTS.md` read in full; `DECISIONS.md`, M3 implementation/refinement protocols, M3 implementation results and M3/M4 exit records reviewed.
 **Purpose:** Record source-level compatibility findings that refine M4 design. This is not a new M3 experiment, code validation campaign or M4 result.
 
 ## 1. Audit method and research-policy compliance
 
 Read the actual implementations and associated tests:
-- \`src/rgm/leptograph/m3/controls.py\`
-- \`src/rgm/leptograph/m3/integration.py\`
-- \`src/rgm/leptograph/m3/integration_refinement.py\`
-- \`src/rgm/leptograph/m3/context.py\`
-- \`src/rgm/leptograph/m3/estimation.py\`
-- \`src/rgm/leptograph/m3/activation.py\`
-- \`src/rgm/leptograph/m3/revision.py\`
-- \`src/rgm/leptograph/m3/revision_campaign.py\`
-- \`src/rgm/memory/soe.py\`
-- \`src/rgm/relations/{graph,schema,operations,temporal}.py\`
-- \`src/rgm/leptograph/m1.py\`
-- \`tests/test_leptograph_m3_implementation.py\`, \`tests/test_leptograph_m3_refinements.py\`, \`tests/test_relations.py\`, \`tests/test_leptograph_m1.py\`.
+- `src/rgm/leptograph/m3/controls.py`
+- `src/rgm/leptograph/m3/integration.py`
+- `src/rgm/leptograph/m3/integration_refinement.py`
+- `src/rgm/leptograph/m3/context.py`
+- `src/rgm/leptograph/m3/estimation.py`
+- `src/rgm/leptograph/m3/activation.py`
+- `src/rgm/leptograph/m3/revision.py`
+- `src/rgm/leptograph/m3/revision_campaign.py`
+- `src/rgm/memory/soe.py`
+- `src/rgm/relations/{graph,schema,operations,temporal}.py`
+- `src/rgm/leptograph/m1.py`
+- `tests/test_leptograph_m3_implementation.py`, `tests/test_leptograph_m3_refinements.py`, `tests/test_relations.py`, `tests/test_leptograph_m1.py`.
 
-No code changes were made: no defect was demonstrated in the accepted earlier M0-M3 scope. The changes in this audit are M4 contract refinements and explicit claim boundaries, consistent with \`AGENTS.md\`'s instructions to preserve accepted work, use existing components, and make the smallest effective correction.
+No code changes were made: no defect was demonstrated in the accepted earlier M0-M3 scope. The changes in this audit are M4 contract refinements and explicit claim boundaries, consistent with `AGENTS.md`'s instructions to preserve accepted work, use existing components, and make the smallest effective correction.
 
 ## 2. C0-C4 implementation findings
 
@@ -34,7 +34,7 @@ No code changes were made: no defect was demonstrated in the accepted earlier M0
 - **C3:** separate mode and relation state arrays, independently updated. Both feed a common learned task readout after concatenation. This is not a cross-coupled state update.
 - **C4:** one shared latent state, separate mode and relation readouts, and a common task readout. Each mode/relation update call decays and writes the same latent state, so update order matters.
 
-The control class does not import or call \`SOEMemory\`. The current \`run_integrated_refinement\` function updates C3/C4 and reports their resources, but does not use their target predictions to form a controlled task-performance comparison. Existing tests exercise the common prequential API, but no matched held-out C0-C4 architecture ranking is established.
+The control class does not import or call `SOEMemory`. The current `run_integrated_refinement` function updates C3/C4 and reports their resources, but does not use their target predictions to form a controlled task-performance comparison. Existing tests exercise the common prequential API, but no matched held-out C0-C4 architecture ranking is established.
 
 ### 2.2 Shape-derived current resource audit
 
@@ -59,11 +59,11 @@ C1-C3 apply additive updates without decay/projection in this class; repeated co
 ## 3. P0 composition primitives
 
 The repository has three distinct composition constructs:
-1. \`RelationalGraph\` / \`RelationEvent\`: event-level directed facts with timestamp, optional expiry, event ID and supersession.
-2. \`RelationSchema.compositions\` / \`compose_relations\`: explicit ordered predicate-pair composition into a derived predicate/event, requiring connected endpoints and checking temporal validity.
-3. \`rgm.leptograph.m1.compose_routes\`: dimension-checked matrix/operator composition across heterogeneous vector spaces.
+1. `RelationalGraph` / `RelationEvent`: event-level directed facts with timestamp, optional expiry, event ID and supersession.
+2. `RelationSchema.compositions` / `compose_relations`: explicit ordered predicate-pair composition into a derived predicate/event, requiring connected endpoints and checking temporal validity.
+3. `rgm.leptograph.m1.compose_routes`: dimension-checked matrix/operator composition across heterogeneous vector spaces.
 
-The current relation event has bare string endpoints and no endpoint type registry, context, observation time or rich provenance. The binary \`compose_relations\` result does not preserve its source event IDs as a path witness. Existing tests cover its declared narrow contract. M1 tests cover operator-chain covariance, not semantic relational truth.
+The current relation event has bare string endpoints and no endpoint type registry, context, observation time or rich provenance. The binary `compose_relations` result does not preserve its source event IDs as a path witness. Existing tests cover its declared narrow contract. M1 tests cover operator-chain covariance, not semantic relational truth.
 
 P0 must preserve these existing APIs and separately define a witness-bearing extensional path composition. Predicate-algebra associativity requires an explicit law for the predicate-composition table; it is not implied by associativity of ordinary relational joins. The current test fixture demonstrates one binary rule only.
 
