@@ -124,20 +124,24 @@ class M4ABSystem:
         relation_types: Sequence[RelationType],
         *,
         relation_capacity: int = 4096,
+        max_path_depth: int = 4,
         min_probability: float = 0.5,
         min_margin: float = 0.05,
     ):
         if architecture not in {"A", "B"}:
             raise ValueError("architecture must be A or B")
+        if max_path_depth < 1:
+            raise ValueError("max_path_depth must be positive")
         names = [r.name for r in relation_types]
         if not names or len(set(names)) != len(names):
             raise ValueError("relation_types must have unique names")
         self.architecture = architecture
+        self.max_path_depth = int(max_path_depth)
         self.relation_types = {r.name: r for r in relation_types}
         self.relation_index = {name: i for i, name in enumerate(names)}
         self.soe = SOEMemory(feature_dim=len(names))
         self.store = PersistentRelationStore(relation_capacity) if architecture == "B" else None
-        self.readout_weights = np.zeros(3 * len(names) + 1, dtype=float)
+        self.readout_weights = np.zeros((3 + self.max_path_depth) * len(names) + 1, dtype=float)
         self.readout_bias = 0.0
         self.readout_fitted = False
         self.min_probability = float(min_probability)
@@ -210,6 +214,8 @@ class M4ABSystem:
 
     def _features(self, path: Sequence[str]) -> np.ndarray:
         n = len(self.relation_index)
+        if len(path) > self.max_path_depth:
+            raise ValueError("candidate path exceeds the configured readout depth")
         counts = np.zeros(n, dtype=float)
         for name in path:
             if name not in self.relation_index:
@@ -217,11 +223,14 @@ class M4ABSystem:
             counts[self.relation_index[name]] += 1.0
         temporal = np.mean(self.soe.channels, axis=0)
         support = np.zeros(n, dtype=float)
+        positional = np.zeros(self.max_path_depth * n, dtype=float)
+        for position, name in enumerate(path):
+            positional[position * n + self.relation_index[name]] = 1.0
         if self.architecture == "B":
             for event in self.store.records:
                 support[self.relation_index[event.relation_type.name]] += 1.0
             support = np.log1p(support)
-        return np.concatenate([counts, temporal, np.zeros(n) if self.architecture == "A" else support, [float(len(path))]])
+        return np.concatenate([counts, temporal, np.zeros(n) if self.architecture == "A" else support, positional, [float(len(path))]])
 
     def fit_readout(
         self,
@@ -254,6 +263,8 @@ class M4ABSystem:
     def query(self, query: M4Query, *, visible_events: Iterable[RelationInstance] = ()) -> dict:
         if not isinstance(query, M4Query):
             raise TypeError("query must be an M4Query")
+        if query.max_depth > self.max_path_depth:
+            return {"status": "ABSTAIN_DEPTH_UNSUPPORTED", "candidates": (), "witnesses": ()}
         if query.observation_cutoff < self.last_observed_at:
             return {"status": "ABSTAIN_CUTOFF_UNSUPPORTED", "candidates": (), "witnesses": ()}
         if not self.readout_fitted:
@@ -313,6 +324,7 @@ class M4ABSystem:
     def snapshot(self) -> dict:
         return {
             "architecture": self.architecture,
+            "max_path_depth": self.max_path_depth,
             "soe": self.soe.to_dict(),
             "store": None if self.store is None else self.store.snapshot(),
             "readout_weights": self.readout_weights.copy(),
@@ -326,8 +338,8 @@ class M4ABSystem:
         }
 
     def restore(self, state: dict) -> None:
-        if state["architecture"] != self.architecture:
-            raise ValueError("snapshot architecture mismatch")
+        if state["architecture"] != self.architecture or int(state.get("max_path_depth", self.max_path_depth)) != self.max_path_depth:
+            raise ValueError("snapshot architecture/configuration mismatch")
         from rgm.memory import SOEMemory
         self.soe = SOEMemory.from_dict(state["soe"])
         if self.architecture == "B":

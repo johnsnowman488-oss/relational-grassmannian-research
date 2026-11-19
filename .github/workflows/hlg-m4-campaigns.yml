@@ -1,0 +1,45 @@
+name: HLG-M4 G1-G5 development campaigns
+
+on:
+  pull_request:
+    branches: [research/hlg-m4-preimplementation-ledger]
+    paths:
+      - "src/rgm/leptograph/m4/**"
+      - "src/rgm/experiments/m4_campaigns.py"
+      - "tests/test_hlg_m4_campaigns.py"
+      - ".github/workflows/hlg-m4-campaigns.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  campaigns:
+    name: G1-G5 development run (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run campaign and integration tests
+        run: python -m pytest tests/test_hlg_m4_campaigns.py tests/test_hlg_m4_ab_integration.py tests/test_hlg_m4_p0_p1.py
+      - name: Execute 20-seed G1-G5 development campaigns
+        run: |
+          mkdir -p "$RUNNER_TEMP/m4-campaigns"
+          python -m rgm.experiments.m4_campaigns "$RUNNER_TEMP/m4-campaigns/results.json"
+          printf "commit=%s\npython=%s\n" "$GITHUB_SHA" "${{ matrix.python-version }}" > "$RUNNER_TEMP/m4-campaigns/manifest.txt"
+          sha256sum "$RUNNER_TEMP/m4-campaigns/results.json" > "$RUNNER_TEMP/m4-campaigns/results.sha256"
+      - name: Upload G1-G5 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: hlg-m4-g1-g5-py${{ matrix.python-version }}
+          path: ${{ runner.temp }}/m4-campaigns/
+          if-no-files-found: error
