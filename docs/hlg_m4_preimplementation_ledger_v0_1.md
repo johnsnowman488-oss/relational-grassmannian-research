@@ -1,8 +1,8 @@
 # HLG-M4 pre-implementation research ledger
 
-**Ledger:** HLG-M4-PREIMPLEMENTATION-LEDGER-v0.1  
+**Ledger:** HLG-M4-PREIMPLEMENTATION-LEDGER-v0.2  
 **Date opened:** 2026-11-18  
-**Status:** Planning record; discussion adopted as the starting basis for M4 pre-implementation work. This is not the M4 implementation protocol, a result report, or authorisation to begin the M4 confirmatory campaign.  
+**Status:** v0.2 — scaffold-first P0-P6 pre-implementation plan adopted; initial design drafts and job tracking recorded. Not the M4 implementation protocol, a result report, or authorisation to begin the M4 confirmatory campaign.  
 **Parent:** HLG-M0 through HLG-M3; M4 is the coupled adaptive-system stability investigation.  
 **Programme relationship:** M-series branched from E03. The intended formal reintegration point after M4 is E09.
 
