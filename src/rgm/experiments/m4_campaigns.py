@@ -101,7 +101,7 @@ def run(seed_count: int = 20):
                 model = _new_model(architecture)
                 for event in facts:
                     model.observe(event)
-                query = M4Query(start, goal, "ctx", 10.0, 10.0, max_depth=depth)
+                query = M4Query(start, goal, "ctx", 20.0, 20.0, max_depth=depth)
                 result = model.query(query, visible_events=facts if architecture == "A" else ())
                 selected = result.get("selected_path")
                 g1_rows.append({
@@ -121,7 +121,7 @@ def run(seed_count: int = 20):
                         trial.observe(event)
                     trial.advance_gap(float(delay))
                     delayed_query = M4Query(
-                        start, goal, "ctx", 10.0 + delay, 10.0 + delay,
+                        start, goal, "ctx", 20.0 + delay, 20.0 + delay,
                         max_depth=depth,
                     )
                     delayed = trial.query(
@@ -141,11 +141,11 @@ def run(seed_count: int = 20):
                 for event in facts:
                     cautious.observe(event)
                 ambiguous = cautious.query(
-                    M4Query(start, goal, "ctx", 10.0, 10.0, max_depth=depth),
+                    M4Query(start, goal, "ctx", 20.0, 20.0, max_depth=depth),
                     visible_events=facts if architecture == "A" else (),
                 )
                 wrong_context = cautious.query(
-                    M4Query(start, goal, "not-ctx", 10.0, 10.0, max_depth=depth),
+                    M4Query(start, goal, "not-ctx", 20.0, 20.0, max_depth=depth),
                     visible_events=facts if architecture == "A" else (),
                 )
                 g3_rows.append({
@@ -186,10 +186,15 @@ def run(seed_count: int = 20):
         controller.start_candidate(candidate.readout_weights)
         promoted = controller.validate_candidate(incumbent_loss, candidate_loss, True)
         # Mutate temporal and relational state after promotion, then verify
-        # rollback restores the complete trusted snapshot.
-        model.advance_gap(2.0)
-        rollback_before = controller.rollback_count
-        controller.rollback()
+        # rollback restores the complete trusted snapshot. A rejected candidate
+        # must leave the incumbent state unchanged.
+        if promoted:
+            model.advance_gap(2.0)
+            rollback_before = controller.rollback_count
+            controller.rollback()
+            rollback_delta = controller.rollback_count - rollback_before
+        else:
+            rollback_delta = 0
         restored = (
             np.array_equal(model.readout_weights, before["readout_weights"])
             and np.array_equal(model.soe.channels, np.asarray(before["soe"]["channels"]))
@@ -201,7 +206,7 @@ def run(seed_count: int = 20):
             "incumbent_validation_loss": incumbent_loss,
             "candidate_validation_loss": candidate_loss, "promoted": promoted,
             "rollback_exact": bool(restored),
-            "rollback_count_delta": controller.rollback_count - rollback_before,
+            "rollback_count_delta": rollback_delta,
         })
 
     # G5: populated-state scaling; payload accounting is explicit and does not
