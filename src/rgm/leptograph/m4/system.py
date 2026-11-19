@@ -252,6 +252,8 @@ class M4ABSystem:
     def query(self, query: M4Query, *, visible_events: Iterable[RelationInstance] = ()) -> dict:
         if not isinstance(query, M4Query):
             raise TypeError("query must be an M4Query")
+        if query.observation_cutoff < self.last_observed_at:
+            return {"status": "ABSTAIN_CUTOFF_UNSUPPORTED", "candidates": (), "witnesses": ()}
         if not self.readout_fitted:
             return {"status": "ABSTAIN_UNTRAINED", "candidates": (), "witnesses": ()}
         events = list(visible_events)
