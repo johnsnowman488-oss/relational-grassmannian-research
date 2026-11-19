@@ -39,3 +39,18 @@ def test_preliminary_stress_run_reports_limited_claim():
     assert result["all_runs_within_declared_norm_25"]
     assert result["rollback_restored_trusted_state"]
     assert "no arbitrary-switching" in result["claim_boundary"]
+
+
+def test_individually_stable_switched_modes_can_have_unstable_product():
+    first=np.array([[0.5,2.0],[0.0,0.5]])
+    second=np.array([[0.5,0.0],[2.0,0.5]])
+    assert max(abs(np.linalg.eigvals(first)))==pytest.approx(0.5)
+    assert max(abs(np.linalg.eigvals(second)))==pytest.approx(0.5)
+    assert max(abs(np.linalg.eigvals(second@first)))>1.0
+
+def test_existing_evidence_activation_is_reused_without_counting_missingness():
+    model=CoupledAdaptiveSystem()
+    state=model.update_relation_evidence("r",None,observed=False,identifiable=True,context_score=0.0)
+    assert int(state.observed_count)==0
+    state=model.update_relation_evidence("r",0.8,observed=True,identifiable=True,context_score=0.0)
+    assert int(state.observed_count)==1
