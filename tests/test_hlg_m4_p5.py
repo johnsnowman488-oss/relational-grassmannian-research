@@ -55,3 +55,10 @@ def test_A_fits_shared_readout_gain_on_calibration_examples():
     assert model.fit_readout([0.5,1.0,1.5],[1.0,2.0,3.0])==2.0
     model.observe(0,2.0)
     assert model.query(0)==4.0
+
+
+def test_B_combines_persistent_relation_store_with_latest_temporal_mode():
+    model=M4MemoryVariant("B",relation_count=4); model.mode_gain=1.0
+    model.observe(0,2.0,np.array([0.4,-0.2]))
+    model.observe(1,9.0,np.array([-0.6,0.3]))
+    assert model.query(0)==pytest.approx(2.0-0.3)
