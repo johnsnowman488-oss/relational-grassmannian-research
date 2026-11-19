@@ -20,8 +20,10 @@ def run(seed_count=20,relation_count=8,delays=(0,1,4,8)):
             for key in range(relation_count):
                 initial_mode=world_rng.normal(size=2)
                 distractors=[(int((key+1+(j%(relation_count-1)))%relation_count),float(world_rng.normal()),world_rng.normal(size=2)) for j in range(delay)]
-                current_mode=initial_mode if not distractors else distractors[-1][2]
-                target=float(values[key]+0.5*current_mode[0])
+                mode_channels=np.zeros(rates.size)
+                for observed_mode in [initial_mode]+[item[2] for item in distractors]:
+                    mode_channels=np.exp(-rates)*mode_channels+observed_mode[0]
+                target=float(values[key]+0.5*np.mean(mode_channels))
                 for name in names:
                     model=M4MemoryVariant(name,relation_count=relation_count)
                     if name=="A": model.readout_gain=gain; model.mode_gain=mode_gain
