@@ -386,3 +386,47 @@ The analysis must distinguish numerical/state boundedness from **relational know
 **Not adopted as settled:** any concrete representation, final composition semantics, architecture winner, complete state vector, stability theorem, inclusion of unrestricted acquisition or broad transfer, or M4 acceptance threshold.
 
 **Immediate next action:** establish the shared scaffold in the repository, then start the three independent design jobs. Preserve M4 confirmatory implementation/execution as a later, explicitly gated phase.
+
+
+## 14. Implementation audit against C0-C4, P0 and P6
+
+**Audit baseline:** repository \`main\` at \`56fa16ffa1fd66730e351cccafea7ee899cc2bc0\`; M4 planning branch prior head \`c21c3700102122e93acaaaebf9fc30ec5979df6e\`. The audit read \`AGENTS.md\`, \`DECISIONS.md\`, the frozen M3 implementation/refinement protocols, the M3 implementation results, M3/M4 exit records, C0-C4 source/tests, relation algebra and M1 route-composition code.
+
+### 14.1 Research-policy outcome
+
+The repository's \`AGENTS.md\` policy was followed: accepted M0-M3 code and results are preserved; only the new M4 design records are refined; no existing code was changed because the audit found scope/representation limitations rather than a defect requiring a corrective M3 patch. Reuse existing relation and route primitives, and do not add theoretical completeness or repeat completed scientific campaigns.
+
+### 14.2 C0-C4 audit conclusion
+
+The implementation confirms that C0-C4 are reference memory controls, not direct implementations of M4 architectures A/B/C/R. Their correct mapping is documented in the P5 v0.2 record. In particular, C3 keeps separate stores but updates them independently; C4 has one shared latent state and readouts, with sequential order-dependent writes. Neither should be labelled a complete coupled or unified M4 architecture without a new operational contract.
+
+At \`MemoryArchitecture(name, 2, 2, state_budget=64, precision="float64", target_dimension=2)\`, current tensor shapes imply 64 state scalars (512 bytes) for C1-C4, plus 128 task-readout parameters for C1-C3 or 264 total parameters for C4. Thus current total numeric payloads are 1,536 bytes for C1-C3 and 2,624 bytes for C4. These are shape-derived current-code counts, not a new campaign measurement. The M3 implementation result artifact is a historical snapshot and must not be overwritten or silently treated as current post-readout accounting.
+
+The M3 integrated-refinement harness updates C3/C4 and records their resource snapshots but does not use their predictions as competing task outputs. Existing tests exercise the common prediction/score/update API, but there is no completed C0-C4 held-out performance ranking or matched Pareto comparison. Preserve that limitation.
+
+### 14.3 P0 audit conclusion
+
+Three distinct operations exist and must remain separate:
+1. extensional relation-instance path composition with a witness;
+2. schema-governed composition of predicate names via \`RelationSchema.compositions\`;
+3. matrix/operator composition via \`compose_routes\` in HLG-M1.
+
+The current \`RelationEvent\` stores string subject/predicate/object, event timestamp, optional expiry, event ID and supersession pointer. It does not encode endpoint types, context, observation time or rich provenance. \`compose_relations\` enforces endpoint connectivity, explicit predicate-composition rules and its temporal checks, but returns a derived event without retaining the source path witness. Existing tests cover those narrow contracts; they do not establish query-conditioned path selection or witness-preserving multi-hop composition.
+
+The P0 v0.2 record therefore reuses the existing APIs as references, preserves the half-open validity convention, and defines a witness-preserving path-level contract alongside—not in place of—the existing predicate and linear-operator algebra. Associativity of ordinary extensional joins is distinct from associativity of an arbitrary predicate-composition table; the latter must be checked against its own algebraic law.
+
+### 14.4 P6 audit conclusion
+
+The M3 adaptive state is wider than the original \((s,z,c,e,d,k)\) sketch. The refined model separates temporal SOE state \(m_t\), relational/operator state \(z_t\), context state \(c_t\), estimator sufficient-statistic/parameter state \(\theta_t\), activation/evidence \(e_t\), detector state \(d_t\), candidate lifecycle \(k_t\), and resource constraints/accounting \(r_t\).
+
+The fixed SOE primitive exists, but it is not called by the current M3 integrated-refinement harness. The latter is synchronous and uses context decisions, shadow/effective prediction, activation gates, residual detection, candidate fitting and validation. Its live phases are WAITING/TRAIN/VALIDATE/DONE. The separate CandidateLifecycle has IDLE/FIT/VALIDATION/POST_PROMOTION/COMPLETE windows. Neither path supplies a general post-promotion rollback operation. Rollback and explicit reactivation/recovery modes must therefore be treated as proposed M4 requirements only if included in the accepted M4 operating envelope—not as already validated M3 behaviour.
+
+The audit also found stability-relevant counterexamples in the reference controls: C1-C3 state updates are additive and can grow without bound under repeated constant input; C4's shared latent update is contractive for bounded inputs at the default rate, but its readout/task parameters are not projected or otherwise bounded by the control implementation. These controls cannot be presumed stable as complete adaptive systems.
+
+### 14.5 Existing check and CI result
+
+The latest CI run on the prior M4 documentation branch head \`c21c3700102122e93acaaaebf9fc30ec5979df6e\` was [44543885601](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44543885601). Both required unit-test jobs passed: Python 3.10 and Python 3.12. This validates the current code/test surface at that commit; it does not validate the new audit documents, prove M4 stability or constitute an M4 scientific run. The documentation update in this revision will cause the repository's normal PR unit-test workflow to run again.
+
+### 14.6 Refinement status and next dependency
+
+P0/P1, P5/P2-P4 and P6 are now updated to v0.2 with explicit implementation cross-checks. No existing M0-M3 code was modified. The fourth integration job remains dependent on review/reconciliation of these three updated outputs; M4 implementation and confirmatory execution remain later gated work.
