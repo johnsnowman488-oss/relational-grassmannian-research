@@ -33,7 +33,7 @@ class M4MemoryVariant:
             feature=np.zeros(self.relation_count+self.mode_dimension); feature[relation_id]=value; feature[self.relation_count:]=m
             self.soe.update(feature,dt=1.0)
         elif self.name=="C":
-            self.unified *= (1.0-self.decay); self.unified[relation_id]=value; self.unified[self.relation_count:]=m
+            self.unified *= (1.0-self.decay); self.unified[relation_id]=value; self.unified[self.relation_count:]+=m
         if self.name in {"B","R"}: self.relations[relation_id]=float(value)
         self.observations+=1
     def fit_readout(self,trace_values,targets)->float:
