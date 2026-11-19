@@ -430,3 +430,80 @@ The latest CI run on the prior M4 documentation branch head \`c21c3700102122e93a
 ### 14.6 Refinement status and next dependency
 
 P0/P1, P5/P2-P4 and P6 are now updated to v0.2 with explicit implementation cross-checks. No existing M0-M3 code was modified. The fourth integration job remains dependent on review/reconciliation of these three updated outputs; M4 implementation and confirmatory execution remain later gated work.
+
+
+## 15. M4 Jobs 1-3 implementation and preliminary execution (2026-11-19)
+
+**Status correction:** the design/audit work in Sections 1-14 was not implementation completion. The three primary jobs have now been reopened as separate implementation-and-experiment work packages. This section supersedes the earlier statements that M4 implementation had not started. It does not supersede the claim boundaries or authorize Job 4/confirmatory execution.
+
+### 15.1 Parallel execution structure
+
+Three independent implementation branches and review PRs were created from the audited scaffold branch. They have separate code ownership and focused workflows, and were executed concurrently where their dependencies allowed:
+
+| Job | PR / branch | Main implementation |
+|---|---|---|
+| Job 1 — P0/P1 | [PR #37](https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/37), `m4/job1-p0-p1-implementation` | `src/rgm/leptograph/m4/composition.py`; witness-preserving typed path semantics and P1 diagnostics |
+| Job 2 — P5/P2-P4 | [PR #38](https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/38), `m4/job2-p5-architecture-implementation` | `src/rgm/leptograph/m4/architectures.py`; A/B/C/R operational variants, bounded acquisition and outage advancement |
+| Job 3 — P6 | [PR #39](https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/39), `m4/job3-p6-stability-implementation` | `src/rgm/leptograph/m4/stability.py`; coupled adaptive state, candidate lifecycle and rollback |
+
+Each job has a focused test file, an executable deterministic preliminary runner and a Python 3.10/3.12 artifact-producing workflow. Each PR targets the M4 scaffold branch and remains independently reviewable. No M0-M3 source or historical result artifact was changed.
+
+### 15.2 Job 1 — P0/P1 preliminary result
+
+**Execution:** focused workflow run [44556091460](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44556091460) passed on Python 3.10 and 3.12. Full repository regression run [44556091478](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44556091478) also passed on both versions.
+
+The reference runner recovered the ordered three-edge witness `[e1,e2,e3]` and excluded one future-observed event. Focused tests cover multiple valid witnesses sharing an endpoint, typed-path rejection, context and temporal filters, observation leakage, binary witness-join associativity and first-failure attribution.
+
+Artifacts:
+- Python 3.10: artifact `14545775925`, SHA-256 `4caaf56d3490d1bbe4ed8081c3efb2a02a35a49d0c218ce2c26cc8e3c9b90079`.
+- Python 3.12: artifact `14545960940`, SHA-256 `ce879b4677301eaa463df916a5ef7b8411fcfd0c62a7a7b754a040b909df02e8`.
+
+**Interpretation:** this validates the task-layer reference semantics and diagnostic interface. The runner's displayed first-failure example is a deliberately constructed diagnostic fixture, not a measured failure of a learned model. No learner-performance or composition-capability claim follows.
+
+### 15.3 Job 2 — P5/P2/P3 preliminary result; P4 disposition
+
+**Execution:** focused workflow run [44557376228](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44557376228) passed on Python 3.10 and 3.12. Full repository regression run [44557376315](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44557376315) passed on both versions.
+
+The preliminary synthetic comparison used 20 seeds, 8 relation IDs, the same observation stream and query conditions for A/B/C/R, and delays 0, 1, 4 and 8. Mean squared error by delay:
+
+| Variant | Delay 0 | Delay 1 | Delay 4 | Delay 8 |
+|---|---:|---:|---:|---:|
+| A — SOE-only | 0.29803 | 0.05544 | 0.02117 | 0.10822 |
+| B — SOE + relation store | 0.00000 | 0.00000 | 0.00000 | 0.00000 |
+| C — unified state | 0.00000 | 0.00792 | 0.08653 | 0.21608 |
+| R — relational-only | 0.28246 | 0.28972 | 0.54663 | 0.97076 |
+
+The target is the stored relation value plus half the mean four-channel SOE temporal-mode trace. B is exact on this controlled task because its two state components directly retain the two required quantities. This is not a general architecture ranking: the result is specific to the task and its state/readout contracts. A's calibrated shared readout trades error across delay conditions; C's single-decay unified state departs from the four-rate temporal trace; R omits the temporal component.
+
+P2's full-capacity condition returned `ABSTAIN_CAPACITY` without evicting existing contexts. P3 tests verify that temporal state decays across an observation gap while B/R explicit relation stores persist; B's SOE temporal trace continues to decay. P4 transfer is explicitly deferred to E08, not silently added to M4.
+
+Artifacts:
+- Python 3.10: artifact `14544499602`, SHA-256 `a88e29295515c4782326d013f581346610c15598270e475f06dd8463b0a88841`.
+- Python 3.12: artifact `14544598053`, SHA-256 `5818197a48ce2feb2a5980d834330eae116320901d3b61934e81561e413e435f`.
+
+### 15.4 Job 3 — P6 preliminary result
+
+**Execution:** focused workflow run [44556167134](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44556167134) passed on Python 3.10 and 3.12. Full repository regression run [44556166942](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/44556166942) also passed on both versions.
+
+Across 20 seeds and 300 synchronous steps per seed:
+- maximum observed norm of the coupled two-state pair: 1.46659, below its declared finite-horizon envelope of 25;
+- transition spectral radius: 0.66633;
+- detector alarms: 40;
+- candidates promoted after fitting on one sample and evaluation on independent validation data: 20;
+- mean independent validation-loss improvement: 0.07210;
+- rollback restored the prior trusted operator in every promoted case;
+- coupled-block counterexample eigenvalues: 1.7 and -0.7, despite diagonal blocks each having eigenvalue 0.5.
+
+Artifacts:
+- Python 3.10: artifact `14544977554`, SHA-256 `add39122ab55ed168fa2476704cdbff471af2020c2786422f9c5d6d6daa23552`.
+- Python 3.12: artifact `14545321938`, SHA-256 `cb98a8d2eafca3cfbd2cb260f21c3d7daa4a2635ba6931b7da956799e3004c97`.
+
+**Interpretation:** the tests and run support bounded finite-horizon behavior and trusted-operator rollback for this implemented synchronous model. They do not establish stability for arbitrary switching, asynchronous operation, all coupled states, or the general adaptive system.
+
+### 15.5 Current decision and dependency
+
+- Jobs 1-3 now have executable implementations, focused tests, preliminary result artifacts and successful Python 3.10/3.12 repository regression runs.
+- PRs #37-#39 remain open for independent review; none has been merged.
+- PR #32 remains the documentation/scaffold branch. The three implementation PRs target it, preserving a reviewable chain rather than silently merging into main.
+- Job 4 / issue #36 remains blocked until the three implementations and preliminary outputs are reviewed and reconciled. Its task is to test the actual P0 task interface against A/B/C/R and the actual P6 transitions, resolve remaining inconsistencies, and then prepare the integrated protocol and gate.
+- No M4 confirmatory campaign has been started. These are preliminary results, not an M4 pass.
