@@ -141,7 +141,7 @@ class M4ABSystem:
         self.relation_index = {name: i for i, name in enumerate(names)}
         self.soe = SOEMemory(feature_dim=len(names))
         self.store = PersistentRelationStore(relation_capacity) if architecture == "B" else None
-        self.readout_weights = np.zeros((4 + self.max_path_depth) * len(names) + 1, dtype=float)
+        self.readout_weights = np.zeros((3 + self.max_path_depth) * len(names) + 1, dtype=float)
         self.readout_bias = 0.0
         self.readout_fitted = False
         self.min_probability = float(min_probability)
