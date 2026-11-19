@@ -48,3 +48,10 @@ def test_p2_context_acquisition_is_bounded_and_abstains_at_capacity():
     assert len(bank.slots)==2
     assert acquisition.observe([20.0,20.0])["status"]=="ABSTAIN_CAPACITY"
     assert len(bank.slots)==2
+
+
+def test_A_fits_shared_readout_gain_on_calibration_examples():
+    model=M4MemoryVariant("A",relation_count=4)
+    assert model.fit_readout([0.5,1.0,1.5],[1.0,2.0,3.0])==2.0
+    model.observe(0,2.0)
+    assert model.query(0)==4.0
