@@ -54,6 +54,7 @@ class CompositionQuery:
         if not self.relation_path: raise ValueError("relation_path must not be empty")
         if not math.isfinite(self.query_time) or not math.isfinite(self.observation_cutoff): raise ValueError("query times must be finite")
         if self.query_time < 0 or self.observation_cutoff < 0: raise ValueError("query times must be non-negative")
+        if self.observation_cutoff > self.query_time: raise ValueError("observation_cutoff cannot exceed query_time")
         if self.max_event_gap is not None and (not math.isfinite(self.max_event_gap) or self.max_event_gap < 0): raise ValueError("max_event_gap must be finite and non-negative")
         expected=self.start_entity.entity_type
         for relation in self.relation_path:
@@ -64,6 +65,19 @@ class CompositionQuery:
 class CompositionWitness:
     entities: tuple[Entity, ...]
     instances: tuple[RelationInstance, ...]
+    def __post_init__(self):
+        if len(self.entities) != len(self.instances) + 1 or not self.instances:
+            raise ValueError("a witness must contain one more entity than relation instances")
+        ids = [edge.instance_id for edge in self.instances]
+        if len(ids) != len(set(ids)):
+            raise ValueError("a witness cannot reuse a relation instance")
+        for index, edge in enumerate(self.instances):
+            if edge.subject != self.entities[index] or edge.object != self.entities[index + 1]:
+                raise ValueError("witness edge endpoints do not match ordered entity sequence")
+            if edge.subject.entity_type != edge.relation_type.domain or edge.object.entity_type != edge.relation_type.codomain:
+                raise ValueError("witness edge types do not match relation signature")
+            if index and edge.event_time < self.instances[index - 1].event_time:
+                raise ValueError("witness event times must be nondecreasing")
     @property
     def endpoint(self): return self.entities[-1]
     @property
