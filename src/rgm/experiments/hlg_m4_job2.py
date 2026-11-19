@@ -11,7 +11,7 @@ def run(seed_count=20,relation_count=8,delays=(0,1,4,8)):
         world_rng=np.random.default_rng(seed); values=world_rng.normal(size=relation_count)
         for delay in delays:
             for key in range(relation_count):
-                distractors=[(int((key+1+j)%relation_count),float(world_rng.normal()),world_rng.normal(size=2)) for j in range(delay)]
+                distractors=[(int((key+1+(j%(relation_count-1)))%relation_count),float(world_rng.normal()),world_rng.normal(size=2)) for j in range(delay)]
                 for name in names:
                     model=M4MemoryVariant(name,relation_count=relation_count)
                     model.observe(key,float(values[key]))
