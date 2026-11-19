@@ -29,3 +29,22 @@ def test_preliminary_experiment_is_reproducible_and_reports_all_variants():
     assert a==b
     assert set(a["mean_squared_error_by_architecture_and_delay"])==set("ABCR")
     assert a["mean_squared_error_by_architecture_and_delay"]["B"]["2"]==0.0
+
+
+def test_outage_advancement_preserves_relational_store_but_decays_temporal_state():
+    for name in ("A","B","C","R"):
+        model=M4MemoryVariant(name,relation_count=4); model.observe(0,3.5)
+        before=model.query(0); model.advance_gap(5); after=model.query(0)
+        if name in ("B","R"): assert after==before
+        else: assert abs(after)<abs(before)
+
+def test_p2_context_acquisition_is_bounded_and_abstains_at_capacity():
+    from rgm.leptograph.m3.context import ContextBank
+    from rgm.leptograph.m4.architectures import BoundedContextAcquisition
+    bank=ContextBank(metric=np.eye(2),capacity=2,novelty_repeats=2)
+    bank.add_initial([0.0,0.0]); acquisition=BoundedContextAcquisition(bank)
+    assert acquisition.observe([10.0,10.0])["status"]=="PENDING_NOVELTY"
+    assert acquisition.observe([10.0,10.0])["status"]=="ACQUIRED"
+    assert len(bank.slots)==2
+    assert acquisition.observe([20.0,20.0])["status"]=="ABSTAIN_CAPACITY"
+    assert len(bank.slots)==2
