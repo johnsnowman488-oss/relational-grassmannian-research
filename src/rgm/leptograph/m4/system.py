@@ -135,7 +135,7 @@ class M4ABSystem:
         self.relation_index = {name: i for i, name in enumerate(names)}
         self.soe = SOEMemory(feature_dim=len(names))
         self.store = PersistentRelationStore(relation_capacity) if architecture == "B" else None
-        self.readout_weights = np.zeros(2 * len(names) + 1, dtype=float)
+        self.readout_weights = np.zeros(3 * len(names) + 1, dtype=float)
         self.readout_bias = 0.0
         self.readout_fitted = False
         self.min_probability = float(min_probability)
@@ -144,6 +144,7 @@ class M4ABSystem:
         self.last_observed_at = 0.0
         self.last_capacity_status = "OK"
         self.update_operations = 0
+        self.query_operations = 0
 
     def observe(self, event: RelationInstance) -> str:
         if event.relation_type.name not in self.relation_index:
@@ -218,9 +219,7 @@ class M4ABSystem:
             for event in self.store.records:
                 support[self.relation_index[event.relation_type.name]] += 1.0
             support = np.log1p(support)
-        return np.concatenate([counts, temporal, support[:0]]) if False else np.concatenate(
-            [counts, temporal, np.zeros(n) if self.architecture == "A" else support]
-        ).tolist() + [float(len(path))]
+        return np.concatenate([counts, temporal, np.zeros(n) if self.architecture == "A" else support, [float(len(path))]])
 
     def fit_readout(
         self,
@@ -296,7 +295,7 @@ class M4ABSystem:
             status = "ABSTAIN_AMBIGUOUS"
         else:
             status = "SELECTED"
-        self.update_operations += sum(len(p) for p in paths)
+        self.query_operations += sum(len(p) for p in paths)
         return {
             "status": status,
             "selected_path": best[1] if status == "SELECTED" else None,
@@ -319,6 +318,7 @@ class M4ABSystem:
             "last_observed_at": self.last_observed_at,
             "last_capacity_status": self.last_capacity_status,
             "update_operations": self.update_operations,
+            "query_operations": self.query_operations,
         }
 
     def restore(self, state: dict) -> None:
@@ -340,6 +340,7 @@ class M4ABSystem:
         self.last_observed_at = float(state["last_observed_at"])
         self.last_capacity_status = str(state["last_capacity_status"])
         self.update_operations = int(state["update_operations"])
+        self.query_operations = int(state.get("query_operations", 0))
 
     def resource_snapshot(self) -> dict:
         soe_bytes = int(self.soe.channels.nbytes + self.soe.decay_rates.nbytes
@@ -354,6 +355,6 @@ class M4ABSystem:
             "relation_instance_count": store_count,
             "trainable_parameter_count": int(self.readout_weights.size + 1),
             "update_operation_count": int(self.update_operations),
-            "query_operation_count": int(self.update_operations),
+            "query_operation_count": int(self.query_operations),
             "accounting_note": "Relation payload bytes count UTF-8 field payload and timestamps; Python object/container allocator overhead is not included.",
         }
