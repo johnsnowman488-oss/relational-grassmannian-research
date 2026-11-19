@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass,field
 import numpy as np
 from rgm.memory import SOEMemory
+from rgm.leptograph.m3.context import ContextBank, ContextDecision
+
+P4_TRANSFER_SCOPE = "deferred_to_E08"
 
 @dataclass
 class M4MemoryVariant:
@@ -37,6 +40,12 @@ class M4MemoryVariant:
         if self.name=="B": return float(self.relations.get(relation_id,0.0))
         if self.name=="C": return float(self.unified[relation_id])
         return float(self.relations.get(relation_id,0.0))
+    def advance_gap(self, steps:int=1):
+        """Advance through an observation outage without inventing observations."""
+        if not isinstance(steps,int) or steps<0: raise ValueError("steps must be a non-negative integer")
+        if self.name in {"A","B"}: self.soe.advance(float(steps))
+        elif self.name=="C": self.unified *= (1.0-self.decay)**steps
+        # Explicit relational stores in B/R persist unchanged through the gap.
     @property
     def persistent_state_bytes(self)->int:
         if self.name in {"A","B"}: base=self.soe.channels.nbytes
@@ -44,3 +53,18 @@ class M4MemoryVariant:
         else: base=0
         if self.name in {"B","R"}: base+=len(self.relations)*8
         return int(base)
+
+
+@dataclass
+class BoundedContextAcquisition:
+    """P2 wrapper around the existing fixed-capacity ContextBank."""
+    bank: ContextBank
+    def observe(self,point):
+        decision,slot_id,scores=self.bank.route(point)
+        if decision==ContextDecision.ACCEPT: return {"status":"ACCEPT","slot_id":slot_id,"scores":scores}
+        if decision==ContextDecision.NOVEL:
+            created=self.bank.observe_novel(point)
+            if created is not None: return {"status":"ACQUIRED","slot_id":created,"scores":scores}
+            if len(self.bank.slots)>=self.bank.capacity: return {"status":"ABSTAIN_CAPACITY","slot_id":None,"scores":scores}
+            return {"status":"PENDING_NOVELTY","slot_id":None,"scores":scores}
+        return {"status":"ABSTAIN","slot_id":None,"scores":scores}
