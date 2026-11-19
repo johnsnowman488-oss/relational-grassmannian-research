@@ -1,5 +1,6 @@
 import numpy as np
-from rgm.leptograph.m4.composition import Entity, RelationType, RelationInstance
+import pytest
+from rgm.leptograph.m4.composition import Entity, RelationType, RelationInstance, CompositionWitness
 from rgm.leptograph.m4.system import M4ABSystem, M4Query, PathTrainingExample
 from rgm.leptograph.m4.adaptive import M4AdaptiveController
 
@@ -94,3 +95,8 @@ def test_threshold_24_is_used_for_integrated_detector():
     A=trained("A",(r1,r2),events)
     controller=M4AdaptiveController(A)
     assert controller.detector.threshold==24.0
+
+def test_manually_constructed_inconsistent_witness_is_rejected():
+    a,b,c,r1,r2,events=fixture()
+    with pytest.raises(ValueError):
+        CompositionWitness((a,c),(events[0],))
