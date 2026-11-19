@@ -41,3 +41,13 @@ def test_extensional_join_is_associative_and_preserves_witnesses():
     left=compose_witnesses(compose_witnesses(w1,w2),w3)
     right=compose_witnesses(w1,compose_witnesses(w2,w3))
     assert left==right and left.instance_ids==("e1","e2","e3") and left.entities==(a,b,c,d)
+
+
+def test_multiple_valid_witnesses_are_preserved_not_collapsed_to_endpoint_pair():
+    a,b,c,d,r1,r2,r3,edges=fixture()
+    b2=Entity("b2","B"); c2=Entity("c2","C")
+    edges += [RelationInstance("e1b",r1,a,b2,1,1,"x"),RelationInstance("e2b",r2,b2,c2,2,2,"x"),RelationInstance("e3b",r3,c2,d,3,3,"x")]
+    result=compose_paths(edges,CompositionQuery(a,(r1,r2,r3),"x",4,4))
+    assert len(result.witnesses)==2
+    assert len({w.instance_ids for w in result.witnesses})==2
+    assert len(result.endpoints)==1
