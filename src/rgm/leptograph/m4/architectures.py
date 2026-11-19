@@ -17,6 +17,7 @@ class M4MemoryVariant:
     unified:np.ndarray|None=field(init=False,default=None)
     relations:dict[int,float]=field(init=False,default_factory=dict)
     observations:int=0
+    readout_gain:float=1.0
     def __post_init__(self):
         if self.name not in {"A","B","C","R"}: raise ValueError("name must be A, B, C or R")
         if self.relation_count<1 or self.mode_dimension<1 or not 0<self.decay<=1: raise ValueError("invalid dimensions or decay")
@@ -34,9 +35,18 @@ class M4MemoryVariant:
             self.unified *= (1.0-self.decay); self.unified[relation_id]=value; self.unified[self.relation_count:]=m
         if self.name in {"B","R"}: self.relations[relation_id]=float(value)
         self.observations+=1
+    def fit_readout(self,trace_values,targets)->float:
+        """Fit A's shared scalar readout on a disjoint calibration sample."""
+        if self.name!="A": raise RuntimeError("only the SOE-only A variant has this readout")
+        x=np.asarray(trace_values,dtype=float).reshape(-1); y=np.asarray(targets,dtype=float).reshape(-1)
+        if x.size==0 or x.shape!=y.shape or not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)): raise ValueError("readout calibration arrays must be non-empty, finite and matched")
+        denom=float(x@x)
+        if denom<=0: raise ValueError("readout calibration has zero feature energy")
+        self.readout_gain=float((x@y)/denom)
+        return self.readout_gain
     def query(self,relation_id:int)->float:
         if not 0<=relation_id<self.relation_count: raise ValueError("unknown relation id")
-        if self.name=="A": return float(np.mean(self.soe.channels[:,relation_id]))
+        if self.name=="A": return float(self.readout_gain*np.mean(self.soe.channels[:,relation_id]))
         if self.name=="B": return float(self.relations.get(relation_id,0.0))
         if self.name=="C": return float(self.unified[relation_id])
         return float(self.relations.get(relation_id,0.0))
