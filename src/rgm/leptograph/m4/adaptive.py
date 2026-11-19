@@ -38,7 +38,11 @@ class M4AdaptiveController:
         candidate = np.asarray(weights, dtype=float)
         if candidate.shape != self.system.readout_weights.shape or not np.all(np.isfinite(candidate)):
             raise ValueError("candidate weights must be finite and match the architecture readout")
-        self.trusted_snapshot = copy.deepcopy(self.system.snapshot())
+        self.trusted_snapshot = {
+            "system": copy.deepcopy(self.system.snapshot()),
+            "detector": copy.deepcopy(self.detector.__dict__),
+            "mode": self.mode,
+        }
         self.candidate_weights = candidate.copy()
         self.mode = "FIT"
 
@@ -63,7 +67,9 @@ class M4AdaptiveController:
     def rollback(self):
         if self.mode != "PROMOTED" or self.trusted_snapshot is None:
             raise RuntimeError("rollback requires a promoted candidate and trusted snapshot")
-        self.system.restore(copy.deepcopy(self.trusted_snapshot))
+        self.system.restore(copy.deepcopy(self.trusted_snapshot["system"]))
+        self.detector.__dict__.clear()
+        self.detector.__dict__.update(copy.deepcopy(self.trusted_snapshot["detector"]))
         self.rollback_count += 1
         self.mode = "ROLLBACK"
 
