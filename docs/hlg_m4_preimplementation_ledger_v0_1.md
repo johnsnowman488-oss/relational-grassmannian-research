@@ -240,3 +240,149 @@ E-series and M-series CI/workflows remain separate. Evidence can be linked and r
 **Not yet decided:** the detailed P0-P7 protocols, whether bounded acquisition/recovery/transfer challenges belong inside M4 or remain later E-stage work, the exact coupled-system equations and stability criteria, and the final M4 acceptance thresholds. These must be resolved before the actual M4 gate is frozen.
 
 **Next action:** review this ledger as the starting M4 pre-implementation record, then agree the shared composition semantics, architecture mapping and coupled-system boundary before commissioning parallel design jobs.
+
+
+## 11. Adopted execution structure: P0-P6 pre-implementation, followed by the fourth integration job
+
+The planning discussion now adopts a scaffold-first execution structure.
+
+**P0-P6 collectively constitute the M4 pre-implementation stage.** They are not seven independent implementation campaigns and they do not, by themselves, constitute an M4 pass. They establish the semantic, diagnostic, scope, architecture and stability foundations needed to make an M4 implementation valid and interpretable.
+
+The execution is organised into three concurrent primary design jobs, with P1-P4 treated as supporting investigations that feed the relevant primary jobs:
+
+| Job | Primary package | Supporting work | Required output |
+|---|---|---|---|
+| **Job 1 — Composition semantics** | P0 | P1 failure attribution and diagnostic controls | Frozen candidate composition contract, witness semantics, learner/evaluator boundary, claim ladder and diagnostic matrix |
+| **Job 2 — Architecture and task boundary** | P5 | P2 bounded acquisition, P3 interruption/recovery, P4 transfer boundary | A/B/C plus relational-only architecture specifications, C0-C4 reuse map, matched comparison contract, and explicit inclusion/defer decisions for acquisition, recovery and transfer |
+| **Job 3 — Coupled-system stability** | P6 | P1-P4 findings where they affect the stability envelope | Coupled state/update model, mode-transition semantics, assumptions, candidate proof obligations, counterexamples and measurable stability/recovery diagnostics |
+
+These jobs may proceed concurrently **after the minimum shared scaffold is agreed**. Mathematical analysis and isolated reference prototypes may proceed against provisional interfaces, but no shared implementation interface is frozen merely because one job finishes first. Each job must be able to challenge the scaffold and record unresolved disagreements rather than silently adapting its result to match another job.
+
+### Shared scaffold required before the three jobs
+
+The scaffold is deliberately representation-neutral and defines only:
+
+1. **Relational objects:** typed entities, relation instances/operators, context, time/provenance and evidence status.
+2. **Composition semantics:** type-compatible ordered composition, admissibility conditions and an explicit ground-truth witness.
+3. **State boundary:** temporal state, relational state, context/routing state and adaptation/control state, without prescribing a concrete encoding.
+4. **Architecture hypotheses:** A (SOE-only with learned relational dynamics/readout), B (coupled temporal and separate relational state), C (unified augmented state), plus a relational-only reference where informative.
+5. **Information boundary:** what the learner observes and may store versus what remains evaluator-only, including hidden truth witnesses and scoring labels.
+6. **Evaluation vocabulary:** retention, retrieval, binding, path selection, primitive operator application, multi-relation composition, readout, revision, interference and recovery as separately observable capabilities.
+
+The scaffold is an interface and vocabulary contract, not a choice of matrices, graphs, Grassmannian subspaces, neural architecture or other representation. A representation choice requires evidence and belongs in the relevant job output.
+
+### Fourth job — integration and M4 completion
+
+After Jobs 1-3 have produced independently reviewable outputs, a **fourth integration job** reconciles them and completes the pre-implementation package. It must:
+
+- compare P0 composition semantics against the actual tasks and diagnostic controls;
+- reconcile P5 architecture definitions with the state/update model analysed by P6;
+- test whether P6 assumptions hold for every architecture variant and every included adaptation/recovery transition;
+- resolve or explicitly preserve disagreements, counterexamples and non-identifiability;
+- remove duplicated or scientifically unnecessary challenges;
+- freeze the M4 system boundary, operating envelope, implementation interfaces, resource accounting and evidence-artifact contract;
+- produce the integrated M4 mathematical/architectural specification, implementation protocol and a separately reviewable acceptance-gate proposal.
+
+The fourth job is the integration and protocol-completion job; it is **not** permission to declare a successful M4 result in advance. The actual M4 pass is earned only after the approved implementation and execution satisfy the subsequently frozen gate. The gate must be reviewed and frozen before confirmatory results are visible.
+
+### Dependency and concurrency rules
+
+- The shared scaffold is the only prerequisite for starting Jobs 1-3.
+- P0 reference semantics, P5 architecture analysis and P6 mathematical analysis can proceed concurrently.
+- P1-P4 are supporting investigations; each must state which primary job consumes its result and whether the question is included in M4 or explicitly deferred.
+- Prototype code may be isolated and disposable until the fourth job freezes interfaces.
+- Integrated implementation begins only after the fourth job's protocol and interface reconciliation.
+- Confirmatory M4 execution begins only after explicit approval of the protocol and gate.
+- Independent job records, failed approaches and counterexamples are retained; the integration job may not rewrite history to make findings appear consistent.
+
+### Execution status
+
+At ledger revision v0.2, the scaffold-first plan is adopted. This records a plan and job boundaries; it does not claim that any job has completed, that code has been implemented, or that an M4 campaign has run. Job outputs and completion status must be recorded with commit/PR and test evidence as they are produced.
+
+## 12. Preliminary mathematical and architectural foundations to carry into the jobs
+
+The following formulations capture the current discussion. They are **working formulations, not frozen axioms or proven results**. Each job must test their adequacy and revise them when counterexamples or task requirements demand it.
+
+### 12.1 Typed relational composition and witnesses (P0)
+
+For typed entity sets (V_A,V_B,V_C), let
+(R_1\subseteq V_A\times V_B) and
+(R_2\subseteq V_B\times V_C). The ordinary ordered relational composition is
+
+\[
+R_2\circ R_1
+=\{(a,c):\exists b\in V_B,\ (a,b)\in R_1\land(b,c)\in R_2\}.
+\]
+
+For context/time-sensitive relations, composition may require an admissibility predicate
+\(\mathcal A(r_1,r_2;c,t_1,t_2)\), giving a constrained composition whose witness records the intermediate entity and the supporting relation instances. The learner must not receive the evaluator's hidden witness or a precomputed answer path.
+
+Relational composition and operator composition are distinct:
+- relational composition joins relation instances through a compatible intermediate entity;
+- operator composition composes transformations, e.g. \(T_2\circ T_1\) or a representation-level product.
+
+An operator product is not, by itself, proof that the corresponding semantic relation is true. The implementation and evaluation must test the operator result against independently held relational truth.
+
+The P0 claim ladder remains: retention → retrieval → binding → path selection → primitive operator application → multi-relation composition → readout. These are separate claims and diagnostic layers, not a requirement that each be a separate software module.
+
+### 12.2 Architecture alternatives (P5)
+
+The comparison must distinguish operationally different update and retention rules, not merely rename a concatenated vector:
+
+- **A — SOE-only:** temporal state is the sole persistent state; relational capability is learned in its dynamics/readout.
+- **B — coupled:** temporal state and a separately maintained relational state interact through explicit update/read/write pathways.
+- **C — unified augmented:** one jointly updated augmented state with specified coupling and retention rules.
+- **Relational-only reference:** included when it helps identify the contribution of temporal memory.
+
+Illustrative abstract forms are
+\[
+s_{t+1}=F_A(s_t,o_t),\qquad \hat y_t=H_A(s_t,q_t),
+\]
+\[
+s_{t+1}=F_s(s_t,z_t,o_t),\quad
+z_{t+1}=F_z(z_t,s_t,o_t),\quad
+\hat y_t=H_B(s_t,z_t,q_t),
+\]
+and
+\[
+u_{t+1}=F_C(u_t,o_t),\qquad \hat y_t=H_C(u_t,q_t).
+\]
+These equations are placeholders until the scaffold and job outputs define the variables, interfaces and budgets. A fair comparison must match information, supervision, observation access, precision, update/query opportunities and resource accounting; it must also report resource-performance curves where exact matching alone obscures trade-offs. Existing C0-C4 controls should be reused unless a demonstrated contract defect requires change.
+
+### 12.3 Coupled and switched stability (P6)
+
+A candidate abstract state is
+\[
+X_t=[s_t,z_t,c_t,e_t,d_t,k_t]^\top,
+\]
+representing temporal memory, relational organisation, context/routing, relation evidence/activation, detector state and candidate-revision state. The actual state vector is not frozen; P6 must justify inclusion, dependencies and observability.
+
+A hybrid model may be written
+\[
+X_{t+1}=F_{\sigma_t}(X_t,u_t),\qquad
+\sigma_{t+1}=\Delta(\sigma_t,X_t,u_t),
+\]
+where \(\sigma_t\) denotes operating modes such as stable operation, detection, candidate fitting, validation, promotion, rollback, dormancy and reactivation. The transition model must specify guards, timing, ordering and any asynchronous or delayed effects that are actually in scope.
+
+For a local coupled linearisation,
+\[
+\begin{bmatrix}\delta s_{t+1}\\\delta z_{t+1}\end{bmatrix}
+=
+\begin{bmatrix}A_{ss}&A_{sz}\\A_{zs}&A_{zz}\end{bmatrix}
+\begin{bmatrix}\delta s_t\\\delta z_t\end{bmatrix}.
+\]
+Stable diagonal subsystems do not guarantee stability of the coupled system. A small-gain-style sufficient condition may be explored using nonnegative gain bounds
+\[
+G=\begin{bmatrix}a&b\\c&d\end{bmatrix},\qquad \rho(G)<1,
+\]
+but only where the assumed norm inequalities and uniform bounds are justified. For switching systems, common or multiple Lyapunov functions and dwell-time restrictions may be relevant; frozen-mode spectral radii alone are not a global adaptive-stability argument.
+
+The analysis must distinguish numerical/state boundedness from **relational knowledge integrity**. A bounded state may still corrupt old relations during adaptation. Measure unintended damage to retained knowledge separately from legitimate revision, and examine promotion, rollback, dormancy and recovery transitions. Candidate notions include boundedness, perturbation stability, input-to-state stability, transient amplification, finite-horizon recovery and relational/functional stability; the chosen notions must match the actual operating envelope.
+
+## 13. Current decision and immediate execution
+
+**Adopted:** scaffold-first execution; three concurrent primary design jobs covering P0, P5 and P6 with P1-P4 as supporting investigations; a fourth integration job to reconcile the outputs and complete the M4 pre-implementation specification/protocol/gate proposal.
+
+**Not adopted as settled:** any concrete representation, final composition semantics, architecture winner, complete state vector, stability theorem, inclusion of unrestricted acquisition or broad transfer, or M4 acceptance threshold.
+
+**Immediate next action:** establish the shared scaffold in the repository, then start the three independent design jobs. Preserve M4 confirmatory implementation/execution as a later, explicitly gated phase.
