@@ -63,6 +63,9 @@ class CoupledAdaptiveSystem:
         if self.mode!=AdaptiveMode.PROMOTED or self.trusted_snapshot is None: raise RuntimeError("rollback requires a promoted candidate and trusted snapshot")
         self.revision.accepted_operator=self.trusted_snapshot.copy()
         self.rollback_count+=1; self.mode=AdaptiveMode.ROLLBACK
+    def update_relation_evidence(self, relation_id: str, predictive_improvement: float | None, *, observed: bool, identifiable: bool, context_score: float, context_slot: int | None=None):
+        """Route post-query evidence through the existing M3 activation controller."""
+        return self.activation.update(relation_id,predictive_improvement=predictive_improvement,observed=observed,identifiable=identifiable,context_score=context_score,context_slot=context_slot)
     def enter_dormancy(self):
         if self.mode not in {AdaptiveMode.NORMAL,AdaptiveMode.DETECT}: raise RuntimeError("cannot enter dormancy during candidate lifecycle")
         self.mode=AdaptiveMode.DORMANT
