@@ -32,6 +32,8 @@ class M4Query:
     def __post_init__(self):
         if self.max_depth < 1:
             raise ValueError("max_depth must be positive")
+        if self.observation_cutoff > self.query_time:
+            raise ValueError("observation_cutoff cannot exceed query_time")
         if not math.isfinite(self.query_time) or not math.isfinite(self.observation_cutoff):
             raise ValueError("query_time and observation_cutoff must be finite")
         if self.query_time < 0 or self.observation_cutoff < 0:
@@ -297,7 +299,7 @@ class M4ABSystem:
             status = "ABSTAIN_AMBIGUOUS"
         else:
             status = "SELECTED"
-        self.query_operations += sum(len(p) for p in paths)
+        self.query_operations += len(events) + sum(len(p) for p in paths)
         return {
             "status": status,
             "selected_path": best[1] if status == "SELECTED" else None,
