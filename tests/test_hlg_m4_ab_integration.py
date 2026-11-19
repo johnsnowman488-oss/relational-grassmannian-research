@@ -53,8 +53,9 @@ def test_future_observation_is_not_used_by_B_even_if_already_stored():
     B.observe(future)
     q=M4Query(a,c,"ctx",query_time=10,observation_cutoff=10,max_depth=2)
     result=B.query(q)
-    assert result["status"]=="SELECTED"
-    assert all("future" not in w.instance_ids for w in result["witnesses"])
+    assert result["status"]=="ABSTAIN_CUTOFF_UNSUPPORTED"
+    # The system refuses an as-of query older than its current temporal state;
+    # it does not silently score using future-contaminated SOE traces.
 
 def test_B_capacity_abstains_without_silent_eviction():
     a,b,c,r1,r2,events=fixture()
