@@ -293,15 +293,14 @@ def run_validation_g45(
         raise ValueError("invalid validation trial/resource configuration")
     partitions = default_partitions()
     validate_partitions(partitions)
+    if partition_name != "validation":
+        raise ValueError("G4/G5 validation diagnostics are sealed to validation; use the frozen campaign runner for test execution")
     g4 = _g4_trials(world_count, partition_name, min_probability, min_margin)
     g5 = _g5_resources(tuple(resource_sizes), min_probability, min_margin)
     return {
-        "classification": (
-            "confirmatory_partition_execution" if partition_name == "test"
-            else "validation_only_G4_G5_diagnostics_not_confirmatory"
-        ),
+        "classification": "validation_only_G4_G5_diagnostics_not_confirmatory",
         "partition": f"{partition_name}_for_G4; synthetic_resource_sweep_for_G5",
-        "confirmatory_test_accessed": partition_name == "test",
+        "confirmatory_test_accessed": False,
         "thresholds": {"min_probability": min_probability, "min_margin": min_margin},
         "runtime": {"python": sys.version, "platform": platform.platform()},
         "G4": {
