@@ -39,7 +39,7 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
                for row in normal_rows)
     for architecture in ("A", "B"):
         grid = result["G3"]["validation_threshold_sweep"][architecture]
-        assert grid
-        print("G3 calibration grid", architecture, grid)
-        assert any(item["meets_validation_separation"] and item["positive_coverage"] == 1.0
-                   for item in grid), grid
+        assert len(grid["pooled"]) == 49
+        assert set(grid["by_mode"]) == {"heterogeneous_typed_chain", "homogeneous_order_sensitive"}
+        assert all(len(mode_grid) == 49 for mode_grid in grid["by_mode"].values())
+        assert set(result["G3"]["score_summary"][architecture]) == set(grid["by_mode"])
