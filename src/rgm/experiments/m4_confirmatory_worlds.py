@@ -39,6 +39,7 @@ class RelationalWorld:
     seed: int
     schema_namespace: str
     depth: int
+    mode: str
     relation_types: tuple[RelationType, ...]
     start: Entity
     goal: Entity
@@ -154,7 +155,7 @@ def generate_world(seed: int, depth: int, schema_namespace: int | None = None) -
     cutoff = max(event.observed_at for event in facts)
     return RelationalWorld(
         world_id=world_id, seed=int(seed), schema_namespace=f"typed-namespace-{namespace_index}",
-        depth=depth, relation_types=schema, start=start, goal=goal,
+        depth=depth, mode="heterogeneous_typed_chain", relation_types=schema, start=start, goal=goal,
         events=tuple(facts), oracle_target_path=target,
         oracle_decoy_paths=(decoy,),
         training_examples=tuple(
@@ -164,6 +165,76 @@ def generate_world(seed: int, depth: int, schema_namespace: int | None = None) -
                for d in (2, 3, 4)]
         ),
         query_time=cutoff + 1.0, observation_cutoff=cutoff,
+    )
+
+
+def generate_order_world(seed: int, depth: int, schema_namespace: int | None = None) -> RelationalWorld:
+    """Generate a homogeneous typed graph with same-bag/different-order paths."""
+    if depth not in (2, 3, 4):
+        raise ValueError("confirmatory M4 currently bounds composition depth to 2, 3 or 4")
+    rng = random.Random(int(seed) ^ 0x5A17)
+    namespace_index = int(seed % 7 if schema_namespace is None else schema_namespace)
+    if namespace_index < 0:
+        raise ValueError("schema_namespace must be non-negative")
+    entity_type = f"F{namespace_index}_T0"
+    schema = tuple(RelationType(f"r{i}", entity_type, entity_type) for i in range(4))
+    relation_by_name = {r.name: r for r in schema}
+    world_id = f"m4-order-world-{seed:08d}-d{depth}-ns{namespace_index}"
+    start = Entity(f"{world_id}-source", entity_type)
+    goal = Entity(f"{world_id}-target", entity_type)
+    target = tuple(f"r{i}" for i in range(depth))
+    decoy = tuple(reversed(target))
+    facts: list[RelationInstance] = []
+    event_index = 0
+
+    def add_chain(prefix: str, sequence: tuple[str, ...]) -> None:
+        nonlocal event_index
+        entities = [start]
+        for i in range(depth - 1):
+            entities.append(Entity(
+                f"{world_id}-{prefix}-node-{i}-{rng.randrange(1_000_000)}",
+                entity_type,
+            ))
+        entities.append(goal)
+        for i, relation_name in enumerate(sequence):
+            event_index += 1
+            event_time = float(event_index)
+            observed_at = event_time + rng.choice((0.0, 0.0, 0.25, 0.5))
+            facts.append(RelationInstance(
+                f"{world_id}-{prefix}-edge-{i}", relation_by_name[relation_name],
+                entities[i], entities[i + 1], event_time, observed_at,
+                context="ctx", provenance=f"world:{world_id}",
+            ))
+            if i < depth - 1 and rng.random() < 0.65:
+                event_index += 1
+                leaf = Entity(
+                    f"{world_id}-{prefix}-spur-{i}-{rng.randrange(1_000_000)}",
+                    entity_type,
+                )
+                facts.append(RelationInstance(
+                    f"{world_id}-{prefix}-spur-edge-{i}", relation_by_name[relation_name],
+                    entities[i], leaf, float(event_index), float(event_index) + 0.25,
+                    context="ctx", provenance=f"world:{world_id}",
+                ))
+
+    add_chain("target", target)
+    add_chain("decoy", decoy)
+    rng.shuffle(facts)
+    cutoff = max(event.observed_at for event in facts)
+    examples = tuple(
+        [PathTrainingExample(tuple(f"r{i}" for i in range(d)), 1)
+         for d in (2, 3, 4)]
+        + [PathTrainingExample(tuple(reversed(tuple(f"r{i}" for i in range(d)))), 0)
+           for d in (2, 3, 4)]
+    )
+    return RelationalWorld(
+        world_id=world_id, seed=int(seed),
+        schema_namespace=f"typed-namespace-{namespace_index}",
+        depth=depth, mode="homogeneous_order_sensitive",
+        relation_types=schema, start=start, goal=goal, events=tuple(facts),
+        oracle_target_path=target, oracle_decoy_paths=(decoy,),
+        training_examples=examples, query_time=cutoff + 1.0,
+        observation_cutoff=cutoff,
     )
 
 
