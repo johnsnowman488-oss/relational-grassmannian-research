@@ -6,7 +6,7 @@ module, not the confirmatory evaluator or an acceptance result.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 import random
 from typing import Iterable
@@ -40,6 +40,7 @@ class RelationalWorld:
     schema_namespace: str
     depth: int
     mode: str
+    condition: str
     relation_types: tuple[RelationType, ...]
     start: Entity
     goal: Entity
@@ -155,7 +156,7 @@ def generate_world(seed: int, depth: int, schema_namespace: int | None = None) -
     cutoff = max(event.observed_at for event in facts)
     return RelationalWorld(
         world_id=world_id, seed=int(seed), schema_namespace=f"typed-namespace-{namespace_index}",
-        depth=depth, mode="heterogeneous_typed_chain", relation_types=schema, start=start, goal=goal,
+        depth=depth, mode="heterogeneous_typed_chain", condition="complete", relation_types=schema, start=start, goal=goal,
         events=tuple(facts), oracle_target_path=target,
         oracle_decoy_paths=(decoy,),
         training_examples=tuple(
@@ -230,11 +231,64 @@ def generate_order_world(seed: int, depth: int, schema_namespace: int | None = N
     return RelationalWorld(
         world_id=world_id, seed=int(seed),
         schema_namespace=f"typed-namespace-{namespace_index}",
-        depth=depth, mode="homogeneous_order_sensitive",
+        depth=depth, mode="homogeneous_order_sensitive", condition="complete",
         relation_types=schema, start=start, goal=goal, events=tuple(facts),
         oracle_target_path=target, oracle_decoy_paths=(decoy,),
         training_examples=examples, query_time=cutoff + 1.0,
         observation_cutoff=cutoff,
+    )
+
+
+def condition_world(world: RelationalWorld, condition: str) -> RelationalWorld:
+    """Apply a declared G1 challenge while keeping oracle labels evaluator-side."""
+    allowed = {"complete", "missing_target_edge", "temporal_invalid_target",
+               "wrong_context_target", "multiple_target_witnesses"}
+    if condition not in allowed:
+        raise ValueError(f"unsupported world condition: {condition}")
+    if condition == "complete":
+        return world
+    events = list(world.events)
+    target_edges = [
+        edge for edge in events
+        if f"-target-edge-" in edge.instance_id
+    ]
+    target_edges.sort(key=lambda edge: edge.instance_id)
+    if not target_edges:
+        raise ValueError("world has no planted target path instances")
+
+    if condition == "missing_target_edge":
+        events.remove(target_edges[len(target_edges) // 2])
+    elif condition == "temporal_invalid_target":
+        if len(target_edges) < 2:
+            raise ValueError("temporal invalidation requires depth at least two")
+        edge = target_edges[1]
+        events[events.index(edge)] = replace(
+            edge, event_time=max(0.0, target_edges[0].event_time - 0.25)
+        )
+    elif condition == "wrong_context_target":
+        for edge in target_edges:
+            events[events.index(edge)] = replace(edge, context="other-context")
+    elif condition == "multiple_target_witnesses":
+        ordered = sorted(target_edges, key=lambda edge: edge.event_time)
+        alt_entities = [world.start]
+        for i, edge in enumerate(ordered[:-1]):
+            alt_entities.append(Entity(
+                f"{world.world_id}-alt-target-node-{i}",
+                edge.object.entity_type,
+            ))
+        alt_entities.append(world.goal)
+        for i, edge in enumerate(ordered):
+            events.append(RelationInstance(
+                f"{world.world_id}-alt-target-edge-{i}",
+                edge.relation_type, alt_entities[i], alt_entities[i + 1],
+                edge.event_time, edge.observed_at, edge.context,
+                edge.valid_until, edge.provenance,
+            ))
+
+    cutoff = max((edge.observed_at for edge in events), default=world.observation_cutoff)
+    return replace(
+        world, condition=condition, events=tuple(events),
+        observation_cutoff=cutoff, query_time=cutoff + 1.0,
     )
 
 
