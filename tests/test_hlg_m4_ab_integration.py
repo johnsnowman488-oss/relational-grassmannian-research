@@ -100,3 +100,21 @@ def test_manually_constructed_inconsistent_witness_is_rejected():
     a,b,c,r1,r2,events=fixture()
     with pytest.raises(ValueError):
         CompositionWitness((a,c),(events[0],))
+
+
+def test_ordered_transition_features_distinguish_same_bag_paths():
+    relations = tuple(RelationType(f"r{i}", "Node", "Node") for i in range(4))
+    model = M4ABSystem("A", relations, max_path_depth=4)
+    forward = model._features(("r0", "r1"))
+    reverse = model._features(("r1", "r0"))
+    assert forward.shape == model.readout_weights.shape
+    assert reverse.shape == model.readout_weights.shape
+    # Counts and relation multiset features are equal; adjacent ordered-pair
+    # features encode the direction difference.
+    assert np.array_equal(forward[:4], reverse[:4])
+    transition_start = 7 * len(relations)
+    transition_end = transition_start + 3 * len(relations) ** 2
+    assert not np.array_equal(
+        forward[transition_start:transition_end],
+        reverse[transition_start:transition_end],
+    )

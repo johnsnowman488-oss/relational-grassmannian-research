@@ -19,6 +19,7 @@ class M4AdaptiveController:
     detector: CUSUMDetector | None = None
     trusted_snapshot: dict | None = None
     candidate_weights: np.ndarray | None = None
+    candidate_bias: float | None = None
     revision_count: int = 0
     rejection_count: int = 0
     rollback_count: int = 0
@@ -32,7 +33,7 @@ class M4AdaptiveController:
             self.mode = "DETECT"
         return alarm
 
-    def start_candidate(self, weights):
+    def start_candidate(self, weights, bias: float | None = None):
         if self.mode not in {"NORMAL", "DETECT", "RECOVERY"}:
             raise RuntimeError("candidate cannot start in current lifecycle state")
         candidate = np.asarray(weights, dtype=float)
@@ -43,11 +44,15 @@ class M4AdaptiveController:
             "detector": copy.deepcopy(self.detector.__dict__),
             "mode": self.mode,
         }
+        candidate_bias = self.system.readout_bias if bias is None else float(bias)
+        if not np.isfinite(candidate_bias):
+            raise ValueError("candidate bias must be finite")
         self.candidate_weights = candidate.copy()
+        self.candidate_bias = candidate_bias
         self.mode = "FIT"
 
     def validate_candidate(self, incumbent_loss: float, candidate_loss: float, identifiable: bool) -> bool:
-        if self.mode != "FIT" or self.candidate_weights is None:
+        if self.mode != "FIT" or self.candidate_weights is None or self.candidate_bias is None:
             raise RuntimeError("no candidate is being fitted")
         if not np.isfinite(incumbent_loss) or not np.isfinite(candidate_loss):
             raise ValueError("validation losses must be finite")
@@ -55,6 +60,7 @@ class M4AdaptiveController:
         promoted = bool(identifiable and candidate_loss < incumbent_loss - 1e-8)
         if promoted:
             self.system.readout_weights = self.candidate_weights.copy()
+            self.system.readout_bias = float(self.candidate_bias)
             self.system.readout_fitted = True
             self.revision_count += 1
             self.mode = "PROMOTED"
@@ -62,6 +68,7 @@ class M4AdaptiveController:
             self.rejection_count += 1
             self.mode = "NORMAL"
         self.candidate_weights = None
+        self.candidate_bias = None
         return promoted
 
     def rollback(self):
@@ -94,6 +101,7 @@ class M4AdaptiveController:
             "detector": copy.deepcopy(self.detector.__dict__),
             "trusted_snapshot": copy.deepcopy(self.trusted_snapshot),
             "candidate_weights": None if self.candidate_weights is None else self.candidate_weights.copy(),
+            "candidate_bias": self.candidate_bias,
             "revision_count": self.revision_count,
             "rejection_count": self.rejection_count,
             "rollback_count": self.rollback_count,

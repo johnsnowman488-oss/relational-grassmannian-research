@@ -141,7 +141,11 @@ class M4ABSystem:
         self.relation_index = {name: i for i, name in enumerate(names)}
         self.soe = SOEMemory(feature_dim=len(names))
         self.store = PersistentRelationStore(relation_capacity) if architecture == "B" else None
-        self.readout_weights = np.zeros((3 + self.max_path_depth) * len(names) + 1, dtype=float)
+        self.readout_weights = np.zeros(
+            (3 + self.max_path_depth) * len(names)
+            + (self.max_path_depth - 1) * len(names) * len(names) + 1,
+            dtype=float,
+        )
         self.readout_bias = 0.0
         self.readout_fitted = False
         self.min_probability = float(min_probability)
@@ -226,11 +230,21 @@ class M4ABSystem:
         positional = np.zeros(self.max_path_depth * n, dtype=float)
         for position, name in enumerate(path):
             positional[position * n + self.relation_index[name]] = 1.0
+        # Ordered adjacent-pair features let the linear readout distinguish
+        # sequences with identical relation bags but different composition order.
+        transitions = np.zeros((self.max_path_depth - 1) * n * n, dtype=float)
+        for position, (left, right) in enumerate(zip(path, path[1:])):
+            left_index = self.relation_index[left]
+            right_index = self.relation_index[right]
+            transitions[position * n * n + left_index * n + right_index] = 1.0
         if self.architecture == "B":
             for event in self.store.records:
                 support[self.relation_index[event.relation_type.name]] += 1.0
             support = np.log1p(support)
-        return np.concatenate([counts, temporal, np.zeros(n) if self.architecture == "A" else support, positional, [float(len(path))]])
+        return np.concatenate([
+            counts, temporal, np.zeros(n) if self.architecture == "A" else support,
+            positional, transitions, [float(len(path))],
+        ])
 
     def fit_readout(
         self,
