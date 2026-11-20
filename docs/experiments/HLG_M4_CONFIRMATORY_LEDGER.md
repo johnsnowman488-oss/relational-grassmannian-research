@@ -111,9 +111,34 @@ These are software/validation diagnostics across all 60 validation seeds and two
 - G5: native resource sweep at 10/100/500/1,000 relation instances. At 1,000 instances, A had 4,336 persistent numeric bytes, zero relation payload bytes, 5,225 serialized snapshot bytes and 45,404 traced peak bytes; B had 4,336 persistent numeric bytes, 79,654 relation payload bytes, 137,189 serialized snapshot bytes and 79,996 traced peak bytes.
 - At 1,000 instances, query p50/p95 was A 0.93/1.31 ms and B 1.43/1.88 ms. At 10 instances, A was 35.9/60.2 μs and B 44.1/56.6 μs. These are single-run native measurements, not matched-resource frontiers or cross-machine benchmarks.
 
+### G5 memory-budgeted retention frontier
+
+A separate 30-world validation frontier used the held-out validation half, a fixed 0.75/0.25 readout threshold candidate, 1,000 observed relation instances per world and randomized observation positions for the four-edge target chain. The same serialized-snapshot upper-bound budget was applied to A and B; A's unused budget is shown explicitly. A's external evidence replay is reported separately and is not charged to persistent memory.
+
+| B relation capacity | B snapshot budget (p95 bytes) | B correct retention |
+|---:|---:|---:|
+| 10 | 7,574 | 0/30 |
+| 25 | 10,455 | 0/30 |
+| 50 | 15,223 | 0/30 |
+| 100 | 24,741 | 0/30 |
+| 250 | 53,313 | 0/30 |
+| 500 | 100,965 | 2/30 |
+| 750 | 148,519 | 9/30 |
+| 800 | 158,037 | 11/30 |
+| 850 | 167,558 | 14/30 |
+| 900 | 177,079 | 18/30 |
+| 950 | 186,591 | 24/30 |
+| 1,000 | 196,077 | 30/30 |
+
+- A no-replay: 0/30 correct, 30/30 abstentions; persistent snapshot p95 5,225 bytes.
+- A with external evidence-window replay: 30/30 correct. The external batch is not charged to persistent snapshot memory.
+- A's 5,225-byte snapshot fits under every B upper-bound budget; this is a budget-capped frontier, not equal-byte consumption. A leaves budget unused because it has no persistent relation store.
+- B false selections: 0 at every capacity.
+- The frontier shows a retention/memory trade-off: with randomly positioned target edges, B needed the full 1,000-record store (about 196 KB serialized snapshot budget) for 30/30 retention in this sample. This is a bounded synthetic stress test, not a universal scaling law.
+
 ### Interpretation
 
-The pilot now demonstrates that the implemented readout can rank both randomized typed-chain patterns and cyclic same-bag/different-order paths after adding adjacent transition features. B's persistence advantage is visible in no-replay outages, while it incurs additional stored payload and higher query latency in this resource sweep. Neither result establishes universal A/B superiority. The validation sample remains small and task-family bounded.
+The pilot now demonstrates that the implemented readout can rank both randomized typed-chain patterns and cyclic same-bag/different-order paths after adding adjacent transition features. B's persistence advantage is visible in no-replay outages, while it incurs additional stored payload and higher query latency in this resource sweep. Neither result establishes universal A/B superiority. The validation sample remains task-family bounded. The G5 frontier is a memory-budgeted upper-bound comparison, not an equal-byte frontier.
 
 ## 6. Experimental controls and statistics
 
@@ -169,14 +194,14 @@ Gate categories:
 - [x] Validation-only G4 pilot: 120 trials per architecture using train-world candidate fitting and separate validation-world paths; promotion 120/120, exact rollback 120/120, rejection controls 120/120, dormancy/recovery 120/120, stable/transient/recovery alarms 0. Drift detection delay was 9 steps in every trial under the current controlled residual sequence; this does not establish robust detection under varied drift processes.
 - [x] Validation-only G5 native resource sweep: 10/100/500/1,000 relation instances, A/B. At 1,000 instances after adding ordered-pair features, B relation payload 79,654 bytes, serialized snapshot 137,189 bytes, traced peak 79,996 bytes; A relation payload 0, serialized snapshot 5,225 bytes, traced peak 45,404 bytes. Query p50/p95 rose from A 35.9/60.2 μs and B 44.1/56.6 μs at 10 instances to A 0.93/1.31 ms and B 1.43/1.88 ms at 1,000. Native measurements only; not matched-resource frontiers or stable cross-machine benchmarks.
 - [x] Larger validation calibration/held-out split (30/30) with a candidate threshold and independent validation metrics; requirements-based acceptance gates remain unfrozen.
-- [ ] Full confirmatory evaluator, matched-resource frontier and numerical gate freeze.
+- [ ] Full confirmatory evaluator, equal-byte matched-resource frontier and numerical gate freeze.
 - [ ] Matched-resource A/B frontier and confirmatory evaluator with immutable configuration.
 - [ ] Confirmatory execution and analysis.
 
 Preflight and validation evidence:
 - Expanded preflight workflow run `44762929254`, unit/invariant run `44762929264`, A/B integration run `44762929262`, and G1–G5 development run `44762929345` all passed on Python 3.10 and 3.12.
-- Code head used for these artifacts: `1a3dab56748e7c306b71f4103cbb4ce50d8d7936`.
-- Python 3.12 preflight artifact `14641902404`, SHA256 `825c4bfe796d3131a37e88d1ff9488972250ae12fe2f461b8e9f2a405360a415`; Python 3.10 preflight artifact `14639874742`, SHA256 `50ac4bb033303410d2feca11c0348f808dafa529827843c4a89bbd2a483caf79`.
+- Code head used for these artifacts: `905199e5c33bd91b2849c60d5f00062ddfb6c61c`.
+- Python 3.12 preflight artifact `14642552702`, SHA256 `3aeffbc3243fd14ac50635512da742f7b88d79044da2da0ceb351fdf203245e1`; Python 3.10 preflight artifact `14642926392`, SHA256 `66e1bd141e19066d4b5537357700ba029f2da8351214d99dc29a393d1a57ff61`.
 - Python 3.12 development artifact `14642277279`, SHA256 `44d02f97768145e3ac32040c568380cc0786b954f0e4ed2230c0dd2fe98e4076`; Python 3.10 development artifact `14640459648`, SHA256 `4e0f3a4589565a8b71aa407d583868d1ae9c897f3f8372ecaf950c6ad9800cdc`.
 - The Python 3.12 preflight artifact contains 96 generator-audit worlds, 83 distinct identity-invariant topology fingerprints, 51 distinct relation-signature sets across 7 namespaces, and disjoint 120/60/120 train/validation/confirmatory-test partitions.
 - Both artifacts contain seed/world-level G1–G5 pilot rows. Model diagnostics access validation worlds only; the confirmatory-test partition remains sealed.
