@@ -133,7 +133,7 @@ def run_validation_frontier(
 
         model_a = M4ABSystem(
             "A", world.relation_types, relation_capacity=1001,
-            max_path_depth=4, min_probability=0.75, min_margin=0.25,
+            max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
         )
         model_a.restore(a_template)
         for event in events:
@@ -160,7 +160,7 @@ def run_validation_frontier(
             capacity = int(capacity)
             model_b = M4ABSystem(
                 "B", world.relation_types, relation_capacity=capacity,
-                max_path_depth=4, min_probability=0.75, min_margin=0.25,
+                max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
             )
             model_b.restore(b_templates[capacity])
             for event in events:
