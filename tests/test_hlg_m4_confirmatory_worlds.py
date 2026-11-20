@@ -8,6 +8,8 @@ def test_worlds_are_deterministic_but_structurally_varied():
     first = generate_world(10001, 2)
     again = generate_world(10001, 2)
     assert first.events == again.events
+    same_graph_other_namespace = generate_world(10001, 2, schema_family=6)
+    assert structural_fingerprint(first) == structural_fingerprint(same_graph_other_namespace)
     worlds = [generate_world(11000 + i, (2, 3, 4)[i % 3]) for i in range(36)]
     assert len({structural_fingerprint(w) for w in worlds}) > 1
     assert len({w.schema_family for w in worlds}) > 1
