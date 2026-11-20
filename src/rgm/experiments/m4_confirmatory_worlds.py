@@ -147,27 +147,57 @@ def generate_world(seed: int, depth: int, schema_family: int | None = None) -> R
 
 
 def structural_fingerprint(world: RelationalWorld) -> str:
-    """Identity-invariant topology digest; captures branching and typed edges."""
-    degree: dict[Entity, int] = {}
-    typed_edges = []
-    for event in world.events:
-        degree[event.subject] = degree.get(event.subject, 0) + 1
-        degree.setdefault(event.object, 0)
-        typed_edges.append((
-            event.relation_type.name,
-            event.relation_type.domain,
-            event.relation_type.codomain,
-            degree[event.subject],
-        ))
+    """Identity- and schema-namespace-invariant graph-topology digest.
+
+    Entity IDs and family prefixes are deliberately removed. Type positions,
+    relation labels, anchored source/goal roles, branching and adjacency remain.
+    Color refinement provides a deterministic canonical structural summary for
+    these bounded generated graphs.
+    """
+    nodes = {world.start, world.goal}
+    outgoing: dict[Entity, list[RelationInstance]] = {}
+    incoming: dict[Entity, list[RelationInstance]] = {}
+    for edge in world.events:
+        nodes.add(edge.subject)
+        nodes.add(edge.object)
+        outgoing.setdefault(edge.subject, []).append(edge)
+        incoming.setdefault(edge.object, []).append(edge)
+
+    def type_slot(entity: Entity) -> int:
+        return int(entity.entity_type.rsplit("_T", 1)[1])
+
+    colors = {}
+    for node in nodes:
+        base = (
+            type_slot(node),
+            len(incoming.get(node, ())),
+            len(outgoing.get(node, ())),
+            node == world.start,
+            node == world.goal,
+        )
+        colors[node] = hashlib.sha256(repr(base).encode("utf-8")).hexdigest()
+
+    for _ in range(min(len(nodes), 8)):
+        refined = {}
+        for node in nodes:
+            neighborhood = (
+                tuple(sorted((edge.relation_type.name, colors[edge.object])
+                             for edge in outgoing.get(node, ()))),
+                tuple(sorted((edge.relation_type.name, colors[edge.subject])
+                             for edge in incoming.get(node, ()))),
+            )
+            refined[node] = hashlib.sha256(
+                repr((colors[node], neighborhood)).encode("utf-8")
+            ).hexdigest()
+        colors = refined
+
     descriptor = (
         world.depth,
-        tuple(sorted(degree.values())),
-        tuple(sorted((e.relation_type.name, e.subject.entity_type,
-                      e.object.entity_type) for e in world.events)),
-        tuple(sorted(typed_edges)),
+        tuple(sorted(colors.values())),
+        tuple(sorted((colors[edge.subject], edge.relation_type.name,
+                      colors[edge.object]) for edge in world.events)),
     )
     return hashlib.sha256(repr(descriptor).encode("utf-8")).hexdigest()
-
 
 def partition_manifest(partitions: Iterable[WorldPartition]) -> dict:
     parts = tuple(partitions)
