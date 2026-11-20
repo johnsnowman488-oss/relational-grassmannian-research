@@ -14,7 +14,8 @@ on:
       - "tests/test_hlg_m4_confirmatory_pilot.py"
       - "tests/test_hlg_m4_confirmatory_g23.py"
       - "tests/test_hlg_m4_confirmatory_g45.py"
-      - "tests/test_hlg_m4_confirmatory_campaign.py"\n      - "docs/experiments/M4_CONFIRMATORY_RUN_AUTHORIZED"
+      - "tests/test_hlg_m4_confirmatory_campaign.py"
+      - "docs/experiments/M4_CONFIRMATORY_RUN_AUTHORIZED"
       - ".github/workflows/hlg-m4-confirmatory-preflight.yml"
   workflow_dispatch:
 
