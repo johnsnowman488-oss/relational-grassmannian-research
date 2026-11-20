@@ -91,14 +91,16 @@ def validate_partitions(partitions: Iterable[WorldPartition]) -> None:
         seen.update(part.seeds)
 
 
-def _relation_schema(namespace_index: int) -> tuple[RelationType, ...]:
+def _relation_schema(namespace_index: int, layer_order: tuple[int, ...]) -> tuple[RelationType, ...]:
     # Different families use distinct typed entity namespaces. Relation names
     # remain in-vocabulary; this is not an OOV relation-transfer experiment.
     types = tuple(f"F{namespace_index}_T{i}" for i in range(5))
     relations = []
-    for prefix in ("a", "b"):
-        for i in range(4):
-            relations.append(RelationType(f"{prefix}{i}", types[i], types[i + 1]))
+    for position, relation_index in enumerate(layer_order):
+        for prefix in ("a", "b"):
+            relations.append(RelationType(
+                f"{prefix}{relation_index}", types[position], types[position + 1]
+            ))
     return tuple(relations)
 
 
@@ -109,7 +111,8 @@ def generate_world(seed: int, depth: int, schema_namespace: int | None = None) -
     namespace_index = int(seed % 7 if schema_namespace is None else schema_namespace)
     if namespace_index < 0:
         raise ValueError("schema_namespace must be non-negative")
-    schema = _relation_schema(namespace_index)
+    layer_order = tuple(rng.sample(range(4), 4))
+    schema = _relation_schema(namespace_index, layer_order)
     relation_by_name = {r.name: r for r in schema}
     type_names = [f"F{namespace_index}_T{i}" for i in range(5)]
     world_id = f"m4-world-{seed:08d}-d{depth}-ns{namespace_index}"
@@ -117,8 +120,8 @@ def generate_world(seed: int, depth: int, schema_namespace: int | None = None) -
     goal = Entity(f"{world_id}-target", type_names[depth])
 
     facts: list[RelationInstance] = []
-    target = tuple(f"a{i}" for i in range(depth))
-    decoy = tuple(f"b{i}" for i in range(depth))
+    target = tuple(f"a{i}" for i in layer_order[:depth])
+    decoy = tuple(f"b{i}" for i in layer_order[:depth])
     event_index = 0
 
     def add_chain(prefix: str, sequence: tuple[str, ...], add_spurs: bool) -> None:
@@ -160,9 +163,9 @@ def generate_world(seed: int, depth: int, schema_namespace: int | None = None) -
         events=tuple(facts), oracle_target_path=target,
         oracle_decoy_paths=(decoy,),
         training_examples=tuple(
-            [PathTrainingExample(tuple(f"a{i}" for i in range(d)), 1)
+            [PathTrainingExample(tuple(f"a{i}" for i in layer_order[:d]), 1)
              for d in (2, 3, 4)]
-            + [PathTrainingExample(tuple(f"b{i}" for i in range(d)), 0)
+            + [PathTrainingExample(tuple(f"b{i}" for i in layer_order[:d]), 0)
                for d in (2, 3, 4)]
         ),
         query_time=cutoff + 1.0, observation_cutoff=cutoff,
@@ -183,7 +186,8 @@ def generate_order_world(seed: int, depth: int, schema_namespace: int | None = N
     world_id = f"m4-order-world-{seed:08d}-d{depth}-ns{namespace_index}"
     start = Entity(f"{world_id}-source", entity_type)
     goal = Entity(f"{world_id}-target", entity_type)
-    target = tuple(f"r{i}" for i in range(depth))
+    offset = rng.randrange(4)
+    target = tuple(f"r{(offset + i) % 4}" for i in range(depth))
     decoy = tuple(reversed(target))
     facts: list[RelationInstance] = []
     event_index = 0
@@ -223,10 +227,15 @@ def generate_order_world(seed: int, depth: int, schema_namespace: int | None = N
     rng.shuffle(facts)
     cutoff = max(event.observed_at for event in facts)
     examples = tuple(
-        [PathTrainingExample(tuple(f"r{i}" for i in range(d)), 1)
-         for d in (2, 3, 4)]
-        + [PathTrainingExample(tuple(reversed(tuple(f"r{i}" for i in range(d)))), 0)
-           for d in (2, 3, 4)]
+        example
+        for d in (2, 3, 4)
+        for rotation in range(4)
+        for example in (
+            PathTrainingExample(tuple(f"r{(rotation + i) % 4}" for i in range(d)), 1),
+            PathTrainingExample(tuple(reversed(tuple(
+                f"r{(rotation + i) % 4}" for i in range(d)
+            ))), 0),
+        )
     )
     return RelationalWorld(
         world_id=world_id, seed=int(seed),
