@@ -170,14 +170,14 @@ Gate categories:
 ## 8. Execution order
 
 1. Verify actual merged research branch and inspect integrated implementation (completed for this work session).
-2. Record this ledger in the repository and Library.
+2. Record this dedicated experiment ledger in the repository (complete).
 3. Implement independent typed relational-world generator and explicit train/validation/test world partitions (complete for current bounded generator).
 4. Add generator invariants, identity-invariant topology checks, partition-disjointness, causal cutoff and oracle-isolation tests (complete for generator preflight).
 5. Run generator/software pilots and a larger validation-only calibration/held-out check; do not expose confirmatory test outcomes (complete: all 60 validation worlds split 30/30 for G3 calibration and validation).
-6. Complete expanded validation diagnostics, 30/30 threshold calibration/held-out check, and memory-budgeted G5 retention frontier (complete as bounded validation evidence; no equal-byte resource matching or confirmatory test execution yet).
+6. Complete expanded validation diagnostics, 30/30 threshold calibration/held-out check, and validation G5 retention frontier (complete as bounded validation evidence; equal-byte resource matching remains open).
 7. Freeze generator/config/partitions/thresholds/gates with hashes (complete; protocol `HLG-M4-CONFIRMATORY-AB-v1`, config SHA256 `a4df456185812fdee67edd939e13a049f3889ba2bf9f5256f746d8fdeb6c5218`, partition manifest SHA256 `488d16e20f766d26459075f2e57ae0c4d7b1c68a1696f9e41a0424a68ca095b7`).
-8. Run the confirmatory A/B campaign once from the frozen code/config through the dedicated `m4-confirmatory-authorized` PR-label-gated workflow; preserve seed/world-level results and artifacts.
-9. Analyse paired comparisons and resource frontiers; issue a bounded evidence report.
+8. Run the confirmatory A/B campaign once from the frozen code/config through the one-shot authorization-marker workflow (complete; run `44768006598`); preserve seed/world-level results and artifacts.
+9. Analyse paired comparisons and resource frontiers; issue a bounded evidence report (complete in Section 10; equal-byte comparison remains open).
 
 ## 9. Current status and open items
 
@@ -208,9 +208,9 @@ Preflight and validation evidence:
 - Python 3.12 development artifact `14641833394`, SHA256 `613beb961a2c0d297b8d57ba40ec2517b38d0cf7ea5aa8a24a302c915e6c0328`; Python 3.10 development artifact `14643080420`, SHA256 `244d1c85e418277115aa15be9688dd4d8e696f548ba29418c470f1bfc755f3aa`.
 - The Python 3.12 preflight artifact contains 96 generator-audit worlds, 83 distinct identity-invariant topology fingerprints, 51 distinct relation-signature sets across 7 namespaces, and disjoint 120/60/120 train/validation/confirmatory-test partitions.
 - Both artifacts contain seed/world-level G1–G5 pilot rows. Model diagnostics access validation worlds only; the confirmatory-test partition remains sealed.
-- All results above are validation/software diagnostics only; no confirmatory performance or acceptance claim is made.
+- This preflight block refers only to validation/software diagnostics. Confirmatory performance results and their limits are reported separately in Section 10.
 
-The confirmatory run and its bounded interpretation are recorded in Section 11 below.
+The recovered confirmatory run and its bounded interpretation are recorded in Section 10 below.
 
 
 ### Frozen evaluator validation-shadow evidence (not confirmatory)
