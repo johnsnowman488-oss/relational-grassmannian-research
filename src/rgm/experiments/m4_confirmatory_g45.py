@@ -112,7 +112,7 @@ def _g4_trials(world_count: int):
                 # Incumbent/candidate are fitted on the train partition only;
                 # each trial evaluates them on a separate validation world.
                 model.restore(template["incumbent_snapshot"])
-                for event in world.events:
+                for event in sorted(world.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
                     model.observe(event)
                 controller = M4AdaptiveController(model)
                 stable_alarms = sum(
