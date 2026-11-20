@@ -33,6 +33,8 @@ def run_validation_pilot(
 ) -> dict:
     if world_count < 1:
         raise ValueError("world_count must be positive")
+    if partition_name != "validation":
+        raise ValueError("G1 pilot is sealed to validation; use the frozen campaign runner for test execution")
     partitions = default_partitions()
     validate_partitions(partitions)
     if partition_name != "validation":
