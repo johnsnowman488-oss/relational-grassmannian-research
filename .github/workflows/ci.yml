@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, "e00-foundations", "e01-history-dependence", "e01-a2-diagnostic-audit"]
   pull_request:
-    branches: [main]
+    branches: [main, "research/hlg-m4-preimplementation-ledger"]
 
 permissions:
   contents: read
