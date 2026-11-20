@@ -6,28 +6,40 @@ on:
     paths:
       - "docs/experiments/HLG_M4_CONFIRMATORY_CONFIG.json"
       - "docs/experiments/HLG_M4_CONFIRMATORY_CONFIG.sha256"
-  workflow_dispatch: {}
 
 permissions:
   contents: read
 
 jobs:
   confirmatory:
-    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'M4: freeze protocol and authorize confirmatory test run') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.12"]
     steps:
+      - name: Check explicit protocol-freeze commit authorization
+        id: authorization
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [ "$COMMIT_MESSAGE" = "M4: freeze protocol and authorize confirmatory test run" ]; then
+            echo "authorized=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.authorization.outputs.authorized == 'true'
       - uses: actions/setup-python@v5
+        if: steps.authorization.outputs.authorized == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install package and test dependencies
+        if: steps.authorization.outputs.authorized == 'true'
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Verify protocol seal, implementation parent and guard tests
+        if: steps.authorization.outputs.authorized == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -41,11 +53,13 @@ jobs:
           echo "M4_IMPLEMENTATION_COMMIT=$IMPLEMENTATION_COMMIT" >> "$GITHUB_ENV"
           python -m pytest tests/test_hlg_m4_confirmatory_campaign.py tests/test_hlg_m4_confirmatory_frontier.py
       - name: Run frozen confirmatory campaign
+        if: steps.authorization.outputs.authorized == 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/m4-confirmatory"
           python -m rgm.experiments.m4_confirmatory_campaign "$RUNNER_TEMP/m4-confirmatory/confirmatory-results.json"
           sha256sum "$RUNNER_TEMP/m4-confirmatory/confirmatory-results.json" > "$RUNNER_TEMP/m4-confirmatory/confirmatory-results.sha256"
       - name: Upload confirmatory evidence
+        if: steps.authorization.outputs.authorized == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: hlg-m4-confirmatory-py${{ matrix.python-version }}
