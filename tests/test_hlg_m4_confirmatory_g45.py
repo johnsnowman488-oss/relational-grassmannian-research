@@ -6,8 +6,8 @@ def test_g4_g5_diagnostics_are_validation_only():
     assert result["classification"] == "validation_only_G4_G5_diagnostics_not_confirmatory"
     assert result["confirmatory_test_accessed"] is False
     assert {row["architecture"] for row in result["G4"]["rows"]} == {"A", "B"}
-    assert all(row["fit_seed"] < 30_000 and row["seed"] >= 30_000
-               and row["fit_world_id"] != row["world_id"]
+    assert all(row["seed"] >= 30_000 and row["training_world_count"] == 120
+               and len(row["training_corpus_sha256"]) == 64
                for row in result["G4"]["rows"])
     assert len(result["G5"]["rows"]) == 4
     assert all(row["transient_disturbance_alarms"] == 0 for row in result["G4"]["rows"])
