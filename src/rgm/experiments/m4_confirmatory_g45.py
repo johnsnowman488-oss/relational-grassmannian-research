@@ -245,7 +245,7 @@ def _g5_resources(resource_sizes):
             model = M4ABSystem(
                 architecture, template.relation_types,
                 relation_capacity=max(count + 1, 2), max_path_depth=4,
-                min_probability=0.0, min_margin=0.0,
+                min_probability=min_probability, min_margin=min_margin,
             )
             model.fit_readout(template.training_examples, epochs=700, learning_rate=0.12)
             update_ns = []
