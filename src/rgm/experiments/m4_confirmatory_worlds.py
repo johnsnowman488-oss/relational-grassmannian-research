@@ -314,6 +314,7 @@ def preflight_audit(seed_count: int = 48) -> dict:
         raise ValueError("seed_count must be at least two")
     fingerprints = set()
     type_signatures = set()
+    schema_namespaces = set()
     world_count = 0
     mode_counts = {"heterogeneous_typed_chain": 0, "homogeneous_order_sensitive": 0}
     for seed in range(90_000, 90_000 + seed_count):
@@ -323,6 +324,7 @@ def preflight_audit(seed_count: int = 48) -> dict:
         world_count += 1
         mode_counts[world.mode] += 1
         fingerprints.add(structural_fingerprint(world))
+        schema_namespaces.add(world.schema_namespace)
         type_signatures.add(tuple((r.domain, r.codomain) for r in world.relation_types))
         assert all(e.observed_at >= e.event_time for e in world.events)
         assert all(e.subject.entity_type == e.relation_type.domain
@@ -337,7 +339,8 @@ def preflight_audit(seed_count: int = 48) -> dict:
         "world_count": world_count,
         "mode_counts": mode_counts,
         "unique_identity_invariant_topologies": len(fingerprints),
-        "typed_schema_namespaces": len(type_signatures),
+        "schema_namespace_count": len(schema_namespaces),
+        "distinct_relation_signature_sets": len(type_signatures),
         "future_observation_invariant": True,
         "typed_edge_invariant": True,
         "oracle_labels_separate_from_learner_view": True,
