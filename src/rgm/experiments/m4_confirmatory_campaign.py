@@ -576,7 +576,7 @@ def run_confirmatory_campaign():
             <= gates["hard_invariants"]["confirmatory_test_rows_used_for_tuning"],
         "g3_no_false_or_ambiguous_selections": (
             hard_invariants["g3_false_selections"] + hard_invariants["g3_ambiguous_selections"]
-        ) <= gates["g3"]["false_selections_on_missing_wrong_context_or_temporally_invalid_or_ambiguous_cases"],
+        ) <= gates["g3"]["false_selections_on_missing_wrong_context_temporally_invalid_or_ambiguous_cases"],
         "g3_positive_control_coverage": hard_invariants["g3_positive_control_coverage"]
             >= gates["g3"]["positive_multiple_witness_control_coverage"],
         "g4_exact_system_rollback": g4_hard_invariants["exact_system_rollback_failures"] == 0,
