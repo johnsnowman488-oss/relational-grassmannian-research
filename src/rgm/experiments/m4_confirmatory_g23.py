@@ -9,8 +9,8 @@ import json
 import sys
 
 from rgm.experiments.m4_confirmatory_worlds import (
-    default_partitions, condition_world, generate_order_world, generate_world,
-    validate_partitions,
+    default_partitions, build_training_corpus, condition_world,
+    generate_order_world, generate_world, validate_partitions,
 )
 from rgm.leptograph.m4.system import M4ABSystem, M4Query
 
@@ -50,19 +50,34 @@ def run_validation_g23(world_count: int = 12) -> dict:
         raise ValueError("requested run exceeds validation partition")
 
     generators = (generate_world, generate_order_world)
+    training_corpora = {}
+    ambiguous_corpora = {}
+    corpus_metadata = {}
+    for generator in generators:
+        corpus, world_ids, digest = build_training_corpus(train.seeds, generator)
+        ambiguous, _, ambiguous_digest = build_training_corpus(
+            train.seeds, generator, condition="ambiguous_competing_paths"
+        )
+        training_corpora[generator] = corpus
+        ambiguous_corpora[generator] = ambiguous
+        corpus_metadata[generator] = {
+            "training_world_count": len(world_ids),
+            "training_corpus_sha256": digest,
+            "ambiguous_corpus_sha256": ambiguous_digest,
+        }
     g2_rows = []
     g3_rows = []
-    for trial_index, seed in enumerate(seeds):
+    for seed in seeds:
         depth = (2, 3, 4)[seed % 3]
-        for mode_index, generator in enumerate(generators):
+        for generator in generators:
             base = generator(seed, depth)
-            fit_seed = train.seeds[(trial_index * len(generators) + mode_index) % len(train.seeds)]
-            training_world = generator(fit_seed, depth)
+            train_examples = training_corpora[generator]
+            corpus_info = corpus_metadata[generator]
             full_view = base.learner_view()
             for architecture in ("A", "B"):
                 # G2-A: outage with no replay. A has no retained relation
                 # instances; B must answer from its persistent typed store.
-                retained = _model(architecture, base, training_world.training_examples)
+                retained = _model(architecture, base, train_examples)
                 for event in full_view.events:
                     retained.observe(event)
                 retained.advance_gap(8.0)
@@ -72,8 +87,8 @@ def run_validation_g23(world_count: int = 12) -> dict:
                     query_time=base.query_time + 8.0,
                 )
                 g2_rows.append({
-                    "seed": seed, "fit_seed": fit_seed, "world_id": base.world_id,
-                    "fit_world_id": training_world.world_id, "mode": base.mode,
+                    "seed": seed, "world_id": base.world_id, "mode": base.mode,
+                    **corpus_info,
                     "architecture": architecture, "condition": "outage_no_replay",
                     "status": no_replay["status"],
                     "correct": no_replay.get("selected_path") == base.oracle_target_path,
@@ -141,14 +156,12 @@ def run_validation_g23(world_count: int = 12) -> dict:
                                   "ambiguous_competing_paths"):
                     challenged = condition_world(base, condition)
                     challenged_view = challenged.learner_view()
-                    condition_training_world = (
-                        condition_world(training_world, condition)
+                    condition_examples = (
+                        ambiguous_corpora[generator]
                         if condition == "ambiguous_competing_paths"
-                        else training_world
+                        else train_examples
                     )
-                    trial = _model(
-                        architecture, challenged, condition_training_world.training_examples
-                    )
+                    trial = _model(architecture, challenged, condition_examples)
                     for event in challenged_view.events:
                         trial.observe(event)
                     result = _query(
@@ -157,10 +170,9 @@ def run_validation_g23(world_count: int = 12) -> dict:
                         query_time=challenged.query_time,
                     )
                     g3_rows.append({
-                        "seed": seed, "fit_seed": fit_seed,
-                        "world_id": challenged.world_id,
-                        "fit_world_id": condition_training_world.world_id,
+                        "seed": seed, "world_id": challenged.world_id,
                         "mode": challenged.mode, "architecture": architecture,
+                        **corpus_info,
                         "condition": condition, "status": result["status"],
                         "selected_path": result.get("selected_path"),
                         "selected_is_planted_target": (
@@ -233,6 +245,10 @@ def run_validation_g23(world_count: int = 12) -> dict:
         "classification": "validation_only_G2_G3_diagnostics_not_confirmatory",
         "partition": "validation",
         "world_seeds": list(seeds),
+        "training_corpora": {
+            generator(10_000, 4).mode: corpus_metadata[generator]
+            for generator in generators
+        },
         "world_modes": ["heterogeneous_typed_chain", "homogeneous_order_sensitive"],
         "confirmatory_test_accessed": False,
         "G2": {
