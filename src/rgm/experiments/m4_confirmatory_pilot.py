@@ -11,7 +11,7 @@ import sys
 from rgm.experiments.m4_confirmatory_worlds import (
     default_partitions, generate_world, validate_partitions,
 )
-from rgm.leptograph.m4.system import M4ABSystem, M4Query
+from rgm.leptograph.m4.system import M4ABSystem, M4Query, PathTrainingExample
 
 
 def _trained_template(architecture: str, relation_types):
@@ -23,12 +23,8 @@ def _trained_template(architecture: str, relation_types):
     # instances are never used to fit the readout.
     examples = []
     for depth in (2, 3, 4):
-        examples.append(__import__(
-            "rgm.leptograph.m4.system", fromlist=["PathTrainingExample"]
-        ).PathTrainingExample(tuple(f"a{i}" for i in range(depth)), 1))
-        examples.append(__import__(
-            "rgm.leptograph.m4.system", fromlist=["PathTrainingExample"]
-        ).PathTrainingExample(tuple(f"b{i}" for i in range(depth)), 0))
+        examples.append(PathTrainingExample(tuple(f"a{i}" for i in range(depth)), 1))
+        examples.append(PathTrainingExample(tuple(f"b{i}" for i in range(depth)), 0))
     model.fit_readout(examples, epochs=700, learning_rate=0.12)
     return model.snapshot()
 
