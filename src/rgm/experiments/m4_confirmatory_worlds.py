@@ -436,5 +436,13 @@ def build_training_corpus(seeds: Iterable[int], generator, condition: str | None
         world_ids.append(world.world_id)
     if not examples:
         raise ValueError("training corpus must contain at least one example")
-    digest = hashlib.sha256("\\n".join(world_ids).encode("utf-8")).hexdigest()
+    # Hash both world identities and labelled examples; condition-specific
+    # corpora must not share a digest just because their world IDs match.
+    example_payload = "\\n".join(
+        str(example.label) + "|" + ",".join(example.relation_path)
+        for example in examples
+    )
+    digest = hashlib.sha256(
+        ("\\n".join(world_ids) + "\\n" + example_payload).encode("utf-8")
+    ).hexdigest()
     return tuple(examples), tuple(world_ids), digest
