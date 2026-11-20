@@ -229,93 +229,6 @@ The confirmatory run and its bounded interpretation are recorded in Section 11 b
 The first authorized run 44767462519 loaded the frozen confirmatory partition and completed the G1–G4 calculations before failing at the G5 frontier's partition lookup. The exception was caused by a naming mismatch: the runner's public selector is test, while the actual partition object is named confirmatory_test. Both matrix jobs failed identically. Because the campaign function raised before returning, no confirmatory result JSON was written, no aggregate summary was printed, and no metrics were examined for tuning. The recovery fix maps test to confirmatory_test and adds a direct unit test. It does not change the generator, test seeds, training, model, thresholds, gates or scoring. The one-shot recovery run completed successfully on the same frozen partition; see Section 11. It is one recovered campaign result, not a fresh independent test sample.
 
 
-## 11. Confirmatory M4 execution — completed
-
-### Execution provenance
-
-- Campaign: `HLG-M4-CONFIRMATORY-AB-v1`.
-- Canonical runtime: Python 3.12.16, NumPy 2.5.5, Linux x86_64.
-- Confirmatory workflow run: `44768006598`; recovery execution on the one-shot authorized commit `870f6d20e5a2e7b9e4871136de51c797f0b12618`.
-- Result-producing source commit recorded in the artifact: `5e4b4840a40452482cd21532af75d14ac1f8f0a3`.
-- Frozen config SHA-256: `a4df456185812fdee67edd939e13a049f3889ba2bf9f5256f746d8fdeb6c5218`.
-- Partition manifest SHA-256: `488d16e20f766d26459075f2e57ae0c4d7b1c68a1696f9e41a0424a68ca095b7`.
-- Train / validation / confirmatory-test worlds: 120 / 60 / 120; test partition accessed only by the frozen campaign runner. Thresholds were fixed at probability 0.75 and margin 0.25 before test execution; zero test rows were used for threshold tuning.
-- Artifact: `14646281905`, ZIP SHA-256 `892e7eb7c9c593c5f7ec44dfe5d4f13c8f0bd8400151354ba0e6fbc1c9f489e3`.
-- Raw result JSON SHA-256: `49a17328779542c88ed9ae1b3484caf79f6a40c194600c335bbacf8de59f5384`.
-- The first attempt (workflow run `44767462519`) failed at the G5 selector/partition-name boundary. No result artifact was emitted and no intermediate metrics were inspected. Recovery was limited to the deterministic selector mapping and its test; the same frozen test partition was rerun once. Treat the recovered run as completion of the originally authorized campaign, not as a second independent sample.
-
-### G1 — composition and path selection
-
-- 240 evaluated cases per architecture (120 independent world seeds × 2 task modes).
-- A: 240/240 exact planted-path selections; B: 240/240.
-- Both architectures: 240/240 selected witnesses valid; zero future-observation leaks; all depth strata (2, 3, 4) had 80/80 correct selections per architecture.
-- Paired B−A accuracy difference: 0.0; 95% world-seed-clustered bootstrap interval [0.0, 0.0], 120 paired seed clusters.
-- Interpretation: both systems solve this bounded, within-vocabulary composition/ranking task on generated structural worlds. This does not demonstrate open-world path discovery or OOV relation-sequence transfer.
-
-### G2 — temporal retention, outage, replay and late arrival
-
-Each architecture has 720 rows (120 seeds × 2 task modes × 3 conditions).
-
-- Outage without external replay: A 0/240 correct selections (abstained in all 240); B 240/240 correct selections.
-- Outage with the current evidence window supplied: A 240/240; B 240/240.
-- Staged late arrival followed by a causal current-cutoff query: A 240/240; B 240/240.
-- Paired B−A accuracy difference for no-replay outage: +1.0, 95% world-seed-clustered bootstrap interval [1.0, 1.0]. Replay and late-arrival differences were 0.0, intervals [0.0, 0.0].
-- Interpretation: the measured advantage is specifically persistent relation-instance retention when no replay evidence is available. When A receives the current evidence window, the two architectures tie on this task.
-
-### G3 — false-path control, ambiguity and positive witness coverage
-
-Each architecture has 1,200 rows (120 seeds × 2 modes × 5 conditions).
-
-- Missing target edge, wrong context, temporally invalid target and ambiguous competing paths: zero selected paths for A and B; zero false or ambiguous selections.
-- Multiple-witness positive control: A selected 240/240; B selected 240/240; all selected witnesses passed integrity checks.
-- Hard gates passed: zero false selections, zero ambiguity selections, 100% positive-control coverage.
-- Interpretation: the frozen thresholds are conservative in these constructed conditions. This does not estimate a broad real-world risk/coverage curve beyond these task families.
-
-### G4 — adaptation, validation, rollback and recovery
-
-- 240 trials per architecture (120 seeds × 2 task modes).
-- A and B each: candidate promotion 240/240; exact system rollback 240/240; exact detector rollback 240/240; rejected-candidate controls preserved the incumbent 240/240; dormancy/recovery completed 240/240.
-- Stable-control alarms, transient-disturbance alarms and post-transient recovery alarms were all zero under the single frozen residual sequence. Drift detection delay was 9 steps in every trial.
-- Mean candidate held-out test-loss improvement was 3.6075 for each architecture (range 1.7991–5.9702); the paired A/B difference was zero with 95% interval [0.0, 0.0].
-- Interpretation: lifecycle and rollback invariants passed for this implementation and declared residual profile. The fixed detection delay does not establish general detector robustness under diverse drift processes or asynchronous switching.
-
-### G5 — resource scaling and retention frontier
-
-Native resource sweep (10, 100, 500, 1,000 relation instances):
-
-- A serialized snapshot: 5,224–5,225 bytes; B: 6,783 / 18,381 / 71,180 / 137,189 bytes.
-- At 1,000 instances: A relation payload 0 bytes, persistent numeric state 4,336 bytes, traced peak 45,404 bytes; B relation payload 79,654 bytes, persistent numeric state 4,336 bytes, traced peak 71,460 bytes.
-- At 1,000 instances, update latency p50/p95: A 46.1/57.5 μs; B 47.0/61.5 μs. Query latency p50/p95: A 1.84/2.52 ms; B 2.90/3.71 ms. These are single-run environment measurements, not stable cross-machine benchmarks.
-- Memory-budgeted B retention frontier over 30 test worlds from the heterogeneous typed-chain mode (the separate native G5 sweep covers both architectures' storage profiles): capacities 10–250 retained 0/30; capacity 500 retained 3/30; 750 retained 12/30; 800 retained 15/30; 850 retained 18/30; 900 retained 22/30; 950 retained 25/30; 1,000 retained 30/30. At capacity 1,000, B serialized-snapshot p95 was 196,071 bytes.
-- A without replay selected 0/30; A with external evidence-window replay selected 30/30. A's persistent snapshot p95 was 5,225 bytes. External replay is not charged to persistent memory; therefore this is a budget-capped retention frontier, not an equal-byte total-memory comparison.
-- Interpretation: B's persistence has a clear retention benefit in no-replay outage conditions, but it incurs a substantial memory and query-time cost. A can recover with replay, trading persistence for externally supplied evidence and higher query latency. Neither architecture is an unconditional winner.
-
-### Hard gates and paired inference
-
-- Zero invalid witnesses accepted.
-- Zero future-observation leaks.
-- Zero typed endpoint violations.
-- Zero G3 false selections and zero ambiguity selections.
-- 100% multiple-witness positive-control coverage.
-- Exact system and detector rollback; rejection preserved incumbent; dormancy/recovery completed in every trial.
-- Zero confirmatory rows used for threshold tuning.
-- Paired comparisons used 10,000 bootstrap resamples clustered by 120 independent world seeds. The test set contains two task-mode worlds per seed; repeated conditions are clustered within seed.
-- All frozen hard-integrity gate booleans passed. The numeric G1–G5 results are reported above without adding post-hoc acceptance thresholds.
-
-### Scientific conclusion and next work
-
-The confirmatory campaign supports a bounded conclusion: **Architecture B materially improves relational retention when the observation stream is unavailable and no external replay window is supplied; Architecture A matches B when that evidence window is supplied, with a much smaller persistent state.** G1 and G3 show parity under the tested bounded task families, and G4 shows lifecycle/rollback parity under the frozen synthetic residual profile. G5 makes the trade-off explicit: B buys persistence with growing serialized memory and slower queries.
-
-This is not a claim that B is generally superior. The result motivates the next experiment rather than ending the architecture question:
-1. Investigate a more efficient persistent representation for B (indexing, compression, selective retention) without changing the current frozen result.
-2. Compare A's external replay cost against B's persistent storage cost under a clearly matched *total* resource budget, including the evidence-window memory/transfer/latency for A.
-3. Expand temporal conditions beyond the single controlled outage/late-arrival profile.
-4. Expand G3 into a calibrated risk/coverage curve with harder near-miss paths and contradictory evidence.
-5. Expand G4 to multiple drift families, drift magnitudes, switching rates and detector calibration.
-6. Only after those improvements consider E08 transfer; keep E09 as the formal temporal-memory/relational-organisation reintegration point.
-
-The claim boundary remains: within-vocabulary, task-family-bounded synthetic relational worlds, depth 2–4, fixed candidate enumeration plus learned ranking, and the tested P0/P6 implementation. No open-world topology discovery, OOV relation transfer, arbitrary-depth composition, E08 transfer, global stability, or Grassmannian advantage is established.
-
 ## 10. Confirmatory campaign results (recovered execution)
 
 ### Provenance and execution
@@ -376,8 +289,8 @@ Interpretation: the frozen 0.75 probability / 0.25 margin rule controlled the de
 - 480 rows total: 240 trials per architecture (120 worlds × 2 modes).
 - Candidate promotion: 240/240; exact system rollback: 240/240; exact detector rollback: 240/240; rejected-candidate controls: 240/240; dormancy/recovery: 240/240, for both A and B.
 - Stable-control alarms, transient-disturbance alarms and post-transient recovery alarms: 0 in all trials.
-- Persistent-change detection delay: 9 steps in every trial under the single frozen residual sequence.
-- Mean held-out test-loss improvement: approximately 3.6075 for both A and B; paired B−A difference 0.0 with 95% interval [0.0, 0.0].
+- Persistent-change detection delay: 9 steps in every trial under the single frozen residual sequence (100 low-residual steps, 3 high transient steps, 60 low recovery steps, then sustained high residuals).
+- Mean held-out test-loss improvement: approximately 3.6075 for both A and B; by mode it was approximately 4.6438 for heterogeneous typed chains and 2.5712 for homogeneous order-sensitive paths (overall range 1.7991–5.9702). Paired B−A difference 0.0 with 95% interval [0.0, 0.0].
 
 Interpretation: the operational lifecycle and rollback invariants passed in the tested synchronous setup. The constant detection delay and single residual sequence do not establish robustness under varied drift shapes, noise, asynchronous operation or arbitrary switching.
 
@@ -394,7 +307,7 @@ Native resource sweep (single-run measurements; Python 3.12):
 
 At 1,000 instances, A had 4,336 persistent numeric bytes, no relation payload, and 45,404 traced peak bytes. B had the same 4,336 numeric bytes plus 79,654 relation-payload bytes, and 71,460 traced peak bytes. Update p50/p95 remained about 46/57 μs for A and 47/62 μs for B at this scale. These are single-run machine-specific measurements, not cross-machine benchmarks.
 
-Confirmatory memory-budgeted retention frontier (30 test worlds, first 30 test seeds; this is a sub-analysis of the same confirmatory partition, not an independent sample):
+Confirmatory memory-budgeted retention frontier (30 test worlds from the heterogeneous typed-chain mode, using the first 30 test seeds; this is a sub-analysis of the same confirmatory partition, not an independent sample):
 
 | B relation capacity | B serialized snapshot p95 budget | B correct retention |
 |---:|---:|---:|
@@ -413,6 +326,10 @@ Confirmatory memory-budgeted retention frontier (30 test worlds, first 30 test s
 
 A without replay retained 0/30; A with external evidence replay retrieved 30/30 (the replay batch is not charged to persistent snapshot memory). B false selections were zero at every capacity. A's persistent snapshot p95 was 5,225 bytes, below every B upper-bound budget. This is a budget-capped frontier, not equal-byte consumption or matched-resource superiority.
 
+### Audit qualification
+
+The future-observation sentinel check verifies that the oracle-free learner view excludes a sentinel whose observed_at timestamp is beyond the query cutoff. It does not inject future observations through every live ingestion/query path or prove end-to-end non-leakage for every possible system state. The reported zero is therefore a passed causal-view filter invariant, not exhaustive proof that all future-information channels are closed.
+
 ### Overall interpretation and decision
 
 1. B demonstrates the intended persistence advantage when a query must survive an outage without replay. The effect is complete in this synthetic test: +1.0 paired accuracy over A in the no-replay condition.
@@ -426,93 +343,3 @@ A without replay retained 0/30; A with external evidence replay retrieved 30/30 
 No claim is made for natural-language understanding, autonomous open-world topology discovery, held-out relation vocabularies, arbitrary relation-composition depth, E08 cross-domain transfer, global or arbitrary-switching stability, complete Leptograph realization, or Grassmannian advantage. The tested learner ranks candidates from task-visible graph traversal; the P0 composer validates witnesses.
 
 
-## Confirmatory execution record — 2026-11-20
-
-**Status:** <strong>Completed bounded confirmatory campaign; all predeclared hard integrity/lifecycle gates passed.</strong> This is not a universal M4 pass and does not establish architecture B as an overall winner. G1/G2 are reported as comparative outcome estimates without an arbitrary accuracy cutoff; G5 is descriptive/resource evidence.
-
-### Frozen provenance
-
-- Protocol: `HLG-M4-CONFIRMATORY-AB-v1`, revision v2.0.
-- Frozen config SHA-256: `a4df456185812fdee67edd939e13a049f3889ba2bf9f5256f746d8fdeb6c5218`.
-- Generator: `m4-independent-typed-worlds-v2-randomized-relations`.
-- Partition manifest SHA-256: `488d16e20f766d26459075f2e57ae0c4d7b1c68a1696f9e41a0424a68ca095b7`.
-- 120 train seed IDs, 60 validation seed IDs, 120 confirmatory-test seed IDs; partitions disjoint. Each seed is evaluated in two task modes (heterogeneous typed chain and homogeneous order-sensitive chain), yielding 240 task-world instances per partition.
-- Fixed readout thresholds: probability 0.75, margin 0.25. These were selected on the first 30 validation seeds and checked unchanged on the other 30 validation seeds.
-- Confirmatory workflow run: `44768006598`; artifact ID `14646281905`; canonical Python 3.12.16. The Python 3.10 matrix job performed preflight/validation only; the confirmatory one-shot was deliberately restricted to Python 3.12.
-- GitHub PR head used by the run: `870f6d20e5a2e7b9e4871136de51c797f0b12618`. The checked-out PR merge commit recorded in the artifact is `5e4b4840a40452482cd21532af75d14ac1f8f0a3`, with parents `8a259725d5092c370b284ef451a065a9b1583d36` and the PR head above.
-- Confirmatory results JSON SHA-256: `49a17328779542c88ed9ae1b3484caf79f6a40c194600c335bbacf8de59f5384`.
-- Downloaded workflow ZIP SHA-256: `892e7eb7c9c593c5f7ec44dfe5d4f13c8f0bd8400151354ba0e6fbc1c9f489e3`.
-- Result JSON checksum sidecar matches the extracted JSON. Confirmatory test access is true in this artifact; test rows used for threshold tuning = 0.
-
-### G1 — independent-world composition and witness validity
-
-- 240 held-out task worlds per architecture (120 seeds × 2 modes).
-- A: 240/240 exact planted-path selections; B: 240/240.
-- Every selected result had valid ordered witnesses; no invalid witness was accepted.
-- The two architectures are tied on this bounded within-vocabulary, depth-2–4 composition task. The test varies topology/entity identities but shares the relation vocabulary and task grammar with training; it is not OOV relation-sequence transfer or open-world topology discovery.
-
-### G2 — outage, replay and late arrival
-
-| Condition | Architecture A | Architecture B |
-|---|---:|---:|
-| Outage, no external replay | 0/240 correct; abstained with no path | 240/240 correct |
-| Outage, current evidence replay supplied | 240/240 correct | 240/240 correct |
-| Causal late-arrival update then query | 240/240 correct | 240/240 correct |
-
-- Paired B−A accuracy difference for no-replay retention: +1.0, world-clustered 95% bootstrap interval [1.0, 1.0], 120 paired seed clusters.
-- Replay and late-arrival paired differences: 0.0, interval [0.0, 0.0].
-- Interpretation: B demonstrates the expected benefit of its persistent typed relation-instance store when the observation window is unavailable. A recovers when the evidence is supplied again. This is a concrete retention/replay trade-off, not a general architecture ranking.
-
-### G3 — false-path control, ambiguity and positive witness control
-
-Per architecture across the 240 task worlds:
-- Missing target edge: 240/240 abstentions; zero false selections.
-- Wrong context: 240/240 abstentions; zero false selections.
-- Temporally invalid target: 240/240 abstentions; zero false selections.
-- Ambiguous competing paths: 240/240 `ABSTAIN_AMBIGUOUS`; zero forced selections.
-- Multiple-witness positive control: 240/240 selected the planted path with valid witnesses.
-
-All frozen G3 gates passed. These cases are generated from the two declared task families and fixed thresholds; they do not establish calibrated risk/coverage over arbitrary real-world graphs.
-
-### G4 — adaptation, promotion, rejection and rollback
-
-Per architecture: 240 trials (120 seeds × 2 modes).
-- Candidate promotion: 240/240.
-- Rejected-candidate control: 240/240; incumbent unchanged in every case.
-- Exact system rollback: 240/240.
-- Exact detector rollback: 240/240.
-- Dormancy/recovery completion: 240/240.
-- Stable-control, transient-disturbance and post-transient recovery alarms: zero in all trials.
-- Drift detection delay: 9 steps in every trial under the fixed declared residual sequence.
-- Mean held-out test-loss improvement: approximately 4.6438 for the heterogeneous typed task family and 2.5712 for the homogeneous order-sensitive family; A and B are identical on these outcomes.
-
-**G4 qualification:** The 240 rows per architecture repeat a single deterministic residual schedule (100 low residuals, 3 high transient residuals, 60 low recovery residuals, then a sustained high-residual detection sequence). They are independent relational-world instances for the readout/test-loss component, but not 240 independent stochastic drift processes. The detection-delay result is therefore a controlled lifecycle demonstration, not a robust false-alarm/detection-rate estimate over varied drift distributions. Candidate promotion uses the separate validation partition; test loss is reported only after the promotion decision.
-
-### G5 — native memory and latency
-
-| Relation instances | A snapshot bytes | B snapshot bytes | B relation payload bytes | A query p95 | B query p95 |
-|---:|---:|---:|---:|---:|---:|
-| 10 | 5,224 | 6,783 | 748 | 0.128 ms | 0.132 ms |
-| 100 | 5,224 | 18,381 | 7,666 | 0.418 ms | 0.488 ms |
-| 500 | 5,225 | 71,180 | 39,654 | 1.393 ms | 2.180 ms |
-| 1,000 | 5,225 | 137,189 | 79,654 | 2.516 ms | 3.712 ms |
-
-- At 1,000 instances, A traced peak was 45,404 bytes and B 71,460 bytes. Both had 4,336 persistent numeric bytes. Update throughput was approximately 21,266 updates/s for A and 20,804 updates/s for B in this single CI environment.
-- The separate 30-world confirmatory budget-capped frontier found B retention 0/30 at capacities 10–250, 3/30 at 500, 12/30 at 750, 15/30 at 800, 18/30 at 850, 22/30 at 900, 25/30 at 950 and 30/30 at 1,000. B had zero false selections throughout. A without replay was 0/30; A with external replay was 30/30.
-- At capacity 1,000, B's snapshot p95 budget was 196,071 bytes; A's snapshot p95 was 5,225 bytes and fit under that upper bound with substantial unused budget. This is a budget-capped comparison, not equal-byte consumption or matched-resource superiority.
-- Latencies are environment-specific single-run measurements, not portable performance guarantees.
-
-### Gate result and interpretation
-
-All emitted hard gates were true: zero invalid witnesses accepted; zero typed endpoint violations; zero recorded future-observation leaks under the current audit; zero G3 false or ambiguous selections; 100% G3 positive-control coverage; zero system/detector rollback failures; zero rejected-candidate incumbent mutations; successful dormancy/recovery; zero test rows used for tuning.
-
-**Important audit qualification:** The campaign's future-observation sentinel check verifies that the oracle-free `learner_view(cutoff)` excludes a sentinel whose `observed_at` is beyond the cutoff. It does not inject future observations through every live ingestion/query path and prove end-to-end non-leakage for all system states. Record this as a passed causal-view filter invariant, not as exhaustive proof that every possible future-information channel is closed.
-
-**Overall conclusion:** The experiment supports a bounded claim: A and B are equivalent on the tested ordinary composition, replay-supported retrieval, late-arrival, G3 abstention and G4 lifecycle outcomes; B provides reliable no-replay relational retention, at a measurable persistent-memory and query-latency cost. Architecture B remains the leading design candidate where retained relational knowledge across outages is a required capability, while A remains the lower-state/replay-dependent comparator. Neither is declared universally superior.
-
-The campaign does not establish open-world topology discovery, OOV relation transfer, E08 cross-domain transfer, arbitrary-depth composition, global/arbitrary-switching stability, Grassmannian advantage, or complete Leptograph realization. The next scientific step is not another seed-only rerun: it is a deliberately broader challenge family (held-out relation compositions/task grammars, richer typed schemas, and independently varied drift processes), with an end-to-end causal leakage test and a true equal-byte resource comparison if matched-resource claims are desired.
-
-
-### Result retention and current repository state
-
-The one-shot confirmatory marker was removed by commit `19594101d31f75f76179650ac25cc9098924b52a`; routine PR CI therefore cannot silently reopen the confirmatory partition. The result-producing recovery commit is `870f6d20e5a2e7b9e4871136de51c797f0b12618`, and the final branch includes the marker-consumption commit. The recovered run is complete and the current task is result review/provenance preservation, not another test run.
