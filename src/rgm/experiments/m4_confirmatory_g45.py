@@ -145,7 +145,7 @@ def _g4_trials(world_count: int):
                 candidate_eval.readout_bias = template["candidate_bias"]
                 candidate_loss = _bce(candidate_eval, validation_examples)
 
-                controller.start_candidate(template["candidate_weights"])
+                controller.start_candidate(template["candidate_weights"], template["candidate_bias"])
                 promoted = controller.validate_candidate(
                     incumbent_loss, candidate_loss, identifiable=True
                 )
