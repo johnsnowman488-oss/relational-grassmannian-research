@@ -467,12 +467,8 @@ def _paired_bootstrap(rows, metric, condition=None, resamples=10000, seed=99173)
     }
 
 
-def run_confirmatory_campaign():
-    config, config_sha256 = _load_config()
-    partitions = _partitions(config)
-    train, validation, test = (
-        partitions["train"], partitions["validation"], partitions["confirmatory_test"]
-    )
+def _execute_campaign(config, config_sha256, partitions, validation, test, *, confirmatory):
+    train = partitions["train"]
     templates, corpora = _fit_templates(train, config)
     g1, g2, g3 = _g1_g2_g3(test, templates, corpora, config)
     g4 = _g4_confirmatory(test, validation, train, config)
@@ -480,16 +476,17 @@ def run_confirmatory_campaign():
         (10, 100, 500, 1000), config["readout"]["min_probability"],
         config["readout"]["min_margin"],
     )
+    frontier_partition = "test" if confirmatory else "validation"
     g5_frontier = run_validation_frontier(
         world_count=int(config.get("g5_frontier_world_count", 30)),
         capacities=tuple(config.get(
             "g5_frontier_capacities",
             (10, 25, 50, 100, 250, 500, 750, 800, 850, 900, 950, 1000),
         )),
-        partition_name="test",
+        partition_name=frontier_partition,
         min_probability=config["readout"]["min_probability"],
         min_margin=config["readout"]["min_margin"],
-        confirmatory_authorized=True,
+        confirmatory_authorized=confirmatory,
     )
 
     g3_negative = [
@@ -501,11 +498,11 @@ def run_confirmatory_campaign():
     g3_ambiguous = [row for row in g3 if row["condition"] == "ambiguous_competing_paths"]
     g3_positive = [row for row in g3 if row["condition"] == "multiple_target_witnesses"]
     future_audit = preflight_audit(96)
-    test_world_future_leaks = {
+    evaluation_world_future_leaks = {
         row["world_id"]: row["future_observation_leak"] for row in g1
     }
-    if not g5_frontier["confirmatory_test_accessed"]:
-        raise RuntimeError("G5 memory frontier did not use confirmatory test worlds")
+    if g5_frontier["confirmatory_test_accessed"] is not confirmatory:
+        raise RuntimeError("G5 frontier partition does not match campaign mode")
     hard_invariants = {
         "invalid_witnesses_accepted": sum(
             row["status"] == "SELECTED" and not row["witness_valid"]
@@ -524,7 +521,7 @@ def run_confirmatory_campaign():
                 for row in g3_positive) / max(1, len(g3_positive))
         ),
         "future_observation_leaks": (
-            sum(bool(value) for value in test_world_future_leaks.values())
+            sum(bool(value) for value in evaluation_world_future_leaks.values())
             + (0 if future_audit["future_observation_invariant"] else 1)
         ),
         "test_rows_used_for_threshold_tuning": 0,
@@ -585,7 +582,10 @@ def run_confirmatory_campaign():
         "g4_dormancy_recovery": g4_hard_invariants["dormancy_recovery_failures"] == 0,
     }
     return {
-        "classification": "confirmatory_M4_AB_test_campaign",
+        "classification": (
+            "confirmatory_M4_AB_test_campaign" if confirmatory
+            else "validation_shadow_of_confirmatory_campaign"
+        ),
         "protocol_id": config["protocol_id"],
         "config_sha256": config_sha256,
         "config_path": str(CONFIG_PATH.relative_to(ROOT)),
@@ -597,14 +597,15 @@ def run_confirmatory_campaign():
         ).hexdigest(),
         "train_world_count": len(train.seeds),
         "validation_world_count": len(validation.seeds),
-        "confirmatory_test_world_count": len(test.seeds),
+        "evaluation_world_count": len(test.seeds),
+        "confirmatory_test_world_count": len(test.seeds) if confirmatory else 0,
         "task_modes": [mode for mode, _ in GENERATORS],
         "architectures": ["A", "B"],
         "fixed_thresholds": {
             "min_probability": config["readout"]["min_probability"],
             "min_margin": config["readout"]["min_margin"],
         },
-        "confirmatory_test_accessed": True,
+        "confirmatory_test_accessed": confirmatory,
         "test_rows_used_for_threshold_tuning": 0,
         "G1": {"rows": g1},
         "G2": {"rows": g2},
@@ -618,7 +619,7 @@ def run_confirmatory_campaign():
         "bounded_integrity_gate_pass": all(gate_results.values()),
         "paired_comparisons": paired,
         "claim_boundary": (
-            "This is confirmatory evidence only for the frozen within-vocabulary, "
+            "This is bounded evidence only for the frozen within-vocabulary, "
             "task-family-bounded synthetic worlds and depth 2-4. It does not test "
             "open-world discovery, OOV relation transfer, E08 transfer, arbitrary "
             "depth, global stability, or Grassmannian advantage."
@@ -626,10 +627,53 @@ def run_confirmatory_campaign():
     }
 
 
+def run_validation_shadow():
+    """Exercise the confirmatory evaluator on validation only; never opens test worlds."""
+    from types import SimpleNamespace
+
+    config, config_sha256 = _load_config()
+    partitions = _partitions(config)
+    validation_seeds = partitions["validation"].seeds
+    split = len(validation_seeds) // 2
+    validation_calibration = SimpleNamespace(
+        name="validation_calibration", seeds=validation_seeds[:split]
+    )
+    validation_holdout = SimpleNamespace(
+        name="validation_holdout", seeds=validation_seeds[split:]
+    )
+    return _execute_campaign(
+        config, config_sha256, partitions, validation_calibration,
+        validation_holdout, confirmatory=False,
+    )
+
+
+def run_confirmatory_campaign():
+    config, config_sha256 = _load_config()
+    partitions = _partitions(config)
+    return _execute_campaign(
+        config, config_sha256, partitions, partitions["validation"],
+        partitions["confirmatory_test"], confirmatory=True,
+    )
+
+
 if __name__ == "__main__":
-    result = run_confirmatory_campaign()
+    if len(sys.argv) > 1 and sys.argv[1] == "--validation-shadow":
+        if len(sys.argv) < 3:
+            raise SystemExit("validation-shadow mode requires an output path")
+        result = run_validation_shadow()
+        output_path = sys.argv[2]
+    else:
+        result = run_confirmatory_campaign()
+        output_path = sys.argv[1] if len(sys.argv) > 1 else None
+
     payload = json.dumps(result, sort_keys=True, indent=2)
-    print(payload)
-    if len(sys.argv) > 1:
-        with open(sys.argv[1], "w", encoding="utf-8") as stream:
-            stream.write(payload + "\n")
+    print(json.dumps({
+        "classification": result["classification"],
+        "confirmatory_test_accessed": result["confirmatory_test_accessed"],
+        "bounded_integrity_gate_pass": result["bounded_integrity_gate_pass"],
+        "gate_results": result["gate_results"],
+        "paired_comparisons": result["paired_comparisons"],
+    }, sort_keys=True, indent=2))
+    if output_path is not None:
+        with open(output_path, "w", encoding="utf-8") as stream:
+            stream.write(payload + "\\n")
