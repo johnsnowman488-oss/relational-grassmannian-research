@@ -1,6 +1,6 @@
 # HLG-M4 Confirmatory Experiment Ledger
 
-**Status:** Independent-world generator and validation-only G1 software pilot implemented; confirmatory test outcomes have not been opened.
+**Status:** Independent-world generator and validation-only G1–G5 diagnostics implemented and passing on Python 3.10/3.12; validation calibration and full confirmatory evaluator/gates remain unfinished. Confirmatory test outcomes have not been opened.
 **Research branch:** `m4/confirmatory-worlds-preflight`
 **Parent evidence commit:** `8a259725d5092c370b284ef451a065a9b1583d36`
 **Scope:** Compare integrated Architecture A and Architecture B across G1–G5. This ledger is the experiment's decision and provenance record.
@@ -118,7 +118,7 @@ Gate categories:
 3. Implement independent typed relational-world generator and explicit train/validation/test world partitions (complete for current bounded generator).
 4. Add generator invariants, identity-invariant topology checks, partition-disjointness, causal cutoff and oracle-isolation tests (complete for generator preflight).
 5. Run a small generator/software pilot only; do not expose confirmatory test outcomes (complete: 12 validation worlds, no test access).
-6. Implement full G1–G5 confirmatory evaluator and validation-only threshold calibration (next).
+6. Extend validation diagnostics across G1–G5 and inspect their limitations (complete as a pilot; not a full confirmatory evaluator or threshold calibration).
 7. Freeze generator/config/partitions/thresholds/gates with hashes.
 8. Run confirmatory A/B campaign, preserve seed/world-level results and artifacts.
 9. Analyse paired comparisons and resource frontiers; issue a bounded evidence report.
@@ -131,13 +131,24 @@ Gate categories:
 - [x] Identified fixed-topology pseudoreplication in prior 20-seed development generator.
 - [x] Independent typed-world generator with heterogeneous entity types and seven distinct type namespaces (within-vocabulary; not seven non-isomorphic schema families).
 - [x] Disjoint world-level train/validation/confirmatory-test partitions (120/60/120); partition seed digests recorded in preflight artifact.
-- [x] Identity- and namespace-invariant topology fingerprint; generator checks found 40 distinct structural fingerprints across 96 generated worlds.
+- [x] Identity- and namespace-invariant topology fingerprint; latest preflight found 51 distinct structural fingerprints across 96 generated worlds (48 heterogeneous typed-chain and 48 homogeneous order-sensitive instances).
 - [x] Typed-edge invariants, cutoff-filtered oracle-free learner view, future-observation checks and partition-disjointness tests.
-- [x] Validation-only A/B G1 software pilot; 12 independent validation worlds, A selected the planted path 12/12, B 12/12; no invalid witnesses; confirmatory-test partition not accessed. This is software/validation evidence only, not architecture selection or acceptance.
-- [ ] Full G1–G5 confirmatory evaluator, validation calibration and resource instrumentation.
-- [ ] Numerical gates frozen from requirements/validation.
+- [x] Validation-only G1 pilot: 12 validation seeds × 2 task modes × A/B (24 cases per architecture); both architectures selected the planted path in 24/24 cases with no invalid witnesses.
+- [x] Validation-only G2 pilot: 72 cases per architecture; B selected correctly in 72/72. A selected correctly in 48/72 and abstained in all 24 no-replay outage cases; A succeeded with evidence replay and after late arrivals. This is a measured memory/replay distinction, not an architecture verdict.
+- [x] Validation-only G3 pilot: 96 cases per architecture; both abstained on all 72 negative cases (missing edge, wrong context, temporally invalid chain) and selected all 24 multiple-witness positive controls. This is a small fixed-condition diagnostic, not calibrated risk/coverage.
+- [x] Validation-only G4 pilot: 24 trials per architecture across 12 validation seeds × 2 task modes; promotion 24/24, exact rollback 24/24, rejection controls 24/24, dormancy/recovery 24/24, stable-control alarms 0. Drift detection delay was 9 steps in every trial under the current controlled residual sequence; this does not establish robust detection under varied drift processes.
+- [x] Validation-only G5 native resource sweep: 10/100/500/1,000 relation instances, A/B. At 1,000 instances, B relation payload 79,654 bytes, serialized snapshot 135,653 bytes, traced peak 69,876 bytes; A relation payload 0, serialized snapshot 3,689 bytes, traced peak 43,804 bytes. Query p50/p95 rose from A 41.5/71.1 μs and B 54.7/73.1 μs at 10 instances to A 1.10/1.61 ms and B 1.68/2.27 ms at 1,000. Native measurements only; not matched-resource frontiers or stable cross-machine benchmarks.
+- [ ] Full confirmatory evaluator, validation calibration, matched-resource frontier and numerical gate freeze.
+- [ ] Validation-based calibration of probability/margin thresholds and numerical gates from requirements.
+- [ ] Matched-resource A/B frontier and confirmatory evaluator with immutable configuration.
 - [ ] Confirmatory execution and analysis.
 
-Preflight evidence: workflow run `44756729052` passed on Python 3.10 and 3.12; repository unit/invariant run `44756729047` passed on both versions. The Python 3.12 preflight artifact contains 96 generated worlds, 40 distinct identity-invariant topology fingerprints, 7 typed namespaces, and disjoint 120/60/120 train/validation/test partitions. Validation pilot artifact: 12 worlds × A/B (24 rows), A 12/12 correct selections, B 12/12 correct selections, zero invalid witnesses, and no confirmatory-test access. These are validation/software results only.
+Preflight and validation evidence:
+- Latest preflight workflow run `44758784309` passed on Python 3.10 and 3.12; repository unit/invariant run `44758784562` passed.
+- Head commit: `3f520072dd517db49273ae44316a55522c837b5a`.
+- Python 3.12 artifact `14639946665`, SHA256 `e0ac8f9d5ec1ff350b9d79a1ceeb28507bd61fe7d375bf9749cb043379c11c62`; Python 3.10 artifact `14639862215`, SHA256 `fec5cf350169dd5e7962c7c24eceac2760f2d8f0ce838e7164bbb740abc29a90`.
+- The Python 3.12 artifact contains 96 generator-audit worlds, 51 distinct identity-invariant topology fingerprints, 14 distinct relation signature sets across 7 schema namespaces, and disjoint 120/60/120 train/validation/confirmatory-test partitions.
+- Both artifacts contain seed/world-level G1–G5 pilot rows. Model diagnostics access validation worlds only; the confirmatory-test partition remains sealed.
+- All results above are validation/software diagnostics only; no confirmatory performance or acceptance claim is made.
 
 No confirmatory acceptance result is claimed at this stage.
