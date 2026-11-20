@@ -131,7 +131,8 @@ def run_validation_g23(world_count: int = 12) -> dict:
 
                 # G3: hard negatives and multiple-witness positive control.
                 for condition in ("missing_target_edge", "wrong_context_target",
-                                  "temporal_invalid_target", "multiple_target_witnesses"):
+                                  "temporal_invalid_target", "multiple_target_witnesses",
+                                  "ambiguous_competing_paths"):
                     challenged = condition_world(base, condition)
                     challenged_view = challenged.learner_view()
                     trial = _model(architecture, challenged)
@@ -150,6 +151,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
                         "selected_is_planted_target": (
                             result.get("selected_path") == challenged.oracle_target_path
                         ),
+                        "ambiguous_valid_alternatives": condition == "ambiguous_competing_paths",
                         "score": result.get("score"), "margin": result.get("margin"),
                         "witness_count": len(result.get("witnesses", ())),
                         "witness_valid": all(
