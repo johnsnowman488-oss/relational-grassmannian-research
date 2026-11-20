@@ -1,6 +1,6 @@
 # HLG-M4 Confirmatory Experiment Ledger
 
-**Status:** Design and preflight implementation in progress. Confirmatory test outcomes have not been opened.
+**Status:** Independent-world generator and validation-only G1 software pilot implemented; confirmatory test outcomes have not been opened.
 **Research branch:** `m4/confirmatory-worlds-preflight`
 **Parent evidence commit:** `8a259725d5092c370b284ef451a065a9b1583d36`
 **Scope:** Compare integrated Architecture A and Architecture B across G1–G5. This ledger is the experiment's decision and provenance record.
@@ -115,10 +115,10 @@ Gate categories:
 
 1. Verify actual merged research branch and inspect integrated implementation (completed for this work session).
 2. Record this ledger in the repository and Library.
-3. Implement independent typed relational-world generator and explicit train/validation/test world partitions.
-4. Add generator invariants, topology-independence checks, partition-disjointness checks, causal cutoff/leakage tests and oracle isolation checks.
-5. Run a small generator/software pilot only; do not expose confirmatory test outcomes.
-6. Implement G1–G5 confirmatory evaluator and validation-only threshold calibration.
+3. Implement independent typed relational-world generator and explicit train/validation/test world partitions (complete for current bounded generator).
+4. Add generator invariants, identity-invariant topology checks, partition-disjointness, causal cutoff and oracle-isolation tests (complete for generator preflight).
+5. Run a small generator/software pilot only; do not expose confirmatory test outcomes (complete: 12 validation worlds, no test access).
+6. Implement full G1–G5 confirmatory evaluator and validation-only threshold calibration (next).
 7. Freeze generator/config/partitions/thresholds/gates with hashes.
 8. Run confirmatory A/B campaign, preserve seed/world-level results and artifacts.
 9. Analyse paired comparisons and resource frontiers; issue a bounded evidence report.
@@ -129,11 +129,15 @@ Gate categories:
 - [x] Verified PR #44/#45 work is on `research/hlg-m4-preimplementation-ledger`, not `main`.
 - [x] Created isolated implementation branch from the merged research branch.
 - [x] Identified fixed-topology pseudoreplication in prior 20-seed development generator.
-- [ ] Independent typed-world generator and schema-family design.
-- [ ] Disjoint world-level partitions and hidden confirmatory test manifest.
-- [ ] Generator, leakage and oracle-isolation tests.
-- [ ] G1–G5 confirmatory runner, calibration and resource instrumentation.
+- [x] Independent typed-world generator with heterogeneous entity types and seven distinct type namespaces (within-vocabulary; not seven non-isomorphic schema families).
+- [x] Disjoint world-level train/validation/confirmatory-test partitions (120/60/120); partition seed digests recorded in preflight artifact.
+- [x] Identity- and namespace-invariant topology fingerprint; generator checks found 40 distinct structural fingerprints across 96 generated worlds.
+- [x] Typed-edge invariants, cutoff-filtered oracle-free learner view, future-observation checks and partition-disjointness tests.
+- [x] Validation-only A/B G1 software pilot; 12 independent validation worlds, A selected the planted path 12/12, B 12/12; no invalid witnesses; confirmatory-test partition not accessed. This is software/validation evidence only, not architecture selection or acceptance.
+- [ ] Full G1–G5 confirmatory evaluator, validation calibration and resource instrumentation.
 - [ ] Numerical gates frozen from requirements/validation.
 - [ ] Confirmatory execution and analysis.
+
+Preflight evidence: workflow run `44756729052` passed on Python 3.10 and 3.12; repository unit/invariant run `44756729047` passed on both versions. The Python 3.12 preflight artifact contains 96 generated worlds, 40 distinct identity-invariant topology fingerprints, 7 typed namespaces, and disjoint 120/60/120 train/validation/test partitions. Validation pilot artifact: 12 worlds × A/B (24 rows), A 12/12 correct selections, B 12/12 correct selections, zero invalid witnesses, and no confirmatory-test access. These are validation/software results only.
 
 No confirmatory acceptance result is claimed at this stage.
