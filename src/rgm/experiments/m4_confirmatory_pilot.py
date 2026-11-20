@@ -35,6 +35,8 @@ def run_validation_pilot(
         raise ValueError("world_count must be positive")
     partitions = default_partitions()
     validate_partitions(partitions)
+    if partition_name != "validation":
+        raise ValueError("validation pilot is sealed to the validation partition")
     selected_partition = next(p for p in partitions if p.name == partition_name)
     selected_seeds = selected_partition.seeds[:world_count]
     if len(selected_seeds) != world_count:
@@ -55,7 +57,7 @@ def run_validation_pilot(
         for architecture in ("A", "B"):
             templates[(mode, architecture)] = _trained_template(
                 architecture, template_world.relation_types,
-                training_corpora[mode],
+                training_corpora[mode], min_probability, min_margin,
             )
 
     rows = []
