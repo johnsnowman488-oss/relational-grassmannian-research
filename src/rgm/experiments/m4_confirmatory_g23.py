@@ -153,6 +153,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
                         ),
                         "ambiguous_valid_alternatives": condition == "ambiguous_competing_paths",
                         "score": result.get("score"), "margin": result.get("margin"),
+                        "candidate_count": len(result.get("candidates", ())),
                         "witness_count": len(result.get("witnesses", ())),
                         "witness_valid": all(
                             len(w.entities) == len(w.instances) + 1
@@ -170,6 +171,49 @@ def run_validation_g23(world_count: int = 12) -> dict:
             "correct": sum(bool(r.get("correct", r.get("late_correct", r.get("selected_is_planted_target", False)))) for r in subset),
         }
 
+    threshold_sweep = {}
+    negative_conditions = {
+        "missing_target_edge", "wrong_context_target", "temporal_invalid_target"
+    }
+    for architecture in ("A", "B"):
+        subset = [row for row in g3_rows if row["architecture"] == architecture]
+        grid = []
+        for probability_threshold in (0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 0.75):
+            for margin_threshold in (0.0, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25):
+                decisions = []
+                for row in subset:
+                    score = row["score"]
+                    margin = row["margin"]
+                    selected = (
+                        score is not None
+                        and score >= probability_threshold
+                        and (row["candidate_count"] <= 1 or margin >= margin_threshold)
+                    )
+                    decisions.append((row, selected))
+                false_selected = sum(
+                    selected for row, selected in decisions
+                    if row["condition"] in negative_conditions
+                )
+                ambiguous_selected = sum(
+                    selected for row, selected in decisions
+                    if row["condition"] == "ambiguous_competing_paths"
+                )
+                positive = [selected for row, selected in decisions
+                            if row["condition"] == "multiple_target_witnesses"]
+                grid.append({
+                    "min_probability": probability_threshold,
+                    "min_margin": margin_threshold,
+                    "false_selections": false_selected,
+                    "ambiguous_selections": ambiguous_selected,
+                    "positive_coverage": (
+                        sum(positive) / len(positive) if positive else 0.0
+                    ),
+                    "meets_validation_separation": (
+                        false_selected == 0 and ambiguous_selected == 0
+                    ),
+                })
+        threshold_sweep[architecture] = grid
+
     return {
         "classification": "validation_only_G2_G3_diagnostics_not_confirmatory",
         "partition": "validation",
@@ -183,6 +227,8 @@ def run_validation_g23(world_count: int = 12) -> dict:
         "G3": {
             "rows": g3_rows,
             "summary": {arch: summarize(g3_rows, arch) for arch in ("A", "B")},
+            "validation_threshold_sweep": threshold_sweep,
+            "thresholds_frozen": False,
         },
         "claim_boundary": (
             "validation diagnostics only; no calibrated risk/coverage threshold, "
