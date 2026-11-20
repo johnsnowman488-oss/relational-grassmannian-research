@@ -85,7 +85,7 @@ def _g4_trials(world_count: int):
             )
             candidate_template = M4ABSystem(
                 architecture, template_world.relation_types, relation_capacity=8192,
-                max_path_depth=4, min_probability=0.5, min_margin=0.05,
+                max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
             )
             candidate_template.fit_readout(
                 train_examples, epochs=900, learning_rate=0.12
@@ -107,7 +107,7 @@ def _g4_trials(world_count: int):
                 template = templates[(generator, architecture)]
                 model = M4ABSystem(
                     architecture, world.relation_types, relation_capacity=8192,
-                    max_path_depth=4, min_probability=0.5, min_margin=0.05,
+                    max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
                 )
                 # Incumbent/candidate are fitted on the train partition only;
                 # each trial evaluates them on a separate validation world.
@@ -138,7 +138,7 @@ def _g4_trials(world_count: int):
                 incumbent_loss = _bce(model, validation_examples)
                 candidate_eval = M4ABSystem(
                     architecture, world.relation_types, relation_capacity=8192,
-                    max_path_depth=4, min_probability=0.5, min_margin=0.05,
+                    max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
                 )
                 candidate_eval.restore(model.snapshot())
                 candidate_eval.readout_weights = template["candidate_weights"].copy()
@@ -315,9 +315,16 @@ def run_validation_g45(world_count: int = 60,
         },
         "G5": {
             "rows": g5,
-            "claim_boundary": "native resource measurements only; matched-resource frontier and acceptance envelope remain unfrozen",
+            "claim_boundary": (
+                "confirmatory native resource measurements; budgeted frontier is separate and not equal-byte matching"
+                if partition_name == "test" else
+                "native resource measurements only; budgeted frontier and acceptance envelope remain unfrozen"
+            ),
         },
         "claim_boundary": (
+            "confirmatory lifecycle and resource metrics under frozen thresholds; "
+            "no global stability or universal architecture claim"
+            if partition_name == "test" else
             "validation and synthetic resource diagnostics only; no frozen gate, "
             "architecture-selection or M4 acceptance claim"
         ),
