@@ -172,7 +172,7 @@ Gate categories:
 3. Implement independent typed relational-world generator and explicit train/validation/test world partitions (complete for current bounded generator).
 4. Add generator invariants, identity-invariant topology checks, partition-disjointness, causal cutoff and oracle-isolation tests (complete for generator preflight).
 5. Run generator/software pilots and a larger validation-only calibration/held-out check; do not expose confirmatory test outcomes (complete: all 60 validation worlds split 30/30 for G3 calibration and validation).
-6. Extend validation diagnostics across G1–G5, add ordered-pair features after the order-family diagnostic, and inspect limitations (complete as a bounded validation pilot; not a full confirmatory evaluator or frozen threshold calibration).
+6. Complete expanded validation diagnostics, 30/30 threshold calibration/held-out check, and memory-budgeted G5 retention frontier (complete as bounded validation evidence; no equal-byte resource matching or confirmatory test execution yet).
 7. Freeze generator/config/partitions/thresholds/gates with hashes.
 8. Run confirmatory A/B campaign, preserve seed/world-level results and artifacts.
 9. Analyse paired comparisons and resource frontiers; issue a bounded evidence report.
@@ -192,17 +192,18 @@ Gate categories:
 - [x] Validation-only G2 pilot: 360 cases per architecture; B selected correctly in 360/360. A selected correctly in 240/360 and abstained in all 120 no-replay outage cases; A succeeded with evidence replay and after late arrivals. This is a measured memory/replay distinction, not an architecture verdict.
 - [x] Validation-only G3 pilot: 600 cases per architecture; both abstained on all 480 negative/ambiguous cases and selected all 120 multiple-witness positive controls. Calibration on 30 worlds selected probability 0.75/margin 0.25; the separate 30-world validation half had zero false selections, zero ambiguity selections and 100% positive coverage. Candidate only; not frozen.
 - [x] Validation-only G4 pilot: 120 trials per architecture using train-world candidate fitting and separate validation-world paths; promotion 120/120, exact rollback 120/120, rejection controls 120/120, dormancy/recovery 120/120, stable/transient/recovery alarms 0. Drift detection delay was 9 steps in every trial under the current controlled residual sequence; this does not establish robust detection under varied drift processes.
-- [x] Validation-only G5 native resource sweep: 10/100/500/1,000 relation instances, A/B. At 1,000 instances after adding ordered-pair features, B relation payload 79,654 bytes, serialized snapshot 137,189 bytes, traced peak 79,996 bytes; A relation payload 0, serialized snapshot 5,225 bytes, traced peak 45,404 bytes. Query p50/p95 rose from A 35.9/60.2 μs and B 44.1/56.6 μs at 10 instances to A 0.93/1.31 ms and B 1.43/1.88 ms at 1,000. Native measurements only; not matched-resource frontiers or stable cross-machine benchmarks.
+- [x] Validation-only G5 native resource sweep: 10/100/500/1,000 relation instances, A/B. At 1,000 instances after adding ordered-pair features, B relation payload 79,654 bytes, serialized snapshot 137,189 bytes, traced peak 79,996 bytes; A relation payload 0, serialized snapshot 5,225 bytes, traced peak 45,404 bytes. Query p50/p95 rose from A 35.9/60.2 μs and B 44.1/56.6 μs at 10 instances to A 0.93/1.31 ms and B 1.43/1.88 ms at 1,000. Native measurements only; not equal-byte matched-resource frontiers or stable cross-machine benchmarks.
+- [x] G5 memory-budgeted retention frontier: 30 held-out validation worlds, 12 B capacities (10–1,000), zero false selections. A no-replay 0/30; A with external replay 30/30; B retention ranged from 0/30 at capacity 10–250 to 30/30 at capacity 1,000 (about 196 KB snapshot budget). A's 5,225-byte snapshot fit beneath all B upper-bound budgets. This is a budget-capped comparison, not equal-byte consumption.
 - [x] Larger validation calibration/held-out split (30/30) with a candidate threshold and independent validation metrics; requirements-based acceptance gates remain unfrozen.
-- [ ] Full confirmatory evaluator, equal-byte matched-resource frontier and numerical gate freeze.
-- [ ] Matched-resource A/B frontier and confirmatory evaluator with immutable configuration.
+- [x] Memory-budgeted A/B retention frontier on 30 held-out validation worlds; equal-byte resource matching remains open.
+- [ ] Full confirmatory evaluator and immutable protocol/configuration freeze.
 - [ ] Confirmatory execution and analysis.
 
 Preflight and validation evidence:
-- Expanded preflight workflow run `44762929254`, unit/invariant run `44762929264`, A/B integration run `44762929262`, and G1–G5 development run `44762929345` all passed on Python 3.10 and 3.12.
+- Expanded preflight workflow run `44763725166`, unit/invariant run `44763725200`, A/B integration run `44763725116`, and G1–G5 development run `44763725468` all passed on Python 3.10 and 3.12.
 - Code head used for these artifacts: `905199e5c33bd91b2849c60d5f00062ddfb6c61c`.
 - Python 3.12 preflight artifact `14642552702`, SHA256 `3aeffbc3243fd14ac50635512da742f7b88d79044da2da0ceb351fdf203245e1`; Python 3.10 preflight artifact `14642926392`, SHA256 `66e1bd141e19066d4b5537357700ba029f2da8351214d99dc29a393d1a57ff61`.
-- Python 3.12 development artifact `14642277279`, SHA256 `44d02f97768145e3ac32040c568380cc0786b954f0e4ed2230c0dd2fe98e4076`; Python 3.10 development artifact `14640459648`, SHA256 `4e0f3a4589565a8b71aa407d583868d1ae9c897f3f8372ecaf950c6ad9800cdc`.
+- Python 3.12 development artifact `14641833394`, SHA256 `613beb961a2c0d297b8d57ba40ec2517b38d0cf7ea5aa8a24a302c915e6c0328`; Python 3.10 development artifact `14643080420`, SHA256 `244d1c85e418277115aa15be9688dd4d8e696f548ba29418c470f1bfc755f3aa`.
 - The Python 3.12 preflight artifact contains 96 generator-audit worlds, 83 distinct identity-invariant topology fingerprints, 51 distinct relation-signature sets across 7 namespaces, and disjoint 120/60/120 train/validation/confirmatory-test partitions.
 - Both artifacts contain seed/world-level G1–G5 pilot rows. Model diagnostics access validation worlds only; the confirmatory-test partition remains sealed.
 - All results above are validation/software diagnostics only; no confirmatory performance or acceptance claim is made.
