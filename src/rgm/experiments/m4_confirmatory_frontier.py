@@ -89,6 +89,12 @@ def _query_metrics(model, query, events, architecture, replay=False):
     return result, elapsed
 
 
+
+def _select_frontier_partition(partitions, partition_name: str):
+    """Map the runner's public 'test' selector to the frozen partition name."""
+    actual_name = "confirmatory_test" if partition_name == "test" else partition_name
+    return next(part for part in partitions if part.name == actual_name)
+
 def run_validation_frontier(
     world_count: int = 30,
     capacities=(10, 25, 50, 100, 250, 500, 750, 800, 850, 900, 950, 1000),
@@ -104,7 +110,7 @@ def run_validation_frontier(
     partitions = default_partitions()
     validate_partitions(partitions)
     train = next(part for part in partitions if part.name == "train")
-    selected_partition = next(part for part in partitions if part.name == partition_name)
+    selected_partition = _select_frontier_partition(partitions, partition_name)
     # Validation uses its held-out half; confirmatory evaluation uses the sealed test partition.
     seed_source = (
         selected_partition.seeds[len(selected_partition.seeds) // 2:]
