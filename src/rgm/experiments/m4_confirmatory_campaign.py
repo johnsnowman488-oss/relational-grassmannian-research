@@ -466,7 +466,20 @@ def run_confirmatory_campaign():
     templates, corpora = _fit_templates(train, config)
     g1, g2, g3 = _g1_g2_g3(test, templates, corpora, config)
     g4 = _g4_confirmatory(test, validation, train, config)
-    g5 = _g5_resources((10, 100, 500, 1000), config["readout"]["min_probability"], config["readout"]["min_margin"])
+    g5 = _g5_resources(
+        (10, 100, 500, 1000), config["readout"]["min_probability"],
+        config["readout"]["min_margin"],
+    )
+    g5_frontier = run_validation_frontier(
+        world_count=int(config.get("g5_frontier_world_count", 30)),
+        capacities=tuple(config.get(
+            "g5_frontier_capacities",
+            (10, 25, 50, 100, 250, 500, 750, 800, 850, 900, 950, 1000),
+        )),
+        partition_name="test",
+        min_probability=config["readout"]["min_probability"],
+        min_margin=config["readout"]["min_margin"],
+    )
 
     g3_negative = [
         row for row in g3
@@ -480,6 +493,8 @@ def run_confirmatory_campaign():
     test_world_future_leaks = {
         row["world_id"]: row["future_observation_leak"] for row in g1
     }
+    if not g5_frontier["confirmatory_test_accessed"]:
+        raise RuntimeError("G5 memory frontier did not use confirmatory test worlds")
     hard_invariants = {
         "invalid_witnesses_accepted": sum(
             row["status"] == "SELECTED" and not row["witness_valid"]
