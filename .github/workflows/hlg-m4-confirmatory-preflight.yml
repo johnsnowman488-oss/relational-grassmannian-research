@@ -63,6 +63,8 @@ jobs:
           sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/validation-g4-g5.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/validation-g4-g5.sha256"
           python -m rgm.experiments.m4_confirmatory_frontier "$RUNNER_TEMP/m4-confirmatory-preflight/validation-g5-frontier.json"
           sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/validation-g5-frontier.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/validation-g5-frontier.sha256"
+          python -m rgm.experiments.m4_confirmatory_campaign --validation-shadow "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory-validation-shadow.json"
+          sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory-validation-shadow.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory-validation-shadow.sha256"
       - name: Upload preflight and validation evidence
         uses: actions/upload-artifact@v4
         with:
