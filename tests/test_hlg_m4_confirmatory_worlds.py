@@ -1,5 +1,5 @@
 from rgm.experiments.m4_confirmatory_worlds import (
-    default_partitions, generate_world, generate_order_world, partition_manifest,
+    default_partitions, generate_world, generate_order_world, condition_world, partition_manifest,
     preflight_audit, structural_fingerprint, validate_partitions,
 )
 
@@ -34,7 +34,7 @@ def test_typed_world_and_oracle_separation():
     assert all(e.object.entity_type == e.relation_type.codomain for e in world.events)
     view = world.learner_view()
     assert hasattr(view, "events")
-    assert not hasattr(view, "oracle_target_path")
+    assert not hasattr(view, "oracle_target_path")\n    assert not hasattr(view, "condition")
     assert all(hasattr(e, "instance_id") for e in view.events)
     early = world.learner_view(world.observation_cutoff - 0.1)
     assert all(e.observed_at <= early.observation_cutoff for e in early.events)
@@ -60,3 +60,26 @@ def test_order_sensitive_worlds_preserve_same_bag_different_order():
     assert all(event.subject.entity_type == event.relation_type.domain
                and event.object.entity_type == event.relation_type.codomain
                for event in world.events)
+
+
+def test_g1_condition_variants_are_controlled_and_oracle_free():
+    base = generate_world(61001, 4)
+    missing = condition_world(base, "missing_target_edge")
+    missing_target = [e for e in missing.events if "-target-edge-" in e.instance_id]
+    assert len(missing_target) == 3
+
+    temporal = condition_world(base, "temporal_invalid_target")
+    temporal_target = sorted(
+        [e for e in temporal.events if "-target-edge-" in e.instance_id],
+        key=lambda e: e.instance_id,
+    )
+    assert temporal_target[1].event_time < temporal_target[0].event_time
+
+    wrong_context = condition_world(base, "wrong_context_target")
+    wrong_target = [e for e in wrong_context.events if "-target-edge-" in e.instance_id]
+    assert all(e.context == "other-context" for e in wrong_target)
+
+    multiple = condition_world(base, "multiple_target_witnesses")
+    multiple_target = [e for e in multiple.events if "-target-edge-" in e.instance_id]
+    assert len(multiple_target) == 8
+    assert not hasattr(multiple.learner_view(), "condition")
