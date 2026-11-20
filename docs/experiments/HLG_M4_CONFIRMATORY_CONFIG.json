@@ -2,7 +2,7 @@
   "protocol_id": "HLG-M4-CONFIRMATORY-AB-v1",
   "status": "frozen_before_confirmatory_test_execution",
   "frozen_at_utc": "2026-11-20",
-  "parent_implementation_commit": "2604294f35aace0ec3f5bbf69a9ed5406a21f705",
+  "parent_implementation_commit": "7b46def7cc4b62d43dc1869c264b2d8a92fe79e2",
   "generator": "m4-independent-typed-worlds-v1",
   "partitions": {
     "train": {
@@ -142,7 +142,7 @@
     "not a complete Leptograph realization"
   ],
   "confirmatory_test_accessed": false,
-  "protocol_revision": "v1.1",
+  "protocol_revision": "v1.2",
   "observation_ingestion_order": [
     "observed_at",
     "event_time",
@@ -160,5 +160,14 @@
     "test worlds have independent generated topology and entity identities",
     "relation names and bounded task grammar are shared with train worlds",
     "this is within-vocabulary and within-task-family structural generalisation, not held-out relation-sequence or OOV transfer"
+  ],
+  "campaign_runner": "src/rgm/experiments/m4_confirmatory_campaign.py",
+  "campaign_outputs": [
+    "G1",
+    "G2",
+    "G3",
+    "G4",
+    "G5",
+    "paired_world_cluster_bootstrap"
   ]
 }
