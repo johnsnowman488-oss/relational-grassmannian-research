@@ -47,7 +47,8 @@ def test_preflight_is_generator_only():
     assert result["classification"] == "generator_preflight_only_no_model_performance"
     assert result["unique_identity_invariant_topologies"] > 1
     assert result["typed_edge_invariant"]
-    assert result["mode_counts"]["heterogeneous_typed_chain"] == 24\n    assert result["mode_counts"]["homogeneous_order_sensitive"] == 24\n    assert result["future_observation_invariant"]
+    assert result["mode_counts"]["heterogeneous_typed_chain"] == 24
+    assert result["mode_counts"]["homogeneous_order_sensitive"] == 24\n    assert result["future_observation_invariant"]
 
 
 def test_order_sensitive_worlds_preserve_same_bag_different_order():
