@@ -1,6 +1,6 @@
 # HLG-M4 Confirmatory Experiment Ledger
 
-**Status:** Independent-world generator, train-world corpora, ordered-transition readout features, validation-only G1–G5 pilots, and the frozen confirmatory evaluator pass on Python 3.10/3.12. The validation-shadow run passed all bounded integrity gates. The first authorized confirmatory execution reached G1–G4 evaluation but failed in the G5 frontier partition-name lookup before any result artifact or summary was emitted. Test data was therefore accessed in memory, but no outcomes were surfaced or used for tuning. A narrowly scoped execution-recovery fix is in progress; the frozen config, seeds, thresholds and gates remain unchanged.
+**Status:** The frozen confirmatory A/B campaign has now completed successfully on Python 3.12 after one documented execution-recovery attempt. The 120-world test partition was evaluated once successfully with the frozen model, thresholds, gates and partition manifest. All bounded hard-integrity gates passed. The evidence report is recorded below; interpretation remains deliberately limited to the frozen synthetic task families and depth 2–4.
 **Research branch:** `m4/confirmatory-worlds-preflight`
 **Parent evidence commit:** `8a259725d5092c370b284ef451a065a9b1583d36`
 **Scope:** Compare integrated Architecture A and Architecture B across G1–G5. This ledger is the experiment's decision and provenance record.
@@ -199,7 +199,7 @@ Gate categories:
 - [x] Larger validation calibration/held-out split (30/30) with a candidate threshold and independent validation metrics; requirements-based acceptance gates remain unfrozen.
 - [x] Memory-budgeted A/B retention frontier on 30 held-out validation worlds; equal-byte resource matching remains open.
 - [x] Full confirmatory evaluator and immutable protocol/configuration freeze. Validation-shadow execution on the separate 30-world validation holdout passed on Python 3.10 and 3.12; `confirmatory_test_accessed=false`, `bounded_integrity_gate_pass=true`.
-- [ ] Confirmatory execution and analysis. First execution attempt 44767462519 (Python 3.10 and 3.12) failed at G5 frontier selection with StopIteration: the runner passed public selector test, while the frozen partition is named confirmatory_test. G1–G4 were computed in memory before the exception, but no result JSON or summary was emitted and no metrics were inspected or used for tuning. The only recovery change is an explicit selector-to-partition-name mapping plus a unit test; config SHA, train/validation/test seeds, readout, thresholds, gates and model implementation are unchanged. The recovery execution will use Python 3.12 as the canonical confirmatory runtime; Python 3.10 remains covered by validation and CI.
+- [x] Confirmatory execution completed on Python 3.12 after the documented recovery. All bounded hard-integrity gates passed; detailed G1–G5 analysis and claim limits are recorded below. Python 3.10 and 3.12 unit, A/B integration and G1–G5 development workflows also passed.
 
 Preflight and validation evidence:
 - Expanded preflight workflow run `44763725166`, unit/invariant run `44763725200`, A/B integration run `44763725116`, and G1–G5 development run `44763725468` all passed on Python 3.10 and 3.12.
