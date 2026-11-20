@@ -9,11 +9,13 @@ on:
       - "src/rgm/experiments/m4_confirmatory_g23.py"
       - "src/rgm/experiments/m4_confirmatory_g45.py"
       - "src/rgm/experiments/m4_confirmatory_frontier.py"
+      - "src/rgm/experiments/m4_confirmatory_campaign.py"
       - "tests/test_hlg_m4_confirmatory_worlds.py"
       - "tests/test_hlg_m4_confirmatory_pilot.py"
       - "tests/test_hlg_m4_confirmatory_g23.py"
       - "tests/test_hlg_m4_confirmatory_g45.py"
-      - "tests/test_hlg_m4_confirmatory_frontier.py"
+      - "tests/test_hlg_m4_confirmatory_frontier.py tests/test_hlg_m4_confirmatory_campaign.py"
+      - "tests/test_hlg_m4_confirmatory_campaign.py"
       - ".github/workflows/hlg-m4-confirmatory-preflight.yml"
   workflow_dispatch:
 
