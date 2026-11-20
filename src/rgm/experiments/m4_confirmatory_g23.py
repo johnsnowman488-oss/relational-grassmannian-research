@@ -38,7 +38,7 @@ def _query(model, world, events, architecture, cutoff=None, query_time=None):
     return result
 
 
-def run_validation_g23(world_count: int = 12) -> dict:
+def run_validation_g23(world_count: int = 60) -> dict:
     if world_count < 1:
         raise ValueError("world_count must be positive")
     partitions = default_partitions()
@@ -67,6 +67,18 @@ def run_validation_g23(world_count: int = 12) -> dict:
             "training_corpus_sha256": digest,
             "ambiguous_corpus_sha256": ambiguous_digest,
         }
+    templates = {}
+    ambiguous_templates = {}
+    for generator in generators:
+        template_world = generator(train.seeds[0], 4)
+        for architecture in ("A", "B"):
+            templates[(generator, architecture)] = _model(
+                architecture, template_world, training_corpora[generator]
+            ).snapshot()
+            ambiguous_templates[(generator, architecture)] = _model(
+                architecture, template_world, ambiguous_corpora[generator]
+            ).snapshot()
+
     g2_rows = []
     g3_rows = []
     for seed in seeds:
@@ -79,7 +91,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
             for architecture in ("A", "B"):
                 # G2-A: outage with no replay. A has no retained relation
                 # instances; B must answer from its persistent typed store.
-                retained = _model(architecture, base, train_examples)
+                retained = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)\n                retained.restore(templates[(generator, architecture)])
                 for event in full_view.events:
                     retained.observe(event)
                 retained.advance_gap(8.0)
@@ -98,7 +110,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
                 })
 
                 # G2-B: outage with current evidence-window replay available.
-                replay = _model(architecture, base, train_examples)
+                replay = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)\n                replay.restore(templates[(generator, architecture)])
                 for event in full_view.events:
                     replay.observe(event)
                 replay.advance_gap(8.0)
@@ -126,7 +138,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
                     sorted((e for e in full_view.events if e.instance_id not in early_ids),
                            key=lambda e: (e.observed_at, e.event_time, e.instance_id))
                 )
-                late_model = _model(architecture, base, train_examples)
+                late_model = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)\n                late_model.restore(templates[(generator, architecture)])
                 for event in early_view.events:
                     late_model.observe(event)
                 early_result = _query(
@@ -166,7 +178,14 @@ def run_validation_g23(world_count: int = 12) -> dict:
                         corpus_info["ambiguous_corpus_sha256"]
                         if is_ambiguous else corpus_info["training_corpus_sha256"]
                     )
-                    trial = _model(architecture, challenged, condition_examples)
+                    trial = M4ABSystem(
+                        architecture, challenged.relation_types, relation_capacity=8192,
+                        max_path_depth=4, min_probability=0.5, min_margin=0.05,
+                    )
+                    trial.restore(
+                        ambiguous_templates[(generator, architecture)]
+                        if is_ambiguous else templates[(generator, architecture)]
+                    )
                     for event in challenged_view.events:
                         trial.observe(event)
                     result = _query(
