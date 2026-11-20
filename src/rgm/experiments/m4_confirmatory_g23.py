@@ -62,6 +62,8 @@ def run_validation_g23(world_count: int = 12) -> dict:
         ambiguous_corpora[generator] = ambiguous
         corpus_metadata[generator] = {
             "training_world_count": len(world_ids),
+            "unique_training_example_count": len(corpus),
+            "ambiguous_unique_training_example_count": len(ambiguous),
             "training_corpus_sha256": digest,
             "ambiguous_corpus_sha256": ambiguous_digest,
         }
