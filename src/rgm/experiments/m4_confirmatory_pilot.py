@@ -124,6 +124,9 @@ def run_validation_pilot(world_count: int = 12) -> dict:
         "world_seeds": list(selected_seeds),
         "world_modes": [mode for mode, _ in generators],
         "training_world_count_per_mode": len(train_partition.seeds),
+        "unique_training_examples_per_mode": {
+            mode: len(examples) for mode, examples in training_corpora.items()
+        },
         "training_signal": "aggregated in-vocabulary readout corpus from disjoint train worlds, separate by task mode",
         "training_world_count_per_mode": len(next(p for p in partitions if p.name == "train").seeds),
         "confirmatory_test_accessed": False,
