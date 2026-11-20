@@ -416,3 +416,25 @@ def preflight_audit(seed_count: int = 48) -> dict:
         "typed_edge_invariant": True,
         "oracle_labels_separate_from_learner_view": True,
     }
+
+
+def build_training_corpus(seeds: Iterable[int], generator, condition: str | None = None):
+    """Build a train-partition-only readout corpus across independent worlds."""
+    examples: list[PathTrainingExample] = []
+    world_ids: list[str] = []
+    seen_seeds = set()
+    for seed in seeds:
+        seed = int(seed)
+        if seed in seen_seeds:
+            raise ValueError("training corpus seeds must be unique")
+        seen_seeds.add(seed)
+        depth = (2, 3, 4)[seed % 3]
+        world = generator(seed, depth)
+        if condition is not None:
+            world = condition_world(world, condition)
+        examples.extend(world.training_examples)
+        world_ids.append(world.world_id)
+    if not examples:
+        raise ValueError("training corpus must contain at least one example")
+    digest = hashlib.sha256("\\n".join(world_ids).encode("utf-8")).hexdigest()
+    return tuple(examples), tuple(world_ids), digest
