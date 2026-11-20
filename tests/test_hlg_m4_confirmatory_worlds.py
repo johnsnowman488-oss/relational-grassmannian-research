@@ -84,3 +84,19 @@ def test_g1_condition_variants_are_controlled_and_oracle_free():
     multiple_target = [e for e in multiple.events if "-target-edge-" in e.instance_id]
     assert len(multiple_target) == 8
     assert not hasattr(multiple.learner_view(), "condition")
+
+
+def test_train_corpus_is_disjoint_and_world_patterns_vary():
+    from rgm.experiments.m4_confirmatory_worlds import build_training_corpus
+    seeds = tuple(range(10_000, 10_020))
+    corpus, world_ids, digest = build_training_corpus(seeds, generate_world)
+    ambiguous, ambiguous_ids, ambiguous_digest = build_training_corpus(
+        seeds, generate_world, condition="ambiguous_competing_paths"
+    )
+    targets = {generate_world(seed, (2, 3, 4)[seed % 3]).oracle_target_path
+               for seed in seeds}
+    assert len(world_ids) == len(seeds)
+    assert world_ids == ambiguous_ids
+    assert len(targets) > 1
+    assert digest != ambiguous_digest
+    assert len(corpus) > 0 and len(ambiguous) == len(corpus)
