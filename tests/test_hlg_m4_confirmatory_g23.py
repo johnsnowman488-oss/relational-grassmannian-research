@@ -51,19 +51,11 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
         assert set(result["G3"]["score_summary"][architecture]) == set(grid["by_mode"])
 
 
-def test_fixed_threshold_evaluation_skips_validation_calibration():
-    result = run_validation_g23(
-        world_count=2, partition_name="validation",
-        min_probability=0.75, min_margin=0.25, calibrate=False,
-    )
-    assert result["partition"] == "validation"
-    assert result["confirmatory_test_accessed"] is False
-    assert result["thresholds_frozen"] is True
-    assert result["calibration_world_count"] == 0
-    assert result["evaluated_world_count"] == 2
-    for architecture in ("A", "B"):
-        sweep = result["G3"]["validation_threshold_sweep"][architecture]
-        assert sweep["pooled_calibration_grid"] == []
-        assert sweep["pooled_selected_threshold"] == {
-            "min_probability": 0.75, "min_margin": 0.25
-        }
+def test_g2_g3_diagnostic_runner_rejects_noncalibration_mode():
+    import pytest
+
+    with pytest.raises(ValueError, match="sealed to validation"):
+        run_validation_g23(
+            world_count=2, partition_name="validation",
+            min_probability=0.75, min_margin=0.25, calibrate=False,
+        )
