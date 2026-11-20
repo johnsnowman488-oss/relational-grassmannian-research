@@ -484,10 +484,10 @@ def run_confirmatory_campaign():
     g3_negative = [
         row for row in g3
         if row["condition"] in {
-            "missing_target_edge", "wrong_context_target",
-            "temporal_invalid_target", "ambiguous_competing_paths",
+            "missing_target_edge", "wrong_context_target", "temporal_invalid_target",
         }
     ]
+    g3_ambiguous = [row for row in g3 if row["condition"] == "ambiguous_competing_paths"]
     g3_positive = [row for row in g3 if row["condition"] == "multiple_target_witnesses"]
     future_audit = preflight_audit(96)
     test_world_future_leaks = {
@@ -506,11 +506,11 @@ def run_confirmatory_campaign():
         ),
         "g3_false_selections": sum(row["false_selection"] for row in g3_negative),
         "g3_ambiguous_selections": sum(
-            row["status"] == "SELECTED"
-            for row in g3 if row["condition"] == "ambiguous_competing_paths"
+            row["status"] == "SELECTED" for row in g3_ambiguous
         ),
         "g3_positive_control_coverage": (
-            sum(row["status"] == "SELECTED" for row in g3_positive) / max(1, len(g3_positive))
+            sum(row["status"] == "SELECTED" and row["selected_is_planted_target"]
+                for row in g3_positive) / max(1, len(g3_positive))
         ),
         "future_observation_leaks": (
             sum(bool(value) for value in test_world_future_leaks.values())
@@ -539,7 +539,7 @@ def run_confirmatory_campaign():
         ),
         "G3_ambiguous_selection_B_minus_A": _paired_bootstrap(
             [{**row, "ambiguous_selection_value": float(row["status"] == "SELECTED")}
-             for row in g3 if row["condition"] == "ambiguous_competing_paths"],
+             for row in g3_ambiguous],
             "ambiguous_selection_value",
         ),
         "G3_positive_control_coverage_B_minus_A": _paired_bootstrap(
