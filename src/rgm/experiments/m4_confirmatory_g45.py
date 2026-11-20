@@ -67,26 +67,57 @@ def _g4_trials(world_count: int):
         generator: build_training_corpus(train.seeds, generator)
         for generator in generators
     }
+    templates = {}
+    for generator in generators:
+        train_examples, train_world_ids, train_digest = corpora[generator]
+        inverse_examples = tuple(
+            PathTrainingExample(example.relation_path, 1 - example.label)
+            for example in train_examples
+        )
+        template_world = generator(train.seeds[0], 4)
+        for architecture in ("A", "B"):
+            incumbent_template = M4ABSystem(
+                architecture, template_world.relation_types, relation_capacity=8192,
+                max_path_depth=4, min_probability=0.5, min_margin=0.05,
+            )
+            incumbent_template.fit_readout(
+                inverse_examples, epochs=700, learning_rate=0.12
+            )
+            candidate_template = M4ABSystem(
+                architecture, template_world.relation_types, relation_capacity=8192,
+                max_path_depth=4, min_probability=0.5, min_margin=0.05,
+            )
+            candidate_template.fit_readout(
+                train_examples, epochs=900, learning_rate=0.12
+            )
+            templates[(generator, architecture)] = {
+                "incumbent_snapshot": incumbent_template.snapshot(),
+                "candidate_weights": candidate_template.readout_weights.copy(),
+                "candidate_bias": candidate_template.readout_bias,
+                "training_world_count": len(train_world_ids),
+                "training_corpus_sha256": train_digest,
+                "unique_training_example_count": template["unique_training_example_count"],
+            }
+
     for trial_index, seed in enumerate(seeds):
         depth = (2, 3, 4)[seed % 3]
         for generator in generators:
             world = generator(seed, depth)
-            train_examples, train_world_ids, train_digest = corpora[generator]
-            inverse_examples = tuple(
-                PathTrainingExample(example.relation_path, 1 - example.label)
-                for example in train_examples
-            )
+            template = templates[(generator, "A")]
             for architecture in ("A", "B"):
+                template = templates[(generator, architecture)]
                 model = M4ABSystem(
                     architecture, world.relation_types, relation_capacity=8192,
                     max_path_depth=4, min_probability=0.5, min_margin=0.05,
                 )
-                # The incumbent is deliberately fitted with inverted labels on
-                # train worlds. Candidate fitting also uses train worlds only.
-                # Both are then evaluated on this separate validation world.
-                model.fit_readout(inverse_examples, epochs=700, learning_rate=0.12)
+                # Incumbent/candidate are fitted on the train partition only;
+                # each trial evaluates them on a separate validation world.
+                model.restore(template["incumbent_snapshot"])
                 for event in world.events:
                     model.observe(event)
+                train_world_ids = corpora[generator][1]
+                train_digest = template["training_corpus_sha256"]
+                train_examples = corpora[generator][0]
                 controller = M4AdaptiveController(model)
                 stable_alarms = sum(
                     controller.observe_residual(0.05) for _ in range(100)
@@ -104,11 +135,6 @@ def _g4_trials(world_count: int):
                         detection_delay = step
                         break
 
-                candidate = M4ABSystem(
-                    architecture, world.relation_types, relation_capacity=8192,
-                    max_path_depth=4, min_probability=0.5, min_margin=0.05,
-                )
-                candidate.fit_readout(train_examples, epochs=900, learning_rate=0.12)
                 validation_examples = (
                     PathTrainingExample(world.oracle_target_path, 1),
                     PathTrainingExample(world.oracle_decoy_paths[0], 0),
@@ -119,11 +145,11 @@ def _g4_trials(world_count: int):
                     max_path_depth=4, min_probability=0.5, min_margin=0.05,
                 )
                 candidate_eval.restore(model.snapshot())
-                candidate_eval.readout_weights = candidate.readout_weights.copy()
-                candidate_eval.readout_bias = candidate.readout_bias
+                candidate_eval.readout_weights = template["candidate_weights"].copy()
+                candidate_eval.readout_bias = template["candidate_bias"]
                 candidate_loss = _bce(candidate_eval, validation_examples)
 
-                controller.start_candidate(candidate.readout_weights)
+                controller.start_candidate(template["candidate_weights"])
                 promoted = controller.validate_candidate(
                     incumbent_loss, candidate_loss, identifiable=True
                 )
@@ -263,7 +289,7 @@ def _g5_resources(resource_sizes):
     return rows
 
 
-def run_validation_g45(world_count: int = 12,
+def run_validation_g45(world_count: int = 60,
                        resource_sizes=(10, 100, 500, 1000)) -> dict:
     if world_count < 1 or not resource_sizes or any(n < 4 for n in resource_sizes):
         raise ValueError("invalid validation trial/resource configuration")
