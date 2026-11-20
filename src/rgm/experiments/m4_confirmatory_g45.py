@@ -58,9 +58,9 @@ def _system_equal_to_snapshot(model, snapshot):
 
 def _g4_trials(world_count: int):
     partitions = default_partitions()
-    validation = next(p for p in partitions if p.name == "validation")
+    selected_partition = next(p for p in partitions if p.name == partition_name)
     train = next(p for p in partitions if p.name == "train")
-    seeds = validation.seeds[:world_count]
+    seeds = selected_partition.seeds[:world_count]
     rows = []
     generators = (generate_world, generate_order_world)
     corpora = {
@@ -78,7 +78,7 @@ def _g4_trials(world_count: int):
         for architecture in ("A", "B"):
             incumbent_template = M4ABSystem(
                 architecture, template_world.relation_types, relation_capacity=8192,
-                max_path_depth=4, min_probability=0.5, min_margin=0.05,
+                max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
             )
             incumbent_template.fit_readout(
                 inverse_examples, epochs=700, learning_rate=0.12
@@ -295,7 +295,8 @@ def run_validation_g45(world_count: int = 60,
     return {
         "classification": "validation_only_G4_G5_diagnostics_not_confirmatory",
         "partition": "validation_for_G4; synthetic_resource_sweep_for_G5",
-        "confirmatory_test_accessed": False,
+        "confirmatory_test_accessed": partition_name == "test",
+        "thresholds": {"min_probability": min_probability, "min_margin": min_margin},
         "runtime": {"python": sys.version, "platform": platform.platform()},
         "G4": {
             "rows": g4,
