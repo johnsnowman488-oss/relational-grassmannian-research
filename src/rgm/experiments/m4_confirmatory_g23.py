@@ -96,7 +96,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
                 })
 
                 # G2-B: outage with current evidence-window replay available.
-                replay = _model(architecture, base, training_world.training_examples)
+                replay = _model(architecture, base, train_examples)
                 for event in full_view.events:
                     replay.observe(event)
                 replay.advance_gap(8.0)
@@ -106,9 +106,9 @@ def run_validation_g23(world_count: int = 12) -> dict:
                     query_time=base.query_time + 8.0,
                 )
                 g2_rows.append({
-                    "seed": seed, "fit_seed": fit_seed, "world_id": base.world_id,
-                    "fit_world_id": training_world.world_id, "mode": base.mode,
-                    "architecture": architecture, "condition": "outage_with_replay",
+                    "seed": seed, "world_id": base.world_id, "mode": base.mode,
+                    **corpus_info, "architecture": architecture,
+                    "condition": "outage_with_replay",
                     "status": replayed["status"],
                     "correct": replayed.get("selected_path") == base.oracle_target_path,
                     "selected_path": replayed.get("selected_path"),
@@ -139,9 +139,9 @@ def run_validation_g23(world_count: int = 12) -> dict:
                     query_time=base.query_time,
                 )
                 g2_rows.append({
-                    "seed": seed, "fit_seed": fit_seed, "world_id": base.world_id,
-                    "fit_world_id": training_world.world_id, "mode": base.mode,
-                    "architecture": architecture, "condition": "late_arrival",
+                    "seed": seed, "world_id": base.world_id, "mode": base.mode,
+                    **corpus_info, "architecture": architecture,
+                    "condition": "late_arrival",
                     "early_status": early_result["status"],
                     "early_selected": early_result.get("selected_path"),
                     "late_status": late_result["status"],
