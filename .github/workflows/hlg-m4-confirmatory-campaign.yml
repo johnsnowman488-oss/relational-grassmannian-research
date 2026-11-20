@@ -6,14 +6,14 @@ on:
     paths:
       - "docs/experiments/HLG_M4_CONFIRMATORY_CONFIG.json"
       - "docs/experiments/HLG_M4_CONFIRMATORY_CONFIG.sha256"
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: read
 
 jobs:
   confirmatory:
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'M4: freeze protocol and authorize confirmatory test run')
+    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'M4: freeze protocol and authorize confirmatory test run') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
