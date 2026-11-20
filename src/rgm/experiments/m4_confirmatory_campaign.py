@@ -479,6 +479,7 @@ def run_confirmatory_campaign():
         partition_name="test",
         min_probability=config["readout"]["min_probability"],
         min_margin=config["readout"]["min_margin"],
+        confirmatory_authorized=True,
     )
 
     g3_negative = [
