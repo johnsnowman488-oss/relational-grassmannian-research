@@ -13,3 +13,12 @@ def test_memory_budgeted_frontier_is_validation_only_and_pairs_a_b():
     assert all(row["A_within_same_upper_bound_budget"] for row in result["frontier"])
     assert result["frontier"][-1]["B_correct_retention"] == 3
     assert all(row["B_false_selections"] == 0 for row in result["frontier"])
+
+
+def test_test_partition_frontier_requires_confirmatory_runner_authorization():
+    import pytest
+
+    with pytest.raises(ValueError, match="frozen confirmatory campaign runner"):
+        run_validation_frontier(
+            world_count=1, capacities=(10,), partition_name="test",
+        )
