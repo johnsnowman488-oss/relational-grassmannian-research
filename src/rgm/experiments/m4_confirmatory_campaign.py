@@ -429,7 +429,7 @@ def run_confirmatory_campaign():
     templates, corpora = _fit_templates(train, config)
     g1, g2, g3 = _g1_g2_g3(test, templates, corpora, config)
     g4 = _g4_confirmatory(test, validation, train, config)
-    g5 = _g5_resources((10, 100, 500, 1000))
+    g5 = _g5_resources((10, 100, 500, 1000), config["readout"]["min_probability"], config["readout"]["min_margin"])
 
     g3_negative = [
         row for row in g3
