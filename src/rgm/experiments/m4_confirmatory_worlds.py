@@ -315,10 +315,13 @@ def preflight_audit(seed_count: int = 48) -> dict:
     fingerprints = set()
     type_signatures = set()
     world_count = 0
+    mode_counts = {"heterogeneous_typed_chain": 0, "homogeneous_order_sensitive": 0}
     for seed in range(90_000, 90_000 + seed_count):
         depth = (2, 3, 4)[seed % 3]
-        world = generate_world(seed, depth)
+        world = (generate_world(seed, depth) if seed % 2 == 0
+                 else generate_order_world(seed, depth))
         world_count += 1
+        mode_counts[world.mode] += 1
         fingerprints.add(structural_fingerprint(world))
         type_signatures.add(tuple((r.domain, r.codomain) for r in world.relation_types))
         assert all(e.observed_at >= e.event_time for e in world.events)
@@ -332,6 +335,7 @@ def preflight_audit(seed_count: int = 48) -> dict:
     return {
         "classification": "generator_preflight_only_no_model_performance",
         "world_count": world_count,
+        "mode_counts": mode_counts,
         "unique_identity_invariant_topologies": len(fingerprints),
         "typed_schema_namespaces": len(type_signatures),
         "future_observation_invariant": True,
