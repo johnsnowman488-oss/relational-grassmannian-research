@@ -18,7 +18,8 @@ import tracemalloc
 import numpy as np
 
 from rgm.experiments.m4_confirmatory_worlds import (
-    default_partitions, generate_order_world, generate_world, validate_partitions,
+    default_partitions, build_training_corpus, generate_order_world,
+    generate_world, validate_partitions,
 )
 from rgm.leptograph.m4.adaptive import M4AdaptiveController
 from rgm.leptograph.m4.composition import Entity, RelationInstance
@@ -75,22 +76,29 @@ def _g4_trials(world_count: int):
     train = next(p for p in partitions if p.name == "train")
     seeds = validation.seeds[:world_count]
     rows = []
+    generators = (generate_world, generate_order_world)
+    corpora = {
+        generator: build_training_corpus(train.seeds, generator)
+        for generator in generators
+    }
     for trial_index, seed in enumerate(seeds):
         depth = (2, 3, 4)[seed % 3]
-        for generator in (generate_world, generate_order_world):
+        for generator in generators:
             world = generator(seed, depth)
-            fit_seed = train.seeds[trial_index % len(train.seeds)]
-            fit_world = generator(fit_seed, depth)
+            train_examples, train_world_ids, train_digest = corpora[generator]
+            inverse_examples = tuple(
+                PathTrainingExample(example.relation_path, 1 - example.label)
+                for example in train_examples
+            )
             for architecture in ("A", "B"):
                 model = M4ABSystem(
                     architecture, world.relation_types, relation_capacity=8192,
                     max_path_depth=4, min_probability=0.5, min_margin=0.05,
                 )
-                # Start from a deliberately obsolete relation readout. Candidate
-                # fitting uses depths 2/3; validation uses disjoint depth-4 paths.
-                model.fit_readout(
-                    _examples(fit_world.mode, "inverse"), epochs=700, learning_rate=0.12
-                )
+                # The incumbent is deliberately fitted with inverted labels on
+                # train worlds. Candidate fitting also uses train worlds only.
+                # Both are then evaluated on this separate validation world.
+                model.fit_readout(inverse_examples, epochs=700, learning_rate=0.12)
                 for event in world.events:
                     model.observe(event)
                 controller = M4AdaptiveController(model)
@@ -114,17 +122,17 @@ def _g4_trials(world_count: int):
                     architecture, world.relation_types, relation_capacity=8192,
                     max_path_depth=4, min_probability=0.5, min_margin=0.05,
                 )
-                candidate.restore(model.snapshot())
-                candidate.fit_readout(
-                    _examples(fit_world.mode, "true", depths=(2, 3)),
-                    epochs=900, learning_rate=0.12,
-                )
-                validation_examples = tuple(
-                    example for example in world.training_examples
-                    if len(example.relation_path) == 4
-                )
+                candidate.fit_readout(train_examples, epochs=900, learning_rate=0.12)
+                validation_examples = world.training_examples
                 incumbent_loss = _bce(model, validation_examples)
-                candidate_loss = _bce(candidate, validation_examples)
+                candidate_eval = M4ABSystem(
+                    architecture, world.relation_types, relation_capacity=8192,
+                    max_path_depth=4, min_probability=0.5, min_margin=0.05,
+                )
+                candidate_eval.restore(model.snapshot())
+                candidate_eval.readout_weights = candidate.readout_weights.copy()
+                candidate_eval.readout_bias = candidate.readout_bias
+                candidate_loss = _bce(candidate_eval, validation_examples)
 
                 controller.start_candidate(candidate.readout_weights)
                 promoted = controller.validate_candidate(
@@ -165,8 +173,9 @@ def _g4_trials(world_count: int):
                 recovery.finish_recovery()
 
                 rows.append({
-                    "seed": seed, "fit_seed": fit_seed, "world_id": world.world_id,
-                    "fit_world_id": fit_world.world_id, "mode": world.mode,
+                    "seed": seed, "world_id": world.world_id, "mode": world.mode,
+                    "training_world_count": len(train_world_ids),
+                    "training_corpus_sha256": train_digest,
                     "architecture": architecture,
                     "stable_control_alarms": int(stable_alarms),
                     "transient_disturbance_alarms": int(transient_alarms),
