@@ -6,6 +6,7 @@ def test_validation_pilot_never_reads_confirmatory_test_partition():
     assert result["classification"] == "validation_only_software_pilot_not_confirmatory"
     assert result["partition"] == "validation"
     assert result["confirmatory_test_accessed"] is False
+    assert result["training_world_count_per_mode"] == 120
     assert len(result["world_seeds"]) == 6
     assert {row["partition"] for row in result["rows"]} == {"validation"}
     assert {row["architecture"] for row in result["rows"]} == {"A", "B"}
