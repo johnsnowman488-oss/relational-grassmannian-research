@@ -242,7 +242,8 @@ def generate_order_world(seed: int, depth: int, schema_namespace: int | None = N
 def condition_world(world: RelationalWorld, condition: str) -> RelationalWorld:
     """Apply a declared G1 challenge while keeping oracle labels evaluator-side."""
     allowed = {"complete", "missing_target_edge", "temporal_invalid_target",
-               "wrong_context_target", "multiple_target_witnesses"}
+               "wrong_context_target", "multiple_target_witnesses",
+               "ambiguous_competing_paths"}
     if condition not in allowed:
         raise ValueError(f"unsupported world condition: {condition}")
     if condition == "complete":
@@ -268,6 +269,13 @@ def condition_world(world: RelationalWorld, condition: str) -> RelationalWorld:
     elif condition == "wrong_context_target":
         for edge in target_edges:
             events[events.index(edge)] = replace(edge, context="other-context")
+    elif condition == "ambiguous_competing_paths":
+        # The target and decoy chains are both semantically valid. Mark both
+        # positive in the task grammar so the readout has no privileged winner.
+        ambiguous_examples = tuple(
+            replace(example, label=1) for example in world.training_examples
+        )
+        return replace(world, condition=condition, training_examples=ambiguous_examples)
     elif condition == "multiple_target_witnesses":
         ordered = sorted(target_edges, key=lambda edge: edge.event_time)
         alt_entities = [world.start]
