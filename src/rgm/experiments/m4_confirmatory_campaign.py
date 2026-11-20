@@ -78,6 +78,13 @@ def _partitions(config):
             raise RuntimeError(f"partition manifest mismatch for {part.name}")
         if part.seeds[0] != record["first_seed"] or part.seeds[-1] != record["last_seed"]:
             raise RuntimeError(f"partition bounds mismatch for {part.name}")
+    train = next(part for part in parts if part.name == "train")
+    train_corpus_hashes = {
+        "heterogeneous_typed_chain": build_training_corpus(train.seeds, generate_world)[2],
+        "homogeneous_order_sensitive": build_training_corpus(train.seeds, generate_order_world)[2],
+    }
+    if config.get("train_corpus_sha256") and config["train_corpus_sha256"] != train_corpus_hashes:
+        raise RuntimeError("train-corpus hashes do not match frozen protocol")
     return {part.name: part for part in parts}
 
 
@@ -559,6 +566,9 @@ def run_confirmatory_campaign():
         "runtime": {"python": sys.version, "platform": platform.platform(), "numpy": np.__version__},
         "generator": config["generator"],
         "partitions": partition_manifest(tuple(partitions.values())),
+        "partition_manifest_sha256": hashlib.sha256(
+            json.dumps(partition_manifest(tuple(partitions.values())), sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
         "train_world_count": len(train.seeds),
         "validation_world_count": len(validation.seeds),
         "confirmatory_test_world_count": len(test.seeds),
