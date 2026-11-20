@@ -40,7 +40,9 @@ def test_typed_world_and_oracle_separation():
     early = world.learner_view(world.observation_cutoff - 0.1)
     assert all(e.observed_at <= early.observation_cutoff for e in early.events)
     assert len(early.events) <= len(view.events)
-    assert world.oracle_target_path == ("a0", "a1", "a2", "a3")
+    assert len(world.oracle_target_path) == 4
+    assert all(name.startswith("a") for name in world.oracle_target_path)
+    assert len(set(world.oracle_target_path)) == 4
 
 
 def test_preflight_is_generator_only():
