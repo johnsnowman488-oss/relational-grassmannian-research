@@ -101,7 +101,7 @@ def _relation_schema(namespace_index: int, layer_order: tuple[int, ...]) -> tupl
             relations.append(RelationType(
                 f"{prefix}{relation_index}", types[position], types[position + 1]
             ))
-    return tuple(relations)
+    return tuple(sorted(relations, key=lambda relation: relation.name))
 
 
 def generate_world(seed: int, depth: int, schema_namespace: int | None = None) -> RelationalWorld:
