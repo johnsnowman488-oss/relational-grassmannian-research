@@ -2,7 +2,7 @@
   "protocol_id": "HLG-M4-CONFIRMATORY-AB-v1",
   "status": "frozen_before_confirmatory_test_execution",
   "frozen_at_utc": "2026-11-20",
-  "parent_implementation_commit": "6577a8eb5a87da68cee9050759bd9984af42501d",
+  "parent_implementation_commit": "2604294f35aace0ec3f5bbf69a9ed5406a21f705",
   "generator": "m4-independent-typed-worlds-v1",
   "partitions": {
     "train": {
@@ -141,5 +141,24 @@
     "not a Grassmannian advantage test",
     "not a complete Leptograph realization"
   ],
-  "confirmatory_test_accessed": false
+  "confirmatory_test_accessed": false,
+  "protocol_revision": "v1.1",
+  "observation_ingestion_order": [
+    "observed_at",
+    "event_time",
+    "instance_id"
+  ],
+  "adaptive_lifecycle": {
+    "candidate_state": [
+      "readout_weights",
+      "readout_bias"
+    ],
+    "promotion_requires_validation_partition": true,
+    "rollback_requires_exact_restoration": true
+  },
+  "task_family_limitations": [
+    "test worlds have independent generated topology and entity identities",
+    "relation names and bounded task grammar are shared with train worlds",
+    "this is within-vocabulary and within-task-family structural generalisation, not held-out relation-sequence or OOV transfer"
+  ]
 }
