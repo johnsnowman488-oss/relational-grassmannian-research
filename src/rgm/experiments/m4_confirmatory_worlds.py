@@ -22,6 +22,18 @@ class WorldPartition:
 
 
 @dataclass(frozen=True)
+class LearnerWorldView:
+    """Oracle-free, cutoff-filtered view passed to the tested system."""
+    world_id: str
+    start: Entity
+    goal: Entity
+    relation_types: tuple[RelationType, ...]
+    events: tuple[RelationInstance, ...]
+    query_time: float
+    observation_cutoff: float
+
+
+@dataclass(frozen=True)
 class RelationalWorld:
     world_id: str
     seed: int
@@ -37,9 +49,18 @@ class RelationalWorld:
     query_time: float
     observation_cutoff: float
 
-    def learner_view(self) -> tuple[RelationInstance, ...]:
-        """Return only observations; never expose planted target/decoy labels."""
-        return self.events
+    def learner_view(self, cutoff: float | None = None) -> LearnerWorldView:
+        """Return an oracle-free causal view containing only observed events."""
+        view_cutoff = self.observation_cutoff if cutoff is None else float(cutoff)
+        if view_cutoff < 0 or view_cutoff > self.query_time:
+            raise ValueError("learner-view cutoff must be within the world query horizon")
+        visible = tuple(e for e in self.events if e.observed_at <= view_cutoff)
+        return LearnerWorldView(
+            world_id=self.world_id, start=self.start, goal=self.goal,
+            relation_types=self.relation_types, events=visible,
+            query_time=max(view_cutoff, max((e.observed_at for e in visible), default=0.0)),
+            observation_cutoff=view_cutoff,
+        )
 
 
 def default_partitions(train_count: int = 120, validation_count: int = 60,
@@ -233,12 +254,12 @@ def preflight_audit(seed_count: int = 48) -> dict:
         assert all(e.subject.entity_type == e.relation_type.domain
                    and e.object.entity_type == e.relation_type.codomain for e in world.events)
         assert world.oracle_target_path not in ()
-        assert len(world.learner_view()) == len(world.events)
+        view = world.learner_view()\n        assert len(view.events) == len(world.events)\n        assert not hasattr(view, "oracle_target_path")\n        assert all(e.observed_at <= view.observation_cutoff for e in view.events)
     return {
         "classification": "generator_preflight_only_no_model_performance",
         "world_count": world_count,
         "unique_identity_invariant_topologies": len(fingerprints),
-        "typed_schema_families": len(type_signatures),
+        "typed_schema_namespaces": len(type_signatures),
         "future_observation_invariant": True,
         "typed_edge_invariant": True,
         "oracle_labels_separate_from_learner_view": True,
