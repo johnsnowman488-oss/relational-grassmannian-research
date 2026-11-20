@@ -254,7 +254,10 @@ def preflight_audit(seed_count: int = 48) -> dict:
         assert all(e.subject.entity_type == e.relation_type.domain
                    and e.object.entity_type == e.relation_type.codomain for e in world.events)
         assert world.oracle_target_path not in ()
-        view = world.learner_view()\n        assert len(view.events) == len(world.events)\n        assert not hasattr(view, "oracle_target_path")\n        assert all(e.observed_at <= view.observation_cutoff for e in view.events)
+        view = world.learner_view()
+        assert len(view.events) == len(world.events)
+        assert not hasattr(view, "oracle_target_path")
+        assert all(e.observed_at <= view.observation_cutoff for e in view.events)
     return {
         "classification": "generator_preflight_only_no_model_performance",
         "world_count": world_count,
