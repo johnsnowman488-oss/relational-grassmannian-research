@@ -41,13 +41,18 @@ def run_validation_pilot(world_count: int = 12) -> dict:
         ("heterogeneous_typed_chain", generate_world),
         ("homogeneous_order_sensitive", generate_order_world),
     )
+    train_partition = next(p for p in partitions if p.name == "train")
+    training_corpora = {
+        mode: build_training_corpus(train_partition.seeds, generator)[0]
+        for mode, generator in generators
+    }
     templates = {}
     for mode, generator in generators:
         template_world = generator(10_000, 4, schema_namespace=0)
         for architecture in ("A", "B"):
             templates[(mode, architecture)] = _trained_template(
                 architecture, template_world.relation_types,
-                template_world.training_examples,
+                training_corpora[mode],
             )
 
     rows = []
@@ -118,6 +123,7 @@ def run_validation_pilot(world_count: int = 12) -> dict:
         "partition": "validation",
         "world_seeds": list(selected_seeds),
         "world_modes": [mode for mode, _ in generators],
+        "training_world_count_per_mode": len(train_partition.seeds),
         "training_signal": "aggregated in-vocabulary readout corpus from disjoint train worlds, separate by task mode",
         "training_world_count_per_mode": len(next(p for p in partitions if p.name == "train").seeds),
         "confirmatory_test_accessed": False,
