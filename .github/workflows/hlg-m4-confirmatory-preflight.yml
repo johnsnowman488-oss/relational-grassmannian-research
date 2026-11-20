@@ -67,6 +67,7 @@ jobs:
           python -m rgm.experiments.m4_confirmatory_campaign --validation-shadow "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory-validation-shadow.json"
           sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory-validation-shadow.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory-validation-shadow.sha256"
       - name: Execute frozen confirmatory A/B campaign (one-shot marker)
+        if: matrix.python-version == '3.12'
         run: |
           if [ ! -f docs/experiments/M4_CONFIRMATORY_RUN_AUTHORIZED ]; then
             echo "No one-shot authorization marker; confirmatory test partition remains sealed."
