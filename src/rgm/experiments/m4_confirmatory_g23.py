@@ -15,7 +15,7 @@ from rgm.experiments.m4_confirmatory_worlds import (
 from rgm.leptograph.m4.system import M4ABSystem, M4Query
 
 
-def _model(architecture, world, training_examples, min_probability=0.5, min_margin=0.05):
+def _model(architecture, world, training_examples, min_probability, min_margin):
     model = M4ABSystem(
         architecture, world.relation_types, relation_capacity=8192,
         max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
@@ -38,14 +38,18 @@ def _query(model, world, events, architecture, cutoff=None, query_time=None):
     return result
 
 
-def run_validation_g23(world_count: int = 60) -> dict:
+def run_validation_g23(
+    world_count: int = 60, *, partition_name: str = "validation",
+    min_probability: float = 0.75, min_margin: float = 0.25,
+    calibrate: bool = True,
+) -> dict:
     if world_count < 1:
         raise ValueError("world_count must be positive")
     partitions = default_partitions()
     validate_partitions(partitions)
-    validation = next(p for p in partitions if p.name == "validation")
+    selected_partition = next(p for p in partitions if p.name == partition_name)
     train = next(p for p in partitions if p.name == "train")
-    seeds = validation.seeds[:world_count]
+    seeds = selected_partition.seeds[:world_count]
     if len(seeds) != world_count:
         raise ValueError("requested run exceeds validation partition")
 
@@ -73,10 +77,10 @@ def run_validation_g23(world_count: int = 60) -> dict:
         template_world = generator(train.seeds[0], 4)
         for architecture in ("A", "B"):
             templates[(generator, architecture)] = _model(
-                architecture, template_world, training_corpora[generator]
+                architecture, template_world, training_corpora[generator], min_probability, min_margin
             ).snapshot()
             ambiguous_templates[(generator, architecture)] = _model(
-                architecture, template_world, ambiguous_corpora[generator]
+                architecture, template_world, ambiguous_corpora[generator], min_probability, min_margin
             ).snapshot()
 
     g2_rows = []
@@ -91,7 +95,7 @@ def run_validation_g23(world_count: int = 60) -> dict:
             for architecture in ("A", "B"):
                 # G2-A: outage with no replay. A has no retained relation
                 # instances; B must answer from its persistent typed store.
-                retained = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)
+                retained = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=min_probability, min_margin=min_margin)
                 retained.restore(templates[(generator, architecture)])
                 for event in sorted(full_view.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
                     retained.observe(event)
@@ -226,9 +230,9 @@ def run_validation_g23(world_count: int = 60) -> dict:
             "correct": sum(bool(r.get("correct", r.get("late_correct", r.get("selected_is_planted_target", False)))) for r in subset),
         }
 
-    calibration_count = max(1, len(seeds) // 2)
-    calibration_seeds = set(seeds[:calibration_count])
-    heldout_seeds = set(seeds[calibration_count:])
+    calibration_count = max(1, len(seeds) // 2) if calibrate else 0
+    calibration_seeds = set(seeds[:calibration_count]) if calibrate else set()
+    heldout_seeds = set(seeds[calibration_count:]) if calibrate else set(seeds)
 
     def make_threshold_grid(rows):
         grid = []
@@ -326,8 +330,11 @@ def run_validation_g23(world_count: int = 60) -> dict:
         calibration_rows = [row for row in subset if row["seed"] in calibration_seeds]
         heldout_rows = [row for row in subset if row["seed"] in heldout_seeds]
         modes = sorted({row["mode"] for row in subset})
-        pooled_grid = make_threshold_grid(calibration_rows)
-        pooled_threshold = choose_threshold(pooled_grid)
+        pooled_grid = make_threshold_grid(calibration_rows) if calibrate else []
+        pooled_threshold = (
+            choose_threshold(pooled_grid) if calibrate
+            else {"min_probability": min_probability, "min_margin": min_margin}
+        )
         threshold_sweep[architecture] = {
             "calibration_world_seeds": sorted(calibration_seeds),
             "heldout_validation_world_seeds": sorted(heldout_seeds),
@@ -339,8 +346,11 @@ def run_validation_g23(world_count: int = 60) -> dict:
         for mode in modes:
             mode_calibration = [row for row in calibration_rows if row["mode"] == mode]
             mode_heldout = [row for row in heldout_rows if row["mode"] == mode]
-            mode_grid = make_threshold_grid(mode_calibration)
-            mode_threshold = choose_threshold(mode_grid)
+            mode_grid = make_threshold_grid(mode_calibration) if calibrate else []
+            mode_threshold = (
+                choose_threshold(mode_grid) if calibrate
+                else {"min_probability": min_probability, "min_margin": min_margin}
+            )
             threshold_sweep[architecture]["by_mode"][mode] = {
                 "calibration_grid": mode_grid,
                 "selected_threshold": mode_threshold,
@@ -367,18 +377,27 @@ def run_validation_g23(world_count: int = 60) -> dict:
                 }
 
     return {
-        "classification": "validation_only_G2_G3_diagnostics_not_confirmatory",
-        "partition": "validation",
+        "classification": (
+            "confirmatory_partition_execution" if partition_name == "test"
+            else "validation_only_G2_G3_diagnostics_not_confirmatory"
+        ),
+        "partition": partition_name,
         "world_seeds": list(seeds),
         "calibration_world_count": len(calibration_seeds),
-        "heldout_validation_world_count": len(heldout_seeds),
-        "threshold_selection_rule": "calibration-only zero false/ambiguous selections and full positive coverage; tie-break highest probability then margin",
+        "heldout_validation_world_count": len(heldout_seeds) if calibrate else 0,
+        "evaluated_world_count": len(seeds),
+        "threshold_selection_rule": (
+            "calibration-only zero false/ambiguous selections and full positive coverage; tie-break highest probability then margin"
+            if calibrate else "fixed frozen protocol thresholds; no calibration on confirmatory outcomes"
+        ),
         "training_corpora": {
             generator(10_000, 4).mode: corpus_metadata[generator]
             for generator in generators
         },
         "world_modes": ["heterogeneous_typed_chain", "homogeneous_order_sensitive"],
-        "confirmatory_test_accessed": False,
+        "confirmatory_test_accessed": partition_name == "test",
+        "thresholds": {"min_probability": min_probability, "min_margin": min_margin},
+        "thresholds_frozen": not calibrate,
         "G2": {
             "rows": g2_rows,
             "summary": {arch: summarize(g2_rows, arch) for arch in ("A", "B")},
@@ -388,7 +407,7 @@ def run_validation_g23(world_count: int = 60) -> dict:
             "summary": {arch: summarize(g3_rows, arch) for arch in ("A", "B")},
             "validation_threshold_sweep": threshold_sweep,
             "score_summary": score_summary,
-            "thresholds_frozen": False,
+            "thresholds_frozen": not calibrate,
         },
         "claim_boundary": (
             "validation diagnostics only; no calibrated risk/coverage threshold, "
