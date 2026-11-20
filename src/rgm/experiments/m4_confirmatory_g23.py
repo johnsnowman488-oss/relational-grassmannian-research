@@ -124,7 +124,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
                     sorted((e for e in full_view.events if e.instance_id not in early_ids),
                            key=lambda e: (e.observed_at, e.event_time, e.instance_id))
                 )
-                late_model = _model(architecture, base, training_world.training_examples)
+                late_model = _model(architecture, base, train_examples)
                 for event in early_view.events:
                     late_model.observe(event)
                 early_result = _query(
