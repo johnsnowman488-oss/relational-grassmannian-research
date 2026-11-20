@@ -204,17 +204,12 @@ def run_validation_g23(world_count: int = 12) -> dict:
             "correct": sum(bool(r.get("correct", r.get("late_correct", r.get("selected_is_planted_target", False)))) for r in subset),
         }
 
-    threshold_sweep = {}
-    negative_conditions = {
-        "missing_target_edge", "wrong_context_target", "temporal_invalid_target"
-    }
-    for architecture in ("A", "B"):
-        subset = [row for row in g3_rows if row["architecture"] == architecture]
+    def make_threshold_grid(rows):
         grid = []
         for probability_threshold in (0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 0.75):
             for margin_threshold in (0.0, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25):
                 decisions = []
-                for row in subset:
+                for row in rows:
                     score = row["score"]
                     margin = row["margin"]
                     selected = (
@@ -245,7 +240,41 @@ def run_validation_g23(world_count: int = 12) -> dict:
                         false_selected == 0 and ambiguous_selected == 0
                     ),
                 })
-        threshold_sweep[architecture] = grid
+        return grid
+
+    threshold_sweep = {}
+    score_summary = {}
+    negative_conditions = {
+        "missing_target_edge", "wrong_context_target", "temporal_invalid_target"
+    }
+    for architecture in ("A", "B"):
+        subset = [row for row in g3_rows if row["architecture"] == architecture]
+        modes = sorted({row["mode"] for row in subset})
+        threshold_sweep[architecture] = {
+            "pooled": make_threshold_grid(subset),
+            "by_mode": {
+                mode: make_threshold_grid([row for row in subset if row["mode"] == mode])
+                for mode in modes
+            },
+        }
+        score_summary[architecture] = {}
+        for mode in modes:
+            score_summary[architecture][mode] = {}
+            for condition in sorted({row["condition"] for row in subset if row["mode"] == mode}):
+                group = [row for row in subset
+                         if row["mode"] == mode and row["condition"] == condition]
+                scores = [row["score"] for row in group if row["score"] is not None]
+                margins = [row["margin"] for row in group if row["margin"] is not None]
+                score_summary[architecture][mode][condition] = {
+                    "status_counts": {
+                        status: sum(row["status"] == status for row in group)
+                        for status in sorted({row["status"] for row in group})
+                    },
+                    "score_min": min(scores) if scores else None,
+                    "score_max": max(scores) if scores else None,
+                    "margin_min": min(margins) if margins else None,
+                    "margin_max": max(margins) if margins else None,
+                }
 
     return {
         "classification": "validation_only_G2_G3_diagnostics_not_confirmatory",
@@ -265,6 +294,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
             "rows": g3_rows,
             "summary": {arch: summarize(g3_rows, arch) for arch in ("A", "B")},
             "validation_threshold_sweep": threshold_sweep,
+            "score_summary": score_summary,
             "thresholds_frozen": False,
         },
         "claim_boundary": (
