@@ -27,7 +27,7 @@ def _trained_template(architecture: str, relation_types, training_examples):
     return model.snapshot()
 
 
-def run_validation_pilot(world_count: int = 12) -> dict:
+def run_validation_pilot(world_count: int = 60) -> dict:
     if world_count < 1:
         raise ValueError("world_count must be positive")
     partitions = default_partitions()
