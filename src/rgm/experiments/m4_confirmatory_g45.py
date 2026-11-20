@@ -164,6 +164,7 @@ def _g4_trials(world_count: int):
                 rows.append({
                     "seed": seed, "world_id": world.world_id, "mode": world.mode,
                     "training_world_count": len(train_world_ids),
+                    "unique_training_example_count": len(train_examples),
                     "training_corpus_sha256": train_digest,
                     "architecture": architecture,
                     "stable_control_alarms": int(stable_alarms),
