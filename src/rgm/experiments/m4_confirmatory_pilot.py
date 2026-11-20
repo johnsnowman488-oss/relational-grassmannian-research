@@ -16,10 +16,10 @@ from rgm.experiments.m4_confirmatory_worlds import (
 from rgm.leptograph.m4.system import M4ABSystem, M4Query
 
 
-def _trained_template(architecture: str, relation_types, training_examples):
+def _trained_template(architecture: str, relation_types, training_examples, min_probability, min_margin):
     model = M4ABSystem(
         architecture, relation_types, relation_capacity=8192,
-        max_path_depth=4, min_probability=0.5, min_margin=0.05,
+        max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
     )
     # The readout is fit on a corpus aggregated from disjoint train worlds.
     # Validation graph instances and their oracle labels are never supplied.
@@ -27,13 +27,16 @@ def _trained_template(architecture: str, relation_types, training_examples):
     return model.snapshot()
 
 
-def run_validation_pilot(world_count: int = 60) -> dict:
+def run_validation_pilot(
+    world_count: int = 60, *, partition_name: str = "validation",
+    min_probability: float = 0.75, min_margin: float = 0.25,
+) -> dict:
     if world_count < 1:
         raise ValueError("world_count must be positive")
     partitions = default_partitions()
     validate_partitions(partitions)
-    validation = next(p for p in partitions if p.name == "validation")
-    selected_seeds = validation.seeds[:world_count]
+    selected_partition = next(p for p in partitions if p.name == partition_name)
+    selected_seeds = selected_partition.seeds[:world_count]
     if len(selected_seeds) != world_count:
         raise ValueError("requested pilot exceeds validation partition size")
 
@@ -64,7 +67,8 @@ def run_validation_pilot(world_count: int = 60) -> dict:
             for architecture in ("A", "B"):
                 model = M4ABSystem(
                     architecture, world.relation_types, relation_capacity=8192,
-                    max_path_depth=4, min_probability=0.5, min_margin=0.05,
+                    max_path_depth=4, min_probability=min_probability,
+                    min_margin=min_margin,
                 )
                 model.restore(templates[(mode, architecture)])
                 for event in sorted(view.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
@@ -119,8 +123,11 @@ def run_validation_pilot(world_count: int = 60) -> dict:
             },
         }
     return {
-        "classification": "validation_only_software_pilot_not_confirmatory",
-        "partition": "validation",
+        "classification": (
+            "confirmatory_partition_execution" if partition_name == "test"
+            else "validation_only_software_pilot_not_confirmatory"
+        ),
+        "partition": partition_name,
         "world_seeds": list(selected_seeds),
         "world_modes": [mode for mode, _ in generators],
         "training_world_count_per_mode": len(train_partition.seeds),
@@ -129,7 +136,8 @@ def run_validation_pilot(world_count: int = 60) -> dict:
         },
         "training_signal": "aggregated in-vocabulary readout corpus from disjoint train worlds, separate by task mode",
         "training_world_count_per_mode": len(next(p for p in partitions if p.name == "train").seeds),
-        "confirmatory_test_accessed": False,
+        "confirmatory_test_accessed": partition_name == "test",
+        "thresholds": {"min_probability": min_probability, "min_margin": min_margin},
         "rows": rows,
         "summary": summaries,
         "claim_boundary": (
