@@ -115,7 +115,7 @@ def run_validation_g23(
                 })
 
                 # G2-B: outage with current evidence-window replay available.
-                replay = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)
+                replay = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=min_probability, min_margin=min_margin)
                 replay.restore(templates[(generator, architecture)])
                 for event in sorted(full_view.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
                     replay.observe(event)
@@ -144,7 +144,7 @@ def run_validation_g23(
                     sorted((e for e in full_view.events if e.instance_id not in early_ids),
                            key=lambda e: (e.observed_at, e.event_time, e.instance_id))
                 )
-                late_model = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)
+                late_model = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=min_probability, min_margin=min_margin)
                 late_model.restore(templates[(generator, architecture)])
                 for event in sorted(early_view.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
                     late_model.observe(event)
@@ -187,7 +187,7 @@ def run_validation_g23(
                     )
                     trial = M4ABSystem(
                         architecture, challenged.relation_types, relation_capacity=8192,
-                        max_path_depth=4, min_probability=0.5, min_margin=0.05,
+                        max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
                     )
                     trial.restore(
                         ambiguous_templates[(generator, architecture)]
@@ -337,10 +337,10 @@ def run_validation_g23(
         )
         threshold_sweep[architecture] = {
             "calibration_world_seeds": sorted(calibration_seeds),
-            "heldout_validation_world_seeds": sorted(heldout_seeds),
+            "evaluation_world_seeds": sorted(heldout_seeds),
             "pooled_calibration_grid": pooled_grid,
             "pooled_selected_threshold": pooled_threshold,
-            "pooled_heldout_metrics": apply_threshold(heldout_rows, pooled_threshold),
+            "pooled_evaluation_metrics": apply_threshold(heldout_rows, pooled_threshold),
             "by_mode": {},
         }
         for mode in modes:
@@ -354,7 +354,7 @@ def run_validation_g23(
             threshold_sweep[architecture]["by_mode"][mode] = {
                 "calibration_grid": mode_grid,
                 "selected_threshold": mode_threshold,
-                "heldout_metrics": apply_threshold(mode_heldout, mode_threshold),
+                "evaluation_metrics": apply_threshold(mode_heldout, mode_threshold),
             }
 
         score_summary[architecture] = {}
@@ -410,8 +410,10 @@ def run_validation_g23(
             "thresholds_frozen": not calibrate,
         },
         "claim_boundary": (
-            "validation diagnostics only; no calibrated risk/coverage threshold, "
-            "architecture-selection or M4 acceptance claim"
+            "confirmatory partition metrics under frozen thresholds; no open-world, "
+            "transfer, arbitrary-depth or global-stability claim"
+            if partition_name == "test" else
+            "validation diagnostics only; no architecture-selection or M4 acceptance claim"
         ),
     }
 
