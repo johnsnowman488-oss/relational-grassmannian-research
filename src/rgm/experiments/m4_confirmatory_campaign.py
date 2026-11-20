@@ -83,8 +83,18 @@ def _partitions(config):
         "heterogeneous_typed_chain": build_training_corpus(train.seeds, generate_world)[2],
         "homogeneous_order_sensitive": build_training_corpus(train.seeds, generate_order_world)[2],
     }
+    ambiguous_train_corpus_hashes = {
+        "heterogeneous_typed_chain": build_training_corpus(
+            train.seeds, generate_world, condition="ambiguous_competing_paths"
+        )[2],
+        "homogeneous_order_sensitive": build_training_corpus(
+            train.seeds, generate_order_world, condition="ambiguous_competing_paths"
+        )[2],
+    }
     if config.get("train_corpus_sha256") and config["train_corpus_sha256"] != train_corpus_hashes:
         raise RuntimeError("train-corpus hashes do not match frozen protocol")
+    if config.get("ambiguous_train_corpus_sha256") and config["ambiguous_train_corpus_sha256"] != ambiguous_train_corpus_hashes:
+        raise RuntimeError("ambiguous train-corpus hashes do not match frozen protocol")
     return {part.name: part for part in parts}
 
 
