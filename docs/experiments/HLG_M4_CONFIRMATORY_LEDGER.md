@@ -1,6 +1,6 @@
 # HLG-M4 Confirmatory Experiment Ledger
 
-**Status:** Independent-world generator, train-world corpora, ordered-transition readout features and validation-only G1–G5 pilots pass on Python 3.10/3.12. Validation diagnostics are complete for this bounded pilot; confirmatory evaluator/gates and test execution remain unfinished. Confirmatory test outcomes have not been opened.
+**Status:** Independent-world generator, train-world corpora, ordered-transition readout features, validation-only G1–G5 pilots, and the frozen confirmatory evaluator all pass on Python 3.10/3.12. The evaluator's validation-shadow run passes every bounded integrity gate while confirming that the confirmatory-test partition remains sealed. The confirmatory campaign is now authorized and queued through a dedicated PR-label-gated workflow; no test outcomes have yet been opened.
 **Research branch:** `m4/confirmatory-worlds-preflight`
 **Parent evidence commit:** `8a259725d5092c370b284ef451a065a9b1583d36`
 **Scope:** Compare integrated Architecture A and Architecture B across G1–G5. This ledger is the experiment's decision and provenance record.
@@ -154,7 +154,9 @@ The pilot now demonstrates that the implemented readout can rank both randomized
 
 ## 7. Gate policy
 
-Numerical thresholds are **not yet frozen**. Derive them from task requirements and validation distributions before opening the confirmatory test partition. Do not invent or retrofit thresholds after seeing test outcomes.
+The confirmatory protocol is frozen in `HLG_M4_CONFIRMATORY_CONFIG.json` (SHA256 `a4df456185812fdee67edd939e13a049f3889ba2bf9f5256f746d8fdeb6c5218`). The probability/margin candidate (0.75/0.25) was selected on the first 30 validation worlds and checked unchanged on the separate last 30 validation worlds. The held-out validation check had zero false/ambiguous selections and full positive-control coverage. This is the pre-test calibration basis, not a guarantee about the confirmatory set.
+
+Gate policy deliberately distinguishes hard correctness invariants from estimated performance. Numerical acceptance is imposed only where justified by task semantics (zero invalid witnesses, zero future leaks, zero false/ambiguous G3 selections, full positive-control coverage, exact rollback, and the declared resource reporting requirements). G1/G2 accuracy and A/B differences are estimated with paired 95% world-clustered bootstrap intervals rather than arbitrary post-hoc percentage cutoffs. Do not change thresholds or gates after opening test outcomes.
 
 Gate categories:
 1. P0: no invalid witness accepted; typed endpoint and relation-instance witness integrity.
@@ -173,8 +175,8 @@ Gate categories:
 4. Add generator invariants, identity-invariant topology checks, partition-disjointness, causal cutoff and oracle-isolation tests (complete for generator preflight).
 5. Run generator/software pilots and a larger validation-only calibration/held-out check; do not expose confirmatory test outcomes (complete: all 60 validation worlds split 30/30 for G3 calibration and validation).
 6. Complete expanded validation diagnostics, 30/30 threshold calibration/held-out check, and memory-budgeted G5 retention frontier (complete as bounded validation evidence; no equal-byte resource matching or confirmatory test execution yet).
-7. Freeze generator/config/partitions/thresholds/gates with hashes.
-8. Run confirmatory A/B campaign, preserve seed/world-level results and artifacts.
+7. Freeze generator/config/partitions/thresholds/gates with hashes (complete; protocol `HLG-M4-CONFIRMATORY-AB-v1`, config SHA256 `a4df456185812fdee67edd939e13a049f3889ba2bf9f5256f746d8fdeb6c5218`, partition manifest SHA256 `488d16e20f766d26459075f2e57ae0c4d7b1c68a1696f9e41a0424a68ca095b7`).
+8. Run the confirmatory A/B campaign once from the frozen code/config through the dedicated `m4-confirmatory-authorized` PR-label-gated workflow; preserve seed/world-level results and artifacts.
 9. Analyse paired comparisons and resource frontiers; issue a bounded evidence report.
 
 ## 9. Current status and open items
@@ -196,8 +198,8 @@ Gate categories:
 - [x] G5 memory-budgeted retention frontier: 30 held-out validation worlds, 12 B capacities (10–1,000), zero false selections. A no-replay 0/30; A with external replay 30/30; B retention ranged from 0/30 at capacity 10–250 to 30/30 at capacity 1,000 (about 196 KB snapshot budget). A's 5,225-byte snapshot fit beneath all B upper-bound budgets. This is a budget-capped comparison, not equal-byte consumption.
 - [x] Larger validation calibration/held-out split (30/30) with a candidate threshold and independent validation metrics; requirements-based acceptance gates remain unfrozen.
 - [x] Memory-budgeted A/B retention frontier on 30 held-out validation worlds; equal-byte resource matching remains open.
-- [ ] Full confirmatory evaluator and immutable protocol/configuration freeze.
-- [ ] Confirmatory execution and analysis.
+- [x] Full confirmatory evaluator and immutable protocol/configuration freeze. Validation-shadow execution on the separate 30-world validation holdout passed on Python 3.10 and 3.12; `confirmatory_test_accessed=false`, `bounded_integrity_gate_pass=true`.
+- [ ] Confirmatory execution and analysis (authorized; waiting only for the gated run to complete).
 
 Preflight and validation evidence:
 - Expanded preflight workflow run `44763725166`, unit/invariant run `44763725200`, A/B integration run `44763725116`, and G1–G5 development run `44763725468` all passed on Python 3.10 and 3.12.
@@ -209,3 +211,15 @@ Preflight and validation evidence:
 - All results above are validation/software diagnostics only; no confirmatory performance or acceptance claim is made.
 
 No confirmatory acceptance result is claimed at this stage.
+
+
+### Frozen evaluator validation-shadow evidence (not confirmatory)
+
+- Code head: `81b54c953e18e4a248c03b175f54ac423131d28f`.
+- Repository unit/invariant run `44766739568`, A/B integration run `44766739811`, G1–G5 development run `44766739850`, and independent-world preflight/validation-shadow run `44766739744` passed on Python 3.10 and 3.12.
+- Preflight artifacts: Python 3.10 artifact `14644687284`, ZIP SHA256 `24c6ac9be3756296d5fda52f0169b3e1531fd949fa9ae0e2450971cf75c9d8e7`; Python 3.12 artifact `14643767904`, ZIP SHA256 `cf68d6f4d6295a2dbc570f0cb164a4e95689981edaca097a79c7c27c0c85eba2`.
+- Validation-shadow JSON SHA256: Python 3.10 `00fd879b178ea31620c5673e94e5775716d78d4e775a27e9bfe66d16463103b2`; Python 3.12 `f8f5d8c4c2a91319fd11aa7abfde4d369917038cd44a3239225d692d540ed974`.
+- Both runtimes report the same config SHA256 `a4df456185812fdee67edd939e13a049f3889ba2bf9f5256f746d8fdeb6c5218`, partition-manifest SHA256 `488d16e20f766d26459075f2e57ae0c4d7b1c68a1696f9e41a0424a68ca095b7`, zero confirmatory-test worlds accessed, and all bounded integrity gates true.
+- Validation-shadow holdout: 30 worlds × 2 task modes; A and B both G1 60/60 exact selections, zero invalid witnesses. G2: B 60/60 in each outage/replay/late-arrival condition; A 0/60 without replay and 60/60 with replay and after late arrivals. G3: per architecture, zero false selections and zero ambiguous selections; 60/60 multiple-witness positive controls selected. G4: 60 trials per architecture; 60/60 promotion, exact system rollback, exact detector rollback, rejection controls and dormancy/recovery; zero stable/transient/recovery alarms; detection delay 9 under the single declared residual sequence. G5 at 1,000 instances: A 5,225-byte snapshot, 0 relation payload bytes, 46,116 traced peak bytes, 1.742/2.623 ms query p50/p95; B 137,189-byte snapshot, 79,654 relation payload bytes, 96,564 traced peak bytes, 2.147/2.956 ms query p50/p95.
+- Paired A/B bootstrap intervals are clustered by 30 independent validation worlds (10,000 resamples). G1, replay and late-arrival differences are zero; B's no-replay advantage is +1.0 accuracy (95% interval [1.0, 1.0]) in this deliberately bounded retention task. No general A/B winner is declared.
+- The validation-shadow's `bounded_integrity_gate_pass=true` is a pre-test integrity result only. It is not a confirmatory pass and does not license broad Leptograph, open-world, E08, arbitrary-depth, global-stability or Grassmannian claims.
