@@ -26,20 +26,6 @@ from rgm.leptograph.m4.composition import Entity, RelationInstance
 from rgm.leptograph.m4.system import M4ABSystem, M4Query, PathTrainingExample
 
 
-def _examples(mode: str, label_mode: str, depths=(2, 3, 4)):
-    examples = []
-    for depth in depths:
-        target = (tuple(f"a{i}" for i in range(depth)) if mode == "heterogeneous_typed_chain"
-                  else tuple(f"r{i}" for i in range(depth)))
-        decoy = (tuple(f"b{i}" for i in range(depth)) if mode == "heterogeneous_typed_chain"
-                 else tuple(reversed(target)))
-        if label_mode == "inverse":
-            examples.extend((PathTrainingExample(target, 0), PathTrainingExample(decoy, 1)))
-        else:
-            examples.extend((PathTrainingExample(target, 1), PathTrainingExample(decoy, 0)))
-    return tuple(examples)
-
-
 def _bce(model, examples):
     losses = []
     for example in examples:
@@ -204,7 +190,7 @@ def _percentile(values, fraction):
 
 def _resource_events(world, count):
     by_name = {r.name: r for r in world.relation_types}
-    chain_types = [by_name[f"a{i}"] for i in range(4)]
+    chain_types = [by_name[name] for name in world.oracle_target_path]
     type_names = [chain_types[0].domain] + [r.codomain for r in chain_types]
     nodes = [Entity(f"g5-chain-{i}", type_names[i]) for i in range(5)]
     events = []
