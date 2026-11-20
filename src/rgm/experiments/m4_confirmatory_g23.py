@@ -165,7 +165,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
             "rows": len(subset),
             "selected": sum(r.get("status", r.get("late_status")) == "SELECTED" for r in subset),
             "abstained": sum(str(r.get("status", r.get("late_status", ""))).startswith("ABSTAIN") for r in subset),
-            "correct": sum(bool(r.get("correct", r.get("late_correct", False))) for r in subset),
+            "correct": sum(bool(r.get("correct", r.get("late_correct", r.get("selected_is_planted_target", False)))) for r in subset),
         }
 
     return {
