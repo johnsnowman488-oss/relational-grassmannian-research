@@ -434,6 +434,7 @@ def build_training_corpus(seeds: Iterable[int], generator, condition: str | None
             world = condition_world(world, condition)
         examples.extend(world.training_examples)
         world_ids.append(world.world_id)
+    examples = list(dict.fromkeys(examples))
     if not examples:
         raise ValueError("training corpus must contain at least one example")
     # Hash both world identities and labelled examples; condition-specific
