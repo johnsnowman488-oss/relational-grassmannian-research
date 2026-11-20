@@ -70,10 +70,10 @@ def _frontier_world(seed: int, count: int = 1000):
     return world, events, float(count), float(count + 2000)
 
 
-def _template(architecture, relation_types, train_examples, capacity):
+def _template(architecture, relation_types, train_examples, capacity, min_probability, min_margin):
     model = M4ABSystem(
         architecture, relation_types, relation_capacity=capacity,
-        max_path_depth=4, min_probability=0.75, min_margin=0.25,
+        max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
     )
     model.fit_readout(train_examples, epochs=700, learning_rate=0.12)
     return model.snapshot()
@@ -92,16 +92,21 @@ def _query_metrics(model, query, events, architecture, replay=False):
 def run_validation_frontier(
     world_count: int = 30,
     capacities=(10, 25, 50, 100, 250, 500, 750, 800, 850, 900, 950, 1000),
+    *, partition_name: str = "validation", min_probability: float = 0.75,
+    min_margin: float = 0.25,
 ) -> dict:
     if world_count < 1 or not capacities or any(int(cap) < 1 for cap in capacities):
         raise ValueError("invalid validation frontier configuration")
     partitions = default_partitions()
     validate_partitions(partitions)
     train = next(part for part in partitions if part.name == "train")
-    validation = next(part for part in partitions if part.name == "validation")
-    # Use the held-out half from the G3 30/30 validation calibration split.
-    heldout = validation.seeds[len(validation.seeds) // 2:]
-    seeds = tuple(heldout[:world_count])
+    selected_partition = next(part for part in partitions if part.name == partition_name)
+    # Validation uses its held-out half; confirmatory evaluation uses the sealed test partition.
+    seed_source = (
+        selected_partition.seeds[len(selected_partition.seeds) // 2:]
+        if partition_name == "validation" else selected_partition.seeds
+    )
+    seeds = tuple(seed_source[:world_count])
     if len(seeds) != world_count:
         raise ValueError("requested frontier exceeds held-out validation worlds")
 
@@ -109,9 +114,9 @@ def run_validation_frontier(
         train.seeds, generate_world
     )
     first_world = generate_world(seeds[0], 4)
-    a_template = _template("A", first_world.relation_types, train_examples, 1001)
+    a_template = _template("A", first_world.relation_types, train_examples, 1001, min_probability, min_margin)
     b_templates = {
-        int(cap): _template("B", first_world.relation_types, train_examples, int(cap))
+        int(cap): _template("B", first_world.relation_types, train_examples, int(cap), min_probability, min_margin)
         for cap in capacities
     }
 
@@ -211,13 +216,16 @@ def run_validation_frontier(
         })
 
     return {
-        "classification": "validation_only_memory_budgeted_frontier_not_confirmatory",
-        "partition": "validation_heldout_half",
+        "classification": (
+            "confirmatory_partition_execution" if partition_name == "test"
+            else "validation_only_memory_budgeted_frontier_not_confirmatory"
+        ),
+        "partition": "test" if partition_name == "test" else "validation_heldout_half",
         "world_seeds": list(seeds),
-        "confirmatory_test_accessed": False,
+        "confirmatory_test_accessed": partition_name == "test",
         "training_world_count": len(train_world_ids),
         "training_corpus_sha256": train_digest,
-        "threshold_candidate": {"min_probability": 0.75, "min_margin": 0.25},
+        "threshold_candidate": {"min_probability": min_probability, "min_margin": min_margin},
         "memory_budget_definition": (
             "Common upper bound on serialized persistent snapshot bytes. A's unused "
             "budget is reported as slack; A's external replay batch is excluded and "
@@ -250,6 +258,9 @@ def run_validation_frontier(
         "frontier": frontier,
         "rows": b_rows,
         "claim_boundary": (
+            "Confirmatory budget-capped persistence frontier under frozen thresholds; "
+            "not equal-byte consumption and not a universal architecture ranking."
+            if partition_name == "test" else
             "Validation-only budget-capped persistence frontier. It is not equal-byte "
             "memory consumption and does not establish a universal architecture winner."
         ),
