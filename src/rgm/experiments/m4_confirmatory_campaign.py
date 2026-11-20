@@ -110,7 +110,10 @@ def _query(model, world, architecture, events, cutoff=None, query_time=None):
 
 
 def _valid_witnesses(result, goal):
-    for witness in result.get("witnesses", ()):
+    witnesses = result.get("witnesses", ())
+    if result.get("status") == "SELECTED" and not witnesses:
+        return False
+    for witness in witnesses:
         if len(witness.entities) != len(witness.instances) + 1:
             return False
         if witness.endpoint != goal or witness.entities[-1] != goal:
@@ -161,6 +164,14 @@ def _g1_g2_g3(test_partition, templates, corpora, config):
         for mode, generator in GENERATORS:
             world = generator(seed, depth)
             view = world.learner_view()
+            future_sentinel = replace(
+                world.events[0],
+                instance_id=f"{world.world_id}-future-sentinel",
+                observed_at=world.observation_cutoff + 1.0,
+            )
+            augmented_world = replace(world, events=world.events + (future_sentinel,))
+            causal_ids = {event.instance_id for event in augmented_world.learner_view().events}
+            future_observation_leak = future_sentinel.instance_id in causal_ids
             for architecture in ("A", "B"):
                 # G1: independent held-out world, fixed train-fitted readout.
                 model = _new_model(architecture, world, config)
@@ -177,6 +188,7 @@ def _g1_g2_g3(test_partition, templates, corpora, config):
                     "candidate_count": len(result.get("candidates", ())),
                     "witness_count": len(result.get("witnesses", ())),
                     "witness_valid": _valid_witnesses(result, world.goal),
+                    "future_observation_leak": future_observation_leak,
                     "training_world_count": corpora[mode]["training_world_count"],
                     "training_corpus_sha256": corpora[mode]["training_corpus_sha256"],
                 })
@@ -458,6 +470,9 @@ def run_confirmatory_campaign():
     ]
     g3_positive = [row for row in g3 if row["condition"] == "multiple_target_witnesses"]
     future_audit = preflight_audit(96)
+    test_world_future_leaks = {
+        row["world_id"]: row["future_observation_leak"] for row in g1
+    }
     hard_invariants = {
         "invalid_witnesses_accepted": sum(
             row["status"] == "SELECTED" and not row["witness_valid"]
@@ -475,7 +490,10 @@ def run_confirmatory_campaign():
         "g3_positive_control_coverage": (
             sum(row["status"] == "SELECTED" for row in g3_positive) / max(1, len(g3_positive))
         ),
-        "future_observation_leaks": 0 if future_audit["future_observation_invariant"] else 1,
+        "future_observation_leaks": (
+            sum(bool(value) for value in test_world_future_leaks.values())
+            + (0 if future_audit["future_observation_invariant"] else 1)
+        ),
         "test_rows_used_for_threshold_tuning": 0,
     }
 
@@ -497,11 +515,43 @@ def run_confirmatory_campaign():
             [{**row, "false_selection_value": float(row["false_selection"])} for row in g3_negative],
             "false_selection_value",
         ),
+        "G3_ambiguous_selection_B_minus_A": _paired_bootstrap(
+            [{**row, "ambiguous_selection_value": float(row["status"] == "SELECTED")}
+             for row in g3 if row["condition"] == "ambiguous_competing_paths"],
+            "ambiguous_selection_value",
+        ),
+        "G3_positive_control_coverage_B_minus_A": _paired_bootstrap(
+            [{**row, "positive_coverage_value": float(
+                row["status"] == "SELECTED" and row["selected_is_planted_target"]
+            )} for row in g3_positive],
+            "positive_coverage_value",
+        ),
         "G4_test_loss_improvement_B_minus_A": _paired_bootstrap(g4, "test_loss_improvement"),
         "G4_candidate_promotion_B_minus_A": _paired_bootstrap(g4, "candidate_promoted"),
         "G4_exact_rollback_B_minus_A": _paired_bootstrap(g4, "rollback_exact"),
     }
 
+    gates = config["gates"]
+    gate_results = {
+        "invalid_witnesses_accepted": hard_invariants["invalid_witnesses_accepted"]
+            <= gates["hard_invariants"]["invalid_witnesses_accepted"],
+        "future_observation_leaks": hard_invariants["future_observation_leaks"]
+            <= gates["hard_invariants"]["future_observation_leaks"],
+        "typed_endpoint_violations": hard_invariants["typed_endpoint_violations"]
+            <= gates["hard_invariants"]["typed_endpoint_violations"],
+        "test_rows_used_for_threshold_tuning": hard_invariants["test_rows_used_for_threshold_tuning"]
+            <= gates["hard_invariants"]["confirmatory_test_rows_used_for_tuning"],
+        "g3_false_selections": hard_invariants["g3_false_selections"]
+            <= gates["g3"]["false_selections_on_missing_wrong_context_or_temporally_invalid_cases"],
+        "g3_ambiguous_selections": hard_invariants["g3_ambiguous_selections"]
+            <= gates["g3"]["false_selections_on_missing_wrong_context_or_temporally_invalid_or_ambiguous_cases"],
+        "g3_positive_control_coverage": hard_invariants["g3_positive_control_coverage"]
+            >= gates["g3"]["positive_multiple_witness_control_coverage"],
+        "g4_exact_system_rollback": g4_hard_invariants["exact_system_rollback_failures"] == 0,
+        "g4_exact_detector_rollback": g4_hard_invariants["exact_detector_rollback_failures"] == 0,
+        "g4_rejection_preserves_incumbent": g4_hard_invariants["rejected_candidate_changed_incumbent"] == 0,
+        "g4_dormancy_recovery": g4_hard_invariants["dormancy_recovery_failures"] == 0,
+    }
     return {
         "classification": "confirmatory_M4_AB_test_campaign",
         "protocol_id": config["protocol_id"],
@@ -529,6 +579,8 @@ def run_confirmatory_campaign():
         "G5_memory_budgeted_frontier": g5_frontier,
         "hard_invariants": hard_invariants,
         "G4_hard_invariants": g4_hard_invariants,
+        "gate_results": gate_results,
+        "bounded_integrity_gate_pass": all(gate_results.values()),
         "paired_comparisons": paired,
         "claim_boundary": (
             "This is confirmatory evidence only for the frozen within-vocabulary, "
