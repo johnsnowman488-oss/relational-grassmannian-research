@@ -40,5 +40,6 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
     for architecture in ("A", "B"):
         grid = result["G3"]["validation_threshold_sweep"][architecture]
         assert grid
+        print("G3 calibration grid", architecture, grid)
         assert any(item["meets_validation_separation"] and item["positive_coverage"] == 1.0
                    for item in grid), grid
