@@ -1,11 +1,11 @@
-name: HLG-M4 independent-world generator preflight
+name: HLG-M4 independent-world preflight and validation pilot
 
 on:
   pull_request:
     branches: [research/hlg-m4-preimplementation-ledger]
     paths:
       - "src/rgm/experiments/m4_confirmatory_worlds.py"
-      - "tests/test_hlg_m4_confirmatory_worlds.py"
+      - "tests/test_hlg_m4_confirmatory_worlds.py"\n      - "src/rgm/experiments/m4_confirmatory_pilot.py"\n      - "tests/test_hlg_m4_confirmatory_pilot.py"
       - ".github/workflows/hlg-m4-confirmatory-preflight.yml"
   workflow_dispatch:
 
@@ -47,7 +47,7 @@ jobs:
           with open(os.environ["M4_PREFLIGHT_OUT"], "w") as f:
               json.dump(payload, f, indent=2, sort_keys=True)
           PY
-          sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/preflight.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/preflight.sha256"
+          sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/preflight.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/preflight.sha256"\n          python -m rgm.experiments.m4_confirmatory_pilot "$RUNNER_TEMP/m4-confirmatory-preflight/validation-pilot.json"\n          sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/validation-pilot.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/validation-pilot.sha256"
       - name: Upload preflight evidence
         uses: actions/upload-artifact@v4
         with:
