@@ -67,7 +67,7 @@ def run_validation_pilot(world_count: int = 60) -> dict:
                     max_path_depth=4, min_probability=0.5, min_margin=0.05,
                 )
                 model.restore(templates[(mode, architecture)])
-                for event in view.events:
+                for event in sorted(view.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
                     model.observe(event)
                 result = model.query(
                     M4Query(
