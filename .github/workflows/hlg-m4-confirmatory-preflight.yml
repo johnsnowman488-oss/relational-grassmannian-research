@@ -14,7 +14,6 @@ on:
       - "tests/test_hlg_m4_confirmatory_pilot.py"
       - "tests/test_hlg_m4_confirmatory_g23.py"
       - "tests/test_hlg_m4_confirmatory_g45.py"
-      - "tests/test_hlg_m4_confirmatory_frontier.py tests/test_hlg_m4_confirmatory_campaign.py"
       - "tests/test_hlg_m4_confirmatory_campaign.py"
       - ".github/workflows/hlg-m4-confirmatory-preflight.yml"
   workflow_dispatch:
@@ -38,7 +37,7 @@ jobs:
       - name: Install package and test dependencies
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Test generator and validation-pilot invariants
-        run: python -m pytest tests/test_hlg_m4_confirmatory_worlds.py tests/test_hlg_m4_confirmatory_pilot.py tests/test_hlg_m4_confirmatory_g23.py tests/test_hlg_m4_confirmatory_g45.py tests/test_hlg_m4_confirmatory_frontier.py
+        run: python -m pytest tests/test_hlg_m4_confirmatory_worlds.py tests/test_hlg_m4_confirmatory_pilot.py tests/test_hlg_m4_confirmatory_g23.py tests/test_hlg_m4_confirmatory_g45.py tests/test_hlg_m4_confirmatory_frontier.py tests/test_hlg_m4_confirmatory_campaign.py
       - name: Emit generator preflight and validation-only campaign evidence
         run: |
           mkdir -p "$RUNNER_TEMP/m4-confirmatory-preflight"
