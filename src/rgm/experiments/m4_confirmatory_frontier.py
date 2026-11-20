@@ -93,8 +93,12 @@ def run_validation_frontier(
     world_count: int = 30,
     capacities=(10, 25, 50, 100, 250, 500, 750, 800, 850, 900, 950, 1000),
     *, partition_name: str = "validation", min_probability: float = 0.75,
-    min_margin: float = 0.25,
+    min_margin: float = 0.25, confirmatory_authorized: bool = False,
 ) -> dict:
+    if partition_name == "test" and not confirmatory_authorized:
+        raise ValueError("test-partition frontier requires the frozen confirmatory campaign runner")
+    if partition_name not in {"validation", "test"}:
+        raise ValueError("partition_name must be validation or test")
     if world_count < 1 or not capacities or any(int(cap) < 1 for cap in capacities):
         raise ValueError("invalid validation frontier configuration")
     partitions = default_partitions()
