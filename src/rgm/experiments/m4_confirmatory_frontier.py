@@ -35,6 +35,7 @@ def _frontier_world(seed: int, count: int = 1000):
     rng = random.Random(seed ^ 0x71A4)
     positions = list(range(1, count + 1))
     rng.shuffle(positions)
+    target_positions = sorted(positions[:4])
 
     target_events = []
     current = world.start
@@ -46,7 +47,7 @@ def _frontier_world(seed: int, count: int = 1000):
         )
         target_events.append(RelationInstance(
             f"frontier-{seed}-target-edge-{index}", relation,
-            current, next_entity, float(index + 1), float(positions[index]),
+            current, next_entity, float(index + 1), float(target_positions[index]),
             "ctx", provenance=f"frontier-world:{seed}",
         ))
         current = next_entity
@@ -59,7 +60,7 @@ def _frontier_world(seed: int, count: int = 1000):
             f"frontier-{seed}-background-{index}", relation,
             Entity(f"frontier-{seed}-bg-s-{index}", relation.domain),
             Entity(f"frontier-{seed}-bg-o-{index}", relation.codomain),
-            float(100 + index), float(observed_at), "ctx",
+            float(observed_at), float(observed_at), "ctx",
             provenance=f"frontier-world:{seed}",
         ))
     events = tuple(sorted(
