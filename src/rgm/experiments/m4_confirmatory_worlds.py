@@ -37,7 +37,7 @@ class LearnerWorldView:
 class RelationalWorld:
     world_id: str
     seed: int
-    schema_family: str
+    schema_namespace: str
     depth: int
     relation_types: tuple[RelationType, ...]
     start: Entity
@@ -89,10 +89,10 @@ def validate_partitions(partitions: Iterable[WorldPartition]) -> None:
         seen.update(part.seeds)
 
 
-def _relation_schema(family_index: int) -> tuple[RelationType, ...]:
+def _relation_schema(namespace_index: int) -> tuple[RelationType, ...]:
     # Different families use distinct typed entity namespaces. Relation names
     # remain in-vocabulary; this is not an OOV relation-transfer experiment.
-    types = tuple(f"F{family_index}_T{i}" for i in range(5))
+    types = tuple(f"F{namespace_index}_T{i}" for i in range(5))
     relations = []
     for prefix in ("a", "b"):
         for i in range(4):
@@ -100,17 +100,17 @@ def _relation_schema(family_index: int) -> tuple[RelationType, ...]:
     return tuple(relations)
 
 
-def generate_world(seed: int, depth: int, schema_family: int | None = None) -> RelationalWorld:
+def generate_world(seed: int, depth: int, schema_namespace: int | None = None) -> RelationalWorld:
     if depth not in (2, 3, 4):
         raise ValueError("confirmatory M4 currently bounds composition depth to 2, 3 or 4")
     rng = random.Random(int(seed))
-    family_index = int(seed % 7 if schema_family is None else schema_family)
-    if family_index < 0:
-        raise ValueError("schema_family must be non-negative")
-    schema = _relation_schema(family_index)
+    namespace_index = int(seed % 7 if schema_namespace is None else schema_namespace)
+    if namespace_index < 0:
+        raise ValueError("schema_namespace must be non-negative")
+    schema = _relation_schema(namespace_index)
     relation_by_name = {r.name: r for r in schema}
-    type_names = [f"F{family_index}_T{i}" for i in range(5)]
-    world_id = f"m4-world-{seed:08d}-d{depth}-f{family_index}"
+    type_names = [f"F{namespace_index}_T{i}" for i in range(5)]
+    world_id = f"m4-world-{seed:08d}-d{depth}-ns{namespace_index}"
     start = Entity(f"{world_id}-source", type_names[0])
     goal = Entity(f"{world_id}-target", type_names[depth])
 
@@ -153,7 +153,7 @@ def generate_world(seed: int, depth: int, schema_family: int | None = None) -> R
     rng.shuffle(facts)
     cutoff = max(event.observed_at for event in facts)
     return RelationalWorld(
-        world_id=world_id, seed=int(seed), schema_family=f"typed-family-{family_index}",
+        world_id=world_id, seed=int(seed), schema_namespace=f"typed-namespace-{namespace_index}",
         depth=depth, relation_types=schema, start=start, goal=goal,
         events=tuple(facts), oracle_target_path=target,
         oracle_decoy_paths=(decoy,),
