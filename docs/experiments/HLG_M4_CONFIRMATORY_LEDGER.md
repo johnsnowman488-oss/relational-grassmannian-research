@@ -227,3 +227,91 @@ No confirmatory acceptance result is claimed at this stage.
 ### Confirmatory execution recovery note
 
 The first authorized run 44767462519 loaded the frozen confirmatory partition and completed the G1–G4 calculations before failing at the G5 frontier's partition lookup. The exception was caused by a naming mismatch: the runner's public selector is test, while the actual partition object is named confirmatory_test. Both matrix jobs failed identically. Because the campaign function raised before returning, no confirmatory result JSON was written, no aggregate summary was printed, and no metrics were examined for tuning. The recovery fix maps test to confirmatory_test and adds a direct unit test. It does not change the generator, test seeds, training, model, thresholds, gates or scoring. The same frozen partition will be rerun once to complete the originally authorized campaign; results will be identified as recovered execution after a deterministic infrastructure error, not as a fresh independent test sample.
+
+
+## 11. Confirmatory M4 execution — completed
+
+### Execution provenance
+
+- Campaign: `HLG-M4-CONFIRMATORY-AB-v1`.
+- Canonical runtime: Python 3.12.16, NumPy 2.5.5, Linux x86_64.
+- Confirmatory workflow run: `44768006598`; recovery execution on the one-shot authorized commit `870f6d20e5a2e7b9e4871136de51c797f0b12618`.
+- Result-producing source commit recorded in the artifact: `5e4b4840a40452482cd21532af75d14ac1f8f0a3`.
+- Frozen config SHA-256: `a4df456185812fdee67edd939e13a049f3889ba2bf9f5256f746d8fdeb6c5218`.
+- Partition manifest SHA-256: `488d16e20f766d26459075f2e57ae0c4d7b1c68a1696f9e41a0424a68ca095b7`.
+- Train / validation / confirmatory-test worlds: 120 / 60 / 120; test partition accessed only by the frozen campaign runner. Thresholds were fixed at probability 0.75 and margin 0.25 before test execution; zero test rows were used for threshold tuning.
+- Artifact: `14646281905`, ZIP SHA-256 `892e7eb7c9c593c5f7ec44dfe5d4f13c8f0bd8400151354ba0e6fbc1c9f489e3`.
+- Raw result JSON SHA-256: `49a17328779542c88ed9ae1b3484caf79f6a40c194600c335bbacf8de59f5384`.
+- The first attempt (workflow run `44767462519`) failed at the G5 selector/partition-name boundary. No result artifact was emitted and no intermediate metrics were inspected. Recovery was limited to the deterministic selector mapping and its test; the same frozen test partition was rerun once. Treat the recovered run as completion of the originally authorized campaign, not as a second independent sample.
+
+### G1 — composition and path selection
+
+- 240 evaluated cases per architecture (120 independent world seeds × 2 task modes).
+- A: 240/240 exact planted-path selections; B: 240/240.
+- Both architectures: 240/240 selected witnesses valid; zero future-observation leaks; all depth strata (2, 3, 4) had 80/80 correct selections per architecture.
+- Paired B−A accuracy difference: 0.0; 95% world-seed-clustered bootstrap interval [0.0, 0.0], 120 paired seed clusters.
+- Interpretation: both systems solve this bounded, within-vocabulary composition/ranking task on generated structural worlds. This does not demonstrate open-world path discovery or OOV relation-sequence transfer.
+
+### G2 — temporal retention, outage, replay and late arrival
+
+Each architecture has 720 rows (120 seeds × 2 task modes × 3 conditions).
+
+- Outage without external replay: A 0/240 correct selections (abstained in all 240); B 240/240 correct selections.
+- Outage with the current evidence window supplied: A 240/240; B 240/240.
+- Staged late arrival followed by a causal current-cutoff query: A 240/240; B 240/240.
+- Paired B−A accuracy difference for no-replay outage: +1.0, 95% world-seed-clustered bootstrap interval [1.0, 1.0]. Replay and late-arrival differences were 0.0, intervals [0.0, 0.0].
+- Interpretation: the measured advantage is specifically persistent relation-instance retention when no replay evidence is available. When A receives the current evidence window, the two architectures tie on this task.
+
+### G3 — false-path control, ambiguity and positive witness coverage
+
+Each architecture has 1,200 rows (120 seeds × 2 modes × 5 conditions).
+
+- Missing target edge, wrong context, temporally invalid target and ambiguous competing paths: zero selected paths for A and B; zero false or ambiguous selections.
+- Multiple-witness positive control: A selected 240/240; B selected 240/240; all selected witnesses passed integrity checks.
+- Hard gates passed: zero false selections, zero ambiguity selections, 100% positive-control coverage.
+- Interpretation: the frozen thresholds are conservative in these constructed conditions. This does not estimate a broad real-world risk/coverage curve beyond these task families.
+
+### G4 — adaptation, validation, rollback and recovery
+
+- 240 trials per architecture (120 seeds × 2 task modes).
+- A and B each: candidate promotion 240/240; exact system rollback 240/240; exact detector rollback 240/240; rejected-candidate controls preserved the incumbent 240/240; dormancy/recovery completed 240/240.
+- Stable-control alarms, transient-disturbance alarms and post-transient recovery alarms were all zero under the single frozen residual sequence. Drift detection delay was 9 steps in every trial.
+- Mean candidate held-out test-loss improvement was 3.6075 for each architecture (range 1.7991–5.9702); the paired A/B difference was zero with 95% interval [0.0, 0.0].
+- Interpretation: lifecycle and rollback invariants passed for this implementation and declared residual profile. The fixed detection delay does not establish general detector robustness under diverse drift processes or asynchronous switching.
+
+### G5 — resource scaling and retention frontier
+
+Native resource sweep (10, 100, 500, 1,000 relation instances):
+
+- A serialized snapshot: 5,224–5,225 bytes; B: 6,783 / 18,381 / 71,180 / 137,189 bytes.
+- At 1,000 instances: A relation payload 0 bytes, persistent numeric state 4,336 bytes, traced peak 45,404 bytes; B relation payload 79,654 bytes, persistent numeric state 4,336 bytes, traced peak 71,460 bytes.
+- At 1,000 instances, update latency p50/p95: A 46.1/57.5 μs; B 47.0/61.5 μs. Query latency p50/p95: A 1.84/2.52 ms; B 2.90/3.71 ms. These are single-run environment measurements, not stable cross-machine benchmarks.
+- Memory-budgeted B retention frontier over 30 test worlds: capacities 10–250 retained 0/30; capacity 500 retained 3/30; 750 retained 12/30; 800 retained 15/30; 850 retained 18/30; 900 retained 22/30; 950 retained 25/30; 1,000 retained 30/30. At capacity 1,000, B serialized-snapshot p95 was 196,071 bytes.
+- A without replay selected 0/30; A with external evidence-window replay selected 30/30. A's persistent snapshot p95 was 5,225 bytes. External replay is not charged to persistent memory; therefore this is a budget-capped retention frontier, not an equal-byte total-memory comparison.
+- Interpretation: B's persistence has a clear retention benefit in no-replay outage conditions, but it incurs a substantial memory and query-time cost. A can recover with replay, trading persistence for externally supplied evidence and higher query latency. Neither architecture is an unconditional winner.
+
+### Hard gates and paired inference
+
+- Zero invalid witnesses accepted.
+- Zero future-observation leaks.
+- Zero typed endpoint violations.
+- Zero G3 false selections and zero ambiguity selections.
+- 100% multiple-witness positive-control coverage.
+- Exact system and detector rollback; rejection preserved incumbent; dormancy/recovery completed in every trial.
+- Zero confirmatory rows used for threshold tuning.
+- Paired comparisons used 10,000 bootstrap resamples clustered by 120 independent world seeds. The test set contains two task-mode worlds per seed; repeated conditions are clustered within seed.
+- All frozen hard-integrity gate booleans passed. The numeric G1–G5 results are reported above without adding post-hoc acceptance thresholds.
+
+### Scientific conclusion and next work
+
+The confirmatory campaign supports a bounded conclusion: **Architecture B materially improves relational retention when the observation stream is unavailable and no external replay window is supplied; Architecture A matches B when that evidence window is supplied, with a much smaller persistent state.** G1 and G3 show parity under the tested bounded task families, and G4 shows lifecycle/rollback parity under the frozen synthetic residual profile. G5 makes the trade-off explicit: B buys persistence with growing serialized memory and slower queries.
+
+This is not a claim that B is generally superior. The result motivates the next experiment rather than ending the architecture question:
+1. Investigate a more efficient persistent representation for B (indexing, compression, selective retention) without changing the current frozen result.
+2. Compare A's external replay cost against B's persistent storage cost under a clearly matched *total* resource budget, including the evidence-window memory/transfer/latency for A.
+3. Expand temporal conditions beyond the single controlled outage/late-arrival profile.
+4. Expand G3 into a calibrated risk/coverage curve with harder near-miss paths and contradictory evidence.
+5. Expand G4 to multiple drift families, drift magnitudes, switching rates and detector calibration.
+6. Only after those improvements consider E08 transfer; keep E09 as the formal temporal-memory/relational-organisation reintegration point.
+
+The claim boundary remains: within-vocabulary, task-family-bounded synthetic relational worlds, depth 2–4, fixed candidate enumeration plus learned ranking, and the tested P0/P6 implementation. No open-world topology discovery, OOV relation transfer, arbitrary-depth composition, E08 transfer, global stability, or Grassmannian advantage is established.
