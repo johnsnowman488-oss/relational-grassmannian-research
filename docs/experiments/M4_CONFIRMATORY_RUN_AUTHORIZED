@@ -1,3 +1,0 @@
-One-shot authorization marker for HLG-M4-CONFIRMATORY-AB-v1.
-
-The user explicitly instructed continuation through the confirmatory M4 campaign on 2026-11-20. This marker authorizes one execution against the frozen confirmatory-test partition in HLG_M4_CONFIRMATORY_CONFIG.json. Remove this marker after the workflow has been queued; do not reuse the test partition for tuning or repeat the confirmatory run as a development loop.
