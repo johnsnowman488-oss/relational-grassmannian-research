@@ -223,6 +223,10 @@ def run_validation_g23(world_count: int = 60) -> dict:
             "correct": sum(bool(r.get("correct", r.get("late_correct", r.get("selected_is_planted_target", False)))) for r in subset),
         }
 
+    calibration_count = max(1, len(seeds) // 2)
+    calibration_seeds = set(seeds[:calibration_count])
+    heldout_seeds = set(seeds[calibration_count:])
+
     def make_threshold_grid(rows):
         grid = []
         for probability_threshold in (0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 0.75):
@@ -261,6 +265,54 @@ def run_validation_g23(world_count: int = 60) -> dict:
                 })
         return grid
 
+    def choose_threshold(grid):
+        feasible = [
+            item for item in grid
+            if item["meets_validation_separation"] and item["positive_coverage"] == 1.0
+        ]
+        if not feasible:
+            return None
+        # Predeclared conservative tie-break: highest probability threshold,
+        # then highest margin threshold, among calibration-feasible points.
+        best = max(feasible, key=lambda item: (
+            item["min_probability"], item["min_margin"]
+        ))
+        return {
+            "min_probability": best["min_probability"],
+            "min_margin": best["min_margin"],
+        }
+
+    def apply_threshold(rows, threshold):
+        if threshold is None:
+            return {"available": False}
+        decisions = []
+        for row in rows:
+            score = row["score"]
+            margin = row["margin"]
+            selected = (
+                score is not None
+                and score >= threshold["min_probability"]
+                and (row["candidate_count"] <= 1 or margin >= threshold["min_margin"])
+            )
+            decisions.append((row, selected))
+        return {
+            "available": True,
+            "false_selections": sum(
+                selected for row, selected in decisions
+                if row["condition"] in negative_conditions
+            ),
+            "ambiguous_selections": sum(
+                selected for row, selected in decisions
+                if row["condition"] == "ambiguous_competing_paths"
+            ),
+            "positive_coverage": (
+                sum(selected for row, selected in decisions
+                    if row["condition"] == "multiple_target_witnesses")
+                / max(1, sum(row["condition"] == "multiple_target_witnesses"
+                             for row, _ in decisions))
+            ),
+        }
+
     threshold_sweep = {}
     score_summary = {}
     negative_conditions = {
@@ -268,14 +320,30 @@ def run_validation_g23(world_count: int = 60) -> dict:
     }
     for architecture in ("A", "B"):
         subset = [row for row in g3_rows if row["architecture"] == architecture]
+        calibration_rows = [row for row in subset if row["seed"] in calibration_seeds]
+        heldout_rows = [row for row in subset if row["seed"] in heldout_seeds]
         modes = sorted({row["mode"] for row in subset})
+        pooled_grid = make_threshold_grid(calibration_rows)
+        pooled_threshold = choose_threshold(pooled_grid)
         threshold_sweep[architecture] = {
-            "pooled": make_threshold_grid(subset),
-            "by_mode": {
-                mode: make_threshold_grid([row for row in subset if row["mode"] == mode])
-                for mode in modes
-            },
+            "calibration_world_seeds": sorted(calibration_seeds),
+            "heldout_validation_world_seeds": sorted(heldout_seeds),
+            "pooled_calibration_grid": pooled_grid,
+            "pooled_selected_threshold": pooled_threshold,
+            "pooled_heldout_metrics": apply_threshold(heldout_rows, pooled_threshold),
+            "by_mode": {},
         }
+        for mode in modes:
+            mode_calibration = [row for row in calibration_rows if row["mode"] == mode]
+            mode_heldout = [row for row in heldout_rows if row["mode"] == mode]
+            mode_grid = make_threshold_grid(mode_calibration)
+            mode_threshold = choose_threshold(mode_grid)
+            threshold_sweep[architecture]["by_mode"][mode] = {
+                "calibration_grid": mode_grid,
+                "selected_threshold": mode_threshold,
+                "heldout_metrics": apply_threshold(mode_heldout, mode_threshold),
+            }
+
         score_summary[architecture] = {}
         for mode in modes:
             score_summary[architecture][mode] = {}
@@ -299,6 +367,9 @@ def run_validation_g23(world_count: int = 60) -> dict:
         "classification": "validation_only_G2_G3_diagnostics_not_confirmatory",
         "partition": "validation",
         "world_seeds": list(seeds),
+        "calibration_world_count": len(calibration_seeds),
+        "heldout_validation_world_count": len(heldout_seeds),
+        "threshold_selection_rule": "calibration-only zero false/ambiguous selections and full positive coverage; tie-break highest probability then margin",
         "training_corpora": {
             generator(10_000, 4).mode: corpus_metadata[generator]
             for generator in generators
