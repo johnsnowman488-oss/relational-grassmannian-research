@@ -2,7 +2,7 @@ from rgm.experiments.m4_confirmatory_g23 import run_validation_g23
 
 
 def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
-    result = run_validation_g23(world_count=3)
+    result = run_validation_g23(world_count=6)
     assert result["classification"] == "validation_only_G2_G3_diagnostics_not_confirmatory"
     assert result["confirmatory_test_accessed"] is False
     assert {row["architecture"] for row in result["G2"]["rows"]} == {"A", "B"}
@@ -23,8 +23,10 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
                if row["status"] == "SELECTED")
     ambiguous = [row for row in result["G3"]["rows"]
                  if row["condition"] == "ambiguous_competing_paths"]
-    assert len(ambiguous) == 3 * 2 * 2
+    assert len(ambiguous) == 6 * 2 * 2
     assert all(row["status"] == "ABSTAIN_AMBIGUOUS" for row in ambiguous)
+    assert result["calibration_world_count"] == 3
+    assert result["heldout_validation_world_count"] == 3
     assert result["G3"]["thresholds_frozen"] is False
     ambiguous_meta = result["training_corpora"]["heterogeneous_typed_chain"]
     ambiguous_rows = [row for row in result["G3"]["rows"]
@@ -39,7 +41,11 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
                for row in normal_rows)
     for architecture in ("A", "B"):
         grid = result["G3"]["validation_threshold_sweep"][architecture]
-        assert len(grid["pooled"]) == 49
+        assert len(grid["pooled_calibration_grid"]) == 49
+        assert grid["pooled_heldout_metrics"]["available"]
         assert set(grid["by_mode"]) == {"heterogeneous_typed_chain", "homogeneous_order_sensitive"}
-        assert all(len(mode_grid) == 49 for mode_grid in grid["by_mode"].values())
+        assert all(len(mode_result["calibration_grid"]) == 49
+                   for mode_result in grid["by_mode"].values())
+        assert all(mode_result["heldout_metrics"]["available"]
+                   for mode_result in grid["by_mode"].values())
         assert set(result["G3"]["score_summary"][architecture]) == set(grid["by_mode"])
