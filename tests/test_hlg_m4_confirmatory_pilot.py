@@ -9,4 +9,7 @@ def test_validation_pilot_never_reads_confirmatory_test_partition():
     assert len(result["world_seeds"]) == 6
     assert {row["partition"] for row in result["rows"]} == {"validation"}
     assert {row["architecture"] for row in result["rows"]} == {"A", "B"}
+    assert set(result["world_modes"]) == {"heterogeneous_typed_chain", "homogeneous_order_sensitive"}
+    assert len(result["rows"]) == 6 * 2 * 2
+    assert all(row["partition"] == "validation" for row in result["rows"])
     assert all(row["witness_valid"] for row in result["rows"] if row["status"] == "SELECTED")
