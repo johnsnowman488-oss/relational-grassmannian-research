@@ -6,6 +6,7 @@ on:
     paths:
       - "docs/experiments/HLG_M4_CONFIRMATORY_CONFIG.json"
       - "docs/experiments/HLG_M4_CONFIRMATORY_CONFIG.sha256"
+      - ".github/workflows/hlg-m4-confirmatory-campaign.yml"
 
 permissions:
   contents: read
