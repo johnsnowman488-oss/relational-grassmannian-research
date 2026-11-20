@@ -26,6 +26,17 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
     assert len(ambiguous) == 3 * 2 * 2
     assert all(row["status"] == "ABSTAIN_AMBIGUOUS" for row in ambiguous)
     assert result["G3"]["thresholds_frozen"] is False
+    ambiguous_meta = result["training_corpora"]["heterogeneous_typed_chain"]
+    ambiguous_rows = [row for row in result["G3"]["rows"]
+                      if row["condition"] == "ambiguous_competing_paths"
+                      and row["mode"] == "heterogeneous_typed_chain"]
+    normal_rows = [row for row in result["G3"]["rows"]
+                   if row["condition"] == "missing_target_edge"
+                   and row["mode"] == "heterogeneous_typed_chain"]
+    assert all(row["training_corpus_sha256"] == ambiguous_meta["ambiguous_corpus_sha256"]
+               for row in ambiguous_rows)
+    assert all(row["training_corpus_sha256"] == ambiguous_meta["training_corpus_sha256"]
+               for row in normal_rows)
     for architecture in ("A", "B"):
         grid = result["G3"]["validation_threshold_sweep"][architecture]
         assert grid
