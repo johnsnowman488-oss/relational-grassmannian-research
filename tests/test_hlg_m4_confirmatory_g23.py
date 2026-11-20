@@ -21,3 +21,9 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
                  if row["condition"] == "ambiguous_competing_paths"]
     assert len(ambiguous) == 3 * 2 * 2
     assert all(row["status"] == "ABSTAIN_AMBIGUOUS" for row in ambiguous)
+    assert result["G3"]["thresholds_frozen"] is False
+    for architecture in ("A", "B"):
+        grid = result["G3"]["validation_threshold_sweep"][architecture]
+        assert grid
+        assert any(item["meets_validation_separation"] and item["positive_coverage"] == 1.0
+                   for item in grid)
