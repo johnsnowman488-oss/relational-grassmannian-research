@@ -210,7 +210,7 @@ Preflight and validation evidence:
 - Both artifacts contain seed/world-level G1–G5 pilot rows. Model diagnostics access validation worlds only; the confirmatory-test partition remains sealed.
 - All results above are validation/software diagnostics only; no confirmatory performance or acceptance claim is made.
 
-No confirmatory acceptance result is claimed at this stage.
+The confirmatory run and its bounded interpretation are recorded in Section 11 below.
 
 
 ### Frozen evaluator validation-shadow evidence (not confirmatory)
@@ -226,7 +226,7 @@ No confirmatory acceptance result is claimed at this stage.
 
 ### Confirmatory execution recovery note
 
-The first authorized run 44767462519 loaded the frozen confirmatory partition and completed the G1–G4 calculations before failing at the G5 frontier's partition lookup. The exception was caused by a naming mismatch: the runner's public selector is test, while the actual partition object is named confirmatory_test. Both matrix jobs failed identically. Because the campaign function raised before returning, no confirmatory result JSON was written, no aggregate summary was printed, and no metrics were examined for tuning. The recovery fix maps test to confirmatory_test and adds a direct unit test. It does not change the generator, test seeds, training, model, thresholds, gates or scoring. The same frozen partition will be rerun once to complete the originally authorized campaign; results will be identified as recovered execution after a deterministic infrastructure error, not as a fresh independent test sample.
+The first authorized run 44767462519 loaded the frozen confirmatory partition and completed the G1–G4 calculations before failing at the G5 frontier's partition lookup. The exception was caused by a naming mismatch: the runner's public selector is test, while the actual partition object is named confirmatory_test. Both matrix jobs failed identically. Because the campaign function raised before returning, no confirmatory result JSON was written, no aggregate summary was printed, and no metrics were examined for tuning. The recovery fix maps test to confirmatory_test and adds a direct unit test. It does not change the generator, test seeds, training, model, thresholds, gates or scoring. The one-shot recovery run completed successfully on the same frozen partition; see Section 11. It is one recovered campaign result, not a fresh independent test sample.
 
 
 ## 11. Confirmatory M4 execution — completed
@@ -286,7 +286,7 @@ Native resource sweep (10, 100, 500, 1,000 relation instances):
 - A serialized snapshot: 5,224–5,225 bytes; B: 6,783 / 18,381 / 71,180 / 137,189 bytes.
 - At 1,000 instances: A relation payload 0 bytes, persistent numeric state 4,336 bytes, traced peak 45,404 bytes; B relation payload 79,654 bytes, persistent numeric state 4,336 bytes, traced peak 71,460 bytes.
 - At 1,000 instances, update latency p50/p95: A 46.1/57.5 μs; B 47.0/61.5 μs. Query latency p50/p95: A 1.84/2.52 ms; B 2.90/3.71 ms. These are single-run environment measurements, not stable cross-machine benchmarks.
-- Memory-budgeted B retention frontier over 30 test worlds: capacities 10–250 retained 0/30; capacity 500 retained 3/30; 750 retained 12/30; 800 retained 15/30; 850 retained 18/30; 900 retained 22/30; 950 retained 25/30; 1,000 retained 30/30. At capacity 1,000, B serialized-snapshot p95 was 196,071 bytes.
+- Memory-budgeted B retention frontier over 30 test worlds from the heterogeneous typed-chain mode (the separate native G5 sweep covers both architectures' storage profiles): capacities 10–250 retained 0/30; capacity 500 retained 3/30; 750 retained 12/30; 800 retained 15/30; 850 retained 18/30; 900 retained 22/30; 950 retained 25/30; 1,000 retained 30/30. At capacity 1,000, B serialized-snapshot p95 was 196,071 bytes.
 - A without replay selected 0/30; A with external evidence-window replay selected 30/30. A's persistent snapshot p95 was 5,225 bytes. External replay is not charged to persistent memory; therefore this is a budget-capped retention frontier, not an equal-byte total-memory comparison.
 - Interpretation: B's persistence has a clear retention benefit in no-replay outage conditions, but it incurs a substantial memory and query-time cost. A can recover with replay, trading persistence for externally supplied evidence and higher query latency. Neither architecture is an unconditional winner.
 
@@ -511,3 +511,8 @@ All emitted hard gates were true: zero invalid witnesses accepted; zero typed en
 **Overall conclusion:** The experiment supports a bounded claim: A and B are equivalent on the tested ordinary composition, replay-supported retrieval, late-arrival, G3 abstention and G4 lifecycle outcomes; B provides reliable no-replay relational retention, at a measurable persistent-memory and query-latency cost. Architecture B remains the leading design candidate where retained relational knowledge across outages is a required capability, while A remains the lower-state/replay-dependent comparator. Neither is declared universally superior.
 
 The campaign does not establish open-world topology discovery, OOV relation transfer, E08 cross-domain transfer, arbitrary-depth composition, global/arbitrary-switching stability, Grassmannian advantage, or complete Leptograph realization. The next scientific step is not another seed-only rerun: it is a deliberately broader challenge family (held-out relation compositions/task grammars, richer typed schemas, and independently varied drift processes), with an end-to-end causal leakage test and a true equal-byte resource comparison if matched-resource claims are desired.
+
+
+### Result retention and current repository state
+
+The one-shot confirmatory marker was removed by commit `19594101d31f75f76179650ac25cc9098924b52a`; routine PR CI therefore cannot silently reopen the confirmatory partition. The result-producing recovery commit is `870f6d20e5a2e7b9e4871136de51c797f0b12618`, and the final branch includes the marker-consumption commit. The recovered run is complete and the current task is result review/provenance preservation, not another test run.
