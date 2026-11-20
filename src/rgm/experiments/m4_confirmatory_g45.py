@@ -186,8 +186,7 @@ def _g4_trials(world_count: int):
                 rows.append({
                     "seed": seed, "world_id": world.world_id, "mode": world.mode,
                     "training_world_count": template["training_world_count"],
-                    "unique_training_example_count": template["unique_training_example_count"],
-                    "training_corpus_sha256": template["training_corpus_sha256"],
+                        "training_corpus_sha256": template["training_corpus_sha256"],
                     "architecture": architecture,
                     "stable_control_alarms": int(stable_alarms),
                     "transient_disturbance_alarms": int(transient_alarms),
