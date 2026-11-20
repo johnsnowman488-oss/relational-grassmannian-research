@@ -10,7 +10,8 @@ import json
 import sys
 
 from rgm.experiments.m4_confirmatory_worlds import (
-    default_partitions, generate_order_world, generate_world, validate_partitions,
+    default_partitions, build_training_corpus, generate_order_world, generate_world,
+    validate_partitions,
 )
 from rgm.leptograph.m4.system import M4ABSystem, M4Query
 
@@ -117,7 +118,8 @@ def run_validation_pilot(world_count: int = 12) -> dict:
         "partition": "validation",
         "world_seeds": list(selected_seeds),
         "world_modes": [mode for mode, _ in generators],
-        "training_signal": "fixed in-vocabulary task grammar, separate by task mode",
+        "training_signal": "aggregated in-vocabulary readout corpus from disjoint train worlds, separate by task mode",
+        "training_world_count_per_mode": len(next(p for p in partitions if p.name == "train").seeds),
         "confirmatory_test_accessed": False,
         "rows": rows,
         "summary": summaries,
