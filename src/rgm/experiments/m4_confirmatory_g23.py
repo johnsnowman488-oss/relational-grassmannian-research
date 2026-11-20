@@ -91,7 +91,8 @@ def run_validation_g23(world_count: int = 60) -> dict:
             for architecture in ("A", "B"):
                 # G2-A: outage with no replay. A has no retained relation
                 # instances; B must answer from its persistent typed store.
-                retained = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)\n                retained.restore(templates[(generator, architecture)])
+                retained = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)
+                retained.restore(templates[(generator, architecture)])
                 for event in full_view.events:
                     retained.observe(event)
                 retained.advance_gap(8.0)
@@ -110,7 +111,8 @@ def run_validation_g23(world_count: int = 60) -> dict:
                 })
 
                 # G2-B: outage with current evidence-window replay available.
-                replay = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)\n                replay.restore(templates[(generator, architecture)])
+                replay = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)
+                replay.restore(templates[(generator, architecture)])
                 for event in full_view.events:
                     replay.observe(event)
                 replay.advance_gap(8.0)
@@ -138,7 +140,8 @@ def run_validation_g23(world_count: int = 60) -> dict:
                     sorted((e for e in full_view.events if e.instance_id not in early_ids),
                            key=lambda e: (e.observed_at, e.event_time, e.instance_id))
                 )
-                late_model = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)\n                late_model.restore(templates[(generator, architecture)])
+                late_model = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)
+                late_model.restore(templates[(generator, architecture)])
                 for event in early_view.events:
                     late_model.observe(event)
                 early_result = _query(
