@@ -7,8 +7,8 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
     assert result["confirmatory_test_accessed"] is False
     assert {row["architecture"] for row in result["G2"]["rows"]} == {"A", "B"}
     assert {row["architecture"] for row in result["G3"]["rows"]} == {"A", "B"}
-    assert all(row["fit_seed"] < 30_000 and row["seed"] >= 30_000
-               and row["fit_world_id"] != row["world_id"]
+    assert all(row["seed"] >= 30_000 and row["training_world_count"] == 120
+               and len(row["training_corpus_sha256"]) == 64
                for group in (result["G2"]["rows"], result["G3"]["rows"])
                for row in group)
     assert {row["condition"] for row in result["G2"]["rows"]} == {
