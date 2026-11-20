@@ -33,8 +33,12 @@ def test_typed_world_and_oracle_separation():
     assert all(e.subject.entity_type == e.relation_type.domain for e in world.events)
     assert all(e.object.entity_type == e.relation_type.codomain for e in world.events)
     view = world.learner_view()
-    assert isinstance(view, tuple)
-    assert all(hasattr(e, "instance_id") for e in view)
+    assert hasattr(view, "events")
+    assert not hasattr(view, "oracle_target_path")
+    assert all(hasattr(e, "instance_id") for e in view.events)
+    early = world.learner_view(world.observation_cutoff - 0.1)
+    assert all(e.observed_at <= early.observation_cutoff for e in early.events)
+    assert len(early.events) <= len(view.events)
     assert world.oracle_target_path == ("a0", "a1", "a2", "a3")
 
 
