@@ -3,7 +3,11 @@
   "status": "frozen_before_confirmatory_test_execution",
   "frozen_at_utc": "2026-11-20",
   "parent_implementation_commit": "7b46def7cc4b62d43dc1869c264b2d8a92fe79e2",
-  "generator": "m4-independent-typed-worlds-v1",
+  "generator": "m4-independent-typed-worlds-v2-randomized-relations",
+  "confirmatory_authorized": true,
+  "authorization_source": "User-directed continuation and confirmatory M4 execution on 2026-11-20",
+  "g5_frontier_world_count": 30,
+  "g5_frontier_capacities": [10, 25, 50, 100, 250, 500, 750, 800, 850, 900, 950, 1000],
   "partitions": {
     "train": {
       "count": 120,
@@ -98,7 +102,8 @@
       "hard_invariants": [
         "exact_system_rollback",
         "exact_detector_rollback",
-        "rejected_candidate_leaves_incumbent_unchanged"
+        "rejected_candidate_leaves_incumbent_unchanged",
+        "dormancy_recovery_completes"
       ],
       "descriptive_metrics": [
         "stationary_false_alarms",
@@ -121,7 +126,7 @@
         "updates_per_second"
       ],
       "native_frontier_required": true,
-      "matched_resource_frontier": "report as exploratory unless a defensible equal-budget protocol is implemented; do not claim matched-resource superiority"
+      "matched_resource_frontier": "report the budget-capped upper-bound frontier as exploratory; do not claim equal-byte consumption or matched-resource superiority"
     }
   },
   "analysis": {
