@@ -329,7 +329,7 @@ def _g4_confirmatory(test_partition, validation_partition, train_partition, conf
                 candidate_test_loss = _bce(candidate_eval, test_examples)
 
                 trusted_before = model.snapshot()
-                controller.start_candidate(candidate_template.readout_weights)
+                controller.start_candidate(candidate_template.readout_weights, candidate_template.readout_bias)
                 promoted = controller.validate_candidate(
                     incumbent_validation_loss, candidate_validation_loss, identifiable=True
                 )
