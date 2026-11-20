@@ -56,7 +56,7 @@ def _system_equal_to_snapshot(model, snapshot):
     return bool(numeric and store and all(current[k] == snapshot[k] for k in scalar_keys))
 
 
-def _g4_trials(world_count: int):
+def _g4_trials(world_count: int, partition_name: str, min_probability: float, min_margin: float):
     partitions = default_partitions()
     selected_partition = next(p for p in partitions if p.name == partition_name)
     train = next(p for p in partitions if p.name == "train")
@@ -235,7 +235,7 @@ def _resource_events(world, count):
     return tuple(events)
 
 
-def _g5_resources(resource_sizes):
+def _g5_resources(resource_sizes, min_probability: float, min_margin: float):
     template = generate_world(10_000, 4, schema_namespace=0)
     rows = []
     for count in resource_sizes:
@@ -284,17 +284,23 @@ def _g5_resources(resource_sizes):
     return rows
 
 
-def run_validation_g45(world_count: int = 60,
-                       resource_sizes=(10, 100, 500, 1000)) -> dict:
+def run_validation_g45(
+    world_count: int = 60, resource_sizes=(10, 100, 500, 1000), *,
+    partition_name: str = "validation", min_probability: float = 0.75,
+    min_margin: float = 0.25,
+) -> dict:
     if world_count < 1 or not resource_sizes or any(n < 4 for n in resource_sizes):
         raise ValueError("invalid validation trial/resource configuration")
     partitions = default_partitions()
     validate_partitions(partitions)
-    g4 = _g4_trials(world_count)
-    g5 = _g5_resources(tuple(resource_sizes))
+    g4 = _g4_trials(world_count, partition_name, min_probability, min_margin)
+    g5 = _g5_resources(tuple(resource_sizes), min_probability, min_margin)
     return {
-        "classification": "validation_only_G4_G5_diagnostics_not_confirmatory",
-        "partition": "validation_for_G4; synthetic_resource_sweep_for_G5",
+        "classification": (
+            "confirmatory_partition_execution" if partition_name == "test"
+            else "validation_only_G4_G5_diagnostics_not_confirmatory"
+        ),
+        "partition": f"{partition_name}_for_G4; synthetic_resource_sweep_for_G5",
         "confirmatory_test_accessed": partition_name == "test",
         "thresholds": {"min_probability": min_probability, "min_margin": min_margin},
         "runtime": {"python": sys.version, "platform": platform.platform()},
