@@ -1,0 +1,44 @@
+from rgm.experiments.m4_confirmatory_worlds import (
+    default_partitions, generate_world, partition_manifest,
+    preflight_audit, structural_fingerprint, validate_partitions,
+)
+
+
+def test_worlds_are_deterministic_but_structurally_varied():
+    first = generate_world(10001, 2)
+    again = generate_world(10001, 2)
+    assert first.events == again.events
+    worlds = [generate_world(11000 + i, (2, 3, 4)[i % 3]) for i in range(36)]
+    assert len({structural_fingerprint(w) for w in worlds}) > 1
+    assert len({w.schema_family for w in worlds}) > 1
+
+
+def test_partitions_are_disjoint_at_world_level():
+    parts = default_partitions(12, 8, 10)
+    validate_partitions(parts)
+    manifest = partition_manifest(parts)
+    assert manifest["partition_disjoint"] is True
+    ids = [seed for part in parts for seed in part.seeds]
+    assert len(ids) == len(set(ids))
+    assert set(parts[-1].seeds).isdisjoint(parts[0].seeds)
+    assert set(parts[-1].seeds).isdisjoint(parts[1].seeds)
+
+
+def test_typed_world_and_oracle_separation():
+    world = generate_world(70001, 4)
+    assert len(world.relation_types) == 8
+    assert len({r.domain for r in world.relation_types}) > 1
+    assert all(e.subject.entity_type == e.relation_type.domain for e in world.events)
+    assert all(e.object.entity_type == e.relation_type.codomain for e in world.events)
+    view = world.learner_view()
+    assert isinstance(view, tuple)
+    assert all(hasattr(e, "instance_id") for e in view)
+    assert world.oracle_target_path == ("a0", "a1", "a2", "a3")
+
+
+def test_preflight_is_generator_only():
+    result = preflight_audit(48)
+    assert result["classification"] == "generator_preflight_only_no_model_performance"
+    assert result["unique_identity_invariant_topologies"] > 1
+    assert result["typed_edge_invariant"]
+    assert result["future_observation_invariant"]
