@@ -2,7 +2,7 @@ name: HLG-M4 independent-world generator preflight
 
 on:
   pull_request:
-    branches: [m4/confirmatory-worlds-preflight]
+    branches: [research/hlg-m4-preimplementation-ledger]
     paths:
       - "src/rgm/experiments/m4_confirmatory_worlds.py"
       - "tests/test_hlg_m4_confirmatory_worlds.py"
