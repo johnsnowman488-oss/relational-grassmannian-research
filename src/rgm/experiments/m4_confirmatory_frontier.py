@@ -91,7 +91,7 @@ def _query_metrics(model, query, events, architecture, replay=False):
 
 def run_validation_frontier(
     world_count: int = 30,
-    capacities=(10, 25, 50, 100, 250, 500, 750, 1000),
+    capacities=(10, 25, 50, 100, 250, 500, 750, 800, 850, 900, 950, 1000),
 ) -> dict:
     if world_count < 1 or not capacities or any(int(cap) < 1 for cap in capacities):
         raise ValueError("invalid validation frontier configuration")
