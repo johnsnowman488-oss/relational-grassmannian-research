@@ -14,7 +14,7 @@ on:
       - "tests/test_hlg_m4_confirmatory_pilot.py"
       - "tests/test_hlg_m4_confirmatory_g23.py"
       - "tests/test_hlg_m4_confirmatory_g45.py"
-      - "tests/test_hlg_m4_confirmatory_campaign.py"
+      - "tests/test_hlg_m4_confirmatory_campaign.py"\n      - "docs/experiments/M4_CONFIRMATORY_RUN_AUTHORIZED"
       - ".github/workflows/hlg-m4-confirmatory-preflight.yml"
   workflow_dispatch:
 
@@ -65,6 +65,18 @@ jobs:
           sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/validation-g5-frontier.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/validation-g5-frontier.sha256"
           python -m rgm.experiments.m4_confirmatory_campaign --validation-shadow "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory-validation-shadow.json"
           sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory-validation-shadow.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory-validation-shadow.sha256"
+      - name: Execute frozen confirmatory A/B campaign (one-shot marker)
+        run: |
+          if [ ! -f docs/experiments/M4_CONFIRMATORY_RUN_AUTHORIZED ]; then
+            echo "No one-shot authorization marker; confirmatory test partition remains sealed."
+            exit 0
+          fi
+          actual_config="$(sha256sum docs/experiments/HLG_M4_CONFIRMATORY_CONFIG.json | cut -d ' ' -f 1)"
+          test "$actual_config" = "a4df456185812fdee67edd939e13a049f3889ba2bf9f5256f746d8fdeb6c5218"
+          mkdir -p "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory"
+          git rev-parse HEAD > "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory/source-commit.txt"
+          python -m rgm.experiments.m4_confirmatory_campaign "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory/confirmatory-results.json"
+          sha256sum "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory/confirmatory-results.json" > "$RUNNER_TEMP/m4-confirmatory-preflight/confirmatory/confirmatory-results.sha256"
       - name: Upload preflight and validation evidence
         uses: actions/upload-artifact@v4
         with:
