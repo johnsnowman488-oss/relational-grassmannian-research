@@ -1,5 +1,5 @@
 from rgm.experiments.m4_confirmatory_worlds import (
-    default_partitions, generate_world, partition_manifest,
+    default_partitions, generate_world, generate_order_world, partition_manifest,
     preflight_audit, structural_fingerprint, validate_partitions,
 )
 
@@ -47,4 +47,14 @@ def test_preflight_is_generator_only():
     assert result["classification"] == "generator_preflight_only_no_model_performance"
     assert result["unique_identity_invariant_topologies"] > 1
     assert result["typed_edge_invariant"]
-    assert result["future_observation_invariant"]
+    assert result["mode_counts"]["heterogeneous_typed_chain"] == 24\n    assert result["mode_counts"]["homogeneous_order_sensitive"] == 24\n    assert result["future_observation_invariant"]
+
+
+def test_order_sensitive_worlds_preserve_same_bag_different_order():
+    world = generate_order_world(80001, 4)
+    assert world.mode == "homogeneous_order_sensitive"
+    assert sorted(world.oracle_target_path) == sorted(world.oracle_decoy_paths[0])
+    assert world.oracle_target_path != world.oracle_decoy_paths[0]
+    assert all(event.subject.entity_type == event.relation_type.domain
+               and event.object.entity_type == event.relation_type.codomain
+               for event in world.events)
