@@ -72,12 +72,15 @@ def _system_equal_to_snapshot(model, snapshot):
 def _g4_trials(world_count: int):
     partitions = default_partitions()
     validation = next(p for p in partitions if p.name == "validation")
+    train = next(p for p in partitions if p.name == "train")
     seeds = validation.seeds[:world_count]
     rows = []
-    for seed in seeds:
+    for trial_index, seed in enumerate(seeds):
         depth = (2, 3, 4)[seed % 3]
         for generator in (generate_world, generate_order_world):
             world = generator(seed, depth)
+            fit_seed = train.seeds[trial_index % len(train.seeds)]
+            fit_world = generator(fit_seed, depth)
             for architecture in ("A", "B"):
                 model = M4ABSystem(
                     architecture, world.relation_types, relation_capacity=8192,
@@ -86,7 +89,7 @@ def _g4_trials(world_count: int):
                 # Start from a deliberately obsolete relation readout. Candidate
                 # fitting uses depths 2/3; validation uses disjoint depth-4 paths.
                 model.fit_readout(
-                    _examples(world.mode, "inverse"), epochs=700, learning_rate=0.12
+                    _examples(fit_world.mode, "inverse"), epochs=700, learning_rate=0.12
                 )
                 for event in world.events:
                     model.observe(event)
@@ -113,10 +116,13 @@ def _g4_trials(world_count: int):
                 )
                 candidate.restore(model.snapshot())
                 candidate.fit_readout(
-                    _examples(world.mode, "true", depths=(2, 3)),
+                    _examples(fit_world.mode, "true", depths=(2, 3)),
                     epochs=900, learning_rate=0.12,
                 )
-                validation_examples = _examples(world.mode, "true", depths=(4,))
+                validation_examples = tuple(
+                    example for example in world.training_examples
+                    if len(example.relation_path) == 4
+                )
                 incumbent_loss = _bce(model, validation_examples)
                 candidate_loss = _bce(candidate, validation_examples)
 
@@ -159,7 +165,8 @@ def _g4_trials(world_count: int):
                 recovery.finish_recovery()
 
                 rows.append({
-                    "seed": seed, "world_id": world.world_id, "mode": world.mode,
+                    "seed": seed, "fit_seed": fit_seed, "world_id": world.world_id,
+                    "fit_world_id": fit_world.world_id, "mode": world.mode,
                     "architecture": architecture,
                     "stable_control_alarms": int(stable_alarms),
                     "transient_disturbance_alarms": int(transient_alarms),
