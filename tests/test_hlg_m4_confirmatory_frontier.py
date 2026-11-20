@@ -1,4 +1,7 @@
-from rgm.experiments.m4_confirmatory_frontier import (\n    run_validation_frontier, _select_frontier_partition,\n)\nfrom rgm.experiments.m4_confirmatory_worlds import default_partitions
+from rgm.experiments.m4_confirmatory_frontier import (
+    run_validation_frontier, _select_frontier_partition,
+)
+from rgm.experiments.m4_confirmatory_worlds import default_partitions
 
 
 def test_memory_budgeted_frontier_is_validation_only_and_pairs_a_b():
