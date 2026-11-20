@@ -89,7 +89,7 @@ Separate three conditions:
 
 ## 5. Validation-only independent-world pilot results
 
-These are software/validation diagnostics on 12 validation seeds across two task modes (24 worlds per architecture for G1, and condition-expanded rows for G2/G3). The train corpus is aggregated from the disjoint 120-world train partition; validation-world target labels are not used to fit the readout. The confirmatory-test partition remains sealed.
+These are software/validation diagnostics across all 60 validation seeds and two task modes. G3 uses a 30-world calibration half and a separate 30-world validation half. The train corpus is aggregated from the disjoint 120-world train partition; validation-world target labels are not used to fit the readout. The confirmatory-test partition remains sealed.
 
 ### Generator and G1
 
@@ -100,16 +100,16 @@ These are software/validation diagnostics on 12 validation seeds across two task
 
 ### G2 and G3
 
-- G2: 72 cases per architecture. B selected correctly in 72/72. A selected correctly in 48/72 and abstained in the 24 no-replay outage cases; A succeeded when the current evidence window was replayed and after late arrivals.
+- G2: 360 cases per architecture. B selected correctly in 360/360. A selected correctly in 240/360 and abstained in the 120 no-replay outage cases; A succeeded when the current evidence window was replayed and after late arrivals.
 - G3: 120 cases per architecture (five conditions × 24 worlds). Both A and B abstained on all 24 missing-edge, all 24 wrong-context, all 24 temporally invalid and all 24 genuinely ambiguous competing-path cases. Both selected all 24 multiple-witness positive controls.
 - A pooled probability/margin grid contains 18 validation operating points with zero negative/ambiguous selections and full positive coverage in this pilot. Task-mode-specific frontiers are also recorded. These are exploratory validation results only; no threshold or acceptance gate is frozen from this small pilot.
 
 ### G4 and G5
 
-- G4: 24 trials per architecture (12 validation seeds × 2 task modes). Candidate promotion 24/24; exact system rollback 24/24; detector rollback exact in every promoted case; rejection controls 24/24; dormancy/recovery 24/24. Stable-control alarms, transient-disturbance alarms and post-transient recovery alarms were all zero. Persistent-change detection delay was 9 steps in all 24 trials under the single declared residual sequence. This does not establish detection robustness under varied drift shapes or noise processes.
+- G4: 120 trials per architecture (60 validation seeds × 2 task modes). Candidate promotion 120/120; exact system rollback 120/120; detector rollback exact in every promoted case; rejection controls 120/120; dormancy/recovery 120/120. Stable-control alarms, transient-disturbance alarms and post-transient recovery alarms were all zero. Persistent-change detection delay was 9 steps in all 120 trials under the single declared residual sequence. This does not establish detection robustness under varied drift shapes or noise processes.
 - G4 candidate fitting uses the train-partition corpus and validation losses are computed on separate validation-world target/decoy paths.
-- G5: native resource sweep at 10/100/500/1,000 relation instances. At 1,000 instances, A had 4,336 persistent numeric bytes, zero relation payload bytes, 5,225 serialized snapshot bytes and 45,404 traced peak bytes; B had 4,336 persistent numeric bytes, 79,654 relation payload bytes, 137,189 serialized snapshot bytes and 80,476 traced peak bytes.
-- At 1,000 instances, query p50/p95 was A 1.43/1.99 ms and B 2.17/2.78 ms. At 10 instances, A was 50.7/85.6 μs and B 67.7/105.5 μs. These are single-run native measurements, not matched-resource frontiers or cross-machine benchmarks.
+- G5: native resource sweep at 10/100/500/1,000 relation instances. At 1,000 instances, A had 4,336 persistent numeric bytes, zero relation payload bytes, 5,225 serialized snapshot bytes and 45,404 traced peak bytes; B had 4,336 persistent numeric bytes, 79,654 relation payload bytes, 137,189 serialized snapshot bytes and 79,996 traced peak bytes.
+- At 1,000 instances, query p50/p95 was A 0.93/1.31 ms and B 1.43/1.88 ms. At 10 instances, A was 35.9/60.2 μs and B 44.1/56.6 μs. These are single-run native measurements, not matched-resource frontiers or cross-machine benchmarks.
 
 ### Interpretation
 
@@ -174,11 +174,11 @@ Gate categories:
 - [ ] Confirmatory execution and analysis.
 
 Preflight and validation evidence:
-- Latest preflight workflow run `44761971587` passed on Python 3.10 and 3.12.
-- Repository unit/invariant run `44761971638`, A/B integration run `44761971548`, and G1–G5 development run `44761971569` all passed on Python 3.10 and 3.12.
-- Head commit: `39c3acde7a1551c03b2384819887cdc308ce9982`.
-- Python 3.12 artifact `14640513915`, SHA256 `85760bdded8cfd400747dc9ecddaad4190c58253a3a07e5d21d2a613e412afa6`; Python 3.10 artifact `14641427035`, SHA256 `b5842c361ad326c83e7935574ca447c9c08fe66d63a47180fb2703bb504d866d`.
-- The Python 3.12 artifact contains 96 generator-audit worlds, 83 distinct identity-invariant topology fingerprints, 51 distinct relation-signature sets across 7 namespaces, and disjoint 120/60/120 train/validation/confirmatory-test partitions.
+- Expanded preflight workflow run `44762929254`, unit/invariant run `44762929264`, A/B integration run `44762929262`, and G1–G5 development run `44762929345` all passed on Python 3.10 and 3.12.
+- Code head used for these artifacts: `1a3dab56748e7c306b71f4103cbb4ce50d8d7936`.
+- Python 3.12 preflight artifact `14641902404`, SHA256 `825c4bfe796d3131a37e88d1ff9488972250ae12fe2f461b8e9f2a405360a415`; Python 3.10 preflight artifact `14639874742`, SHA256 `50ac4bb033303410d2feca11c0348f808dafa529827843c4a89bbd2a483caf79`.
+- Python 3.12 development artifact `14642277279`, SHA256 `44d02f97768145e3ac32040c568380cc0786b954f0e4ed2230c0dd2fe98e4076`; Python 3.10 development artifact `14640459648`, SHA256 `4e0f3a4589565a8b71aa407d583868d1ae9c897f3f8372ecaf950c6ad9800cdc`.
+- The Python 3.12 preflight artifact contains 96 generator-audit worlds, 83 distinct identity-invariant topology fingerprints, 51 distinct relation-signature sets across 7 namespaces, and disjoint 120/60/120 train/validation/confirmatory-test partitions.
 - Both artifacts contain seed/world-level G1–G5 pilot rows. Model diagnostics access validation worlds only; the confirmatory-test partition remains sealed.
 - All results above are validation/software diagnostics only; no confirmatory performance or acceptance claim is made.
 
