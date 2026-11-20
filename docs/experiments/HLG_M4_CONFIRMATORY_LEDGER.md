@@ -146,7 +146,7 @@ Gate categories:
 2. Record this ledger in the repository and Library.
 3. Implement independent typed relational-world generator and explicit train/validation/test world partitions (complete for current bounded generator).
 4. Add generator invariants, identity-invariant topology checks, partition-disjointness, causal cutoff and oracle-isolation tests (complete for generator preflight).
-5. Run a small generator/software pilot only; do not expose confirmatory test outcomes (complete: 12 validation worlds, no test access).
+5. Run generator/software pilots and a larger validation-only calibration/held-out check; do not expose confirmatory test outcomes (complete: all 60 validation worlds split 30/30 for G3 calibration and validation).
 6. Extend validation diagnostics across G1–G5, add ordered-pair features after the order-family diagnostic, and inspect limitations (complete as a bounded validation pilot; not a full confirmatory evaluator or frozen threshold calibration).
 7. Freeze generator/config/partitions/thresholds/gates with hashes.
 8. Run confirmatory A/B campaign, preserve seed/world-level results and artifacts.
@@ -163,13 +163,13 @@ Gate categories:
 - [x] Identity- and namespace-invariant topology fingerprint; latest preflight found 83 distinct topology fingerprints across 96 generated worlds, 51 distinct relation-signature sets and 7 schema namespaces.
 - [x] Typed-edge invariants, cutoff-filtered oracle-free learner view, future-observation checks and partition-disjointness tests.
 - [x] Randomized relation-layer assignment and cyclic same-bag/different-order sequence families; readout extended with adjacent ordered-pair transition features after the first validation pilot exposed a linear-feature limitation.
-- [x] Validation-only G1 pilot: 12 validation seeds × 2 task modes × A/B (24 cases per architecture); both architectures selected the planted path in 24/24 cases with no invalid witnesses.
-- [x] Validation-only G2 pilot: 72 cases per architecture; B selected correctly in 72/72. A selected correctly in 48/72 and abstained in all 24 no-replay outage cases; A succeeded with evidence replay and after late arrivals. This is a measured memory/replay distinction, not an architecture verdict.
-- [x] Validation-only G3 pilot: 120 cases per architecture; both abstained on all 96 negative/ambiguous cases and selected all 24 multiple-witness positive controls. A pooled threshold grid has 18 feasible operating points in this pilot; thresholds remain unfrozen.
-- [x] Validation-only G4 pilot: 24 trials per architecture using train-world candidate fitting and separate validation-world paths; promotion 24/24, exact rollback 24/24, rejection controls 24/24, dormancy/recovery 24/24, stable/transient/recovery alarms 0. Drift detection delay was 9 steps in every trial under the current controlled residual sequence; this does not establish robust detection under varied drift processes.
-- [x] Validation-only G5 native resource sweep: 10/100/500/1,000 relation instances, A/B. At 1,000 instances after adding ordered-pair features, B relation payload 79,654 bytes, serialized snapshot 137,189 bytes, traced peak 80,476 bytes; A relation payload 0, serialized snapshot 5,225 bytes, traced peak 45,404 bytes. Query p50/p95 rose from A 50.7/85.6 μs and B 67.7/105.5 μs at 10 instances to A 1.43/1.99 ms and B 2.17/2.78 ms at 1,000. Native measurements only; not matched-resource frontiers or stable cross-machine benchmarks.
-- [ ] Full confirmatory evaluator, larger validation calibration split, matched-resource frontier and numerical gate freeze.
-- [ ] Validation-based calibration of probability/margin thresholds and numerical gates from requirements.
+- [x] Validation-only G1 pilot: all 60 validation seeds × 2 task modes × A/B (120 cases per architecture); both architectures selected the planted path in 120/120 cases with no invalid witnesses.
+- [x] Validation-only G2 pilot: 360 cases per architecture; B selected correctly in 360/360. A selected correctly in 240/360 and abstained in all 120 no-replay outage cases; A succeeded with evidence replay and after late arrivals. This is a measured memory/replay distinction, not an architecture verdict.
+- [x] Validation-only G3 pilot: 600 cases per architecture; both abstained on all 480 negative/ambiguous cases and selected all 120 multiple-witness positive controls. Calibration on 30 worlds selected probability 0.75/margin 0.25; the separate 30-world validation half had zero false selections, zero ambiguity selections and 100% positive coverage. Candidate only; not frozen.
+- [x] Validation-only G4 pilot: 120 trials per architecture using train-world candidate fitting and separate validation-world paths; promotion 120/120, exact rollback 120/120, rejection controls 120/120, dormancy/recovery 120/120, stable/transient/recovery alarms 0. Drift detection delay was 9 steps in every trial under the current controlled residual sequence; this does not establish robust detection under varied drift processes.
+- [x] Validation-only G5 native resource sweep: 10/100/500/1,000 relation instances, A/B. At 1,000 instances after adding ordered-pair features, B relation payload 79,654 bytes, serialized snapshot 137,189 bytes, traced peak 79,996 bytes; A relation payload 0, serialized snapshot 5,225 bytes, traced peak 45,404 bytes. Query p50/p95 rose from A 35.9/60.2 μs and B 44.1/56.6 μs at 10 instances to A 0.93/1.31 ms and B 1.43/1.88 ms at 1,000. Native measurements only; not matched-resource frontiers or stable cross-machine benchmarks.
+- [x] Larger validation calibration/held-out split (30/30) with a candidate threshold and independent validation metrics; requirements-based acceptance gates remain unfrozen.
+- [ ] Full confirmatory evaluator, matched-resource frontier and numerical gate freeze.
 - [ ] Matched-resource A/B frontier and confirmatory evaluator with immutable configuration.
 - [ ] Confirmatory execution and analysis.
 
