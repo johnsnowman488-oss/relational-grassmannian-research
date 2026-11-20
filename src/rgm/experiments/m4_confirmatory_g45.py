@@ -96,14 +96,13 @@ def _g4_trials(world_count: int):
                 "candidate_bias": candidate_template.readout_bias,
                 "training_world_count": len(train_world_ids),
                 "training_corpus_sha256": train_digest,
-                "unique_training_example_count": template["unique_training_example_count"],
+                "unique_training_example_count": len(train_examples),
             }
 
     for trial_index, seed in enumerate(seeds):
         depth = (2, 3, 4)[seed % 3]
         for generator in generators:
             world = generator(seed, depth)
-            template = templates[(generator, "A")]
             for architecture in ("A", "B"):
                 template = templates[(generator, architecture)]
                 model = M4ABSystem(
@@ -115,9 +114,6 @@ def _g4_trials(world_count: int):
                 model.restore(template["incumbent_snapshot"])
                 for event in world.events:
                     model.observe(event)
-                train_world_ids = corpora[generator][1]
-                train_digest = template["training_corpus_sha256"]
-                train_examples = corpora[generator][0]
                 controller = M4AdaptiveController(model)
                 stable_alarms = sum(
                     controller.observe_residual(0.05) for _ in range(100)
@@ -189,9 +185,9 @@ def _g4_trials(world_count: int):
 
                 rows.append({
                     "seed": seed, "world_id": world.world_id, "mode": world.mode,
-                    "training_world_count": len(train_world_ids),
-                    "unique_training_example_count": len(train_examples),
-                    "training_corpus_sha256": train_digest,
+                    "training_world_count": template["training_world_count"],
+                    "unique_training_example_count": template["unique_training_example_count"],
+                    "training_corpus_sha256": template["training_corpus_sha256"],
                     "architecture": architecture,
                     "stable_control_alarms": int(stable_alarms),
                     "transient_disturbance_alarms": int(transient_alarms),
