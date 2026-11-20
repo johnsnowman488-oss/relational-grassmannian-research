@@ -42,10 +42,10 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
     for architecture in ("A", "B"):
         grid = result["G3"]["validation_threshold_sweep"][architecture]
         assert len(grid["pooled_calibration_grid"]) == 49
-        assert grid["pooled_heldout_metrics"]["available"]
+        assert grid["pooled_evaluation_metrics"]["available"]
         assert set(grid["by_mode"]) == {"heterogeneous_typed_chain", "homogeneous_order_sensitive"}
         assert all(len(mode_result["calibration_grid"]) == 49
                    for mode_result in grid["by_mode"].values())
-        assert all(mode_result["heldout_metrics"]["available"]
+        assert all(mode_result["evaluation_metrics"]["available"]
                    for mode_result in grid["by_mode"].values())
         assert set(result["G3"]["score_summary"][architecture]) == set(grid["by_mode"])
