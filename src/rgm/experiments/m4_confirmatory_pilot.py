@@ -21,8 +21,8 @@ def _trained_template(architecture: str, relation_types, training_examples):
         architecture, relation_types, relation_capacity=8192,
         max_path_depth=4, min_probability=0.5, min_margin=0.05,
     )
-    # Only the fixed task grammar is used to fit the readout. Validation graph
-    # instances and their oracle labels are never supplied during fitting.
+    # The readout is fit on a corpus aggregated from disjoint train worlds.
+    # Validation graph instances and their oracle labels are never supplied.
     model.fit_readout(training_examples, epochs=700, learning_rate=0.12)
     return model.snapshot()
 
