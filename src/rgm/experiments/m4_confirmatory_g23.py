@@ -15,12 +15,12 @@ from rgm.experiments.m4_confirmatory_worlds import (
 from rgm.leptograph.m4.system import M4ABSystem, M4Query
 
 
-def _model(architecture, world, min_probability=0.5, min_margin=0.05):
+def _model(architecture, world, training_examples, min_probability=0.5, min_margin=0.05):
     model = M4ABSystem(
         architecture, world.relation_types, relation_capacity=8192,
         max_path_depth=4, min_probability=min_probability, min_margin=min_margin,
     )
-    model.fit_readout(world.training_examples, epochs=700, learning_rate=0.12)
+    model.fit_readout(training_examples, epochs=700, learning_rate=0.12)
     return model
 
 
@@ -44,6 +44,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
     partitions = default_partitions()
     validate_partitions(partitions)
     validation = next(p for p in partitions if p.name == "validation")
+    train = next(p for p in partitions if p.name == "train")
     seeds = validation.seeds[:world_count]
     if len(seeds) != world_count:
         raise ValueError("requested run exceeds validation partition")
@@ -51,15 +52,17 @@ def run_validation_g23(world_count: int = 12) -> dict:
     generators = (generate_world, generate_order_world)
     g2_rows = []
     g3_rows = []
-    for seed in seeds:
+    for trial_index, seed in enumerate(seeds):
         depth = (2, 3, 4)[seed % 3]
-        for generator in generators:
+        for mode_index, generator in enumerate(generators):
             base = generator(seed, depth)
+            fit_seed = train.seeds[(trial_index * len(generators) + mode_index) % len(train.seeds)]
+            training_world = generator(fit_seed, depth)
             full_view = base.learner_view()
             for architecture in ("A", "B"):
                 # G2-A: outage with no replay. A has no retained relation
                 # instances; B must answer from its persistent typed store.
-                retained = _model(architecture, base)
+                retained = _model(architecture, base, training_world.training_examples)
                 for event in full_view.events:
                     retained.observe(event)
                 retained.advance_gap(8.0)
@@ -69,7 +72,8 @@ def run_validation_g23(world_count: int = 12) -> dict:
                     query_time=base.query_time + 8.0,
                 )
                 g2_rows.append({
-                    "seed": seed, "world_id": base.world_id, "mode": base.mode,
+                    "seed": seed, "fit_seed": fit_seed, "world_id": base.world_id,
+                    "fit_world_id": training_world.world_id, "mode": base.mode,
                     "architecture": architecture, "condition": "outage_no_replay",
                     "status": no_replay["status"],
                     "correct": no_replay.get("selected_path") == base.oracle_target_path,
@@ -77,7 +81,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
                 })
 
                 # G2-B: outage with current evidence-window replay available.
-                replay = _model(architecture, base)
+                replay = _model(architecture, base, training_world.training_examples)
                 for event in full_view.events:
                     replay.observe(event)
                 replay.advance_gap(8.0)
@@ -104,7 +108,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
                     sorted((e for e in full_view.events if e.instance_id not in early_ids),
                            key=lambda e: (e.observed_at, e.event_time, e.instance_id))
                 )
-                late_model = _model(architecture, base)
+                late_model = _model(architecture, base, training_world.training_examples)
                 for event in early_view.events:
                     late_model.observe(event)
                 early_result = _query(
@@ -135,7 +139,14 @@ def run_validation_g23(world_count: int = 12) -> dict:
                                   "ambiguous_competing_paths"):
                     challenged = condition_world(base, condition)
                     challenged_view = challenged.learner_view()
-                    trial = _model(architecture, challenged)
+                    condition_training_world = (
+                        condition_world(training_world, condition)
+                        if condition == "ambiguous_competing_paths"
+                        else training_world
+                    )
+                    trial = _model(
+                        architecture, challenged, condition_training_world.training_examples
+                    )
                     for event in challenged_view.events:
                         trial.observe(event)
                     result = _query(
@@ -144,7 +155,9 @@ def run_validation_g23(world_count: int = 12) -> dict:
                         query_time=challenged.query_time,
                     )
                     g3_rows.append({
-                        "seed": seed, "world_id": challenged.world_id,
+                        "seed": seed, "fit_seed": fit_seed,
+                        "world_id": challenged.world_id,
+                        "fit_world_id": condition_training_world.world_id,
                         "mode": challenged.mode, "architecture": architecture,
                         "condition": condition, "status": result["status"],
                         "selected_path": result.get("selected_path"),
