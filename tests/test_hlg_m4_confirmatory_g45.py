@@ -7,6 +7,9 @@ def test_g4_g5_diagnostics_are_validation_only():
     assert result["confirmatory_test_accessed"] is False
     assert {row["architecture"] for row in result["G4"]["rows"]} == {"A", "B"}
     assert len(result["G5"]["rows"]) == 4
+    assert all(row["transient_disturbance_alarms"] == 0 for row in result["G4"]["rows"])
+    assert all(row["post_transient_recovery_alarms"] == 0 for row in result["G4"]["rows"])
+    assert all(row["drift_detection_delay"] is not None for row in result["G4"]["rows"])
     assert all(row["serialized_snapshot_bytes"] > 0 for row in result["G5"]["rows"])
     assert all(row["update_latency_ns_p95"] >= row["update_latency_ns_p50"]
                for row in result["G5"]["rows"])
