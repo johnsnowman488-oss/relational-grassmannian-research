@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import platform
 import random
 import sys
@@ -20,11 +21,12 @@ import numpy as np
 from rgm.experiments.m4_confirmatory_worlds import (
     build_training_corpus, condition_world, default_partitions,
     generate_order_world, generate_world, partition_manifest,
-    validate_partitions,
+    preflight_audit, validate_partitions,
 )
 from rgm.experiments.m4_confirmatory_g45 import (
     _bce, _g5_resources, _system_equal_to_snapshot,
 )
+from rgm.experiments.m4_confirmatory_frontier import run_validation_frontier
 from rgm.leptograph.m4.adaptive import M4AdaptiveController
 from rgm.leptograph.m4.composition import RelationInstance
 from rgm.leptograph.m4.system import M4ABSystem, M4Query, PathTrainingExample
@@ -45,13 +47,29 @@ def _load_config():
         raise RuntimeError("confirmatory configuration is not frozen")
     if config.get("confirmatory_test_accessed") is not False:
         raise RuntimeError("config must declare test partition sealed before execution")
-    return config, hashlib.sha256(raw).hexdigest()
+    if config.get("confirmatory_authorized") is not True:
+        raise RuntimeError("confirmatory execution is not authorized in the frozen config")
+    actual_sha = hashlib.sha256(raw).hexdigest()
+    expected_sha = os.environ.get("M4_EXPECTED_CONFIG_SHA256")
+    if expected_sha and expected_sha != actual_sha:
+        raise RuntimeError("config SHA-256 does not match committed sidecar")
+    expected_parent = os.environ.get("M4_IMPLEMENTATION_COMMIT")
+    if expected_parent and expected_parent != config.get("parent_implementation_commit"):
+        raise RuntimeError("frozen implementation parent does not match checkout")
+    return config, actual_sha
 
 
 def _partitions(config):
     parts = default_partitions()
     validate_partitions(parts)
     manifest = partition_manifest(parts)
+    if config.get("generator") != manifest.get("generator"):
+        raise RuntimeError("frozen generator version does not match implementation")
+    manifest_sha = hashlib.sha256(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    if config.get("partition_manifest_sha256") and config["partition_manifest_sha256"] != manifest_sha:
+        raise RuntimeError("combined partition manifest hash mismatch")
     expected = config["partitions"]
     for part in parts:
         record = expected[part.name]
@@ -439,8 +457,13 @@ def run_confirmatory_campaign():
         }
     ]
     g3_positive = [row for row in g3 if row["condition"] == "multiple_target_witnesses"]
+    future_audit = preflight_audit(96)
     hard_invariants = {
         "invalid_witnesses_accepted": sum(
+            row["status"] == "SELECTED" and not row["witness_valid"]
+            for row in [*g1, *g3]
+        ),
+        "typed_endpoint_violations": sum(
             row["status"] == "SELECTED" and not row["witness_valid"]
             for row in [*g1, *g3]
         ),
@@ -452,10 +475,19 @@ def run_confirmatory_campaign():
         "g3_positive_control_coverage": (
             sum(row["status"] == "SELECTED" for row in g3_positive) / max(1, len(g3_positive))
         ),
-        "future_observation_leaks": 0,
+        "future_observation_leaks": 0 if future_audit["future_observation_invariant"] else 1,
         "test_rows_used_for_threshold_tuning": 0,
     }
 
+    g4_hard_invariants = {
+        "exact_system_rollback_failures": sum(not row["rollback_exact"] for row in g4),
+        "exact_detector_rollback_failures": sum(not row["detector_rollback_exact"] for row in g4),
+        "rejected_candidate_changed_incumbent": sum(
+            not row["candidate_rejected_control"] or not row["rejection_left_incumbent_unchanged"]
+            for row in g4
+        ),
+        "dormancy_recovery_failures": sum(not row["dormancy_recovery_completed"] for row in g4),
+    }
     paired = {
         "G1_exact_accuracy_B_minus_A": _paired_bootstrap(g1, "correct"),
         "G2_no_replay_accuracy_B_minus_A": _paired_bootstrap(g2, "correct", "outage_no_replay"),
@@ -466,6 +498,8 @@ def run_confirmatory_campaign():
             "false_selection_value",
         ),
         "G4_test_loss_improvement_B_minus_A": _paired_bootstrap(g4, "test_loss_improvement"),
+        "G4_candidate_promotion_B_minus_A": _paired_bootstrap(g4, "candidate_promoted"),
+        "G4_exact_rollback_B_minus_A": _paired_bootstrap(g4, "rollback_exact"),
     }
 
     return {
@@ -486,12 +520,15 @@ def run_confirmatory_campaign():
             "min_margin": config["readout"]["min_margin"],
         },
         "confirmatory_test_accessed": True,
+        "test_rows_used_for_threshold_tuning": 0,
         "G1": {"rows": g1},
         "G2": {"rows": g2},
         "G3": {"rows": g3},
         "G4": {"rows": g4},
         "G5": {"rows": g5},
+        "G5_memory_budgeted_frontier": g5_frontier,
         "hard_invariants": hard_invariants,
+        "G4_hard_invariants": g4_hard_invariants,
         "paired_comparisons": paired,
         "claim_boundary": (
             "This is confirmatory evidence only for the frozen within-vocabulary, "
