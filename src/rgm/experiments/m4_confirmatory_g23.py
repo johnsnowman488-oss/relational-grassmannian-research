@@ -47,6 +47,8 @@ def run_validation_g23(
         raise ValueError("world_count must be positive")
     partitions = default_partitions()
     validate_partitions(partitions)
+    if partition_name != "validation" or not calibrate:
+        raise ValueError("G2/G3 diagnostic calibration is sealed to validation; use the frozen campaign runner for test execution")
     selected_partition = next(p for p in partitions if p.name == partition_name)
     train = next(p for p in partitions if p.name == "train")
     seeds = selected_partition.seeds[:world_count]
