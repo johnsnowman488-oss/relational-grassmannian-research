@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          IMPLEMENTATION_COMMIT="$(git rev-parse HEAD^)"
+          IMPLEMENTATION_COMMIT="$(git rev-parse HEAD^^)"
           EXPECTED_CONFIG_SHA="$(cat docs/experiments/HLG_M4_CONFIRMATORY_CONFIG.sha256)"
           ACTUAL_CONFIG_SHA="$(sha256sum docs/experiments/HLG_M4_CONFIRMATORY_CONFIG.json | awk '{print $1}')"
           test "$EXPECTED_CONFIG_SHA" = "$ACTUAL_CONFIG_SHA"
