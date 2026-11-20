@@ -115,7 +115,7 @@ These are software/validation diagnostics on 12 validation seeds across two task
 
 The pilot now demonstrates that the implemented readout can rank both randomized typed-chain patterns and cyclic same-bag/different-order paths after adding adjacent transition features. B's persistence advantage is visible in no-replay outages, while it incurs additional stored payload and higher query latency in this resource sweep. Neither result establishes universal A/B superiority. The validation sample remains small and task-family bounded.
 
-## 5. Experimental controls and statistics
+## 6. Experimental controls and statistics
 
 - A and B receive identical observation streams, query sets, observation cutoffs, train/validation/test partitions and seeds.
 - The statistical unit is an independent relational world, not an entity identifier or individual query. Queries/conditions within a world are clustered.
@@ -127,7 +127,7 @@ The pilot now demonstrates that the implemented readout can rank both randomized
 - Freeze test seeds, generator version, partition manifest, thresholds, metrics and gate rules before opening confirmatory outcomes.
 - Pilot runs may inspect generator validity and software correctness, not test-set performance. Keep pilot and confirmatory artifact namespaces separate.
 
-## 6. Gate policy
+## 7. Gate policy
 
 Numerical thresholds are **not yet frozen**. Derive them from task requirements and validation distributions before opening the confirmatory test partition. Do not invent or retrofit thresholds after seeing test outcomes.
 
@@ -140,7 +140,7 @@ Gate categories:
 6. G5: declared memory/latency/throughput envelope and matched-resource comparison.
 7. Provenance: seed-level rows, immutable manifest, commit, runtime versions, artifact hashes and verifier.
 
-## 7. Execution order
+## 8. Execution order
 
 1. Verify actual merged research branch and inspect integrated implementation (completed for this work session).
 2. Record this ledger in the repository and Library.
@@ -152,7 +152,7 @@ Gate categories:
 8. Run confirmatory A/B campaign, preserve seed/world-level results and artifacts.
 9. Analyse paired comparisons and resource frontiers; issue a bounded evidence report.
 
-## 8. Current status and open items
+## 9. Current status and open items
 
 - [x] Verified repository default branch is `main`.
 - [x] Verified PR #44/#45 work is on `research/hlg-m4-preimplementation-ledger`, not `main`.
