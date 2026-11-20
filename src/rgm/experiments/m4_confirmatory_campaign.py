@@ -676,4 +676,4 @@ if __name__ == "__main__":
     }, sort_keys=True, indent=2))
     if output_path is not None:
         with open(output_path, "w", encoding="utf-8") as stream:
-            stream.write(payload + "\\n")
+            stream.write(payload + "\n")
