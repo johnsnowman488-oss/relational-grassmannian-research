@@ -93,7 +93,7 @@ def run_validation_g23(world_count: int = 60) -> dict:
                 # instances; B must answer from its persistent typed store.
                 retained = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)
                 retained.restore(templates[(generator, architecture)])
-                for event in full_view.events:
+                for event in sorted(full_view.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
                     retained.observe(event)
                 retained.advance_gap(8.0)
                 no_replay = _query(
@@ -113,7 +113,7 @@ def run_validation_g23(world_count: int = 60) -> dict:
                 # G2-B: outage with current evidence-window replay available.
                 replay = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)
                 replay.restore(templates[(generator, architecture)])
-                for event in full_view.events:
+                for event in sorted(full_view.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
                     replay.observe(event)
                 replay.advance_gap(8.0)
                 replayed = _query(
@@ -142,7 +142,7 @@ def run_validation_g23(world_count: int = 60) -> dict:
                 )
                 late_model = M4ABSystem(architecture, base.relation_types, relation_capacity=8192, max_path_depth=4, min_probability=0.5, min_margin=0.05)
                 late_model.restore(templates[(generator, architecture)])
-                for event in early_view.events:
+                for event in sorted(early_view.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
                     late_model.observe(event)
                 early_result = _query(
                     late_model, base, early_view.events, architecture,
@@ -189,7 +189,7 @@ def run_validation_g23(world_count: int = 60) -> dict:
                         ambiguous_templates[(generator, architecture)]
                         if is_ambiguous else templates[(generator, architecture)]
                     )
-                    for event in challenged_view.events:
+                    for event in sorted(challenged_view.events, key=lambda e: (e.observed_at, e.event_time, e.instance_id)):
                         trial.observe(event)
                     result = _query(
                         trial, challenged, challenged_view.events, architecture,
