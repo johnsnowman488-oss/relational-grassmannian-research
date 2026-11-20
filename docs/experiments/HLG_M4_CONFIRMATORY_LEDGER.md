@@ -16,7 +16,7 @@ A and B remain the only primary architectures. B is the leading hypothesis from 
 - **A:** SOE temporal memory with learned relational readout; no separate persistent relation-instance store. It can use an explicitly supplied current evidence window.
 - **B:** The same SOE/readout pipeline plus a bounded persistent typed relation-instance store.
 - Candidate paths are enumerated from task-visible graph instances; the learned readout ranks candidates; the P0 composer validates witnesses. This is not autonomous open-world topology discovery.
-- The readout uses relation counts, SOE temporal summaries, architecture support, position-specific relation indicators and adjacent ordered-pair transition features. It remains a fixed-vocabulary, bounded-feature model.
+- The readout uses relation counts, SOE temporal summaries, architecture support, position-specific relation indicators and adjacent ordered-pair transition features. It remains a fixed-vocabulary, bounded-feature model. Observations are ingested in ascending `(observed_at, event_time, instance_id)` order except in explicitly staged late-arrival trials. Observations are ingested in ascending `(observed_at, event_time, instance_id)` order except in explicitly staged late-arrival trials.
 - Maximum tested composition depth is 4 in this campaign.
 - P0 witness correctness and P1 first-failure attribution remain mandatory.
 - P6 lifecycle must be exercised as an operational sequence, not only as isolated controller method calls.
