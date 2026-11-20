@@ -109,7 +109,10 @@ def _g4_trials(world_count: int):
                     max_path_depth=4, min_probability=0.5, min_margin=0.05,
                 )
                 candidate.fit_readout(train_examples, epochs=900, learning_rate=0.12)
-                validation_examples = world.training_examples
+                validation_examples = (
+                    PathTrainingExample(world.oracle_target_path, 1),
+                    PathTrainingExample(world.oracle_decoy_paths[0], 0),
+                )
                 incumbent_loss = _bce(model, validation_examples)
                 candidate_eval = M4ABSystem(
                     architecture, world.relation_types, relation_capacity=8192,
