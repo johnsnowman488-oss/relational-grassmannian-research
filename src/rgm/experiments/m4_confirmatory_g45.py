@@ -94,6 +94,13 @@ def _g4_trials(world_count: int):
                 stable_alarms = sum(
                     controller.observe_residual(0.05) for _ in range(100)
                 )
+                transient_alarms = sum(
+                    controller.observe_residual(3.0) for _ in range(3)
+                )
+                post_transient_recovery_alarms = sum(
+                    controller.observe_residual(0.05) for _ in range(60)
+                )
+                post_transient_statistic = float(controller.detector.statistic)
                 detection_delay = None
                 for step in range(1, 31):
                     if controller.observe_residual(3.0):
@@ -155,6 +162,9 @@ def _g4_trials(world_count: int):
                     "seed": seed, "world_id": world.world_id, "mode": world.mode,
                     "architecture": architecture,
                     "stable_control_alarms": int(stable_alarms),
+                    "transient_disturbance_alarms": int(transient_alarms),
+                    "post_transient_recovery_alarms": int(post_transient_recovery_alarms),
+                    "post_transient_statistic": post_transient_statistic,
                     "drift_detection_delay": detection_delay,
                     "incumbent_validation_loss": incumbent_loss,
                     "candidate_validation_loss": candidate_loss,
@@ -268,6 +278,8 @@ def run_validation_g45(world_count: int = 12,
                     "promotions": sum(r["architecture"] == arch and r["candidate_promoted"] for r in g4),
                     "exact_rollbacks": sum(r["architecture"] == arch and r["rollback_exact"] for r in g4),
                     "stable_control_alarms": sum(r["architecture"] == arch and r["stable_control_alarms"] > 0 for r in g4),
+                    "transient_disturbance_alarms": sum(r["architecture"] == arch and r["transient_disturbance_alarms"] > 0 for r in g4),
+                    "post_transient_recovery_alarms": sum(r["architecture"] == arch and r["post_transient_recovery_alarms"] > 0 for r in g4),
                     "rejection_controls_passed": sum(r["architecture"] == arch and r["candidate_rejected_control"] and r["rejection_left_incumbent_unchanged"] for r in g4),
                     "dormancy_recovery_passed": sum(r["architecture"] == arch and r["dormancy_recovery_completed"] for r in g4),
                 } for arch in ("A", "B")
