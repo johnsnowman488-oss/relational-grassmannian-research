@@ -12,7 +12,12 @@ def test_g2_g3_diagnostics_are_validation_only_and_cover_a_b():
     }
     assert {row["condition"] for row in result["G3"]["rows"]} == {
         "missing_target_edge", "wrong_context_target",
-        "temporal_invalid_target", "multiple_target_witnesses"
+        "temporal_invalid_target", "multiple_target_witnesses",
+        "ambiguous_competing_paths"
     }
     assert all(row["witness_valid"] for row in result["G3"]["rows"]
                if row["status"] == "SELECTED")
+    ambiguous = [row for row in result["G3"]["rows"]
+                 if row["condition"] == "ambiguous_competing_paths"]
+    assert len(ambiguous) == 3 * 2 * 2
+    assert all(row["status"] == "ABSTAIN_AMBIGUOUS" for row in ambiguous)
