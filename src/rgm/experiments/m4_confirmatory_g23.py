@@ -158,10 +158,13 @@ def run_validation_g23(world_count: int = 12) -> dict:
                                   "ambiguous_competing_paths"):
                     challenged = condition_world(base, condition)
                     challenged_view = challenged.learner_view()
+                    is_ambiguous = condition == "ambiguous_competing_paths"
                     condition_examples = (
-                        ambiguous_corpora[generator]
-                        if condition == "ambiguous_competing_paths"
-                        else train_examples
+                        ambiguous_corpora[generator] if is_ambiguous else train_examples
+                    )
+                    condition_corpus_digest = (
+                        corpus_info["ambiguous_corpus_sha256"]
+                        if is_ambiguous else corpus_info["training_corpus_sha256"]
                     )
                     trial = _model(architecture, challenged, condition_examples)
                     for event in challenged_view.events:
@@ -175,6 +178,7 @@ def run_validation_g23(world_count: int = 12) -> dict:
                         "seed": seed, "world_id": challenged.world_id,
                         "mode": challenged.mode, "architecture": architecture,
                         **corpus_info,
+                        "training_corpus_sha256": condition_corpus_digest,
                         "condition": condition, "status": result["status"],
                         "selected_path": result.get("selected_path"),
                         "selected_is_planted_target": (
