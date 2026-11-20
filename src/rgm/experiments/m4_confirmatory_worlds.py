@@ -366,7 +366,7 @@ def partition_manifest(partitions: Iterable[WorldPartition]) -> dict:
     parts = tuple(partitions)
     validate_partitions(parts)
     return {
-        "generator": "m4-independent-typed-worlds-v1",
+        "generator": "m4-independent-typed-worlds-v2-randomized-relations",
         "partition_world_ids": {
             part.name: [f"m4-world-{seed:08d}" for seed in part.seeds]
             for part in parts
