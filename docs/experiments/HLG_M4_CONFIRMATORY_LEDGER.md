@@ -96,7 +96,7 @@ These are software/validation diagnostics across all 60 validation seeds and two
 - Preflight audit: 96 generated worlds; 83 distinct identity-invariant topology fingerprints; 51 distinct relation-signature sets across 7 typed namespaces; 48 heterogeneous typed-chain and 48 homogeneous order-sensitive worlds.
 - Relation-layer assignment is randomized across heterogeneous worlds. Homogeneous order-sensitive worlds use cyclic forward sequences against same-bag reverse sequences.
 - The earlier readout could not separate the randomized cyclic order family. We added explicit adjacent ordered-pair transition features to the linear readout; feature dimensions and resource costs consequently increased.
-- After that correction, A and B each selected the planted path in 24/24 validation cases (12 per task mode), with zero invalid witnesses and no abstentions.
+- After that correction, A and B each selected the planted path in 120/120 validation cases (60 per task mode), with zero invalid witnesses and no abstentions.
 
 ### G2 and G3
 
