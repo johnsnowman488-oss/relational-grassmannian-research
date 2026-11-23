@@ -157,3 +157,45 @@ class SOEHierarchyBridge:
         if isinstance(count, bool) or not isinstance(count, int) or count < 0:
             raise ValueError("count must be a non-negative integer")
         return [self.step() for _ in range(count)]
+
+
+H0_DEFAULT_EDGES = (
+    {"source_level": 0, "target_level": 1, "relation": 0, "gain": 1.0, "normalize_weights": True},
+    {"source_level": 1, "target_level": 2, "relation": 0, "gain": 1.0, "normalize_weights": True},
+    {"source_level": 2, "target_level": 1, "relation": 1, "gain": 1.0, "normalize_weights": True},
+    {"source_level": 1, "target_level": 0, "relation": 1, "gain": 1.0, "normalize_weights": True},
+)
+
+
+def make_h0_chain_spec(
+    memories: Sequence[SOEMemory],
+    kernels: Sequence[Mapping[str, object]],
+    *,
+    dt: float,
+) -> tuple[list[dict], list[dict]]:
+    """Build the matched three-level native chain specification.
+
+    Native relation values follow the M4 ABI: 0 is bottom-up and 1 is
+    top-down. Each kernel mapping must provide gamma and w; optional
+    linear_decay, forcing_bias, form and coupling_index are forwarded.
+    """
+    if len(memories) != 3 or len(kernels) != 3:
+        raise ValueError("H0 requires exactly three memories and three kernel specifications")
+    if not isfinite(dt) or dt <= 0:
+        raise ValueError("dt must be finite and positive")
+    levels = []
+    for index, (memory, kernel) in enumerate(zip(memories, kernels)):
+        if "gamma" not in kernel or "w" not in kernel:
+            raise ValueError(f"kernel specification {index} must provide gamma and w")
+        levels.append(make_native_level_spec(
+            memory,
+            name=H0_LEVEL_ROLES[index],
+            gamma=kernel["gamma"],
+            weights=kernel["w"],
+            dt=dt,
+            linear_decay=kernel.get("linear_decay"),
+            forcing_bias=kernel.get("forcing_bias"),
+            form=int(kernel.get("form", 1)),
+            coupling_index=int(kernel.get("coupling_index", 0)),
+        ))
+    return levels, [dict(edge) for edge in H0_DEFAULT_EDGES]
