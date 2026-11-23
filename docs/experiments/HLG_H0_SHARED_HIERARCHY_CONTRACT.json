@@ -2,15 +2,87 @@
   "contract": "rgm.hlg.hierarchy",
   "version": "0.1.0",
   "level_count": 3,
-  "level_roles": ["grounding", "relational_abstraction", "context_control"],
-  "timestep": {"mode": "fixed", "shared_across_levels": true, "gap": "explicit_silent_ticks", "late_arrival": "ingest_at_observation_time"},
-  "edges": [
-    {"source_level": 0, "target_level": 1, "relation": "bottom_up", "gain": 1.0, "normalize_weights": true},
-    {"source_level": 1, "target_level": 2, "relation": "bottom_up", "gain": 1.0, "normalize_weights": true},
-    {"source_level": 2, "target_level": 1, "relation": "top_down", "gain": 1.0, "normalize_weights": true},
-    {"source_level": 1, "target_level": 0, "relation": "top_down", "gain": 1.0, "normalize_weights": true}
+  "level_roles": [
+    "grounding",
+    "relational_abstraction",
+    "context_control"
   ],
-  "soe_embedding": {"source_shape": ["n_channels", "feature_dim"], "native_u_length": "n_channels*feature_dim", "order": "row_major", "native_chi_is_separate": true, "embedding_lossless": true, "native_evolution_equivalent_to_soe": false},
-  "synchronisation": {"feedback_from_same_pre_step_snapshot": true, "native_step_calls_per_tick": 1},
-  "checkpoint_components": ["native_runtime", "soe_banks", "architecture_state", "readouts", "relation_store_if_hlb", "event_tick", "random_generator_state"]
+  "timestep": {
+    "mode": "fixed",
+    "shared_across_levels": true,
+    "gap": "explicit_silent_ticks",
+    "late_arrival": "ingest_at_observation_time"
+  },
+  "edges": [
+    {
+      "source_level": 0,
+      "target_level": 1,
+      "relation": "bottom_up",
+      "gain": 1,
+      "normalize_weights": true
+    },
+    {
+      "source_level": 1,
+      "target_level": 2,
+      "relation": "bottom_up",
+      "gain": 1,
+      "normalize_weights": true
+    },
+    {
+      "source_level": 2,
+      "target_level": 1,
+      "relation": "top_down",
+      "gain": 1,
+      "normalize_weights": true
+    },
+    {
+      "source_level": 1,
+      "target_level": 0,
+      "relation": "top_down",
+      "gain": 1,
+      "normalize_weights": true
+    }
+  ],
+  "soe_embedding": {
+    "source_shape": [
+      "n_channels",
+      "feature_dim"
+    ],
+    "native_u_length": "n_channels*feature_dim",
+    "order": "row_major",
+    "native_chi_is_separate": true,
+    "embedding_lossless": true,
+    "native_evolution_equivalent_to_soe": false
+  },
+  "synchronisation": {
+    "feedback_from_same_pre_step_snapshot": true,
+    "native_step_calls_per_tick": 1
+  },
+  "checkpoint_components": [
+    "native_runtime",
+    "soe_banks",
+    "architecture_state",
+    "readouts",
+    "relation_store_if_hlb",
+    "event_tick",
+    "random_generator_state"
+  ],
+  "architectures": {
+    "HLA": {
+      "soe_temporal_memory": true,
+      "persistent_relation_store_levels": [],
+      "upper_level_representation": "learned_readouts_and_native_state",
+      "exact_witness_requires_current_evidence": true
+    },
+    "HLB": {
+      "soe_temporal_memory": true,
+      "persistent_relation_store_levels": [
+        0,
+        1,
+        2
+      ],
+      "upper_level_representation": "persistent_typed_relations_with_witness_references",
+      "capacity_exhaustion": "abstain_without_eviction"
+    }
+  }
 }
