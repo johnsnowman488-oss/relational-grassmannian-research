@@ -20,7 +20,7 @@ Matched HLA/HLB runs use identical level count, ordering, state dimensions, time
 
 **HLA:** SOE temporal memory and learned readouts; no persistent relation-instance store at intermediate or context/control levels. Exact path claims still require current evidence and the shared witness validator. Missing evidence means abstention or a separately typed abstract prediction, never a fabricated witness.
 
-**HLB:** the same SOE substrate plus a bounded persistent typed relation-instance store. Derived relations preserve witness references. Capacity exhaustion is explicit abstention; there is no silent eviction. Records are filtered by observation cutoff, event time, validity and context.
+**HLB:** the same SOE substrate plus one bounded canonical persistent typed relation-instance store, exposed through level-scoped indexes rather than duplicated per-level copies. Derived relations preserve witness references. Capacity exhaustion is explicit abstention; there is no silent eviction. Records are filtered by observation cutoff, event time, validity and context.
 
 The native runtime is architecture-neutral. HLA/HLB policy remains in Python.
 
