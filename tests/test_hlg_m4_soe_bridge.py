@@ -9,7 +9,7 @@ class FakeRuntime:
     def __init__(self, banks):
         self.calls = []
         self.snapshot = {"level_states": [
-            {"u": np.zeros(m.channel_count * m.feature_dim).tolist(),
+            {"u": m.snapshot().reshape(-1).tolist(),
              "chi": [0.0] * m.channel_count, "t": 0.0}
             for m in banks
         ]}
