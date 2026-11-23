@@ -103,3 +103,21 @@ def test_silent_steps_are_explicit_global_ticks():
     bridge = SOEHierarchyBridge(runtime, banks, dt=0.01)
     assert len(bridge.silent_steps(4)) == 4
     assert len(runtime.calls) == 4
+
+
+def test_h0_chain_spec_has_shared_three_level_topology():
+    from rgm.leptograph.m4.soe_bridge import H0_DEFAULT_EDGES, make_h0_chain_spec
+
+    banks = make_banks()
+    kernels = [
+        {"gamma": bank.decay_rates.tolist(), "w": [1.0] * bank.channel_count}
+        for bank in banks
+    ]
+    levels, edges = make_h0_chain_spec(banks, kernels, dt=0.01)
+    assert len(levels) == 3
+    assert [level["name"] for level in levels] == [
+        "grounding", "relational_abstraction", "context_control"
+    ]
+    assert [len(level["u"]) for level in levels] == [6, 6, 8]
+    assert edges == [dict(edge) for edge in H0_DEFAULT_EDGES]
+    assert all(level["dt"] == 0.01 for level in levels)
