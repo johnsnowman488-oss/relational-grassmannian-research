@@ -67,6 +67,8 @@ def make_native_level_spec(
         raise ValueError("native gamma and weights must match SOE channel count")
     if not np.all(np.isfinite(gamma_values)) or np.any(gamma_values <= 0):
         raise ValueError("native gamma must be finite and positive")
+    if np.any(gamma_values[:-1] < gamma_values[1:]):
+        raise ValueError("native gamma must be sorted in descending order")
     if not np.all(np.isfinite(weight_values)) or np.any(weight_values < 0) or weight_values.sum() <= 0:
         raise ValueError("native weights must be finite, non-negative and have positive sum")
     if not isfinite(dt) or dt <= 0:
@@ -103,7 +105,18 @@ class SOEHierarchyBridge:
         self.memories = tuple(memories)
         self.layouts = tuple(SOEStateLayout(m.channel_count, m.feature_dim) for m in self.memories)
         self.dt = float(dt)
-        self._validate_native_state(runtime.get_state())
+        initial_snapshot = runtime.get_state()
+        self._validate_native_state(initial_snapshot)
+        for index, (state, memory, layout) in enumerate(zip(
+            initial_snapshot["level_states"], self.memories, self.layouts
+        )):
+            if not np.array_equal(
+                np.asarray(state["u"], dtype=np.float64),
+                layout.encode(memory.snapshot()),
+            ):
+                raise ValueError(
+                    f"native level {index} must be initialised from its matching SOE snapshot"
+                )
 
     def _validate_native_state(self, snapshot: dict) -> None:
         try:
