@@ -76,13 +76,14 @@
     },
     "HLB": {
       "soe_temporal_memory": true,
-      "persistent_relation_store_levels": [
+      "upper_level_representation": "persistent_typed_relations_with_witness_references",
+      "capacity_exhaustion": "abstain_without_eviction",
+      "store_model": "one_canonical_persistent_store_with_level_scoped_indexes",
+      "persistent_relation_visibility_levels": [
         0,
         1,
         2
-      ],
-      "upper_level_representation": "persistent_typed_relations_with_witness_references",
-      "capacity_exhaustion": "abstain_without_eviction"
+      ]
     }
   }
 }
