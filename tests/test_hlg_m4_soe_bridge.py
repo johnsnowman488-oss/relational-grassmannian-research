@@ -121,3 +121,17 @@ def test_h0_chain_spec_has_shared_three_level_topology():
     assert [len(level["u"]) for level in levels] == [6, 6, 8]
     assert edges == [dict(edge) for edge in H0_DEFAULT_EDGES]
     assert all(level["dt"] == 0.01 for level in levels)
+
+
+def test_native_step_failure_does_not_commit_python_soe_state():
+    class FailingRuntime(FakeRuntime):
+        def step(self, feedback_by_level=None):
+            raise RuntimeError("native step rejected")
+
+    banks = make_banks()
+    runtime = FailingRuntime(banks)
+    bridge = SOEHierarchyBridge(runtime, banks, dt=0.01)
+    before = [bank.channels.copy() for bank in banks]
+    with pytest.raises(RuntimeError, match="native step rejected"):
+        bridge.step({0: [1.0, 0.0, 0.0]})
+    assert all(np.array_equal(a, b.channels) for a, b in zip(before, banks))
