@@ -143,17 +143,22 @@ class SOEHierarchyBridge:
             if vector.shape != (self.memories[index].feature_dim,) or not np.all(np.isfinite(vector)):
                 raise ValueError(f"event feature for level {index} has invalid dimension or values")
 
-        for index, memory in enumerate(self.memories):
+        # Work on copies so a native-step failure cannot leave Python SOE
+        # state advanced while the persistent C++ hierarchy remains unchanged.
+        candidates = [memory.copy() for memory in self.memories]
+        for index, memory in enumerate(candidates):
             if index in features:
                 memory.update(features[index], dt=tick)
             else:
                 memory.advance(tick)
         feedback = {
             i: self.layouts[i].encode(memory.snapshot()).tolist()
-            for i, memory in enumerate(self.memories)
+            for i, memory in enumerate(candidates)
         }
         result = self.runtime.step(feedback)
         self._validate_native_state(result)
+        for memory, candidate in zip(self.memories, candidates):
+            memory.channels = candidate.channels.copy()
         return {
             "native": result,
             "native_u_views": [
