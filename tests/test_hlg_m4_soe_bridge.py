@@ -110,7 +110,7 @@ def test_h0_chain_spec_has_shared_three_level_topology():
 
     banks = make_banks()
     kernels = [
-        {"gamma": bank.decay_rates.tolist(), "w": [1.0] * bank.channel_count}
+        {"gamma": sorted(bank.decay_rates.tolist(), reverse=True), "w": [1.0] * bank.channel_count}
         for bank in banks
     ]
     levels, edges = make_h0_chain_spec(banks, kernels, dt=0.01)
