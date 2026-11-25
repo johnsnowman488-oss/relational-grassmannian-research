@@ -500,13 +500,14 @@ class HierarchicalEvaluationRunner:
             metrics[name] = {"mean": float(np.mean(values)), "count": int(values.size)}
         return {"schema_version": H1_SCHEMA_VERSION, "task_id": self.task_id,
                 "seed": self.seed, "architecture": adapter.architecture,
-                "partition": partition.name, "task_count": len(rows),
+                "partition": partition.name, "task_fingerprint": _fingerprint(list(partition.tasks)),
+                "task_count": len(rows),
                 "metrics": metrics, "rows": rows}
 
     @staticmethod
     def paired_summary(first: Mapping, second: Mapping) -> dict:
-        if (first["task_id"], first["seed"], first["partition"]) != (
-            second["task_id"], second["seed"], second["partition"]
+        if (first["task_id"], first["seed"], first["partition"], first["task_fingerprint"]) != (
+            second["task_id"], second["seed"], second["partition"], second["task_fingerprint"]
         ):
             raise ValueError("paired comparison requires identical task, seed and partition")
         if [r["task_index"] for r in first["rows"]] != [r["task_index"] for r in second["rows"]]:
