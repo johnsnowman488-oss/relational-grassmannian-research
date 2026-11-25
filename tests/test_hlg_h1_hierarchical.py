@@ -9,6 +9,7 @@ from rgm.leptograph.m4.hierarchical import (
     CanonicalRelationStore, CompositeLifecycle, EvaluationPartition,
     HLAAdapter, HLBAdapter, HierarchicalEvaluationRunner,
     HierarchicalRuntimeDirector, ReadoutExample,
+    create_hla_adapter, create_hlb_adapter,
 )
 from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge
 
@@ -167,3 +168,46 @@ def test_evaluation_runner_keeps_confirmatory_partition_and_pairs_same_task_orde
     different_tasks = runner.run(b, EvaluationPartition("confirmatory", (0, 1, 99)))
     with pytest.raises(ValueError, match="identical task"):
         runner.paired_summary(result_a, different_tasks)
+
+
+
+def test_production_runtime_factories_create_one_native_handle_per_adapter():
+    banks_a = [
+        SOEMemory(feature_dim=2, decay_rates=[0.1, 0.4]),
+        SOEMemory(feature_dim=3, decay_rates=[0.2, 0.7]),
+        SOEMemory(feature_dim=4, decay_rates=[0.05, 0.3]),
+    ]
+    calls = []
+
+    class ClosableRuntime(FakePersistentRuntime):
+        def __init__(self, memories):
+            super().__init__(memories)
+            self.closed = False
+
+        def close(self):
+            self.closed = True
+
+    def factory(library, levels, edges):
+        calls.append((library, levels, edges))
+        return ClosableRuntime(banks_a)
+
+    library = object()
+    kernels = [
+        {"gamma": sorted(bank.decay_rates.tolist(), reverse=True),
+         "w": [1.0] * bank.channel_count}
+        for bank in banks_a
+    ]
+    hla = create_hla_adapter(library, banks_a, kernels, dt=0.01,
+                             runtime_factory=factory)
+    director = HierarchicalRuntimeDirector(hla)
+    assert len(calls) == 1
+    assert len(calls[0][1]) == 3
+    assert len(calls[0][2]) == 4
+    director.close()
+    assert hla.bridge.runtime.closed
+
+    banks_b = [memory.copy() for memory in banks_a]
+    hlb = create_hlb_adapter(library, banks_b, kernels, dt=0.01,
+                             runtime_factory=factory, capacity=10)
+    assert isinstance(hlb, HLBAdapter)
+    assert len(calls) == 2
