@@ -292,8 +292,18 @@ def _run_architecture(architecture, lib, readout_examples, seeds, config):
                 raise AssertionError(f"{architecture} seed {seed}: incomplete P6 mode path {sorted(set(mode_path))}")
             if model.mode.value != "DETECT":
                 raise AssertionError(f"{architecture} seed {seed}: expected DETECT mode, got {model.mode.value}")
-            if model.estimator.sample_count <= 0 or len(model.context_bank.slots) < 1:
-                raise AssertionError("P6 context/estimator state was not updated")
+            expected_updates = int(config["steps_per_seed"]) - (
+                int(config["mode_schedule"]["reactivate"])
+                - int(config["mode_schedule"]["enter_dormancy"])
+            )
+            if model.estimator.sample_count != expected_updates:
+                raise AssertionError(
+                    f"P6 estimator expected {expected_updates} updates, got {model.estimator.sample_count}"
+                )
+            for relation_key in ("lower", "upper"):
+                if (relation_key not in model.activation.states
+                        or int(model.activation.states[relation_key].observed_count) != expected_updates):
+                    raise AssertionError(f"P6 activation evidence count mismatch for {relation_key}")
             context_capacity_abstained = _fill_and_probe_context_capacity(model)
             resource = _resource_metrics(model)
             max_resource_bytes = max(
