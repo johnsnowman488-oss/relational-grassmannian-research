@@ -1,6 +1,6 @@
 # H1 implementation ledger — five hierarchical workstreams
 
-**Status:** implementation candidate pushed; CI and integration acceptance pending.
+**Status:** implementation candidate pushed; focused and full CI passed on Python 3.10 and 3.12. Real C++ runtime integration and confirmatory campaign remain pending.
 **Base:** `research/h0-shared-hierarchy-contract-soe-bridge`
 **Branch:** `research/h1-hla-hlb-five-workstreams`
 **H0 contract:** 0.1.0
@@ -45,8 +45,12 @@
 ## Validation gates
 
 - Unit tests added for readout fitting, HLA no-store boundary, HLB canonical indexing/capacity, witness preservation, director timing, composite rollback and paired evaluation.
-- Focused and full CI workflows are configured for Python 3.10 and 3.12.
-- **Not yet passed:** H1 CI, actual persistent C++ runtime integration, end-to-end HLA/HLB matched task campaign, confirmatory partition freeze, P6 stability acceptance.
+- Dedicated H1 workflow [45712034356](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45712034356): focused H1/H0 tests and full repository suite passed on Python 3.10 and 3.12.
+- Repository unit/invariant suite [45712033989](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45712033989): passed on Python 3.10 and 3.12.
+- H0 contract/regression workflow [45712034002](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45712034002): passed on Python 3.10 and 3.12.
+- G1–G5 development workflow [45712033907](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45712033907): passed on Python 3.10 and 3.12.
+- Job 4 A/B integration workflow [45712033972](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45712033972): passed on Python 3.10 and 3.12.
+- **Still pending:** actual persistent C++ runtime integration against the production runtime object, end-to-end HLA/HLB matched task campaign, confirmatory partition freeze, and P6 stability acceptance.
 - The new implementation does not establish that HLA or HLB is superior. It establishes candidate software interfaces and testable contracts only.
 
 ## Important integration boundary
