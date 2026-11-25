@@ -79,3 +79,22 @@ jobs:
           name: h1-hierarchical-validation
           path: artifacts/h1-hierarchical-validation.json
           if-no-files-found: warn
+
+      - name: Run H1 confirmatory partition after validation passes
+        env:
+          GFE_CORE_LIB: ${{ steps.library.outputs.path }}
+          ABERCONICS_PYTHON: ${{ github.workspace }}/aberconics/code/python
+          ABERCONICS_COMMIT: ${{ steps.source.outputs.commit }}
+          PYTHONPATH: ${{ github.workspace }}/research/src:${{ github.workspace }}/aberconics/code/python
+        run: |
+          python research/scripts/run_h1_hierarchical_campaign.py \
+            --partition confirmatory_test \
+            --output artifacts/h1-hierarchical-confirmatory.json
+
+      - name: Upload H1 confirmatory evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h1-hierarchical-confirmatory
+          path: artifacts/h1-hierarchical-confirmatory.json
+          if-no-files-found: warn
