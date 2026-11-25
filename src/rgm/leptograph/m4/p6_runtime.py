@@ -149,10 +149,18 @@ class P6RuntimeCoupler:
         *,
         model: CoupledAdaptiveSystem | None = None,
         hierarchy_lifecycle: CompositeLifecycle | None = None,
+        readout_gain: float = 1.0,
+        control_gain: float = 1.0,
     ):
         self.director = director
         self.hierarchy_lifecycle = hierarchy_lifecycle or CompositeLifecycle(director)
         self.model = model or CoupledAdaptiveSystem()
+        if not np.isfinite(readout_gain) or readout_gain < 0:
+            raise ValueError("readout_gain must be finite and non-negative")
+        if not np.isfinite(control_gain) or control_gain < 0:
+            raise ValueError("control_gain must be finite and non-negative")
+        self.readout_gain = float(readout_gain)
+        self.control_gain = float(control_gain)
         self.version = 0
         self._trusted: dict | None = None
         self._rollback_point: dict | None = None
@@ -163,6 +171,10 @@ class P6RuntimeCoupler:
             "schema_version": self.schema_version,
             "hierarchy": hierarchy,
             "p6": _p6_snapshot(self.model),
+            "coupling_config": {
+                "readout_gain": self.readout_gain,
+                "control_gain": self.control_gain,
+            },
             "version": self.version,
         }
         state["fingerprint"] = _fingerprint({
@@ -187,10 +199,15 @@ class P6RuntimeCoupler:
         expected = _fingerprint({
             "hierarchy": state["hierarchy"],
             "p6": state["p6"],
+            "coupling_config": state["coupling_config"],
             "version": int(state["version"]),
         })
         if state.get("fingerprint") != expected:
             raise ValueError("P6 composite checkpoint fingerprint mismatch")
+        config = state.get("coupling_config", {})
+        if (float(config.get("readout_gain", -1.0)) != self.readout_gain
+                or float(config.get("control_gain", -1.0)) != self.control_gain):
+            raise ValueError("P6 coupling gain configuration mismatch")
         # Fully validate the controller candidate before native state changes.
         candidate_model = _p6_from_snapshot(state["p6"])
         self.hierarchy_lifecycle.restore(state["hierarchy"])
@@ -241,24 +258,33 @@ class P6RuntimeCoupler:
             if 0 not in supplied:
                 raise ValueError("P6-coupled exchange requires a level-0 grounding feature")
             adapter = self.director.adapter
-            control = self.model.revision.accepted_operator @ self.model.state
+            adapter = self.director.adapter
+            control = (
+                self.control_gain
+                * (self.model.revision.accepted_operator @ self.model.state)
+            )
+            for level in (1, 2):
+                readout = adapter.readouts[level - 1]
+                if readout.fitted:
+                    base = self.readout_gain * readout.predict(
+                        adapter.bridge.memories[level - 1].snapshot().reshape(-1)
+                    )
+                else:
+                    base = np.zeros(
+                        adapter.bridge.memories[level].feature_dim, dtype=np.float64
+                    )
+                if level in supplied:
+                    if supplied[level].shape != base.shape:
+                        raise ValueError(f"level-{level} feature dimension mismatch")
+                    supplied[level] = supplied[level] + base
+                else:
+                    supplied[level] = base
+
             control_feature = np.zeros(adapter.bridge.memories[2].feature_dim, dtype=np.float64)
             if control_feature.size < 2:
                 raise ValueError("P6 context level requires at least two feature coordinates")
             control_feature[:2] = control
-            if 2 in supplied:
-                if supplied[2].shape != control_feature.shape:
-                    raise ValueError("level-2 feature dimension mismatch")
-                supplied[2] = supplied[2] + control_feature
-            else:
-                readout = adapter.readouts[1]
-                if readout.fitted:
-                    base = readout.predict(
-                        adapter.bridge.memories[1].snapshot().reshape(-1)
-                    )
-                else:
-                    base = np.zeros_like(control_feature)
-                supplied[2] = base + control_feature
+            supplied[2] = supplied[2] + control_feature
 
             result = self.director.exchange(
                 event_time=event_time, observed_at=observed_at,
