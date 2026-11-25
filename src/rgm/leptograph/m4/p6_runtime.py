@@ -17,6 +17,8 @@ import numpy as np
 
 from rgm.memory import SOEMemory
 from rgm.leptograph.m3.activation import EvidenceActivation, RelationshipEvidence
+from rgm.leptograph.m3.context import ContextBank, ContextSlot
+from rgm.leptograph.m3.estimation import MultiSourceRidge
 from rgm.leptograph.m3.revision import CUSUMDetector, CandidateRevision
 from rgm.leptograph.m4.hierarchical import (
     CompositeLifecycle, HierarchicalRuntimeDirector,
@@ -27,6 +29,92 @@ from rgm.leptograph.m4.stability import AdaptiveMode, CoupledAdaptiveSystem
 def _fingerprint(payload: Mapping) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _context_snapshot(bank: ContextBank) -> dict:
+    return {
+        "metric": bank.metric.tolist(), "capacity": int(bank.capacity),
+        "regularisation": float(bank.regularisation),
+        "accept_threshold": float(bank.accept_threshold),
+        "novelty_threshold": float(bank.novelty_threshold),
+        "ambiguity_margin": float(bank.ambiguity_margin),
+        "novelty_repeats": int(bank.novelty_repeats),
+        "full_bank_policy": bank.full_bank_policy,
+        "store_scatter": bool(bank.store_scatter),
+        "slots": [{
+            "slot_id": int(slot.slot_id), "mean": slot.mean.tolist(),
+            "scatter": slot.scatter.tolist(), "count": int(slot.count),
+            "novelty_hits": int(slot.novelty_hits),
+        } for slot in bank.slots],
+        "next_id": int(bank._next_id),
+        "pending": [np.asarray(value, dtype=np.float64).tolist() for value in bank._pending],
+        "relation_operators": {
+            str(slot_id): {key: value.tolist() for key, value in sorted(operators.items())}
+            for slot_id, operators in sorted(bank._relation_operators.items())
+        },
+    }
+
+
+def _context_from_snapshot(state: Mapping) -> ContextBank:
+    bank = ContextBank(
+        metric=np.asarray(state["metric"], dtype=np.float64),
+        capacity=int(state["capacity"]),
+        regularisation=float(state["regularisation"]),
+        accept_threshold=float(state["accept_threshold"]),
+        novelty_threshold=float(state["novelty_threshold"]),
+        ambiguity_margin=float(state["ambiguity_margin"]),
+        novelty_repeats=int(state["novelty_repeats"]),
+        full_bank_policy=str(state["full_bank_policy"]),
+        store_scatter=bool(state["store_scatter"]),
+    )
+    bank.slots = [ContextSlot(
+        slot_id=int(item["slot_id"]),
+        mean=np.asarray(item["mean"], dtype=np.float64),
+        scatter=np.asarray(item["scatter"], dtype=np.float64),
+        count=int(item["count"]), novelty_hits=int(item["novelty_hits"]),
+    ) for item in state["slots"]]
+    bank._next_id = int(state["next_id"])
+    bank._pending = [np.asarray(value, dtype=np.float64) for value in state["pending"]]
+    bank._relation_operators = {
+        int(slot_id): {key: np.asarray(value, dtype=np.float64)
+                       for key, value in operators.items()}
+        for slot_id, operators in state["relation_operators"].items()
+    }
+    return bank
+
+
+def _estimator_snapshot(estimator: MultiSourceRidge) -> dict:
+    return {
+        "source_dimensions": dict(estimator.source_dimensions),
+        "context_dimension": int(estimator.context_dimension),
+        "target_dimension": int(estimator.target_dimension),
+        "ridge": float(estimator.ridge), "forgetting": float(estimator.forgetting),
+        "gram_upper": estimator._gram_upper.tolist(), "cross": estimator.cross.tolist(),
+        "sample_count": int(estimator.sample_count),
+        "prediction_count": int(estimator.prediction_count),
+        "update_count": int(estimator.update_count),
+    }
+
+
+def _estimator_from_snapshot(state: Mapping) -> MultiSourceRidge:
+    estimator = MultiSourceRidge(
+        source_dimensions={key: int(value) for key, value in state["source_dimensions"].items()},
+        context_dimension=int(state["context_dimension"]),
+        target_dimension=int(state["target_dimension"]),
+        ridge=float(state["ridge"]), forgetting=float(state["forgetting"]),
+    )
+    gram_upper = np.asarray(state["gram_upper"], dtype=np.float64)
+    cross = np.asarray(state["cross"], dtype=np.float64)
+    if gram_upper.shape != estimator._gram_upper.shape or cross.shape != estimator.cross.shape:
+        raise ValueError("P6 estimator checkpoint dimensions do not match its configuration")
+    if not np.all(np.isfinite(gram_upper)) or not np.all(np.isfinite(cross)):
+        raise ValueError("P6 estimator checkpoint contains non-finite sufficient statistics")
+    estimator._gram_upper = gram_upper.copy()
+    estimator.cross = cross.copy()
+    estimator.sample_count = int(state["sample_count"])
+    estimator.prediction_count = int(state["prediction_count"])
+    estimator.update_count = int(state["update_count"])
+    return estimator
 
 
 def _p6_snapshot(model: CoupledAdaptiveSystem) -> dict:
@@ -81,6 +169,9 @@ def _p6_snapshot(model: CoupledAdaptiveSystem) -> dict:
         "rollback_count": int(model.rollback_count),
         "step_count": int(model.step_count),
         "max_observed_norm": float(model.max_observed_norm),
+        "context_bank": _context_snapshot(model.context_bank),
+        "estimator": _estimator_snapshot(model.estimator),
+        "last_context_slot": model.last_context_slot,
     }
 
 
@@ -117,6 +208,8 @@ def _p6_from_snapshot(state: Mapping) -> CoupledAdaptiveSystem:
         history=copy.deepcopy(list(revision_state["history"])),
     )
     trusted = state["trusted_snapshot"]
+    context_bank = _context_from_snapshot(state["context_bank"])
+    estimator = _estimator_from_snapshot(state["estimator"])
     model = CoupledAdaptiveSystem(
         transition=np.asarray(state["transition"], dtype=np.float64),
         input_matrix=np.asarray(state["input_matrix"], dtype=np.float64),
@@ -125,6 +218,9 @@ def _p6_from_snapshot(state: Mapping) -> CoupledAdaptiveSystem:
         memory=SOEMemory.from_dict(dict(state["memory"])),
         detector=detector,
         activation=activation,
+        context_bank=context_bank,
+        estimator=estimator,
+        last_context_slot=None if state["last_context_slot"] is None else int(state["last_context_slot"]),
         revision=revision,
         mode=AdaptiveMode(state["mode"]),
         trusted_snapshot=None if trusted is None else np.asarray(trusted, dtype=np.float64),
@@ -271,8 +367,13 @@ class P6RuntimeCoupler:
             )
             for level in (1, 2):
                 readout = adapter.readouts[level - 1]
-                if readout.fitted:
-                    base = self.readout_gain * readout.predict(
+                relation_key = "lower" if level == 1 else "upper"
+                relation_gate = float(
+                    self.model.activation.is_active(relation_key)
+                    and self.model.last_context_slot is not None
+                )
+                if readout.fitted and relation_gate > 0.0:
+                    base = self.readout_gain * relation_gate * readout.predict(
                         adapter.bridge.memories[level - 1].snapshot().reshape(-1)
                     )
                 else:
@@ -306,9 +407,20 @@ class P6RuntimeCoupler:
                 if self.observation_transform == "tanh"
                 else raw_observation.copy()
             )
+            grounding = supplied[0]
+            if grounding.size >= 6:
+                sources = {"lower": grounding[:2], "upper": grounding[2:4]}
+                context_features = grounding[4:6]
+            else:
+                sources = {"lower": grounding[:2], "upper": grounding[:2]}
+                context_features = np.zeros(2, dtype=np.float64)
+            adaptive_state = self.model.observe_adaptive_state(
+                sources, context_features, raw_observation
+            )
             p6_state = self.model.step(observation, residual_score=float(residual_score))
             return {
                 "hierarchy": result,
+                "adaptive_state": adaptive_state,
                 "p6_observation_raw": raw_observation.tolist(),
                 "p6_observation": observation.tolist(),
                 "p6_control": control.tolist(),
@@ -364,6 +476,11 @@ class P6RuntimeCoupler:
                 identifiable=identifiable,
             )
             if promoted:
+                if self.model.last_context_slot is not None:
+                    self.model.context_bank.set_operator(
+                        int(self.model.last_context_slot), "lower",
+                        self.model.revision.accepted_operator,
+                    )
                 self.promote()
             return promoted
         except Exception:
