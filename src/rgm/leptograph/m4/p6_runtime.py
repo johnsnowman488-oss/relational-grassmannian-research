@@ -180,6 +180,7 @@ class P6RuntimeCoupler:
         state["fingerprint"] = _fingerprint({
             "hierarchy": state["hierarchy"],
             "p6": state["p6"],
+            "coupling_config": state["coupling_config"],
             "version": state["version"],
         })
         return state
