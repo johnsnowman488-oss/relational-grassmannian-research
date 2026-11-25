@@ -150,7 +150,7 @@ After adding the real-runtime trusted-rollback assertions, the full repository t
 ## P6 coupled runtime stability — execution reconciliation (2026-11-25)
 
 ### Core P6 runtime campaign v3 — PASS, bounded claim only
-- Protocol: `docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v3.json`; SHA-256 `66b1756ac5d633a049d8a10a96f0c573478beb0a72ba508c47c5a7750b04fda8` (protocol file hash before any later formatting changes).
+- Protocol: `docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v3.json`; SHA-256 `302c7976b9a5d9fffedfba8d55dae1f0f314a8163d4bacaac7ffa2243f9a9062` (protocol file hash before any later formatting changes).
 - Workflow run: `45723023702`; artifact ID `15073565805`; artifact ZIP SHA-256 `5b757e58d789717b09262d50f3d1ef0dde8305220d3f8b929813e8f951c3bbab`.
 - Native runtime: Aberconics commit `2539df6bda7ef3c9dd7c707abe26eff8bdbb59de`; compiled shared-library SHA-256 `38b278a93a5b3fa3b544f55d958a2f7a44bb6e1d39154e63072f5ed7be511e4b`.
 - P6 implementation source SHA-256 `84c8cd0767d8a025ff585e4e314cba0638f7803e89b5a558811b98909dd872ec`.
