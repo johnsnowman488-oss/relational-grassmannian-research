@@ -23,8 +23,8 @@ from rgm.leptograph.m3.resource import integrated_resource_snapshot
 from rgm.leptograph.m4.stability import CoupledAdaptiveSystem
 
 ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL = ROOT / "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v4.json"
-SIDECAR = ROOT / "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v4.sha256"
+PROTOCOL = ROOT / "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.json"
+SIDECAR = ROOT / "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.sha256"
 SOURCE_FILES = (
     "src/rgm/leptograph/m3/activation.py",
     "src/rgm/leptograph/m3/context.py",
