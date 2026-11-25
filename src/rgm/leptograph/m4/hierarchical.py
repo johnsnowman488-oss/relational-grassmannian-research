@@ -461,9 +461,10 @@ class CompositeLifecycle:
     def __init__(self, director: HierarchicalRuntimeDirector):
         self.director = director
         self._trusted: dict | None = None
+        self._rollback_point: dict | None = None
         self.version = 0
 
-    def checkpoint(self) -> dict:
+    def _capture_checkpoint(self) -> dict:
         runtime = self.director.adapter.bridge.runtime
         if not hasattr(runtime, "checkpoint"):
             raise TypeError("persistent native runtime must expose checkpoint()")
@@ -474,7 +475,12 @@ class CompositeLifecycle:
         state["fingerprint"] = _fingerprint({
             "director": state["director"], "native": state["native"], "version": state["version"]
         })
+        return state
+
+    def checkpoint(self) -> dict:
+        state = self._capture_checkpoint()
         self._trusted = copy.deepcopy(state)
+        self._rollback_point = None
         return copy.deepcopy(state)
 
     def restore(self, state: Mapping) -> None:
