@@ -1,0 +1,82 @@
+{
+  "protocol_id": "HLG-H1-P6-ACTUAL-RUNTIME-v2",
+  "status": "frozen_before_execution",
+  "frozen_at_utc": "2026-11-25",
+  "parent_objective": "Evaluate P6 coupled finite-horizon stability and rollback against actual compiled HLA/HLB execution",
+  "seed_range": [951000, 951019],
+  "seed_count": 20,
+  "seed_list_sha256": "c8d9ec4f1caba28afd3006a371194bfe0bddd6af6971ff9b669d32930a2af97",
+  "steps_per_seed": 300,
+  "bounded_native_input": {
+    "distribution": "independent uniform",
+    "low": -1.0,
+    "high": 1.0,
+    "dimension": 16
+  },
+  "residual_spike_steps": [80, 190],
+  "residual_spike_value": 3.0,
+  "p6_model": {
+    "max_state_norm": 25.0,
+    "transition_spectral_radius_requirement": "strictly less than 1",
+    "native_observation": "mean native u at levels 1 and 2",
+    "control_injection": "accepted_operator @ p6_state added to first two coordinates of the level-2 context feature",
+    "control_timing": "one-tick feedback; current P6 state controls this tick, native output updates P6 state for the next tick"
+  },
+  "coupling": {
+    "readout_gain": 0.1,
+    "control_gain": 0.1,
+    "rationale": "Reduce the measured full-strength positive-feedback loop by a factor of ten at both learned readout injection and P6 control injection. This setting is frozen before the v2 seed campaign; no clipping or post-hoc threshold adjustment is used."
+  },
+  "candidate_lifecycle": {
+    "fit_examples": 128,
+    "validation_examples": 128,
+    "truth_operator": [[0.8, 0.1], [0.1, 0.7]],
+    "noise_sigma": 0.05,
+    "fit": "least-squares operator from fit-only examples",
+    "promotion": "existing CandidateRevision independent validation; identifiable and validation improvement greater than 1e-8",
+    "replay_steps": 20,
+    "rollback_sequence": [
+      "checkpoint immediately before candidate",
+      "record 20-step incumbent continuation",
+      "promote independently validated candidate",
+      "execute the same 20-step input sequence under candidate",
+      "exercise P6 model-level rollback to the prior operator",
+      "exercise full hierarchy/native/P6 composite rollback",
+      "replay the 20-step incumbent sequence and require exact checkpoint fingerprint equality"
+    ]
+  },
+  "native_runtime": {
+    "repository": "johnsnowman488-oss/aberconics-framework",
+    "commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
+    "dt": 0.01,
+    "feature_dim": 16,
+    "soe_channels": 4,
+    "native_gamma": "SOE rates in descending order",
+    "native_weights": [0.25, 0.25, 0.25, 0.25],
+    "linear_decay": 0.05,
+    "forcing_bias": 0.0,
+    "native_state_claim": "report finite-state status and observed maximum norm; no native-state norm threshold is asserted in this protocol"
+  },
+  "architectures": ["HLA", "HLB"],
+  "acceptance": {
+    "p6_state_finite_all_steps": true,
+    "p6_max_norm_below_25_all_seeds": true,
+    "transition_spectral_radius_below_1": true,
+    "cusum_alarms_per_seed": 2,
+    "candidate_promotions_per_architecture": 20,
+    "p6_operator_rollback_restores_incumbent": true,
+    "composite_rollback_restores_pre_candidate_checkpoint": true,
+    "incumbent_replay_checkpoint_fingerprint_matches": true,
+    "native_state_finite_all_steps": true
+  },
+  "prior_p6_reference": "HLG-M4-Job3-P6 preliminary bounded-input stress protocol",
+  "independent_seed_policy": "P6 v2 runtime seeds are separate from H1 train/validation/confirmatory seeds and from P6 v1 diagnostic seeds",
+  "claim_boundary": [
+    "finite-horizon closed-loop execution for the declared HLA/HLB native runtime configuration and frozen coupling gains",
+    "not a global stability theorem",
+    "not arbitrary-switching stability",
+    "not proof for other native kernels, timesteps, dimensions, input bounds or coupling gains"
+  ],
+  "confirmatory_authorized": true,
+  "implementation_commit": "db6b96868978ef00caa22b33b80cd1aa2508082d"
+}
