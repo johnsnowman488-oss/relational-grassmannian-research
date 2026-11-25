@@ -54,23 +54,26 @@ def test_hla_uses_two_learned_upper_readouts_without_relation_store():
     bridge, _ = make_bridge()
     hla = HLAAdapter(bridge, feature_dims=[2, 3, 4])
     hla.fit_upper_readouts(
-        [ReadoutExample((0, 0), (0, 0, 0)), ReadoutExample((1, 1), (1, 1, 1))],
-        [ReadoutExample((0, 0, 0), (0, 0, 0, 0)),
-         ReadoutExample((1, 1, 1), (1, 1, 1, 1))],
+        [ReadoutExample((0, 0, 0, 0), (0, 0, 0)),
+         ReadoutExample((1, 1, 1, 1), (1, 1, 1))],
+        [ReadoutExample((0, 0, 0, 0, 0, 0), (0, 0, 0, 0)),
+         ReadoutExample((1, 1, 1, 1, 1, 1), (1, 1, 1, 1))],
     )
     result = hla.step({0: [0.5, -0.5]})
     assert result["architecture"] == "HLA"
     assert hla.ticks == 1
     assert not hasattr(hla, "store")
-    assert hla.query_readout(1, [0.5, -0.5]).shape == (3,)
-    assert hla.query_readout(2, [0.5, 0.5, 0.5]).shape == (4,)
+    assert hla.query_readout(1, [0.5, -0.5, 0.5, -0.5]).shape == (3,)
+    abstract = hla.predict_abstract(2, [0.5] * 6)
+    assert abstract.kind == "ABSTRACT_PREDICTION"
+    assert len(abstract.features) == 4
 
 
 def test_hla_abstains_if_upper_readout_is_untrained():
     bridge, _ = make_bridge()
     hla = HLAAdapter(bridge, feature_dims=[2, 3, 4])
     with pytest.raises(RuntimeError, match="not fitted"):
-        hla.query_readout(1, [1, 2])
+        hla.query_readout(1, [1, 2, 3, 4])
     assert hla.abstentions == 1
 
 
