@@ -26,6 +26,12 @@ ROOT = Path(__file__).resolve().parents[1]
 PROTOCOL = ROOT / "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v4.json"
 SIDECAR = ROOT / "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v4.sha256"
 SOURCE_FILES = (
+    "src/rgm/leptograph/m3/activation.py",
+    "src/rgm/leptograph/m3/context.py",
+    "src/rgm/leptograph/m3/estimation.py",
+    "src/rgm/leptograph/m3/resource.py",
+    "src/rgm/leptograph/m3/revision.py",
+    "src/rgm/memory/soe.py",
     "src/rgm/leptograph/m4/composition.py",
     "src/rgm/leptograph/m4/soe_bridge.py",
     "src/rgm/leptograph/m4/hierarchical.py",
@@ -528,6 +534,10 @@ def run_p6_runtime_campaign(output_path: str | Path | None = None) -> dict:
         "HLA_mode_transitions_all_seeds": results["HLA"]["mode_transition_contracts"] == len(seeds),
         "HLB_mode_transitions_all_seeds": results["HLB"]["mode_transition_contracts"] == len(seeds),
         "HLA_context_capacity_abstention_all_seeds": results["HLA"]["context_capacity_abstentions"] == len(seeds),
+        "HLA_context_estimator_updated": results["HLA"]["max_estimator_samples"] >= int(config["steps_per_seed"]) - 10,
+        "HLB_context_estimator_updated": results["HLB"]["max_estimator_samples"] >= int(config["steps_per_seed"]) - 10,
+        "HLA_context_bank_capacity_reached": results["HLA"]["max_context_slots"] == int(config["context_bank"]["capacity"]),
+        "HLB_context_bank_capacity_reached": results["HLB"]["max_context_slots"] == int(config["context_bank"]["capacity"]),
         "HLA_resource_state_within_cap": results["HLA"]["max_resource_state_bytes"] <= int(config["resource_envelope"]["persistent_state_bytes"])
             and results["HLA"]["max_trainable_parameters"] <= int(config["resource_envelope"]["trainable_parameters"]),
         "HLB_resource_state_within_cap": results["HLB"]["max_resource_state_bytes"] <= int(config["resource_envelope"]["persistent_state_bytes"])
