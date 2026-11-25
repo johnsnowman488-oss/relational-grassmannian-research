@@ -11,6 +11,7 @@ on:
       - "scripts/run_h1_p6_runtime_v4.py"
       - "tests/test_hlg_h1_p6_runtime.py"
       - "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.json"
+      - "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.sha256"
       - ".github/workflows/h1-p6-runtime-v4.yml"
 
 permissions:
