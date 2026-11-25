@@ -38,7 +38,7 @@ class FakePersistentRuntime:
         return self.get_state()
 
 
-def make_p6_coupler():
+def make_p6_coupler(*, readout_gain=1.0, control_gain=1.0):
     banks = [
         SOEMemory(feature_dim=2, decay_rates=[0.1, 0.4]),
         SOEMemory(feature_dim=3, decay_rates=[0.2, 0.7]),
@@ -48,7 +48,9 @@ def make_p6_coupler():
     bridge = SOEHierarchyBridge(runtime, banks, dt=0.01)
     adapter = HLAAdapter(bridge, feature_dims=[2, 3, 4])
     director = HierarchicalRuntimeDirector(adapter)
-    coupler = P6RuntimeCoupler(director)
+    coupler = P6RuntimeCoupler(
+        director, readout_gain=readout_gain, control_gain=control_gain
+    )
     return coupler, runtime
 
 
@@ -113,5 +115,24 @@ def test_p6_failure_after_native_step_rolls_back_the_whole_exchange():
             )
         assert runtime.state["step_count"] == 0
         assert coupler.snapshot() == before
+    finally:
+        coupler.close()
+
+
+
+def test_p6_checkpoint_binds_readout_and_control_gain_configuration():
+    coupler, _ = make_p6_coupler(readout_gain=0.1, control_gain=0.1)
+    try:
+        checkpoint = coupler.checkpoint()
+        assert checkpoint["coupling_config"] == {
+            "readout_gain": 0.1, "control_gain": 0.1
+        }
+        wrong = P6RuntimeCoupler(
+            coupler.director,
+            hierarchy_lifecycle=coupler.hierarchy_lifecycle,
+            readout_gain=1.0, control_gain=1.0,
+        )
+        with pytest.raises(ValueError, match="gain configuration"):
+            wrong.restore(checkpoint)
     finally:
         coupler.close()
