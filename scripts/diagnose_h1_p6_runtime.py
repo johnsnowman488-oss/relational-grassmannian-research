@@ -12,7 +12,10 @@ from rgm.experiments.h1_hierarchical_campaign import (
 )
 from rgm.leptograph.m4.p6_runtime import P6RuntimeCoupler
 from rgm.leptograph.m4.stability import CoupledAdaptiveSystem
-from gfe_ctypes import load_gfe_library
+from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge, make_h0_chain_spec
+from rgm.leptograph.m4.hierarchical import HLAAdapter, HierarchicalRuntimeDirector
+from rgm.memory import SOEMemory
+from gfe_ctypes import load_gfe_library, create_persistent_hierarchy_runtime
 
 ROOT = Path(__file__).resolve().parents[1]
 M4_COMMIT = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
@@ -73,6 +76,74 @@ def run_one(architecture: str, seed: int, *, control_enabled: bool) -> dict:
         coupler.close()
 
 
+
+def sweep_native_parameters(seed: int = 950000) -> list[dict]:
+    """Exploratory one-seed sweep to isolate native coupling vs damping."""
+    _, partitions, _ = load_frozen_partitions()
+    examples = _readout_examples(partitions["train"].seeds, _readout_target_matrices())
+    lib = load_gfe_library(os.environ["GFE_CORE_LIB"])
+    results = []
+    for edge_gain in (1.0, 0.25, 0.1, 0.05, 0.01):
+        for decay in (0.05, 0.5, 1.0, 2.0, 5.0):
+            banks = [SOEMemory(feature_dim=16) for _ in range(3)]
+            kernels = [
+                {
+                    "gamma": bank.decay_rates[::-1].tolist(),
+                    "w": [0.25] * bank.channel_count,
+                    "linear_decay": [decay] * (bank.channel_count * bank.feature_dim),
+                    "forcing_bias": [0.0] * (bank.channel_count * bank.feature_dim),
+                }
+                for bank in banks
+            ]
+            levels, edges = make_h0_chain_spec(banks, kernels, dt=0.01)
+            for edge in edges:
+                edge["gain"] = edge_gain
+            runtime = create_persistent_hierarchy_runtime(lib, levels, edges)
+            bridge = SOEHierarchyBridge(runtime, banks, dt=0.01)
+            adapter = HLAAdapter(bridge, feature_dims=[16, 16, 16])
+            adapter.fit_upper_readouts(*examples)
+            director = HierarchicalRuntimeDirector(adapter)
+            p6 = CoupledAdaptiveSystem(max_state_norm=25.0)
+            rng = np.random.default_rng(seed)
+            max_native = [0.0, 0.0, 0.0]
+            max_p6 = 0.0
+            first_p6_failure = None
+            native_finite = True
+            try:
+                for tick in range(300):
+                    feature = rng.uniform(-1.0, 1.0, size=16)
+                    result = director.exchange(
+                        event_time=(tick + 1) * 0.01,
+                        observed_at=(tick + 1) * 0.01,
+                        event_features={0: feature},
+                    )
+                    native_levels = result["result"]["native"]["level_states"]
+                    for level_index, level in enumerate(native_levels):
+                        values = np.asarray(level["u"], dtype=np.float64)
+                        native_finite = native_finite and bool(np.all(np.isfinite(values)))
+                        max_native[level_index] = max(max_native[level_index], float(np.linalg.norm(values)))
+                    views = result["result"]["native_u_views"]
+                    observation = np.asarray([np.mean(views[1]), np.mean(views[2])], dtype=np.float64)
+                    try:
+                        state = p6.step(observation, residual_score=3.0 if tick in (80, 190) else 0.0)
+                        max_p6 = max(max_p6, float(np.linalg.norm(state)))
+                    except FloatingPointError as exc:
+                        first_p6_failure = {"tick": tick, "norm": float(np.linalg.norm(p6.state)),
+                                            "message": str(exc)}
+                        break
+                results.append({
+                    "edge_gain": edge_gain, "linear_decay": decay,
+                    "native_max_level_norms": max_native,
+                    "native_finite": native_finite,
+                    "p6_max_norm": max_p6,
+                    "p6_first_failure": first_p6_failure,
+                    "native_steps": runtime.step_count,
+                })
+            finally:
+                director.close()
+    return results
+
+
 def main():
     if os.environ.get("ABERCONICS_COMMIT") != M4_COMMIT:
         raise RuntimeError("diagnostic must use the pinned M4 source")
@@ -81,7 +152,9 @@ def main():
         for architecture in ("HLA", "HLB")
         for enabled in (False, True)
     ]
-    print(json.dumps({"diagnostic_only": True, "results": results}, indent=2))
+    sweep = sweep_native_parameters(950000)
+    print(json.dumps({"diagnostic_only": True, "control_isolation": results,
+                      "native_gain_decay_sweep": sweep}, indent=2))
 
 
 if __name__ == "__main__":
