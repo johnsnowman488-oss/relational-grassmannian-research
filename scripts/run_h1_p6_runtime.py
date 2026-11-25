@@ -58,9 +58,10 @@ def _load_protocol():
     seed_hash = hashlib.sha256(",".join(map(str, seeds)).encode()).hexdigest()
     if len(seeds) != config["seed_count"] or seed_hash != config["seed_list_sha256"]:
         raise RuntimeError("P6 seed manifest mismatch")
-    expected_source = config.get("implementation_source_sha256")
-    if not expected_source or expected_source != _source_hash():
-        raise RuntimeError("P6 source hash does not match the frozen implementation")
+    expected_commit = config.get("implementation_commit")
+    actual_commit = os.environ.get("P6_IMPLEMENTATION_COMMIT")
+    if not expected_commit or actual_commit != expected_commit:
+        raise RuntimeError("P6 implementation commit does not match the frozen protocol")
     return config, seeds, _sha256(raw)
 
 
