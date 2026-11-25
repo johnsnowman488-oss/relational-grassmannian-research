@@ -9,6 +9,7 @@ from .soe_bridge import (
     make_h0_chain_spec,
     make_native_level_spec,
 )
+from .p6_runtime import P6RuntimeCoupler
 from .hierarchical import (
     AbstractPrediction,
     H1_SCHEMA_VERSION,
@@ -32,5 +33,5 @@ __all__ = [
     "CompositeLifecycle", "create_hla_adapter", "create_hlb_adapter",
     "EvaluationPartition", "HLAAdapter", "HLBAdapter",
     "HierarchicalEvaluationRunner", "HierarchicalRuntimeDirector",
-    "LinearReadout", "ReadoutExample",
+    "LinearReadout", "ReadoutExample", "P6RuntimeCoupler",
 ]
