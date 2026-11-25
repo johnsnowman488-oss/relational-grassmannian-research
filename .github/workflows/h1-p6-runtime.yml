@@ -7,8 +7,8 @@ on:
     paths:
       - "src/rgm/leptograph/m4/p6_runtime.py"
       - "src/rgm/leptograph/m4/stability.py"
-      - "scripts/run_h1_p6_runtime.py"
-      - "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v2.*"
+      - "scripts/run_h1_p6_runtime_v3.py"
+      - "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v3.*"
       - "tests/test_hlg_h1_p6_runtime.py"
       - ".github/workflows/h1-p6-runtime.yml"
   workflow_dispatch:
@@ -41,7 +41,7 @@ jobs:
           ACTUAL="$(git rev-parse HEAD)"
           test "$ACTUAL" = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
           echo "m4_commit=$ACTUAL" >> "$GITHUB_OUTPUT"
-          echo "p6_implementation_commit=7b0ccf3603e2a517fdbf1cc03d0f8e9363df8e97" >> "$GITHUB_OUTPUT"
+          echo "p6_implementation_commit=aab7114650b4db5f16ff8c0bfc15b76ca7a7d587" >> "$GITHUB_OUTPUT"
 
       - name: Configure and build M4 shared library
         run: |
@@ -71,13 +71,13 @@ jobs:
           P6_IMPLEMENTATION_COMMIT: ${{ steps.source.outputs.p6_implementation_commit }}
           PYTHONPATH: ${{ github.workspace }}/research/src:${{ github.workspace }}/aberconics/code/python
         run: |
-          python research/scripts/run_h1_p6_runtime.py \
-            --output artifacts/h1-p6-actual-runtime.json
+          python research/scripts/run_h1_p6_runtime_v3.py \
+            --output artifacts/h1-p6-v3-actual-runtime.json
 
       - name: Upload P6 actual-runtime evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: h1-p6-actual-runtime-v2
+          name: h1-p6-actual-runtime-v3
           path: artifacts/h1-p6-actual-runtime.json
           if-no-files-found: warn
