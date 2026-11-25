@@ -94,6 +94,10 @@ def exercise_hla(lib):
         checkpoint = lifecycle.checkpoint()
         assert checkpoint["native"]["step_count"] == 1
 
+        expected_feedback = [
+            adapter.readouts[0].predict(banks[0].snapshot().reshape(-1)),
+            adapter.readouts[1].predict(banks[1].snapshot().reshape(-1)),
+        ]
         director.exchange(event_time=2 * DT, observed_at=2 * DT,
                           event_features={0: [-0.4, 0.5, 0.1]})
         expected_native = adapter.bridge.runtime.get_state()
@@ -101,7 +105,15 @@ def exercise_hla(lib):
         expected_soe = [bank.snapshot() for bank in banks]
 
         lifecycle.restore(checkpoint)
+        assert adapter.bridge.runtime.checkpoint() == checkpoint["native"]
         assert adapter.bridge.runtime.step_count == 1
+        restored_feedback = [
+            adapter.readouts[0].predict(banks[0].snapshot().reshape(-1)),
+            adapter.readouts[1].predict(banks[1].snapshot().reshape(-1)),
+        ]
+        for index, (expected, actual) in enumerate(zip(expected_feedback, restored_feedback)):
+            np.testing.assert_allclose(expected, actual, rtol=0.0, atol=1e-12,
+                                       err_msg=f"HLB readout {index} continuation")
         director.exchange(event_time=2 * DT, observed_at=2 * DT,
                           event_features={0: [-0.4, 0.5, 0.1]})
         actual_native = adapter.bridge.runtime.get_state()
