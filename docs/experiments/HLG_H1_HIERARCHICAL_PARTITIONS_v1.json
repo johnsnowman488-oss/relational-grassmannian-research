@@ -1,6 +1,6 @@
 {
   "protocol_id": "HLG-H1-HIERARCHICAL-PARTITIONS-v1",
-  "status": "partitions_frozen_campaign_implementation_pending",
+  "status": "partitions_frozen_campaign_implementation_frozen_validation_passed",
   "frozen_at_utc": "2026-11-25",
   "parent_objective": "H1 matched hierarchical HLA/HLB evaluation following successful compiled M4 runtime smoke integration",
   "parent_contract": "H0-0.1.0",
@@ -58,7 +58,8 @@
   "confirmatory_authorized": true,
   "authorization_source": "User explicitly directed the matched HLA/HLB task campaigns on 2026-11-25.",
   "confirmatory_test_accessed": false,
-  "implementation_commit": null,
+  "implementation_commit": "098bb2199876e53a5fa663918bc2c76a45af7c82",
+  "campaign_source_sha256": "d548a39928b2069660391fea664df34a003b9400053eb3472e934b1cdc1bbe92",
   "claim_boundary": [
     "within the two generated typed-world task modes and bounded composition depths 2-4",
     "not open-world relation discovery",
