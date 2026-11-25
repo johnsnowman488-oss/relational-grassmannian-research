@@ -122,11 +122,14 @@ def _readout_sample(seed: int, level: int, matrix: np.ndarray) -> tuple[np.ndarr
 def _readout_examples(seeds: Sequence[int], matrices: tuple[np.ndarray, np.ndarray]):
     examples = []
     for level, matrix in enumerate(matrices):
-        examples.append([
-            ReadoutExample(tuple(float(v) for v in (x := _readout_sample(seed, level, matrix)[0])),
-                           tuple(float(v) for v in (x @ matrix)))
-            for seed in seeds
-        ])
+        level_examples = []
+        for seed in seeds:
+            trace, target = _readout_sample(seed, level, matrix)
+            level_examples.append(ReadoutExample(
+                tuple(float(v) for v in trace),
+                tuple(float(v) for v in target),
+            ))
+        examples.append(level_examples)
     return examples
 
 
@@ -541,6 +544,9 @@ def run_hierarchical_campaign(partition_name: str, output_path: str | Path | Non
     library_path = os.environ.get("GFE_CORE_LIB")
     if not library_path:
         raise RuntimeError("GFE_CORE_LIB must point to the compiled M4 shared library")
+    expected_m4_commit = os.environ.get("ABERCONICS_COMMIT")
+    if expected_m4_commit != M4_RUNTIME_COMMIT:
+        raise RuntimeError("the checked-out M4 source commit does not match the frozen campaign runtime")
     lib = load_gfe_library(library_path)
     sessions = {
         architecture: _new_session(architecture, lib, readout_examples)
