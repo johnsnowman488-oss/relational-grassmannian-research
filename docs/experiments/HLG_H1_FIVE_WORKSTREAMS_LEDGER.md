@@ -145,3 +145,34 @@ After adding the real-runtime trusted-rollback assertions, the full repository t
 - Validation raw JSON SHA-256: `2a61f8a2f83cc4188cfa7e137c8289f36487bff3c23bfb05a20638280d0ae37c` — byte-identical to the canonical validation JSON.
 - Confirmatory raw JSON SHA-256: `8938a592aa1a6b9a7b0f89aeebfe351f72b93ce47ba6917db591dd9ca6d4cb9a` — byte-identical to the canonical confirmatory JSON.
 - The ZIP artifact hashes differ because the ZIP containers were regenerated; the extracted JSON payloads are exactly identical. This is a deterministic reproducibility repeat of the same frozen seed sets, not a new independent confirmation sample.
+
+
+## P6 coupled runtime stability — execution reconciliation (2026-11-25)
+
+### Core P6 runtime campaign v3 — PASS, bounded claim only
+- Protocol: `docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v3.json`; SHA-256 `66b1756ac5d633a049d8a10a96f0c573478beb0a72ba508c47c5a7750b04fda8` (protocol file hash before any later formatting changes).
+- Workflow run: `45723023702`; artifact ID `15073565805`; artifact ZIP SHA-256 `5b757e58d789717b09262d50f3d1ef0dde8305220d3f8b929813e8f951c3bbab`.
+- Native runtime: Aberconics commit `2539df6bda7ef3c9dd7c707abe26eff8bdbb59de`; compiled shared-library SHA-256 `38b278a93a5b3fa3b544f55d958a2f7a44bb6e1d39154e63072f5ed7be511e4b`.
+- P6 implementation source SHA-256 `84c8cd0767d8a025ff585e4e314cba0638f7803e89b5a558811b98909dd872ec`.
+- Seeds 952000–952019, 20 per architecture, 300 operating steps per seed plus candidate/replay path; 7,200 native steps each for HLA and HLB.
+- Both HLA and HLB: P6 maximum norm 15.734202 (<25); transition spectral radius 0.666332; exactly two CUSUM alarms per seed; 20/20 candidates promoted; 20/20 exact operator rollbacks; 20/20 exact composite rollbacks; 20/20 exact incumbent replay fingerprints; all native states finite.
+- Mean independent validation improvement: 0.0756821. Maximum P6 control magnitude: 1.050905.
+- Maximum native-level state norm observed: 1,212.7968. The v3 protocol only required native finiteness, not a native-state norm ceiling. This is an explicit open stability issue, not evidence of an acceptable native-state envelope.
+- HLA and HLB campaign rows are identical because this P6 campaign did not inject relation records or exercise HLB's relational store; HLB store rollback was tested separately in the native smoke gate, not in this P6 campaign.
+
+### Failed exploratory configurations and corrective finding
+- Full-strength coupling failed the P6 norm envelope near step 72.
+- Readout/control gains 0.1 without memory normalization delayed but did not remove the failure; P6 norm crossed 25 near step 293.
+- Root cause: P6 SOE channels were averaged without compensating for their different DC gains. Added channelwise `(1-exp(-gamma))` normalization before aggregation, with a regression test. CI: 390 tests passed on Python 3.10 and 390 on Python 3.12.
+- The normalized-memory v3 campaign is the first passing 20-seed compiled-runtime run; earlier v1/v2 attempts are exploratory failures and are not confirmatory evidence.
+
+### Full P6 remains OPEN
+The v3 result validates the core 2D P6 controller + native HLA/HLB feedback + detector + candidate promotion/rollback envelope. It does not yet validate the full M3/M4 adaptive state vector from the P6 v0.2 model. Remaining implementation gates:
+1. Include `ContextBank` and `MultiSourceRidge` sufficient statistics in the same composite checkpoint/restore transaction as P6 and native hierarchy.
+2. Drive and test relation evidence activation, dormancy, reactivation and recovery; ensure mode-specific state updates and dwell rules are explicit.
+3. Exercise HLB relation-store mutation, protected relation retrieval/witness integrity, targeted revision, and rollback under the P6 campaign.
+4. Include resource accounting/capacity state and test full-bank/capacity abstention without silent eviction.
+5. Instrument per-level native state norms and perform a pre-registered feedback-gain/perturbation sweep. Freeze a defensible native operating envelope before any confirmatory stability claim.
+6. Run the expanded matched HLA/HLB campaign with bounded disturbances, delayed/missing evidence, stationary negative controls, repeated outage/recovery and candidate rollback.
+
+**Claim ceiling:** finite-horizon P6 controller-state boundedness and exact rollback for the v3 gains/runtime only. No global, arbitrary-switching, ISS, full-native-hierarchy boundedness, or full relational-integrity theorem is claimed.
