@@ -61,6 +61,15 @@ def _restore_memories(bridge: SOEHierarchyBridge, states: Sequence[Mapping]) -> 
 
 
 @dataclass(frozen=True)
+class AbstractPrediction:
+    """A learned upper-level feature prediction, never an exact path witness."""
+    level: int
+    features: tuple[float, ...]
+    readout_fingerprint: str
+    kind: str = "ABSTRACT_PREDICTION"
+
+
+@dataclass(frozen=True)
 class ReadoutExample:
     """One labelled calibration example; never constructed from confirmatory data."""
     features: tuple[float, ...]
@@ -146,9 +155,11 @@ class HLAAdapter:
         self.feature_dims = tuple(int(d) for d in feature_dims)
         if tuple(m.feature_dim for m in bridge.memories) != self.feature_dims:
             raise ValueError("HLA feature dimensions must match H0 SOE banks")
+        # Readouts consume the flattened pre-step SOE trace at the lower
+        # level, not the current event vector or a partially updated bank.
         self.readouts = (
-            LinearReadout(self.feature_dims[0], self.feature_dims[1], ridge),
-            LinearReadout(self.feature_dims[1], self.feature_dims[2], ridge),
+            LinearReadout(bridge.layouts[0].native_state_dim, self.feature_dims[1], ridge),
+            LinearReadout(bridge.layouts[1].native_state_dim, self.feature_dims[2], ridge),
         )
         self.ticks = 0
         self.abstentions = 0
@@ -160,24 +171,43 @@ class HLAAdapter:
 
     def step(self, event_features: Mapping[int, Sequence[float]] | None = None) -> dict:
         supplied = {} if event_features is None else dict(event_features)
-        # Lower-to-upper predictions are explicit typed features; a missing
-        # fitted readout means no fabricated abstraction is injected.
-        if 0 in supplied and self.readouts[0].fitted and 1 not in supplied:
-            supplied[1] = self.readouts[0].predict(supplied[0]).tolist()
-        if 1 in supplied and self.readouts[1].fitted and 2 not in supplied:
-            supplied[2] = self.readouts[1].predict(supplied[1]).tolist()
+        # Every readout observes the same pre-step SOE snapshot. This avoids
+        # sequential partial updates and keeps H0's one-tick synchronisation
+        # invariant intact. The current event is injected by the bridge below.
+        if self.readouts[0].fitted and 1 not in supplied:
+            trace0 = self.bridge.memories[0].snapshot().reshape(-1)
+            supplied[1] = self.readouts[0].predict(trace0).tolist()
+        if self.readouts[1].fitted and 2 not in supplied:
+            trace1 = self.bridge.memories[1].snapshot().reshape(-1)
+            supplied[2] = self.readouts[1].predict(trace1).tolist()
         result = self.bridge.step(supplied)
         self.ticks += 1
         return {"architecture": self.architecture, "tick": self.ticks, **result}
 
-    def query_readout(self, level: int, features: Sequence[float]) -> np.ndarray:
+    def query_readout(self, level: int, lower_level_trace: Sequence[float]) -> np.ndarray:
         if level not in (1, 2):
             raise ValueError("learned HLA readouts exist only at levels 1 and 2")
         try:
-            return self.readouts[level - 1].predict(features)
+            return self.readouts[level - 1].predict(lower_level_trace)
         except RuntimeError:
             self.abstentions += 1
             raise
+
+    def predict_abstract(self, level: int, lower_level_trace: Sequence[float]) -> AbstractPrediction:
+        values = self.query_readout(level, lower_level_trace)
+        return AbstractPrediction(level, tuple(float(x) for x in values),
+                                  self.readouts[level - 1].fingerprint)
+
+    def validate_exact_witness(self, witness: CompositionWitness, *,
+                               evidence: Iterable[RelationInstance],
+                               relation_path: Sequence[RelationType],
+                               context: str | None, query_time: float,
+                               observation_cutoff: float) -> bool:
+        """Validate exact claims only against caller-supplied current evidence."""
+        query = CompositionQuery(witness.entities[0], tuple(relation_path), context,
+                                 query_time, observation_cutoff)
+        valid = compose_paths(evidence, query).witnesses
+        return witness in valid
 
     def snapshot(self) -> dict:
         return {"schema_version": H1_SCHEMA_VERSION, "architecture": self.architecture,
