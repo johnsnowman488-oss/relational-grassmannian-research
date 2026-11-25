@@ -21,7 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 M4_COMMIT = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
 
 
-def run_one(architecture: str, seed: int, *, control_enabled: bool) -> dict:
+def run_one(architecture: str, seed: int, *, control_enabled: bool,
+            readout_gain: float = 1.0, control_gain: float = 1.0) -> dict:
     _, partitions, _ = load_frozen_partitions()
     examples = _readout_examples(partitions["train"].seeds, _readout_target_matrices())
     lib = load_gfe_library(os.environ["GFE_CORE_LIB"])
@@ -29,6 +30,7 @@ def run_one(architecture: str, seed: int, *, control_enabled: bool) -> dict:
     coupler = P6RuntimeCoupler(
         session["director"], hierarchy_lifecycle=session["lifecycle"],
         model=CoupledAdaptiveSystem(max_state_norm=25.0),
+        readout_gain=readout_gain, control_gain=control_gain,
     )
     if not control_enabled:
         coupler.model.revision.accepted_operator = np.zeros((2, 2), dtype=np.float64)
@@ -57,6 +59,8 @@ def run_one(architecture: str, seed: int, *, control_enabled: bool) -> dict:
                 return {
                     "architecture": architecture,
                     "control_enabled": control_enabled,
+                    "readout_gain": readout_gain,
+                    "control_gain": control_gain,
                     "seed": seed,
                     "first_failure_tick": tick,
                     "event_time": (tick + 1) * 0.01,
@@ -67,6 +71,7 @@ def run_one(architecture: str, seed: int, *, control_enabled: bool) -> dict:
                 }
         return {
             "architecture": architecture, "control_enabled": control_enabled,
+            "readout_gain": readout_gain, "control_gain": control_gain,
             "seed": seed, "first_failure_tick": None,
             "max_native_norm": max_native, "max_p6_norm": max_p6,
             "detector_alarms": coupler.model.detector.alarms,
@@ -307,8 +312,14 @@ def main():
         for enabled in (False, True)
     ]
     readout_modes = sweep_readout_modes(950000)
+    reduced_gain = [
+        run_one(architecture, 950000, control_enabled=True,
+                readout_gain=0.1, control_gain=0.1)
+        for architecture in ("HLA", "HLB")
+    ]
     print(json.dumps({"diagnostic_only": True, "control_isolation": results,
-                      "readout_mode_sweep": readout_modes}, indent=2))
+                      "readout_mode_sweep": readout_modes,
+                      "reduced_gain_closed_loop": reduced_gain}, indent=2))
 
 
 if __name__ == "__main__":
