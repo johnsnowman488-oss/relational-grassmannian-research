@@ -1,0 +1,70 @@
+{
+  "protocol_id": "HLG-H1-HIERARCHICAL-PARTITIONS-v1",
+  "status": "partitions_frozen_campaign_implementation_pending",
+  "frozen_at_utc": "2026-11-25",
+  "parent_objective": "H1 matched hierarchical HLA/HLB evaluation following successful compiled M4 runtime smoke integration",
+  "parent_contract": "H0-0.1.0",
+  "parent_adapter_schema": "H1-0.1.0",
+  "generator": "m4-independent-typed-worlds-v2-randomized-relations",
+  "partition_policy": "world-seed disjoint; each world seed generates both task modes; depth is deterministic from seed modulo three",
+  "partitions": {
+    "train": {
+      "count": 120,
+      "first_seed": 200000,
+      "last_seed": 200119,
+      "seed_list_sha256": "37631947163f604e7242d5ecae73dcf0bb71fad4db1a034d71de120f37f1f091"
+    },
+    "validation": {
+      "count": 60,
+      "first_seed": 400000,
+      "last_seed": 400059,
+      "seed_list_sha256": "06039d228041844759baaddceb039b64174ebf9db902d660a853d9119ee1331d"
+    },
+    "confirmatory_test": {
+      "count": 120,
+      "first_seed": 900000,
+      "last_seed": 900119,
+      "seed_list_sha256": "b1a272e010d8d0c058515fa90fd33614e2beece5b623574c9426d8c59a51bc6b"
+    }
+  },
+  "partition_manifest_sha256": "9e0610191ac3032cbfeb78b6c61511c2c358304f3d51c65a663692ddc5a1247a",
+  "task_modes": [
+    "heterogeneous_typed_chain",
+    "homogeneous_order_sensitive"
+  ],
+  "composition_depths": [2, 3, 4],
+  "depth_rule": "depths=(2,3,4)[seed % 3]",
+  "architectures": ["HLA", "HLB"],
+  "paired_design": {
+    "same_world_seeds": true,
+    "same_task_modes_and_depths": true,
+    "same_observed_relation_events": true,
+    "same_queries_and_time_cutoffs": true,
+    "independent_unit": "world_seed",
+    "cluster_repeated_task_modes_by": "world_seed",
+    "oracle_access": "evaluator_only_after_architecture_decision",
+    "future_observation_leakage": "prohibited"
+  },
+  "prior_partition_separation": {
+    "prior_flat_confirmatory_protocol": "HLG-M4-CONFIRMATORY-AB-v1",
+    "prior_seed_ranges": {
+      "train": [10000, 10119],
+      "validation": [30000, 30059],
+      "confirmatory_test": [70000, 70119]
+    },
+    "overlap_with_new_partitions": false,
+    "prior_flat_confirmatory_test_reuse": "prohibited"
+  },
+  "confirmatory_authorized": true,
+  "authorization_source": "User explicitly directed the matched HLA/HLB task campaigns on 2026-11-25.",
+  "confirmatory_test_accessed": false,
+  "implementation_commit": null,
+  "claim_boundary": [
+    "within the two generated typed-world task modes and bounded composition depths 2-4",
+    "not open-world relation discovery",
+    "not out-of-vocabulary relation transfer",
+    "not arbitrary-depth composition",
+    "not a Grassmannian advantage test",
+    "not a global or arbitrary-switching stability theorem"
+  ]
+}
