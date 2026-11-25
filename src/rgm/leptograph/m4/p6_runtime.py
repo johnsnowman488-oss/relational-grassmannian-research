@@ -67,12 +67,19 @@ def _context_from_snapshot(state: Mapping) -> ContextBank:
         full_bank_policy=str(state["full_bank_policy"]),
         store_scatter=bool(state["store_scatter"]),
     )
-    bank.slots = [ContextSlot(
-        slot_id=int(item["slot_id"]),
-        mean=np.asarray(item["mean"], dtype=np.float64),
-        scatter=np.asarray(item["scatter"], dtype=np.float64),
-        count=int(item["count"]), novelty_hits=int(item["novelty_hits"]),
-    ) for item in state["slots"]]
+    bank.slots = []
+    for item in state["slots"]:
+        mean = np.asarray(item["mean"], dtype=np.float64)
+        scatter = np.asarray(item["scatter"], dtype=np.float64)
+        if (mean.shape != (bank.dimension,) or not np.all(np.isfinite(mean))
+                or scatter.shape not in ((0,), (bank.dimension, bank.dimension))
+                or not np.all(np.isfinite(scatter)) or int(item["count"]) < 1
+                or int(item["novelty_hits"]) < 0):
+            raise ValueError("invalid P6 context slot checkpoint")
+        bank.slots.append(ContextSlot(
+            slot_id=int(item["slot_id"]), mean=mean, scatter=scatter,
+            count=int(item["count"]), novelty_hits=int(item["novelty_hits"]),
+        ))
     bank._next_id = int(state["next_id"])
     bank._pending = [np.asarray(value, dtype=np.float64) for value in state["pending"]]
     bank._relation_operators = {
@@ -114,6 +121,8 @@ def _estimator_from_snapshot(state: Mapping) -> MultiSourceRidge:
     estimator.sample_count = int(state["sample_count"])
     estimator.prediction_count = int(state["prediction_count"])
     estimator.update_count = int(state["update_count"])
+    if min(estimator.sample_count, estimator.prediction_count, estimator.update_count) < 0:
+        raise ValueError("P6 estimator checkpoint counters must be non-negative")
     return estimator
 
 
@@ -237,7 +246,7 @@ def _p6_from_snapshot(state: Mapping) -> CoupledAdaptiveSystem:
 
 class P6RuntimeCoupler:
     """Closed-loop P6 execution and composite checkpoint/rollback manager."""
-    schema_version = "P6-H1-0.2.0"
+    schema_version = "P6-H1-0.3.0"
 
     def __init__(
         self,
