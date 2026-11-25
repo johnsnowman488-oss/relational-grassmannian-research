@@ -1,17 +1,51 @@
-import copy
-
 import numpy as np
 import pytest
 
 from rgm.leptograph.m4.p6_runtime import P6RuntimeCoupler
 from rgm.leptograph.m4.stability import AdaptiveMode, CoupledAdaptiveSystem
 
-from test_hlg_h1_hierarchical import make_bridge
+from rgm.memory import SOEMemory
+from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge
 from rgm.leptograph.m4.hierarchical import HLAAdapter, HierarchicalRuntimeDirector
 
 
+class FakePersistentRuntime:
+    def __init__(self, memories):
+        self.state = {"level_states": [
+            {"u": memory.snapshot().reshape(-1).tolist(),
+             "chi": [0.0] * memory.channel_count, "t": 0.0}
+            for memory in memories
+        ], "step_count": 0}
+
+    def get_state(self):
+        import copy
+        return copy.deepcopy(self.state)
+
+    def checkpoint(self):
+        return self.get_state()
+
+    def restore(self, state):
+        import copy
+        self.state = copy.deepcopy(state)
+
+    def step(self, feedback_by_level=None):
+        import copy
+        candidate = copy.deepcopy(self.state)
+        for level, values in (feedback_by_level or {}).items():
+            candidate["level_states"][level]["u"] = list(values)
+        candidate["step_count"] += 1
+        self.state = candidate
+        return self.get_state()
+
+
 def make_p6_coupler():
-    bridge, runtime = make_bridge()
+    banks = [
+        SOEMemory(feature_dim=2, decay_rates=[0.1, 0.4]),
+        SOEMemory(feature_dim=3, decay_rates=[0.2, 0.7]),
+        SOEMemory(feature_dim=4, decay_rates=[0.05, 0.3]),
+    ]
+    runtime = FakePersistentRuntime(banks)
+    bridge = SOEHierarchyBridge(runtime, banks, dt=0.01)
     adapter = HLAAdapter(bridge, feature_dims=[2, 3, 4])
     director = HierarchicalRuntimeDirector(adapter)
     coupler = P6RuntimeCoupler(director)
