@@ -21,8 +21,8 @@ from rgm.leptograph.m4.p6_runtime import P6RuntimeCoupler
 from rgm.leptograph.m4.stability import CoupledAdaptiveSystem
 
 ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL = ROOT / "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v1.json"
-SIDECAR = ROOT / "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v1.sha256"
+PROTOCOL = ROOT / "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v2.json"
+SIDECAR = ROOT / "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v2.sha256"
 SOURCE_FILES = (
     "src/rgm/leptograph/m4/composition.py",
     "src/rgm/leptograph/m4/soe_bridge.py",
@@ -99,6 +99,8 @@ def _run_architecture(architecture, lib, readout_examples, seeds, config):
     coupler = P6RuntimeCoupler(
         director, hierarchy_lifecycle=session["lifecycle"],
         model=CoupledAdaptiveSystem(max_state_norm=float(config["p6_model"]["max_state_norm"])),
+        readout_gain=float(config["coupling"]["readout_gain"]),
+        control_gain=float(config["coupling"]["control_gain"]),
     )
     initial = coupler.checkpoint()
     rng = None
