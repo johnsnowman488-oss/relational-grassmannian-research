@@ -36,7 +36,7 @@ class CoupledAdaptiveSystem:
     state: np.ndarray = field(default_factory=lambda: np.zeros(2,dtype=float))
     memory: SOEMemory = field(default_factory=lambda: SOEMemory(feature_dim=2))
     detector: CUSUMDetector = field(default_factory=lambda: CUSUMDetector(allowance=0.2,threshold=2.0))
-    activation: EvidenceActivation = field(default_factory=EvidenceActivation)
+    activation: EvidenceActivation = field(default_factory=lambda: EvidenceActivation(on_threshold=0.12, off_threshold=0.06, evidence_rate=0.18, usefulness_rate=0.22, minimum_observations=8, context_score_limit=15.0))
     context_bank: ContextBank = field(default_factory=_default_p6_context_bank)
     estimator: MultiSourceRidge = field(default_factory=lambda: MultiSourceRidge({"lower": 2, "upper": 2}, 2, 2, ridge=1e-3, forgetting=0.995))
     last_context_slot: int | None = None
