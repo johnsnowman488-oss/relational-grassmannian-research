@@ -41,7 +41,14 @@ class CoupledAdaptiveSystem:
         u=np.asarray(observation,dtype=float)
         if u.shape!=(2,) or not np.all(np.isfinite(u)): raise ValueError("observation must be a finite length-2 vector")
         self.memory.update(u,dt=1.0)
-        memory_signal=np.mean(self.memory.channels,axis=0)
+        # SOEMemory stores impulse responses, whose DC gain is
+        # 1 / (1 - exp(-gamma)).  Normalize each channel by its inverse
+        # DC gain before aggregation so slow traces do not amplify a
+        # constant bounded observation by O(1/gamma).
+        dc_normalizers = 1.0 - np.exp(-self.memory.decay_rates)
+        memory_signal = np.mean(
+            dc_normalizers[:, None] * self.memory.channels, axis=0
+        )
         self.state=self.transition@self.state+self.input_matrix@np.array([u[0],memory_signal[1]])
         norm=float(np.linalg.norm(self.state)); self.max_observed_norm=max(self.max_observed_norm,norm)
         if not np.all(np.isfinite(self.state)) or norm>self.max_state_norm: raise FloatingPointError("coupled state exceeded declared finite-horizon envelope")
