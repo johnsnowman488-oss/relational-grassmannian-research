@@ -19,6 +19,7 @@ from rgm.experiments.h1_hierarchical_campaign import (
 )
 from rgm.leptograph.m4.p6_runtime import P6RuntimeCoupler
 from rgm.leptograph.m4.composition import Entity, RelationType, RelationInstance
+from rgm.leptograph.m3.resource import integrated_resource_snapshot
 from rgm.leptograph.m4.stability import CoupledAdaptiveSystem
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -112,6 +113,19 @@ def _protected_witness_ids(adapter, start, path, cutoff=3.2):
         start, path, context="p6", query_time=cutoff, observation_cutoff=cutoff
     )
     return tuple(tuple(witness.instance_ids) for witness in witnesses)
+
+
+def _resource_metrics(model):
+    resource = integrated_resource_snapshot(
+        estimator=model.estimator, context_bank=model.context_bank,
+        activation=model.activation, detector=model.detector,
+        revision=model.revision,
+    )
+    resource["p6_soe_memory_bytes"] = int(
+        model.memory.channels.nbytes + model.memory.injection_matrices.nbytes
+        + model.memory.decay_rates.nbytes
+    )
+    return resource
 
 
 def _fill_and_probe_context_capacity(model):
@@ -275,6 +289,16 @@ def _run_architecture(architecture, lib, readout_examples, seeds, config):
             if model.estimator.sample_count <= 0 or len(model.context_bank.slots) < 1:
                 raise AssertionError("P6 context/estimator state was not updated")
             context_capacity_abstained = _fill_and_probe_context_capacity(model)
+            resource = _resource_metrics(model)
+            max_resource_bytes = max(
+                max_resource_bytes,
+                int(resource["persistent_state_bytes"]) + int(resource["p6_soe_memory_bytes"]),
+            )
+            max_estimator_samples = max(max_estimator_samples, int(model.estimator.sample_count))
+            max_context_slots = max(max_context_slots, len(model.context_bank.slots))
+            max_update_ops = max(max_update_ops, int(resource["max_observed_or_declared_update_multiply_adds"]))
+            max_query_ops = max(max_query_ops, int(resource["max_observed_or_declared_query_multiply_adds"]))
+            max_trainable_parameters = max(max_trainable_parameters, int(resource["trainable_parameter_count"]))
 
             protected_ids_before = None
             store_count_before = None
@@ -314,6 +338,14 @@ def _run_architecture(architecture, lib, readout_examples, seeds, config):
                 raise AssertionError(f"{architecture} seed {seed}: independently validated candidate was not promoted")
             if not np.array_equal(coupler.model.revision.accepted_operator, fitted):
                 raise AssertionError("promoted P6 operator differs from fitted candidate")
+            resource = _resource_metrics(coupler.model)
+            max_resource_bytes = max(
+                max_resource_bytes,
+                int(resource["persistent_state_bytes"]) + int(resource["p6_soe_memory_bytes"]),
+            )
+            max_trainable_parameters = max(max_trainable_parameters, int(resource["trainable_parameter_count"]))
+            max_update_ops = max(max_update_ops, int(resource["max_observed_or_declared_update_multiply_adds"]))
+            max_query_ops = max(max_query_ops, int(resource["max_observed_or_declared_query_multiply_adds"]))
 
             for index, feature in enumerate(replay_inputs):
                 relation_records = ()
