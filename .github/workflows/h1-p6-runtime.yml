@@ -30,6 +30,7 @@ jobs:
       - name: Checkout research implementation
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           path: research
 
       - name: Checkout pinned Aberconics M4 runtime
@@ -84,5 +85,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: h1-p6-full-actual-runtime-v4
-          path: artifacts/h1-p6-v3-actual-runtime.json
+          path: artifacts/h1-p6-v4-actual-runtime.json
           if-no-files-found: warn
