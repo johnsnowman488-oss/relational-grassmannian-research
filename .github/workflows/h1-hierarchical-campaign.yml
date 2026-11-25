@@ -4,12 +4,13 @@ on:
   pull_request:
     branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
     paths:
-      - "src/rgm/leptograph/m4/**"
+      - "src/rgm/leptograph/m4/composition.py"
+      - "src/rgm/leptograph/m4/soe_bridge.py"
+      - "src/rgm/leptograph/m4/hierarchical.py"
       - "src/rgm/experiments/h1_hierarchical_campaign.py"
       - "scripts/run_h1_hierarchical_campaign.py"
       - "docs/experiments/HLG_H1_HIERARCHICAL_PARTITIONS_v1.*"
       - "tests/test_hlg_h1_campaign_protocol.py"
-      - ".github/workflows/h1-hierarchical-campaign.yml"
   workflow_dispatch:
 
 permissions:
