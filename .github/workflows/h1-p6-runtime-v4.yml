@@ -38,11 +38,11 @@ jobs:
         id: source
         working-directory: research
         run: |
-          ACTUAL="$(git rev-parse HEAD)"
-          test "$ACTUAL" = "3e82fabc8c3d83dcaf99c7b84f4fada9efdfbe89"
-          echo "research_commit=$ACTUAL" >> "$GITHUB_OUTPUT"
+          IMPLEMENTATION="3e82fabc8c3d83dcaf99c7b84f4fada9efdfbe89"
+          git cat-file -e "$IMPLEMENTATION^{commit}"
+          git diff --quiet "$IMPLEMENTATION" HEAD -- src/rgm/leptograph/m4 src/rgm/leptograph/m3 scripts/run_h1_p6_runtime_v4.py tests/test_hlg_h1_p6_runtime.py
           echo "m4_commit=2539df6bda7ef3c9dd7c707abe26eff8bdbb59de" >> "$GITHUB_OUTPUT"
-          echo "p6_implementation_commit=$ACTUAL" >> "$GITHUB_OUTPUT"
+          echo "p6_implementation_commit=$IMPLEMENTATION" >> "$GITHUB_OUTPUT"
 
       - name: Configure and build M4 shared library
         run: |
