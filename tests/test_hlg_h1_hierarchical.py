@@ -140,6 +140,7 @@ def test_composite_checkpoint_restore_and_rollback_restore_native_and_python_sta
     lifecycle.rollback()
     assert runtime.state["step_count"] == 0
     assert director.event_tick == 0
+    assert all(np.count_nonzero(memory.channels) == 0 for memory in bridge.memories)
     damaged = copy.deepcopy(trusted)
     damaged["director"]["event_tick"] = 99
     with pytest.raises(ValueError):
@@ -163,3 +164,6 @@ def test_evaluation_runner_keeps_confirmatory_partition_and_pairs_same_task_orde
     assert paired["differences"] == {"loss": 0.0, "success": 0.0}
     with pytest.raises(ValueError, match="fit partition"):
         runner.run(a, EvaluationPartition("fit", (0,)))
+    different_tasks = runner.run(b, EvaluationPartition("confirmatory", (0, 1, 99)))
+    with pytest.raises(ValueError, match="identical task"):
+        runner.paired_summary(result_a, different_tasks)
