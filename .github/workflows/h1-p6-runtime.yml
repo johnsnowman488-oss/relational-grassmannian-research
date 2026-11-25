@@ -1,0 +1,82 @@
+name: H1 P6 coupled runtime stability and rollback
+
+on:
+  pull_request:
+    branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
+    paths:
+      - "src/rgm/leptograph/m4/p6_runtime.py"
+      - "src/rgm/leptograph/m4/stability.py"
+      - "scripts/run_h1_p6_runtime.py"
+      - "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v1.*"
+      - "tests/test_hlg_h1_p6_runtime.py"
+      - ".github/workflows/h1-p6-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p6-actual-runtime:
+    name: Run frozen P6 protocol against compiled HLA/HLB runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout research implementation
+        uses: actions/checkout@v4
+        with:
+          path: research
+
+      - name: Checkout pinned Aberconics M4 runtime
+        uses: actions/checkout@v4
+        with:
+          repository: johnsnowman488-oss/aberconics-framework
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          path: aberconics
+
+      - name: Verify frozen source identities
+        id: source
+        working-directory: aberconics
+        run: |
+          ACTUAL="$(git rev-parse HEAD)"
+          test "$ACTUAL" = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
+          echo "m4_commit=$ACTUAL" >> "$GITHUB_OUTPUT"
+          echo "p6_implementation_commit=db6b96868978ef00caa22b33b80cd1aa2508082d" >> "$GITHUB_OUTPUT"
+
+      - name: Configure and build M4 shared library
+        run: |
+          cmake -S "aberconics/code/c++ core" -B "aberconics/code/c++ core/build-shared" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
+            -DGFE_BUILD_TESTS=OFF -DGFE_BUILD_APPS=OFF
+          cmake --build "aberconics/code/c++ core/build-shared" --parallel 2
+
+      - name: Verify compiled library
+        id: library
+        run: |
+          LIB="$GITHUB_WORKSPACE/aberconics/code/c++ core/build-shared/libgfe_core.so"
+          test -s "$LIB"
+          echo "path=$LIB" >> "$GITHUB_OUTPUT"
+          sha256sum "$LIB"
+
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "research[dev]"
+
+      - name: Execute frozen P6 actual-runtime campaign
+        env:
+          GFE_CORE_LIB: ${{ steps.library.outputs.path }}
+          ABERCONICS_PYTHON: ${{ github.workspace }}/aberconics/code/python
+          ABERCONICS_COMMIT: ${{ steps.source.outputs.m4_commit }}
+          P6_IMPLEMENTATION_COMMIT: ${{ steps.source.outputs.p6_implementation_commit }}
+          PYTHONPATH: ${{ github.workspace }}/research/src:${{ github.workspace }}/aberconics/code/python
+        run: |
+          python research/scripts/run_h1_p6_runtime.py \
+            --output artifacts/h1-p6-actual-runtime.json
+
+      - name: Upload P6 actual-runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h1-p6-actual-runtime
+          path: artifacts/h1-p6-actual-runtime.json
+          if-no-files-found: warn
