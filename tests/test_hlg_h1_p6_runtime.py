@@ -38,7 +38,8 @@ class FakePersistentRuntime:
         return self.get_state()
 
 
-def make_p6_coupler(*, readout_gain=1.0, control_gain=1.0):
+def make_p6_coupler(*, readout_gain=1.0, control_gain=1.0,
+                    observation_transform="identity"):
     banks = [
         SOEMemory(feature_dim=2, decay_rates=[0.1, 0.4]),
         SOEMemory(feature_dim=3, decay_rates=[0.2, 0.7]),
@@ -49,7 +50,8 @@ def make_p6_coupler(*, readout_gain=1.0, control_gain=1.0):
     adapter = HLAAdapter(bridge, feature_dims=[2, 3, 4])
     director = HierarchicalRuntimeDirector(adapter)
     coupler = P6RuntimeCoupler(
-        director, readout_gain=readout_gain, control_gain=control_gain
+        director, readout_gain=readout_gain, control_gain=control_gain,
+        observation_transform=observation_transform,
     )
     return coupler, runtime
 
@@ -138,7 +140,8 @@ def test_p6_checkpoint_binds_readout_and_control_gain_configuration():
     try:
         checkpoint = coupler.checkpoint()
         assert checkpoint["coupling_config"] == {
-            "readout_gain": 0.1, "control_gain": 0.1
+            "readout_gain": 0.1, "control_gain": 0.1,
+            "observation_transform": "identity",
         }
         wrong = P6RuntimeCoupler(
             coupler.director,
@@ -147,5 +150,28 @@ def test_p6_checkpoint_binds_readout_and_control_gain_configuration():
         )
         with pytest.raises(ValueError, match="gain configuration"):
             wrong.restore(checkpoint)
+    finally:
+        coupler.close()
+
+
+
+def test_p6_tanh_observation_is_bounded_and_checkpointed():
+    coupler, _ = make_p6_coupler(
+        readout_gain=0.1, control_gain=0.1, observation_transform="tanh"
+    )
+    try:
+        checkpoint = coupler.checkpoint()
+        assert checkpoint["coupling_config"]["observation_transform"] == "tanh"
+        result = coupler.exchange(
+            event_time=0.01, observed_at=0.01,
+            event_features={0: [0.2, -0.1], 1: [2.0, 2.0, 2.0],
+                            2: [3.0, 3.0, 3.0, 3.0]},
+        )
+        raw = np.asarray(result["p6_observation_raw"])
+        transformed = np.asarray(result["p6_observation"])
+        assert np.allclose(transformed, np.tanh(raw))
+        assert np.all(np.abs(transformed) <= 1.0)
+        coupler.restore(checkpoint)
+        assert coupler.snapshot() == checkpoint
     finally:
         coupler.close()
