@@ -69,6 +69,56 @@ def test_p6_soe_feedback_is_dc_normalized_for_slow_channels():
     assert float(np.max(np.abs(model.memory.channels))) > 25.0
 
 
+def test_p6_context_estimator_state_is_checkpointed_and_restored():
+    coupler, _ = make_p6_coupler(readout_gain=0.1, control_gain=0.1)
+    for index in range(24):
+        lower = np.array([np.sin(index * 0.2), np.cos(index * 0.2)])
+        upper = np.array([np.cos(index * 0.13), np.sin(index * 0.13)])
+        target = 0.7 * lower + 0.2 * upper
+        coupler.model.observe_adaptive_state(
+            {"lower": lower, "upper": upper},
+            np.array([0.05, -0.03]), target,
+        )
+    saved = coupler.snapshot()
+    saved_count = coupler.model.estimator.sample_count
+    saved_context_count = coupler.model.context_bank.slots[0].count
+    coupler.model.observe_adaptive_state(
+        {"lower": np.ones(2), "upper": -np.ones(2)},
+        np.array([0.05, -0.03]), np.zeros(2),
+    )
+    coupler.restore(saved)
+    restored = coupler.snapshot()
+    assert restored["fingerprint"] == saved["fingerprint"]
+    assert coupler.model.estimator.sample_count == saved_count == 24
+    assert coupler.model.context_bank.slots[0].count == saved_context_count
+    assert set(coupler.model.activation.states) == {"lower", "upper"}
+
+
+def test_p6_dormancy_freezes_learning_and_recovery_uses_reduced_input():
+    model = CoupledAdaptiveSystem()
+    model.state = np.array([1.0, -0.5])
+    model.memory.update(np.array([2.0, -1.0]))
+    model.enter_dormancy()
+    detector_observations = model.detector.observations
+    estimator_samples = model.estimator.sample_count
+    prior_state = model.state.copy()
+    expected_dormant = model.transition @ prior_state
+    dormant = model.step(np.array([5.0, 5.0]), residual_score=10.0)
+    assert np.allclose(dormant, expected_dormant)
+    assert model.detector.observations == detector_observations
+    model.observe_adaptive_state(
+        {"lower": np.ones(2), "upper": np.ones(2)},
+        np.zeros(2), np.ones(2),
+    )
+    assert model.estimator.sample_count == estimator_samples
+    model.reactivate()
+    assert model.mode == AdaptiveMode.RECOVERY
+    recovered = model.step(np.array([1.0, 1.0]), residual_score=0.0)
+    assert np.all(np.isfinite(recovered))
+    model.finish_recovery()
+    assert model.mode == AdaptiveMode.NORMAL
+
+
 def test_p6_runtime_checkpoint_roundtrip_includes_controller_and_native_state():
     coupler, runtime = make_p6_coupler()
     try:
