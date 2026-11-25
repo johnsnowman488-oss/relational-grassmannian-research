@@ -14,6 +14,8 @@ from .hierarchical import (
     H1_SCHEMA_VERSION,
     CanonicalRelationStore,
     CompositeLifecycle,
+    create_hla_adapter,
+    create_hlb_adapter,
     EvaluationPartition,
     HLAAdapter,
     HLBAdapter,
@@ -27,7 +29,8 @@ __all__ = [
     "H0_CONTRACT_VERSION", "H0_DEFAULT_EDGES", "H0_LEVEL_ROLES",
     "SOEHierarchyBridge", "SOEStateLayout", "make_h0_chain_spec",
     "make_native_level_spec", "AbstractPrediction", "H1_SCHEMA_VERSION", "CanonicalRelationStore",
-    "CompositeLifecycle", "EvaluationPartition", "HLAAdapter", "HLBAdapter",
+    "CompositeLifecycle", "create_hla_adapter", "create_hlb_adapter",
+    "EvaluationPartition", "HLAAdapter", "HLBAdapter",
     "HierarchicalEvaluationRunner", "HierarchicalRuntimeDirector",
     "LinearReadout", "ReadoutExample",
 ]
