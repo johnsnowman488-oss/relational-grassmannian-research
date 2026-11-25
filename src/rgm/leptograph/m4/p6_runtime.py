@@ -230,6 +230,9 @@ class P6RuntimeCoupler:
         relation_records=(),
     ) -> dict:
         before = self._capture()
+        control = None
+        observation = None
+        result = None
         try:
             supplied = {
                 int(level): np.asarray(values, dtype=np.float64).reshape(-1).copy()
@@ -275,8 +278,34 @@ class P6RuntimeCoupler:
                 "p6_state_norm": float(np.linalg.norm(p6_state)),
                 "p6_mode": self.model.mode.value,
             }
-        except Exception:
+        except Exception as exc:
+            # Capture the failed post-native/pre-rollback state so an actual
+            # coupled blow-up can be attributed to native feedback or P6.
+            p6_state = np.asarray(self.model.state, dtype=np.float64)
+            p6_norm = float(np.linalg.norm(p6_state))
+            native_norms = []
+            if result is not None:
+                try:
+                    native_levels = result["result"]["native"]["level_states"]
+                    native_norms = [
+                        {
+                            "u_norm": float(np.linalg.norm(np.asarray(level["u"], dtype=np.float64))),
+                            "chi_norm": float(np.linalg.norm(np.asarray(level["chi"], dtype=np.float64))),
+                            "u_max_abs": float(np.max(np.abs(np.asarray(level["u"], dtype=np.float64)))),
+                        }
+                        for level in native_levels
+                    ]
+                except (KeyError, TypeError, ValueError):
+                    native_norms = []
+            diagnostic = (
+                f"event_time={event_time}; p6_state_norm={p6_norm}; "
+                f"p6_state={p6_state.tolist()}; control={None if control is None else np.asarray(control).tolist()}; "
+                f"observation={None if observation is None else np.asarray(observation).tolist()}; "
+                f"native_level_norms={native_norms}; p6_step_count={self.model.step_count}"
+            )
             self.restore(before)
+            if isinstance(exc, (FloatingPointError, ValueError)):
+                raise type(exc)(f"{exc}; coupled-runtime diagnostics: {diagnostic}") from exc
             raise
 
     def start_candidate(self, operator: Sequence[Sequence[float]]) -> None:
