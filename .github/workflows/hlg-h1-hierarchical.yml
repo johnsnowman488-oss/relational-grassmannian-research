@@ -2,7 +2,7 @@ name: H1 hierarchical adapters and lifecycle
 
 on:
   pull_request:
-    branches: ["research/hlg-m4-preimplementation-ledger"]
+    branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
   workflow_dispatch:
 
 permissions:
