@@ -144,6 +144,77 @@ def sweep_native_parameters(seed: int = 950000) -> list[dict]:
     return results
 
 
+
+def sweep_feedback_gain(seed: int = 950000) -> list[dict]:
+    """Isolate whether repeated absolute SOE forcing drives native state growth."""
+    _, partitions, _ = load_frozen_partitions()
+    examples = _readout_examples(partitions["train"].seeds, _readout_target_matrices())
+    lib = load_gfe_library(os.environ["GFE_CORE_LIB"])
+    results = []
+    for feedback_gain in (1.0, 0.1, 0.01, 0.005, 0.001):
+        banks = [SOEMemory(feature_dim=16) for _ in range(3)]
+        kernels = [
+            {
+                "gamma": bank.decay_rates[::-1].tolist(),
+                "w": [0.25] * bank.channel_count,
+                "linear_decay": [0.05] * (bank.channel_count * bank.feature_dim),
+                "forcing_bias": [0.0] * (bank.channel_count * bank.feature_dim),
+            }
+            for bank in banks
+        ]
+        levels, edges = make_h0_chain_spec(banks, kernels, dt=0.01)
+        runtime = create_persistent_hierarchy_runtime(lib, levels, edges)
+        original_step = runtime.step
+
+        def scaled_step(feedback_by_level=None, *, scale=feedback_gain):
+            scaled = {
+                int(level): (np.asarray(values, dtype=np.float64) * scale).tolist()
+                for level, values in (feedback_by_level or {}).items()
+            }
+            return original_step(scaled)
+
+        runtime.step = scaled_step
+        bridge = SOEHierarchyBridge(runtime, banks, dt=0.01)
+        adapter = HLAAdapter(bridge, feature_dims=[16, 16, 16])
+        adapter.fit_upper_readouts(*examples)
+        director = HierarchicalRuntimeDirector(adapter)
+        p6 = CoupledAdaptiveSystem(max_state_norm=25.0)
+        rng = np.random.default_rng(seed)
+        max_native = [0.0, 0.0, 0.0]
+        max_p6 = 0.0
+        first_failure = None
+        try:
+            for tick in range(300):
+                result = director.exchange(
+                    event_time=(tick + 1) * 0.01,
+                    observed_at=(tick + 1) * 0.01,
+                    event_features={0: rng.uniform(-1.0, 1.0, size=16)},
+                )
+                native_levels = result["result"]["native"]["level_states"]
+                for level_index, level in enumerate(native_levels):
+                    values = np.asarray(level["u"], dtype=np.float64)
+                    max_native[level_index] = max(max_native[level_index], float(np.linalg.norm(values)))
+                views = result["result"]["native_u_views"]
+                observation = np.asarray([np.mean(views[1]), np.mean(views[2])], dtype=np.float64)
+                try:
+                    state = p6.step(observation, residual_score=3.0 if tick in (80, 190) else 0.0)
+                    max_p6 = max(max_p6, float(np.linalg.norm(state)))
+                except FloatingPointError as exc:
+                    first_failure = {"tick": tick, "norm": float(np.linalg.norm(p6.state)),
+                                     "message": str(exc)}
+                    break
+            results.append({
+                "feedback_gain": feedback_gain,
+                "native_max_level_norms": max_native,
+                "p6_max_norm": max_p6,
+                "p6_first_failure": first_failure,
+                "native_steps": runtime.step_count,
+            })
+        finally:
+            director.close()
+    return results
+
+
 def main():
     if os.environ.get("ABERCONICS_COMMIT") != M4_COMMIT:
         raise RuntimeError("diagnostic must use the pinned M4 source")
@@ -153,8 +224,10 @@ def main():
         for enabled in (False, True)
     ]
     sweep = sweep_native_parameters(950000)
+    feedback = sweep_feedback_gain(950000)
     print(json.dumps({"diagnostic_only": True, "control_isolation": results,
-                      "native_gain_decay_sweep": sweep}, indent=2))
+                      "native_gain_decay_sweep": sweep,
+                      "native_feedback_gain_sweep": feedback}, indent=2))
 
 
 if __name__ == "__main__":
