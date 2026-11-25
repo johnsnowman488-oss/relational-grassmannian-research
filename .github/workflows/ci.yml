@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, "e00-foundations", "e01-history-dependence", "e01-a2-diagnostic-audit", "research/h0-shared-hierarchy-contract-soe-bridge"]
   pull_request:
-    branches: [main, "research/hlg-m4-preimplementation-ledger"]
+    branches: [main, "research/hlg-m4-preimplementation-ledger", "research/h0-shared-hierarchy-contract-soe-bridge"]
 
 permissions:
   contents: read
