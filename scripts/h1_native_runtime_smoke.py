@@ -149,7 +149,23 @@ def exercise_hla(lib):
                                        err_msg=f"HLA SOE bank {index} continuation")
         assert director.event_tick == 2
         assert adapter.bridge.runtime.step_count == 2
-        return {"architecture": "HLA", "native_steps": 2, "checkpoint_restore": "PASS"}
+
+        # Exercise trusted-version rollback against the real native handle.
+        # The trusted point remains the one-step checkpoint captured above.
+        assert lifecycle.promote() == 1
+        director.exchange(event_time=3 * DT, observed_at=3 * DT,
+                          event_features={0: [0.1, 0.2, -0.3]})
+        assert adapter.bridge.runtime.step_count == 3
+        lifecycle.rollback()
+        assert adapter.bridge.runtime.checkpoint() == checkpoint["native"]
+        assert adapter.bridge.runtime.step_count == 1
+        assert director.event_tick == 1
+        for index, (expected, actual) in enumerate(zip(checkpoint["director"]["adapter"]["soe_banks"], banks)):
+            restored = SOEMemory.from_dict(expected)
+            np.testing.assert_allclose(restored.snapshot(), actual.snapshot(), rtol=0.0, atol=1e-12,
+                                       err_msg=f"HLA rollback SOE bank {index}")
+        return {"architecture": "HLA", "native_steps": 2,
+                "checkpoint_restore": "PASS", "p6_trusted_rollback": "PASS"}
     finally:
         director.close()
 
@@ -213,7 +229,25 @@ def exercise_hlb(lib):
         assert adapter.store.snapshot() == expected_store
         assert director.event_tick == 2
         assert adapter.bridge.runtime.step_count == 2
-        return {"architecture": "HLB", "native_steps": 2, "checkpoint_restore": "PASS",
+
+        # Promote the two-step candidate, advance once more, then roll back to
+        # the previously trusted one-step native + Python composite snapshot.
+        assert lifecycle.promote() == 1
+        director.exchange(event_time=3 * DT, observed_at=3 * DT,
+                          event_features={0: [0.1, 0.2, -0.3]})
+        assert adapter.bridge.runtime.step_count == 3
+        lifecycle.rollback()
+        assert adapter.bridge.runtime.checkpoint() == checkpoint["native"]
+        assert adapter.bridge.runtime.step_count == 1
+        assert director.event_tick == 1
+        assert adapter.store.count == 1
+        assert adapter.store.snapshot() == checkpoint["director"]["adapter"]["relation_store"]
+        for index, (expected, actual) in enumerate(zip(checkpoint["director"]["adapter"]["soe_banks"], banks)):
+            restored = SOEMemory.from_dict(expected)
+            np.testing.assert_allclose(restored.snapshot(), actual.snapshot(), rtol=0.0, atol=1e-12,
+                                       err_msg=f"HLB rollback SOE bank {index}")
+        return {"architecture": "HLB", "native_steps": 2,
+                "checkpoint_restore": "PASS", "p6_trusted_rollback": "PASS",
                 "relation_records_after_restore": adapter.store.count}
     finally:
         director.close()
