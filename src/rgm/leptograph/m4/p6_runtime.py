@@ -151,6 +151,7 @@ class P6RuntimeCoupler:
         hierarchy_lifecycle: CompositeLifecycle | None = None,
         readout_gain: float = 1.0,
         control_gain: float = 1.0,
+        observation_transform: str = "identity",
     ):
         self.director = director
         self.hierarchy_lifecycle = hierarchy_lifecycle or CompositeLifecycle(director)
@@ -159,8 +160,11 @@ class P6RuntimeCoupler:
             raise ValueError("readout_gain must be finite and non-negative")
         if not np.isfinite(control_gain) or control_gain < 0:
             raise ValueError("control_gain must be finite and non-negative")
+        if observation_transform not in ("identity", "tanh"):
+            raise ValueError("observation_transform must be 'identity' or 'tanh'")
         self.readout_gain = float(readout_gain)
         self.control_gain = float(control_gain)
+        self.observation_transform = observation_transform
         self.version = 0
         self._trusted: dict | None = None
         self._rollback_point: dict | None = None
@@ -174,6 +178,7 @@ class P6RuntimeCoupler:
             "coupling_config": {
                 "readout_gain": self.readout_gain,
                 "control_gain": self.control_gain,
+                "observation_transform": self.observation_transform,
             },
             "version": self.version,
         }
@@ -207,7 +212,8 @@ class P6RuntimeCoupler:
             raise ValueError("P6 composite checkpoint fingerprint mismatch")
         config = state.get("coupling_config", {})
         if (float(config.get("readout_gain", -1.0)) != self.readout_gain
-                or float(config.get("control_gain", -1.0)) != self.control_gain):
+                or float(config.get("control_gain", -1.0)) != self.control_gain
+                or config.get("observation_transform") != self.observation_transform):
             raise ValueError("P6 coupling gain configuration mismatch")
         # Fully validate the controller candidate before native state changes.
         candidate_model = _p6_from_snapshot(state["p6"])
@@ -292,13 +298,19 @@ class P6RuntimeCoupler:
                 event_features=supplied, relation_records=relation_records,
             )
             native_views = result["result"]["native_u_views"]
-            observation = np.asarray([
+            raw_observation = np.asarray([
                 float(np.mean(native_views[1])),
                 float(np.mean(native_views[2])),
             ], dtype=np.float64)
+            observation = (
+                np.tanh(raw_observation)
+                if self.observation_transform == "tanh"
+                else raw_observation.copy()
+            )
             p6_state = self.model.step(observation, residual_score=float(residual_score))
             return {
                 "hierarchy": result,
+                "p6_observation_raw": raw_observation.tolist(),
                 "p6_observation": observation.tolist(),
                 "p6_control": control.tolist(),
                 "p6_state": p6_state.tolist(),
