@@ -164,12 +164,13 @@ def create_hla_adapter(native_library, memories, kernels, *, dt: float,
 
 
 def create_hlb_adapter(native_library, memories, kernels, *, dt: float,
-                       runtime_factory: Callable, capacity: int = 8192) -> "HLBAdapter":
+                       runtime_factory: Callable, capacity: int = 8192,
+                       ridge: float = 1e-6) -> "HLBAdapter":
     """Create one persistent native handle and bind it to HLB."""
     levels, edges = make_h0_chain_spec(memories, kernels, dt=dt)
     runtime = runtime_factory(native_library, levels, edges)
     try:
-        return HLBAdapter(SOEHierarchyBridge(runtime, memories, dt=dt), capacity=capacity)
+        return HLBAdapter(SOEHierarchyBridge(runtime, memories, dt=dt), capacity=capacity, ridge=ridge)
     except Exception:
         close = getattr(runtime, "close", None)
         if callable(close):
@@ -242,6 +243,18 @@ class HLAAdapter:
                                  query_time, observation_cutoff)
         valid = compose_paths(evidence, query).witnesses
         return witness in valid
+
+    def query(self, start: Entity, relation_path: Sequence[RelationType], *,
+              evidence: Iterable[RelationInstance], context: str | None,
+              query_time: float, observation_cutoff: float,
+              max_event_gap: float | None = None) -> tuple[CompositionWitness, ...]:
+        """Compose only from the caller's current evidence window; retain nothing."""
+        query = CompositionQuery(start, tuple(relation_path), context, query_time,
+                                 observation_cutoff, max_event_gap=max_event_gap)
+        witnesses = compose_paths(evidence, query).witnesses
+        if not witnesses:
+            self.abstentions += 1
+        return witnesses
 
     def snapshot(self) -> dict:
         return {"schema_version": H1_SCHEMA_VERSION, "architecture": self.architecture,
@@ -355,10 +368,36 @@ class HLBAdapter:
     """HLB: shared SOE hierarchy plus a single canonical typed relation store."""
     architecture = "HLB"
 
-    def __init__(self, bridge: SOEHierarchyBridge, *, capacity: int = 8192):
+    def __init__(self, bridge: SOEHierarchyBridge, *, capacity: int = 8192,
+                 ridge: float = 1e-6):
         self.bridge = bridge
         self.store = CanonicalRelationStore(capacity)
+        self.feature_dims = tuple(memory.feature_dim for memory in bridge.memories)
+        self.readouts = (
+            LinearReadout(bridge.layouts[0].native_state_dim, self.feature_dims[1], ridge),
+            LinearReadout(bridge.layouts[1].native_state_dim, self.feature_dims[2], ridge),
+        )
         self.ticks = 0
+        self.abstentions = 0
+
+    def fit_upper_readouts(self, level1: Sequence[ReadoutExample],
+                           level2: Sequence[ReadoutExample]) -> dict:
+        return {"level1": self.readouts[0].fit(level1),
+                "level2": self.readouts[1].fit(level2)}
+
+    def query_readout(self, level: int, lower_level_trace: Sequence[float]) -> np.ndarray:
+        if level not in (1, 2):
+            raise ValueError("learned upper readouts exist only at levels 1 and 2")
+        try:
+            return self.readouts[level - 1].predict(lower_level_trace)
+        except RuntimeError:
+            self.abstentions += 1
+            raise
+
+    def predict_abstract(self, level: int, lower_level_trace: Sequence[float]) -> AbstractPrediction:
+        values = self.query_readout(level, lower_level_trace)
+        return AbstractPrediction(level, tuple(float(x) for x in values),
+                                  self.readouts[level - 1].fingerprint)
 
     def observe(self, level: int, record: RelationInstance) -> str:
         return self.store.insert(level, record)
@@ -369,17 +408,29 @@ class HLBAdapter:
         records = self.store.records(cutoff=observation_cutoff)
         query = CompositionQuery(start, tuple(relation_path), context, query_time,
                                  observation_cutoff, max_event_gap=max_event_gap)
-        return compose_paths(records, query).witnesses
+        witnesses = compose_paths(records, query).witnesses
+        if not witnesses:
+            self.abstentions += 1
+        return witnesses
 
     def step(self, event_features: Mapping[int, Sequence[float]] | None = None) -> dict:
-        result = self.bridge.step(event_features)
+        supplied = {} if event_features is None else dict(event_features)
+        if self.readouts[0].fitted and 1 not in supplied:
+            trace0 = self.bridge.memories[0].snapshot().reshape(-1)
+            supplied[1] = self.readouts[0].predict(trace0).tolist()
+        if self.readouts[1].fitted and 2 not in supplied:
+            trace1 = self.bridge.memories[1].snapshot().reshape(-1)
+            supplied[2] = self.readouts[1].predict(trace1).tolist()
+        result = self.bridge.step(supplied)
         self.ticks += 1
         return {"architecture": self.architecture, "tick": self.ticks, **result}
 
     def snapshot(self) -> dict:
         return {"schema_version": H1_SCHEMA_VERSION, "architecture": self.architecture,
-                "ticks": self.ticks, "store": self.store.snapshot(),
-                "soe_banks": _memory_snapshots(self.bridge)}
+                "ticks": self.ticks, "abstentions": self.abstentions,
+                "store": self.store.snapshot(),
+                "soe_banks": _memory_snapshots(self.bridge),
+                "readouts": [readout.snapshot() for readout in self.readouts]}
 
     def validate_snapshot(self, state: Mapping) -> None:
         if state.get("schema_version") != H1_SCHEMA_VERSION or state.get("architecture") != self.architecture:
@@ -387,12 +438,19 @@ class HLBAdapter:
         probe = CanonicalRelationStore()
         probe.restore(state["store"])
         _validate_memory_snapshots(self.bridge, state.get("soe_banks", ()))
+        if len(state.get("readouts", ())) != 2:
+            raise ValueError("HLB snapshot must contain both upper readouts")
+        for readout, candidate in zip(self.readouts, state["readouts"]):
+            probe_readout = LinearReadout(readout.input_dim, readout.output_dim, readout.ridge)
+            probe_readout.restore(candidate)
 
     def restore(self, state: Mapping) -> None:
         self.validate_snapshot(state)
         self.store.restore(state["store"])
         _restore_memories(self.bridge, state["soe_banks"])
-        self.ticks = int(state["ticks"])
+        for readout, candidate in zip(self.readouts, state["readouts"]):
+            readout.restore(candidate)
+        self.ticks, self.abstentions = int(state["ticks"]), int(state["abstentions"])
 
 
 class HierarchicalRuntimeDirector:
