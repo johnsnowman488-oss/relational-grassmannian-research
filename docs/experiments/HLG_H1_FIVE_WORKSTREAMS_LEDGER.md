@@ -9,8 +9,9 @@
 ## Workstream 1 — HLA adapter
 
 - Added a three-level HLA adapter over the shared H0 SOE bridge.
-- Upper levels use separately fitted linear readouts (0→1 and 1→2).
+- Upper levels use separately fitted linear readouts (0→1 and 1→2), driven by the lower level's flattened pre-step SOE trace (not only the current event vector).
 - Readout fitting accepts explicitly labelled calibration examples only.
+- Abstract predictions have a distinct result type; exact witnesses are validated only against caller-supplied evidence.
 - Missing/unfitted readouts do not fabricate an upper-level prediction.
 - HLA has no relation-instance store; exact relational witnesses remain external evidence and are not inferred from readout outputs.
 
@@ -23,6 +24,7 @@
 
 ## Workstream 3 — persistent runtime integration
 
+- Added ABI factories that build the H0 three-level chain spec and call an injected persistent-runtime factory once per adapter. The production Aberconics factory signature is compatible; the director owns and closes the persistent handle.
 - Added a director that validates event and observation times and routes each global tick through exactly one adapter/bridge step.
 - Late arrivals retain their original event time and are ingested at current observation time; historical native state is not rewritten.
 - HLA rejects relation-store writes.
@@ -32,7 +34,7 @@
 
 - Added explicit fit/validation/confirmatory partition labels.
 - The runner refuses to score the fit partition.
-- Paired summaries require the same task ID, seed, partition and task order.
+- Paired summaries require the same task ID, seed, partition, exact task fingerprint and task order.
 - This is a harness primitive, not yet a frozen confirmatory campaign or evidence of HLA/HLB performance.
 
 ## Workstream 5 — composite lifecycle and rollback
@@ -40,7 +42,7 @@
 - Added composite checkpoint fingerprinting over director/adapter/SOE/native state.
 - Restore validates architecture, schema, readout dimensions/fingerprints, canonical store capacity/records and SOE configuration before activating state.
 - Native restore relies on the M4 runtime's compute-then-commit restore contract.
-- Rollback returns to the last trusted composite checkpoint. Promotion increments a version and checkpoints it.
+- Promotion preserves the previous trusted checkpoint as the rollback point; rollback after promotion restores the previous trusted version rather than the candidate.
 
 ## Validation gates
 
