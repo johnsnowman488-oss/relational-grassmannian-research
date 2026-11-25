@@ -124,6 +124,7 @@ def exercise_hlb(lib):
         runtime_factory=create_persistent_hierarchy_runtime,
         capacity=32,
     )
+    train_hla_readouts(adapter)
     director = HierarchicalRuntimeDirector(adapter)
     lifecycle = CompositeLifecycle(director)
     subject = Entity("smoke-person", "person")
@@ -133,16 +134,12 @@ def exercise_hlb(lib):
     try:
         assert adapter.observe(0, record) == "STORED"
         director.exchange(event_time=DT, observed_at=DT,
-                          event_features={0: [0.2, -0.1, 0.3],
-                                          1: [0.1, 0.2, -0.2],
-                                          2: [-0.1, 0.3, 0.2]})
+                          event_features={0: [0.2, -0.1, 0.3]})
         checkpoint = lifecycle.checkpoint()
         assert checkpoint["native"]["step_count"] == 1
 
         director.exchange(event_time=2 * DT, observed_at=2 * DT,
-                          event_features={0: [-0.4, 0.5, 0.1],
-                                          1: [0.3, -0.2, 0.1],
-                                          2: [0.2, 0.1, -0.3]})
+                          event_features={0: [-0.4, 0.5, 0.1]})
         expected_native = adapter.bridge.runtime.get_state()
         expected_step_count = adapter.bridge.runtime.step_count
         expected_soe = [bank.snapshot() for bank in banks]
