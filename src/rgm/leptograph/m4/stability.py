@@ -11,6 +11,7 @@ import numpy as np
 from rgm.memory import SOEMemory
 from rgm.leptograph.m3.context import ContextBank, ContextSlot, ContextDecision
 from rgm.leptograph.m3.estimation import MultiSourceRidge
+from rgm.leptograph.m3.resource import integrated_resource_snapshot
 from rgm.leptograph.m3.revision import CUSUMDetector, CandidateRevision
 from rgm.leptograph.m3.activation import EvidenceActivation
 
@@ -132,6 +133,15 @@ class CoupledAdaptiveSystem:
                 self.context_bank.set_operator(
                     int(slot_id), key, self.estimator.source_operator(key)
                 )
+        resource = integrated_resource_snapshot(
+            estimator=self.estimator, context_bank=self.context_bank,
+            activation=self.activation, detector=self.detector,
+            revision=self.revision,
+        )
+        resource["p6_soe_memory_bytes"] = int(
+            self.memory.channels.nbytes + self.memory.injection_matrices.nbytes
+            + self.memory.decay_rates.nbytes
+        )
         return {
             "context_decision": decision.value,
             "context_slot": self.last_context_slot,
@@ -142,6 +152,7 @@ class CoupledAdaptiveSystem:
             },
             "estimator_samples": int(self.estimator.sample_count),
             "context_slot_count": len(self.context_bank.slots),
+            "resource": resource,
         }
     def start_candidate(self, operator: np.ndarray):
         if self.mode not in {AdaptiveMode.NORMAL,AdaptiveMode.DETECT,AdaptiveMode.RECOVERY}: raise RuntimeError("candidate cannot start in current mode")
