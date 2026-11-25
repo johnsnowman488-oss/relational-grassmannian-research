@@ -54,6 +54,19 @@ def make_p6_coupler(*, readout_gain=1.0, control_gain=1.0):
     return coupler, runtime
 
 
+def test_p6_soe_feedback_is_dc_normalized_for_slow_channels():
+    model = CoupledAdaptiveSystem(max_state_norm=25.0)
+    peak = 0.0
+    for _ in range(1000):
+        state = model.step(np.array([5.0, 5.0]), residual_score=0.0)
+        peak = max(peak, float(np.linalg.norm(state)))
+    assert peak < 25.0
+    assert float(np.linalg.norm(model.state)) < 3.0
+    # Raw slow-channel impulse traces may be much larger than the bounded
+    # input; P6 must use their DC-normalized aggregate rather than raw mean.
+    assert float(np.max(np.abs(model.memory.channels))) > 25.0
+
+
 def test_p6_runtime_checkpoint_roundtrip_includes_controller_and_native_state():
     coupler, runtime = make_p6_coupler()
     try:
