@@ -94,6 +94,23 @@ def test_p6_context_estimator_state_is_checkpointed_and_restored():
     assert set(coupler.model.activation.states) == {"lower", "upper"}
 
 
+def test_p6_relation_activation_hysteresis_turns_on_then_off():
+    model = CoupledAdaptiveSystem()
+    for _ in range(20):
+        model.update_relation_evidence(
+            "lower", 0.8, observed=True, identifiable=True,
+            context_score=0.0, context_slot=0,
+        )
+    assert model.activation.is_active("lower")
+    for _ in range(30):
+        model.update_relation_evidence(
+            "lower", -0.8, observed=True, identifiable=True,
+            context_score=0.0, context_slot=0,
+        )
+    assert not model.activation.is_active("lower")
+    assert model.activation.snapshot("lower")["observed_count"] == 50
+
+
 def test_p6_dormancy_freezes_learning_and_recovery_uses_reduced_input():
     model = CoupledAdaptiveSystem()
     model.state = np.array([1.0, -0.5])
