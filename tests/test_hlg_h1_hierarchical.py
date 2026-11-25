@@ -229,3 +229,40 @@ def test_lifecycle_rollback_after_promotion_restores_previous_trusted_version():
     assert runtime.state["step_count"] == 0
     assert director.event_tick == 0
     assert lifecycle.version == 0
+
+
+
+def test_hla_and_hlb_share_upper_readouts_but_have_different_relation_retention():
+    bridge_a, _ = make_bridge()
+    bridge_b, _ = make_bridge()
+    hla = HLAAdapter(bridge_a, feature_dims=[2, 3, 4])
+    hlb = HLBAdapter(bridge_b)
+    level1 = [
+        ReadoutExample((0, 0, 0, 0), (0, 0, 0)),
+        ReadoutExample((1, 1, 1, 1), (1, 1, 1)),
+    ]
+    level2 = [
+        ReadoutExample((0, 0, 0, 0, 0, 0), (0, 0, 0, 0)),
+        ReadoutExample((1, 1, 1, 1, 1, 1), (1, 1, 1, 1)),
+    ]
+    hla.fit_upper_readouts(level1, level2)
+    hlb.fit_upper_readouts(level1, level2)
+    assert [r.fingerprint for r in hla.readouts] == [r.fingerprint for r in hlb.readouts]
+    assert hla.predict_abstract(1, [0.5] * 4).features == hlb.predict_abstract(1, [0.5] * 4).features
+
+    person, org, city = Entity("p-match", "person"), Entity("o-match", "org"), Entity("c-match", "city")
+    employed = RelationType("employed_by", "person", "org")
+    based = RelationType("based_in", "org", "city")
+    first = RelationInstance("match-edge-1", employed, person, org, 1.0, 1.0)
+    second = RelationInstance("match-edge-2", based, org, city, 2.0, 2.0)
+    evidence = (first, second)
+    assert hla.query(person, [employed, based], evidence=evidence, context=None,
+                     query_time=3.0, observation_cutoff=3.0)
+    assert not hasattr(hla, "store")
+    hlb.observe(0, first)
+    hlb.observe(1, second)
+    assert hla.query(person, [employed, based], evidence=evidence, context=None,
+                     query_time=3.0, observation_cutoff=3.0) == hlb.query(
+                         person, [employed, based], context=None,
+                         query_time=3.0, observation_cutoff=3.0)
+    assert hlb.store.count == 2
