@@ -71,14 +71,18 @@ def test_p6_soe_feedback_is_dc_normalized_for_slow_channels():
 
 def test_p6_context_estimator_state_is_checkpointed_and_restored():
     coupler, _ = make_p6_coupler(readout_gain=0.1, control_gain=0.1)
+    last_adaptive = None
     for index in range(24):
         lower = np.array([np.sin(index * 0.2), np.cos(index * 0.2)])
         upper = np.array([np.cos(index * 0.13), np.sin(index * 0.13)])
         target = 0.7 * lower + 0.2 * upper
-        coupler.model.observe_adaptive_state(
+        last_adaptive = coupler.model.observe_adaptive_state(
             {"lower": lower, "upper": upper},
             np.array([0.05, -0.03]), target,
         )
+    assert "resource" in last_adaptive
+    assert last_adaptive["resource"]["persistent_state_bytes"] > 0
+    assert last_adaptive["resource"]["p6_soe_memory_bytes"] > 0
     saved = coupler.snapshot()
     saved_count = coupler.model.estimator.sample_count
     saved_context_count = coupler.model.context_bank.slots[0].count
@@ -92,6 +96,21 @@ def test_p6_context_estimator_state_is_checkpointed_and_restored():
     assert coupler.model.estimator.sample_count == saved_count == 24
     assert coupler.model.context_bank.slots[0].count == saved_context_count
     assert set(coupler.model.activation.states) == {"lower", "upper"}
+
+
+def test_p6_context_bank_capacity_abstains_without_eviction():
+    model = CoupledAdaptiveSystem()
+    bank = model.context_bank
+    bank._pending.clear()
+    for center in (np.array([10.0, 10.0]), np.array([20.0, 20.0]), np.array([30.0, 30.0])):
+        for _ in range(3):
+            bank.observe_novel(center)
+    assert len(bank.slots) == bank.capacity == 4
+    slot_ids = tuple(slot.slot_id for slot in bank.slots)
+    for _ in range(3):
+        assert bank.observe_novel(np.array([40.0, 40.0])) is None
+    assert tuple(slot.slot_id for slot in bank.slots) == slot_ids
+    assert bank._pending == []
 
 
 def test_p6_relation_activation_hysteresis_turns_on_then_off():
