@@ -1,15 +1,6 @@
 name: H1 P6 v3 coupled runtime stability and rollback
 
 on:
-  pull_request:
-    types: [opened]
-    branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
-    paths:
-      - "src/rgm/leptograph/m4/p6_runtime.py"
-      - "src/rgm/leptograph/m4/stability.py"
-      - "scripts/run_h1_p6_runtime_v3.py"
-      - "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v3.*"
-      - ".github/workflows/h1-p6-runtime-v3.yml"
   workflow_dispatch:
 
 permissions:
