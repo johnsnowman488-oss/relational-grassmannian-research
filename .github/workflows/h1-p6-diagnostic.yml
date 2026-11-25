@@ -1,0 +1,50 @@
+name: H1 P6 failure diagnosis
+
+on:
+  pull_request:
+    types: [synchronize]
+    branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
+    paths:
+      - "src/rgm/leptograph/m4/p6_runtime.py"
+      - "scripts/diagnose_h1_p6_runtime.py"
+      - ".github/workflows/h1-p6-diagnostic.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose-first-overflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout research implementation
+        uses: actions/checkout@v4
+        with:
+          path: research
+
+      - name: Checkout pinned M4 runtime
+        uses: actions/checkout@v4
+        with:
+          repository: johnsnowman488-oss/aberconics-framework
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          path: aberconics
+
+      - name: Build native shared library
+        run: |
+          cmake -S "aberconics/code/c++ core" -B "aberconics/code/c++ core/build-shared" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
+            -DGFE_BUILD_TESTS=OFF -DGFE_BUILD_APPS=OFF
+          cmake --build "aberconics/code/c++ core/build-shared" --parallel 2
+
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "research[dev]"
+
+      - name: Diagnose the already-failed seed only
+        env:
+          GFE_CORE_LIB: ${{ github.workspace }}/aberconics/code/c++ core/build-shared/libgfe_core.so
+          ABERCONICS_PYTHON: ${{ github.workspace }}/aberconics/code/python
+          ABERCONICS_COMMIT: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          PYTHONPATH: ${{ github.workspace }}/research/src:${{ github.workspace }}/aberconics/code/python
+        run: python research/scripts/diagnose_h1_p6_runtime.py
