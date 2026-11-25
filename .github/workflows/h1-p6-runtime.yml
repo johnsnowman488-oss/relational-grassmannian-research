@@ -8,7 +8,7 @@ on:
       - "src/rgm/leptograph/m4/p6_runtime.py"
       - "src/rgm/leptograph/m4/stability.py"
       - "scripts/run_h1_p6_runtime.py"
-      - "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v1.*"
+      - "docs/experiments/HLG_H1_P6_ACTUAL_RUNTIME_v2.*"
       - "tests/test_hlg_h1_p6_runtime.py"
       - ".github/workflows/h1-p6-runtime.yml"
   workflow_dispatch:
@@ -78,6 +78,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: h1-p6-actual-runtime
+          name: h1-p6-actual-runtime-v2
           path: artifacts/h1-p6-actual-runtime.json
           if-no-files-found: warn
