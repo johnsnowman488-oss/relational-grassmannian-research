@@ -2,6 +2,7 @@ name: H1 matched hierarchical campaigns
 
 on:
   pull_request:
+    types: [opened]
     branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
     paths:
       - "src/rgm/leptograph/m4/composition.py"
