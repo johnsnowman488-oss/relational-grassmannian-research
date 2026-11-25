@@ -95,14 +95,14 @@ def _relation_fixture(seed: int):
     ad = RelationType(f"p6-{seed}-ad", "P6_A", "P6_D")
     ae = RelationType(f"p6-{seed}-ae", "P6_A", "P6_E")
     base = (
-        (0, RelationInstance(f"p6-{seed}-ab-1", ab, a, b, 0.01, 0.01, "p6", "P6-v4")),
-        (1, RelationInstance(f"p6-{seed}-bc-1", bc, b, c, 0.01, 0.01, "p6", "P6-v4")),
+        (0, RelationInstance(f"p6-{seed}-ab-1", ab, a, b, 0.01, 0.01, context="p6", provenance="P6-v4")),
+        (1, RelationInstance(f"p6-{seed}-bc-1", bc, b, c, 0.01, 0.01, context="p6", provenance="P6-v4")),
     )
     candidate = (0, RelationInstance(
-        f"p6-{seed}-candidate-only", ad, a, d, 3.01, 3.01, "p6", "P6-candidate"
+        f"p6-{seed}-candidate-only", ad, a, d, 3.01, 3.01, context="p6", provenance="P6-candidate"
     ))
     capacity_probe = RelationInstance(
-        f"p6-{seed}-capacity-probe", ae, a, e, 3.011, 3.011, "p6", "P6-capacity"
+        f"p6-{seed}-capacity-probe", ae, a, e, 3.011, 3.011, context="p6", provenance="P6-capacity"
     )
     return a, ab, bc, base, candidate, capacity_probe
 
@@ -115,6 +115,7 @@ def _protected_witness_ids(adapter, start, path, cutoff=3.2):
 
 
 def _fill_and_probe_context_capacity(model):
+    model.context_bank._pending.clear()
     for center in (np.array([10.0, 10.0]), np.array([20.0, 20.0]), np.array([30.0, 30.0])):
         for _ in range(3):
             model.context_bank.observe_novel(center)
@@ -172,6 +173,7 @@ def _run_architecture(architecture, lib, readout_examples, seeds, config):
     max_context_slots = 0
     max_update_ops = 0
     max_query_ops = 0
+    max_trainable_parameters = 0
     try:
         for seed in seeds:
             coupler.restore(initial)
@@ -255,10 +257,11 @@ def _run_architecture(architecture, lib, readout_examples, seeds, config):
                         int(resource.get("persistent_state_bytes", 0))
                         + int(resource.get("p6_soe_memory_bytes", 0)),
                     )
-                    max_estimator_samples = max(max_estimator_samples, int(resource.get("estimator_sample_count", 0)))
-                    max_context_slots = max(max_context_slots, int(resource.get("context_slot_count", 0)))
-                    max_update_ops = max(max_update_ops, int(resource.get("update_multiply_adds", 0)))
-                    max_query_ops = max(max_query_ops, int(resource.get("query_multiply_adds", 0)))
+                    max_estimator_samples = max(max_estimator_samples, int(coupler.model.estimator.sample_count))
+                    max_context_slots = max(max_context_slots, int(len(coupler.model.context_bank.slots)))
+                    max_update_ops = max(max_update_ops, int(resource.get("max_observed_or_declared_update_multiply_adds", 0)))
+                    max_query_ops = max(max_query_ops, int(resource.get("max_observed_or_declared_query_multiply_adds", 0)))
+                    max_trainable_parameters = max(max_trainable_parameters, int(resource.get("trainable_parameter_count", 0)))
 
             model = coupler.model
             alarms = model.detector.alarms
@@ -436,6 +439,7 @@ def _run_architecture(architecture, lib, readout_examples, seeds, config):
             "max_context_slots": max_context_slots,
             "max_estimator_update_ops": max_update_ops,
             "max_estimator_query_ops": max_query_ops,
+            "max_trainable_parameters": max_trainable_parameters,
             "negative_control_false_alarms": sum(r["negative_control_false_alarms"] for r in rows),
             "mode_transition_contracts": sum(
                 {"DETECT", "DORMANT", "RECOVERY", "NORMAL"}.issubset(set(r["mode_path"]))
@@ -492,6 +496,14 @@ def run_p6_runtime_campaign(output_path: str | Path | None = None) -> dict:
         "HLA_mode_transitions_all_seeds": results["HLA"]["mode_transition_contracts"] == len(seeds),
         "HLB_mode_transitions_all_seeds": results["HLB"]["mode_transition_contracts"] == len(seeds),
         "HLA_context_capacity_abstention_all_seeds": results["HLA"]["context_capacity_abstentions"] == len(seeds),
+        "HLA_resource_state_within_cap": results["HLA"]["max_resource_state_bytes"] <= int(config["resource_envelope"]["persistent_state_bytes"])
+            and results["HLA"]["max_trainable_parameters"] <= int(config["resource_envelope"]["trainable_parameters"]),
+        "HLB_resource_state_within_cap": results["HLB"]["max_resource_state_bytes"] <= int(config["resource_envelope"]["persistent_state_bytes"])
+            and results["HLB"]["max_trainable_parameters"] <= int(config["resource_envelope"]["trainable_parameters"]),
+        "HLA_update_compute_within_cap": results["HLA"]["max_estimator_update_ops"] <= int(config["resource_envelope"]["update_multiply_adds"]),
+        "HLB_update_compute_within_cap": results["HLB"]["max_estimator_update_ops"] <= int(config["resource_envelope"]["update_multiply_adds"]),
+        "HLA_query_compute_within_cap": results["HLA"]["max_estimator_query_ops"] <= int(config["resource_envelope"]["query_multiply_adds"]),
+        "HLB_query_compute_within_cap": results["HLB"]["max_estimator_query_ops"] <= int(config["resource_envelope"]["query_multiply_adds"]),
         "HLB_context_capacity_abstention_all_seeds": results["HLB"]["context_capacity_abstentions"] == len(seeds),
         "HLA_all_candidates_promoted": results["HLA"]["candidate_promotions"] == len(seeds),
         "HLB_all_candidates_promoted": results["HLB"]["candidate_promotions"] == len(seeds),
