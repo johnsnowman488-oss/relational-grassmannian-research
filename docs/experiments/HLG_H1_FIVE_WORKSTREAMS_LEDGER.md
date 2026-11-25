@@ -133,3 +133,14 @@ Required next work:
 - Full HLA/HLB P6 coupled adaptive-stability acceptance: **OPEN**.
 
 No architecture is selected as the overall winner. PR #48 remains draft/unmerged pending review of this evidence and completion of the remaining P6 work.
+
+
+### Reproducibility rerun — smoke-only follow-up commit
+
+After adding the real-runtime trusted-rollback assertions, the full repository test suite and native smoke were rerun, and the matched campaign workflow was rerun without changing campaign source, readout fitting, thresholds, partition manifest or seeds.
+
+- Workflow: [45719954582](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45719954582), passed.
+- Repository tests: 384 passed on Python 3.10 and 384 passed on Python 3.12.
+- Validation raw JSON SHA-256: `2a61f8a2f83cc4188cfa7e137c8289f36487bff3c23bfb05a20638280d0ae37c` — byte-identical to the canonical validation JSON.
+- Confirmatory raw JSON SHA-256: `8938a592aa1a6b9a7b0f89aeebfe351f72b93ce47ba6917db591dd9ca6d4cb9a` — byte-identical to the canonical confirmatory JSON.
+- The ZIP artifact hashes differ because the ZIP containers were regenerated; the extracted JSON payloads are exactly identical. This is a deterministic reproducibility repeat of the same frozen seed sets, not a new independent confirmation sample.
