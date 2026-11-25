@@ -19,7 +19,7 @@ from rgm.leptograph.m4.composition import (
     Entity, RelationInstance, RelationType, CompositionQuery,
     CompositionWitness, compose_paths,
 )
-from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge
+from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge, make_h0_chain_spec
 
 
 H1_SCHEMA_VERSION = "0.1.0"
@@ -141,6 +141,40 @@ class LinearReadout:
         self.fitted = bool(state["fitted"])
         if state.get("fingerprint") != self.fingerprint:
             raise ValueError("readout snapshot fingerprint mismatch")
+
+
+def create_hla_adapter(native_library, memories, kernels, *, dt: float,
+                       runtime_factory: Callable, ridge: float = 1e-6) -> "HLAAdapter":
+    """Create one persistent native handle and bind it to HLA.
+
+    runtime_factory is the production ABI factory, such as
+    gfe_ctypes.create_persistent_hierarchy_runtime from Aberconics.
+    Dependency injection keeps this package independent of a checkout path.
+    """
+    levels, edges = make_h0_chain_spec(memories, kernels, dt=dt)
+    runtime = runtime_factory(native_library, levels, edges)
+    try:
+        bridge = SOEHierarchyBridge(runtime, memories, dt=dt)
+        return HLAAdapter(bridge, feature_dims=[m.feature_dim for m in memories], ridge=ridge)
+    except Exception:
+        close = getattr(runtime, "close", None)
+        if callable(close):
+            close()
+        raise
+
+
+def create_hlb_adapter(native_library, memories, kernels, *, dt: float,
+                       runtime_factory: Callable, capacity: int = 8192) -> "HLBAdapter":
+    """Create one persistent native handle and bind it to HLB."""
+    levels, edges = make_h0_chain_spec(memories, kernels, dt=dt)
+    runtime = runtime_factory(native_library, levels, edges)
+    try:
+        return HLBAdapter(SOEHierarchyBridge(runtime, memories, dt=dt), capacity=capacity)
+    except Exception:
+        close = getattr(runtime, "close", None)
+        if callable(close):
+            close()
+        raise
 
 
 class HLAAdapter:
@@ -395,6 +429,12 @@ class HierarchicalRuntimeDirector:
         self.event_log.append({"event_time": float(event_time), "observed_at": float(observed_at),
                                "tick": self.event_tick})
         return {"tick": self.event_tick, "relation_status": tuple(statuses), "result": result}
+
+    def close(self) -> None:
+        """Release the single persistent native handle owned by this director."""
+        close = getattr(self.adapter.bridge.runtime, "close", None)
+        if callable(close):
+            close()
 
     def snapshot(self) -> dict:
         return {"schema_version": H1_SCHEMA_VERSION, "event_tick": self.event_tick,
