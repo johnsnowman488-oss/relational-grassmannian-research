@@ -211,3 +211,21 @@ def test_production_runtime_factories_create_one_native_handle_per_adapter():
                              runtime_factory=factory, capacity=10)
     assert isinstance(hlb, HLBAdapter)
     assert len(calls) == 2
+
+
+def test_lifecycle_rollback_after_promotion_restores_previous_trusted_version():
+    bridge, runtime = make_bridge()
+    director = HierarchicalRuntimeDirector(HLBAdapter(bridge))
+    lifecycle = CompositeLifecycle(director)
+    lifecycle.checkpoint()
+    director.exchange(event_time=1.0, observed_at=1.0,
+                      event_features={0: [1.0, 0.0]})
+    assert lifecycle.promote() == 1
+    assert runtime.state["step_count"] == 1
+    director.exchange(event_time=2.0, observed_at=2.0,
+                      event_features={0: [0.0, 1.0]})
+    assert runtime.state["step_count"] == 2
+    lifecycle.rollback()
+    assert runtime.state["step_count"] == 0
+    assert director.event_tick == 0
+    assert lifecycle.version == 0
