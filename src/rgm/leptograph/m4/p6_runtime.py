@@ -280,6 +280,8 @@ class P6RuntimeCoupler:
             raise
 
     def start_candidate(self, operator: Sequence[Sequence[float]]) -> None:
+        if self._trusted is None:
+            raise RuntimeError("P6 candidate fitting requires a trusted composite checkpoint")
         self.model.start_candidate(operator)
 
     def validate_candidate(self, *, incumbent_loss: float, candidate_loss: float,
