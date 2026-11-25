@@ -492,16 +492,28 @@ class CompositeLifecycle:
         runtime.restore(state["native"])
         self.director.restore(state["director"])
         self.version = int(state["version"])
-        self._trusted = copy.deepcopy(dict(state))
 
     def rollback(self) -> None:
-        if self._trusted is None:
+        target = self._rollback_point if self._rollback_point is not None else self._trusted
+        if target is None:
             raise RuntimeError("no trusted composite checkpoint exists")
-        self.restore(self._trusted)
+        self.restore(target)
+        self._trusted = copy.deepcopy(target)
+        self._rollback_point = None
 
     def promote(self) -> int:
+        if self._trusted is None:
+            raise RuntimeError("an initial trusted checkpoint is required before promotion")
+        previous_trusted = copy.deepcopy(self._trusted)
+        previous_version = self.version
         self.version += 1
-        self.checkpoint()
+        try:
+            promoted = self._capture_checkpoint()
+        except Exception:
+            self.version = previous_version
+            raise
+        self._rollback_point = previous_trusted
+        self._trusted = copy.deepcopy(promoted)
         return self.version
 
 
