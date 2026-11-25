@@ -115,15 +115,31 @@ Both campaigns used the compiled native runtime pinned above and the same fitted
 
 ### Gate 4 — P6 coupled stability and rollback
 
-**Closed subgate:** actual native + Python composite checkpoint, promotion and trusted rollback for both HLA and HLB passed in workflow 45719954794.
+**P6 v3 finite-horizon acceptance: PASS** against the compiled persistent C++ runtime for both HLA and HLB.
 
-**Still open:** full P6 coupled adaptive-stability acceptance for the HLA/HLB hierarchy. The current H1 `CompositeLifecycle` coordinates snapshots, promotion and rollback, but the H1 branch does not yet integrate the full P6 estimator/detector/candidate-fit/independent-validation/adaptive-transition system or execute its finite-horizon coupled-stability campaign against HLA and HLB. The earlier 20-seed × 300-step P6 evidence belongs to the prior synchronous M4 prototype and must not be relabelled as HLA/HLB evidence.
+The integrated `P6RuntimeCoupler` closes the loop:
+- Both learned upper-level readouts are evaluated from the same pre-step SOE snapshot and injected with the frozen readout gain.
+- The P6 accepted operator maps the controller state into a level-2 context/control feature using the frozen control gain.
+- Native upper-level state summaries update the P6 controller on the next tick.
+- Composite checkpoints include the native runtime, director/adapter state, all SOE banks, HLB canonical store where applicable, P6 state and memory, detector, activation state, candidate revision, and coupling configuration.
+- Candidate promotion, P6 operator rollback, full native/Python/P6 rollback, and exact incumbent replay are tested as one coupled lifecycle.
 
-Required next work:
-1. Define and freeze the HLA/HLB P6 state vector and coupled transition, including all three SOE banks, readouts, HLB relation-store state, context/evidence, estimator statistics, detector, candidate and trusted-version state.
-2. Integrate candidate fit, independent validation, promotion, dormancy/recovery and rollback as one atomic composite lifecycle.
-3. Freeze bounded-input, switching, delayed/late-evidence and perturbation stress conditions with an explicit finite-run envelope before execution.
-4. Run the matched P6 stress against the compiled native runtime; record coupled norms, transition/spectral diagnostics, detector decisions, promotion decisions, rollback exactness and recovery. Keep finite-horizon evidence distinct from a global stability theorem.
+**Preserved failed protocol lineage:**
+- **P6 v1** (`HLG-H1-P6-ACTUAL-RUNTIME-v1`, seeds 950000–950019, full readout/control gains, unnormalized P6 memory aggregation) failed on the first accessed trajectory: the P6 state exceeded 25 at approximately tick 71. Diagnostic isolation showed the trained upper readouts drove native state growth; disabling readouts avoided the P6 overflow, while a 0.1 readout gain substantially reduced it.
+- **P6 v2** (`HLG-H1-P6-ACTUAL-RUNTIME-v2`, seeds 951000–951019, readout/control gains 0.1) still exceeded the P6 envelope late in the 300-step run: norm 25.366 at tick 292. The raw SOE memory aggregation remained insufficiently normalized.
+- Neither failed result was overwritten or counted as a pass. P6 v3 uses a new, disjoint seed set.
+
+**P6 v3 frozen protocol and result:**
+- Protocol: `HLG-H1-P6-ACTUAL-RUNTIME-v3`; seeds 952000–952019, 20 per architecture; 300 bounded-input stress steps per seed plus paired 20-step incumbent/candidate/replay continuations.
+- P6 SOE memory aggregation multiplies each channel by its DC normalizer `1 - exp(-gamma)` before aggregation. Readout gain and P6 control gain remain 0.1. The state envelope remains 25; no threshold was relaxed.
+- Compiled-runtime workflow: [45723190756](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45723190756), **PASS**.
+- Evidence artifact: [P6 v3 JSON artifact 15073156994](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45723190756/artifacts/15073156994), ZIP SHA-256 `6b6708d438f2ba279b175b763f99ce2f304ff88c4222d8081cb48c482daf757c`.
+- Pinned M4 commit: `2539df6bda7ef3c9dd7c707abe26eff8bdbb59de`; compiled shared-library SHA-256 `38b278a93a5b3fa3b544f55d958a2f7a44bb6e1d39154e63072f5ed7be511e4b`.
+- Both HLA and HLB: 7,200 native steps; max P6 state norm **15.7342**; P6 transition spectral radius **0.6663325**; exactly two CUSUM alarms per seed; 20/20 candidate promotions; 20/20 exact P6 operator rollbacks; 20/20 exact composite rollbacks; 20/20 exact incumbent replay fingerprints.
+- Native state remained finite throughout. Its observed maximum level-state norm was **1,212.797**. The protocol did not assert a native-state norm bound, so this is a reported limitation, not a hidden pass criterion.
+- HLA and HLB produced identical P6 results because their native hierarchy and controller dynamics are matched; the relation-store distinction does not alter this controller stability test.
+
+**Claim boundary:** P6 v3 supports finite-horizon coupled execution and exact rollback for the declared M4 runtime, SOE normalization, readout/control gains, input bounds and 300-step horizon. It is not a global stability theorem, arbitrary-switching result, or guarantee for other kernels, dimensions, timesteps or gains.
 
 ### Current acceptance summary
 
@@ -131,9 +147,9 @@ Required next work:
 - Independent partition freeze and integrity: **PASS**.
 - Matched HLA/HLB validation + confirmatory campaign: **PASS**.
 - Actual-runtime trusted rollback: **PASS**.
-- Full HLA/HLB P6 coupled adaptive-stability acceptance: **OPEN**.
+- HLA/HLB P6 v3 finite-horizon coupled stability and rollback: **PASS** within the declared protocol and claim boundary.
 
-No architecture is selected as the overall winner. PR #48 remains draft/unmerged pending review of this evidence and completion of the remaining P6 work.
+No architecture is selected as the overall winner. The native hierarchy's observed state norm is large despite remaining finite; no native-state boundedness claim is made. PR #48 remains draft/unmerged pending review of this evidence.
 
 
 ### Reproducibility rerun — smoke-only follow-up commit
@@ -176,3 +192,8 @@ The v3 result validates the core 2D P6 controller + native HLA/HLB feedback + de
 6. Run the expanded matched HLA/HLB campaign with bounded disturbances, delayed/missing evidence, stationary negative controls, repeated outage/recovery and candidate rollback.
 
 **Claim ceiling:** finite-horizon P6 controller-state boundedness and exact rollback for the v3 gains/runtime only. No global, arbitrary-switching, ISS, full-native-hierarchy boundedness, or full relational-integrity theorem is claimed.
+
+
+### Campaign workflow trigger correction
+
+Several additional H1 campaign invocations were triggered by an initially broad PR path filter while P6-only files were changing. They reused the same H1 campaign implementation, frozen configuration, and seed sets; they were not used for tuning and are not counted as independent confirmation. The canonical H1 result remains run 45719571254, with the deterministic reproducibility repeat 45719954582. The workflow trigger was narrowed and made one-shot to prevent further confirmatory-seed reuse.
