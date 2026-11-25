@@ -141,7 +141,7 @@ def _p6_from_snapshot(state: Mapping) -> CoupledAdaptiveSystem:
 
 class P6RuntimeCoupler:
     """Closed-loop P6 execution and composite checkpoint/rollback manager."""
-    schema_version = "P6-H1-0.1.0"
+    schema_version = "P6-H1-0.2.0"
 
     def __init__(
         self,
@@ -265,7 +265,6 @@ class P6RuntimeCoupler:
             if 0 not in supplied:
                 raise ValueError("P6-coupled exchange requires a level-0 grounding feature")
             adapter = self.director.adapter
-            adapter = self.director.adapter
             control = (
                 self.control_gain
                 * (self.model.revision.accepted_operator @ self.model.state)
@@ -340,6 +339,7 @@ class P6RuntimeCoupler:
                 f"event_time={event_time}; p6_state_norm={p6_norm}; "
                 f"p6_state={p6_state.tolist()}; control={None if control is None else np.asarray(control).tolist()}; "
                 f"observation={None if observation is None else np.asarray(observation).tolist()}; "
+                f"raw_observation={None if 'raw_observation' not in locals() else np.asarray(raw_observation).tolist()}; "
                 f"native_level_norms={native_norms}; p6_step_count={self.model.step_count}"
             )
             self.restore(before)
