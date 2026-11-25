@@ -370,8 +370,13 @@ class P6RuntimeCoupler:
             if 0 not in supplied:
                 raise ValueError("P6-coupled exchange requires a level-0 grounding feature")
             adapter = self.director.adapter
+            mode_gain = (
+                0.0 if self.model.mode == AdaptiveMode.DORMANT
+                else 0.5 if self.model.mode == AdaptiveMode.RECOVERY
+                else 1.0
+            )
             control = (
-                self.control_gain
+                self.control_gain * mode_gain
                 * (self.model.revision.accepted_operator @ self.model.state)
             )
             for level in (1, 2):
@@ -381,8 +386,8 @@ class P6RuntimeCoupler:
                     self.model.activation.is_active(relation_key)
                     and self.model.last_context_slot is not None
                 )
-                if readout.fitted and relation_gate > 0.0:
-                    base = self.readout_gain * relation_gate * readout.predict(
+                if readout.fitted and relation_gate > 0.0 and mode_gain > 0.0:
+                    base = self.readout_gain * relation_gate * mode_gain * readout.predict(
                         adapter.bridge.memories[level - 1].snapshot().reshape(-1)
                     )
                 else:
@@ -433,6 +438,7 @@ class P6RuntimeCoupler:
                 "p6_observation_raw": raw_observation.tolist(),
                 "p6_observation": observation.tolist(),
                 "p6_control": control.tolist(),
+                "p6_mode_gain": float(mode_gain),
                 "p6_state": p6_state.tolist(),
                 "p6_state_norm": float(np.linalg.norm(p6_state)),
                 "p6_mode": self.model.mode.value,
