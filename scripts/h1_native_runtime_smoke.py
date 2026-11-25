@@ -55,6 +55,26 @@ def kernel_specs(banks):
     ]
 
 
+def capture_runtime_feedback(adapter):
+    runtime = adapter.bridge.runtime
+    original_step = runtime.step
+    captured = []
+
+    def recording_step(feedback_by_level=None):
+        captured.append({int(k): list(v) for k, v in (feedback_by_level or {}).items()})
+        return original_step(feedback_by_level)
+
+    runtime.step = recording_step
+    return captured
+
+
+def assert_feedback_equal(left, right, *, label):
+    assert set(left) == set(right), label + ": feedback levels"
+    for level in left:
+        np.testing.assert_allclose(left[level], right[level], rtol=0.0, atol=1e-12,
+                                   err_msg=f"{label}: feedback level {level}")
+
+
 def train_hla_readouts(adapter):
     adapter.fit_upper_readouts(
         [
@@ -88,6 +108,7 @@ def exercise_hla(lib):
     train_hla_readouts(adapter)
     director = HierarchicalRuntimeDirector(adapter)
     lifecycle = CompositeLifecycle(director)
+    feedback_log = capture_runtime_feedback(adapter)
     try:
         director.exchange(event_time=DT, observed_at=DT,
                           event_features={0: [0.2, -0.1, 0.3]})
@@ -100,11 +121,13 @@ def exercise_hla(lib):
         ]
         director.exchange(event_time=2 * DT, observed_at=2 * DT,
                           event_features={0: [-0.4, 0.5, 0.1]})
+        expected_feedback_map = feedback_log[-1]
         expected_native = adapter.bridge.runtime.get_state()
         expected_step_count = adapter.bridge.runtime.step_count
         expected_soe = [bank.snapshot() for bank in banks]
 
         lifecycle.restore(checkpoint)
+        feedback_log.clear()
         assert adapter.bridge.runtime.checkpoint() == checkpoint["native"]
         assert adapter.bridge.runtime.step_count == 1
         restored_feedback = [
@@ -116,6 +139,8 @@ def exercise_hla(lib):
                                        err_msg=f"HLB readout {index} continuation")
         director.exchange(event_time=2 * DT, observed_at=2 * DT,
                           event_features={0: [-0.4, 0.5, 0.1]})
+        actual_feedback_map = feedback_log[-1]
+        assert_feedback_equal(expected_feedback_map, actual_feedback_map, label="HLA")
         actual_native = adapter.bridge.runtime.get_state()
         assert_native_equal(expected_native, actual_native, label="HLA continuation")
         assert adapter.bridge.runtime.step_count == expected_step_count
@@ -164,6 +189,8 @@ def exercise_hlb(lib):
                           event_features={0: [-0.4, 0.5, 0.1],
                                           1: [0.3, -0.2, 0.1],
                                           2: [0.2, 0.1, -0.3]})
+        actual_feedback_map = feedback_log[-1]
+        assert_feedback_equal(expected_feedback_map, actual_feedback_map, label="HLB")
         actual_native = adapter.bridge.runtime.get_state()
         assert_native_equal(expected_native, actual_native, label="HLB continuation")
         assert adapter.bridge.runtime.step_count == expected_step_count
