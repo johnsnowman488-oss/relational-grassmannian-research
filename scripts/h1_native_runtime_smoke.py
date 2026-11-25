@@ -176,8 +176,13 @@ def exercise_hlb(lib):
         checkpoint = lifecycle.checkpoint()
         assert checkpoint["native"]["step_count"] == 1
 
+        expected_feedback = [
+            adapter.readouts[0].predict(banks[0].snapshot().reshape(-1)),
+            adapter.readouts[1].predict(banks[1].snapshot().reshape(-1)),
+        ]
         director.exchange(event_time=2 * DT, observed_at=2 * DT,
                           event_features={0: [-0.4, 0.5, 0.1]})
+        expected_feedback_map = feedback_log[-1]
         expected_native = adapter.bridge.runtime.get_state()
         expected_step_count = adapter.bridge.runtime.step_count
         expected_soe = [bank.snapshot() for bank in banks]
