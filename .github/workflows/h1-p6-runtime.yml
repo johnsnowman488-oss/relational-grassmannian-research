@@ -41,7 +41,7 @@ jobs:
           ACTUAL="$(git rev-parse HEAD)"
           test "$ACTUAL" = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
           echo "m4_commit=$ACTUAL" >> "$GITHUB_OUTPUT"
-          echo "p6_implementation_commit=db6b96868978ef00caa22b33b80cd1aa2508082d" >> "$GITHUB_OUTPUT"
+          echo "p6_implementation_commit=7b0ccf3603e2a517fdbf1cc03d0f8e9363df8e97" >> "$GITHUB_OUTPUT"
 
       - name: Configure and build M4 shared library
         run: |
