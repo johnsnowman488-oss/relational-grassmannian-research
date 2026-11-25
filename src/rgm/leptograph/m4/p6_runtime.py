@@ -132,8 +132,10 @@ def _p6_from_snapshot(state: Mapping) -> CoupledAdaptiveSystem:
         step_count=int(state["step_count"]),
         max_observed_norm=float(state["max_observed_norm"]),
     )
-    if not math.isfinite(model.max_observed_norm) or model.max_observed_norm < 0:
-        raise ValueError("invalid P6 max_observed_norm in checkpoint")
+    if (not math.isfinite(model.max_observed_norm) or model.max_observed_norm < 0
+            or not math.isfinite(model.max_state_norm) or model.max_state_norm <= 0
+            or float(np.linalg.norm(model.state)) > model.max_state_norm):
+        raise ValueError("invalid or out-of-envelope P6 state in checkpoint")
     return model
 
 
@@ -238,6 +240,8 @@ class P6RuntimeCoupler:
             adapter = self.director.adapter
             control = self.model.revision.accepted_operator @ self.model.state
             control_feature = np.zeros(adapter.bridge.memories[2].feature_dim, dtype=np.float64)
+            if control_feature.size < 2:
+                raise ValueError("P6 context level requires at least two feature coordinates")
             control_feature[:2] = control
             if 2 in supplied:
                 if supplied[2].shape != control_feature.shape:
@@ -280,14 +284,21 @@ class P6RuntimeCoupler:
 
     def validate_candidate(self, *, incumbent_loss: float, candidate_loss: float,
                             identifiable: bool) -> bool:
-        promoted = self.model.validate_candidate(
-            incumbent_loss=incumbent_loss,
-            candidate_loss=candidate_loss,
-            identifiable=identifiable,
-        )
-        if promoted:
-            self.promote()
-        return promoted
+        if self._trusted is None:
+            raise RuntimeError("P6 candidate validation requires a trusted composite checkpoint")
+        before = self._capture()
+        try:
+            promoted = self.model.validate_candidate(
+                incumbent_loss=incumbent_loss,
+                candidate_loss=candidate_loss,
+                identifiable=identifiable,
+            )
+            if promoted:
+                self.promote()
+            return promoted
+        except Exception:
+            self.restore(before)
+            raise
 
     def update_relation_evidence(self, relation_id: str, predictive_improvement: float | None,
                                  *, observed: bool, identifiable: bool,
