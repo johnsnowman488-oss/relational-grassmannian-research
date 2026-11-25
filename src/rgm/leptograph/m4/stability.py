@@ -129,7 +129,8 @@ class CoupledAdaptiveSystem:
                 identifiable=bool(identifiability[key]["identifiable"]),
                 context_score=context_score, context_slot=slot_id,
             )
-            if (slot_id is not None and bool(identifiability[key]["identifiable"])):
+            if (slot_id is not None and bool(identifiability[key]["identifiable"])
+                    and self.mode not in {AdaptiveMode.PROMOTED, AdaptiveMode.ROLLBACK}):
                 self.context_bank.set_operator(
                     int(slot_id), key, self.estimator.source_operator(key)
                 )
