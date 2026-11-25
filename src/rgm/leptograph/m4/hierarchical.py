@@ -38,6 +38,28 @@ def _fingerprint(value: object) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def _memory_snapshots(bridge: SOEHierarchyBridge) -> list[dict]:
+    return [memory.to_dict() for memory in bridge.memories]
+
+
+def _validate_memory_snapshots(bridge: SOEHierarchyBridge, states: Sequence[Mapping]) -> None:
+    if len(states) != 3:
+        raise ValueError("composite architecture snapshot must contain three SOE banks")
+    for current, candidate in zip(bridge.memories, states):
+        restored = type(current).from_dict(dict(candidate))
+        if (restored.feature_dim, restored.channel_count) != (current.feature_dim, current.channel_count):
+            raise ValueError("SOE checkpoint dimensions differ from the active H0 bridge")
+        if not (np.array_equal(restored.decay_rates, current.decay_rates)
+                and np.array_equal(restored.injection_matrices, current.injection_matrices)):
+            raise ValueError("SOE checkpoint configuration differs from the active H0 bridge")
+
+
+def _restore_memories(bridge: SOEHierarchyBridge, states: Sequence[Mapping]) -> None:
+    _validate_memory_snapshots(bridge, states)
+    for memory, candidate in zip(bridge.memories, states):
+        memory.channels = type(memory).from_dict(dict(candidate)).channels.copy()
+
+
 @dataclass(frozen=True)
 class ReadoutExample:
     """One labelled calibration example; never constructed from confirmatory data."""
@@ -160,6 +182,7 @@ class HLAAdapter:
     def snapshot(self) -> dict:
         return {"schema_version": H1_SCHEMA_VERSION, "architecture": self.architecture,
                 "ticks": self.ticks, "abstentions": self.abstentions,
+                "soe_banks": _memory_snapshots(self.bridge),
                 "readouts": [r.snapshot() for r in self.readouts]}
 
     def validate_snapshot(self, state: Mapping) -> None:
@@ -167,12 +190,14 @@ class HLAAdapter:
             raise ValueError("HLA snapshot schema or architecture mismatch")
         if len(state.get("readouts", ())) != 2:
             raise ValueError("HLA snapshot must contain both upper readouts")
+        _validate_memory_snapshots(self.bridge, state.get("soe_banks", ()))
         for readout, candidate in zip(self.readouts, state["readouts"]):
             probe = LinearReadout(readout.input_dim, readout.output_dim, readout.ridge)
             probe.restore(candidate)
 
     def restore(self, state: Mapping) -> None:
         self.validate_snapshot(state)
+        _restore_memories(self.bridge, state["soe_banks"])
         for readout, candidate in zip(self.readouts, state["readouts"]):
             readout.restore(candidate)
         self.ticks, self.abstentions = int(state["ticks"]), int(state["abstentions"])
@@ -289,17 +314,20 @@ class HLBAdapter:
 
     def snapshot(self) -> dict:
         return {"schema_version": H1_SCHEMA_VERSION, "architecture": self.architecture,
-                "ticks": self.ticks, "store": self.store.snapshot()}
+                "ticks": self.ticks, "store": self.store.snapshot(),
+                "soe_banks": _memory_snapshots(self.bridge)}
 
     def validate_snapshot(self, state: Mapping) -> None:
         if state.get("schema_version") != H1_SCHEMA_VERSION or state.get("architecture") != self.architecture:
             raise ValueError("HLB snapshot schema or architecture mismatch")
         probe = CanonicalRelationStore()
         probe.restore(state["store"])
+        _validate_memory_snapshots(self.bridge, state.get("soe_banks", ()))
 
     def restore(self, state: Mapping) -> None:
         self.validate_snapshot(state)
         self.store.restore(state["store"])
+        _restore_memories(self.bridge, state["soe_banks"])
         self.ticks = int(state["ticks"])
 
 
