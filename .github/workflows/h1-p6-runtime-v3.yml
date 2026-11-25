@@ -2,7 +2,7 @@ name: H1 P6 v3 coupled runtime stability and rollback
 
 on:
   pull_request:
-    types: [synchronize]
+    types: [opened]
     branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
     paths:
       - "src/rgm/leptograph/m4/p6_runtime.py"
