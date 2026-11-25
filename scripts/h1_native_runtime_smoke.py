@@ -241,7 +241,7 @@ def exercise_hlb(lib):
         assert adapter.bridge.runtime.step_count == 1
         assert director.event_tick == 1
         assert adapter.store.count == 1
-        assert adapter.store.snapshot() == checkpoint["director"]["adapter"]["relation_store"]
+        assert adapter.store.snapshot() == checkpoint["director"]["adapter"]["store"]
         for index, (expected, actual) in enumerate(zip(checkpoint["director"]["adapter"]["soe_banks"], banks)):
             restored = SOEMemory.from_dict(expected)
             np.testing.assert_allclose(restored.snapshot(), actual.snapshot(), rtol=0.0, atol=1e-12,
