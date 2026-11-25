@@ -69,7 +69,6 @@ def train_hla_readouts(adapter):
 
 
 def assert_native_equal(left, right, *, label):
-    assert left["step_count"] == right["step_count"], label + ": step_count"
     for level, (a, b) in enumerate(zip(left["level_states"], right["level_states"])):
         for key in ("u", "chi", "t"):
             np.testing.assert_allclose(a[key], b[key], rtol=0.0, atol=1e-12,
@@ -98,6 +97,7 @@ def exercise_hla(lib):
         director.exchange(event_time=2 * DT, observed_at=2 * DT,
                           event_features={0: [-0.4, 0.5, 0.1]})
         expected_native = adapter.bridge.runtime.get_state()
+        expected_step_count = adapter.bridge.runtime.step_count
         expected_soe = [bank.snapshot() for bank in banks]
 
         lifecycle.restore(checkpoint)
@@ -106,6 +106,7 @@ def exercise_hla(lib):
                           event_features={0: [-0.4, 0.5, 0.1]})
         actual_native = adapter.bridge.runtime.get_state()
         assert_native_equal(expected_native, actual_native, label="HLA continuation")
+        assert adapter.bridge.runtime.step_count == expected_step_count
         for index, (expected, actual) in enumerate(zip(expected_soe, banks)):
             np.testing.assert_allclose(expected, actual.snapshot(), rtol=0.0, atol=1e-12,
                                        err_msg=f"HLA SOE bank {index} continuation")
@@ -143,6 +144,7 @@ def exercise_hlb(lib):
                                           1: [0.3, -0.2, 0.1],
                                           2: [0.2, 0.1, -0.3]})
         expected_native = adapter.bridge.runtime.get_state()
+        expected_step_count = adapter.bridge.runtime.step_count
         expected_soe = [bank.snapshot() for bank in banks]
         expected_store = adapter.store.snapshot()
 
@@ -155,6 +157,7 @@ def exercise_hlb(lib):
                                           2: [0.2, 0.1, -0.3]})
         actual_native = adapter.bridge.runtime.get_state()
         assert_native_equal(expected_native, actual_native, label="HLB continuation")
+        assert adapter.bridge.runtime.step_count == expected_step_count
         for index, (expected, actual) in enumerate(zip(expected_soe, banks)):
             np.testing.assert_allclose(expected, actual.snapshot(), rtol=0.0, atol=1e-12,
                                        err_msg=f"HLB SOE bank {index} continuation")
