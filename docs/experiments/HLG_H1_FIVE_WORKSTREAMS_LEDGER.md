@@ -182,7 +182,7 @@ After adding the real-runtime trusted-rollback assertions, the full repository t
 - Root cause: P6 SOE channels were averaged without compensating for their different DC gains. Added channelwise `(1-exp(-gamma))` normalization before aggregation, with a regression test. CI: 390 tests passed on Python 3.10 and 390 on Python 3.12.
 - The normalized-memory v3 campaign is the first passing 20-seed compiled-runtime run; earlier v1/v2 attempts are exploratory failures and are not confirmatory evidence.
 
-### Full P6 remains OPEN
+### Full P6 remained OPEN after v3; closed by v4 below
 The v3 result validates the core 2D P6 controller + native HLA/HLB feedback + detector + candidate promotion/rollback envelope. It does not yet validate the full M3/M4 adaptive state vector from the P6 v0.2 model. Remaining implementation gates:
 1. Include `ContextBank` and `MultiSourceRidge` sufficient statistics in the same composite checkpoint/restore transaction as P6 and native hierarchy.
 2. Drive and test relation evidence activation, dormancy, reactivation and recovery; ensure mode-specific state updates and dwell rules are explicit.
@@ -219,4 +219,14 @@ Several additional H1 campaign invocations were triggered by an initially broad 
 
 ### Follow-up audit
 
-The v4 acceptance is complete. A separate resource-accounting refinement should include the P6 controller's own state vector and transition-matrix payload explicitly in the numeric byte total; these small arrays were norm/spectral-radius checked but were not included in the 854-byte resource subtotal. This does not change the v4 finite-horizon stability result, but should be closed before using the resource subtotal as a complete whole-controller footprint.
+The v4 acceptance is complete. Closed by the separate P6 controller resource audit below.
+
+
+### P6 controller resource-accounting audit — PASS
+
+- Audit workflow: [45726337240](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45726337240), passed; artifact ID `15074058248`.
+- Audit artifact ZIP SHA-256: `7a5f4d3a45845605dbc46c76dff19bd8c393ead953e8c8180f485109b9a7ae5f`; extracted JSON SHA-256: `2411ce7a4cdb06758fc8fafadfda1bbf97711422615ca8f241c33701df7e7fb7`.
+- Explicitly added P6 state vector **16 bytes** and fixed transition matrix **32 bytes** to the campaign maximum M3-plus-SOE subtotal of **854 bytes**. Complete declared numeric P6+M3 state total: **902 bytes** for both HLA and HLB, below the 16,384-byte cap.
+- The campaign subtotal already included **224 bytes** of P6 SOE arrays; these were not double-counted.
+- Parameter count **26**, update upper bound **1,272**, and query upper bound **741** remain within their respective caps.
+- All seven audit checks passed. Scope still excludes Python object/container overhead and native-runtime process memory; this is not a whole-process RAM measurement.
