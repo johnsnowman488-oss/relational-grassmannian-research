@@ -96,8 +96,6 @@ class Prediction:
             not math.isfinite(self.uncertainty) or self.uncertainty < 0
         ):
             raise ValueError("uncertainty must be finite and non-negative")
-        if self.status is not PredictionStatus.ISSUED:
-            raise ValueError("new predictions must start in ISSUED state")
 
 
 @dataclass(frozen=True)
@@ -134,6 +132,8 @@ class PredictionJournal:
         self._scores: dict[str, PredictionScore] = {}
 
     def issue(self, prediction: Prediction) -> None:
+        if prediction.status is not PredictionStatus.ISSUED:
+            raise ValueError("new predictions must start in ISSUED state")
         if prediction.prediction_id in self._predictions:
             raise ValueError("prediction ID collision")
         self._predictions[prediction.prediction_id] = prediction
@@ -454,7 +454,7 @@ class ConsolidationGate:
     def promote(self) -> str:
         receipt = self.receipt
         if self.candidate is None or receipt is None:
-            raise RuntimeError("candidate lacks validation receipt")
+            raise ValueError("candidate lacks validation receipt")
         if not receipt.passed:
             raise ValueError("failed candidate cannot be promoted")
         if receipt.candidate_fingerprint != self.candidate_fingerprint:
