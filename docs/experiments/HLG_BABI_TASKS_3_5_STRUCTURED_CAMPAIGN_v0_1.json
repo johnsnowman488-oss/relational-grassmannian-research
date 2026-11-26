@@ -165,8 +165,9 @@
         },
         "QUERY": {
           "target": "object_state_before_or_after_event",
-          "anchor_event": "source_line_id",
-          "answer_type": "location_id"
+          "anchor_event": "story_id:source_line_id for the target MOVE, independently annotated from query semantics; not taken from the gold supporting-fact column",
+          "answer_type": "location_id",
+          "input_exclusion": "Gold supporting line IDs and answer are evaluation-only metadata and must not be passed to HLA/HLB"
         }
       },
       "primary_metrics": [
@@ -186,7 +187,7 @@
       "reasoning_target": "typed three-participant relation binding and role-conditioned retrieval",
       "oracle_event_schema": {
         "GIVE": {
-          "event_id": "source_line_id",
+          "event_id": "story_id:source_line_id",
           "giver": {
             "entity_id": "person"
           },
@@ -204,7 +205,9 @@
           "event_type": "GIVE",
           "role": "giver|object|recipient",
           "bound_roles": "role_to_entity_id",
-          "answer_role": "role"
+          "answer_role": "role",
+          "temporal_policy": "select the most recent observed GIVE event matching all bound roles, ordered by event_time then event_id",
+          "input_exclusion": "Gold supporting line IDs and answer are evaluation-only metadata and must not be passed to HLA/HLB"
         }
       },
       "primary_metrics": [
@@ -226,12 +229,12 @@
     {
       "id": "B",
       "name": "Oracle structured-event adapter",
-      "gate": "all task records represented as typed events/questions with source-line provenance; no natural-language parser"
+      "gate": "all source story statements and questions represented as typed event/query records with story-scoped source IDs, event_time, observed_at, role bindings and source-line provenance; target query annotations are independent of gold supporting-fact IDs; no natural-language parser"
     },
     {
       "id": "C",
       "name": "Deterministic reference solver",
-      "gate": "passes authored oracle fixtures and independently checks support witnesses; not counted as learned-model performance"
+      "gate": "deterministic reference solver passes fixtures including repeated target destinations, late observations and repeated GIVE relations; gold support IDs are used only for post-prediction witness scoring, never as input"
     },
     {
       "id": "D",
@@ -262,6 +265,8 @@
     "Task 3 evaluates temporal multi-fact reasoning; Task 5 evaluates n-ary role binding, not arbitrary semantic understanding.",
     "Generated fixtures validate adapters and solver mechanics but are not official benchmark evidence.",
     "No HLA/HLB winner is selected from a single task or unmatched workload.",
-    "Official-data claims require verified source bytes, hashes, row counts and provenance."
+    "Official-data claims require verified source bytes, hashes, row counts and provenance.",
+    "The raw bAbI supporting-fact indices and answers are held out as evaluation metadata; neither may be supplied to structured HLA/HLB inputs.",
+    "Task 3 query anchors identify the target movement event independently of the official support-index column; Task 5 answers use the latest observed same-event role match."
   ]
 }
