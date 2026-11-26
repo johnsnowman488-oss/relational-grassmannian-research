@@ -3,9 +3,9 @@ name: Repository unit and invariant tests
 on:
   workflow_dispatch:
   push:
-    branches: [main, "e00-foundations", "e01-history-dependence", "e01-a2-diagnostic-audit", "research/h0-shared-hierarchy-contract-soe-bridge", "research/h1-hla-hlb-five-workstreams", "research/h1-learning-mechanisms"]
+    branches: [main, "e00-foundations", "e01-history-dependence", "e01-a2-diagnostic-audit", "research/h0-shared-hierarchy-contract-soe-bridge", "research/h1-hla-hlb-five-workstreams", "research/h1-learning-mechanisms", "research/h1-babi-learning-campaign"]
   pull_request:
-    branches: [main, "research/hlg-m4-preimplementation-ledger", "research/h0-shared-hierarchy-contract-soe-bridge", "research/h1-hla-hlb-five-workstreams"]
+    branches: [main, "research/hlg-m4-preimplementation-ledger", "research/h0-shared-hierarchy-contract-soe-bridge", "research/h1-hla-hlb-five-workstreams", "research/h1-learning-runtime-integration"]
 
 permissions:
   contents: read
@@ -31,7 +31,7 @@ jobs:
 
   babi-source-freeze:
     name: Freeze official bAbI Tasks 3 and 5 source data
-    if: (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'research/h1-hla-hlb-five-workstreams') || ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'research/h1-hla-hlb-five-workstreams')
+    if: (github.event_name == 'pull_request' && (github.event.pull_request.head.ref == 'research/h1-hla-hlb-five-workstreams' || github.event.pull_request.head.ref == 'research/h1-babi-learning-campaign')) || ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'research/h1-hla-hlb-five-workstreams')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -53,7 +53,9 @@ jobs:
             tests/test_babi_structured.py \
             tests/test_hlg_evidence_lifecycle.py \
             tests/test_hlg_integrated_contract_acceptance.py
-      - name: Upload frozen source splits and updated manifest
+      - name: Build source-indexed structured annotation bundle and audit fit/validation
+        run: python scripts/annotate_babi_structured.py
+      - name: Upload frozen source splits, annotations and updated manifest
         uses: actions/upload-artifact@v4
         with:
           name: babi-tasks-3-5-frozen-source
