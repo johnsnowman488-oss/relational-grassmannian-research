@@ -2,9 +2,10 @@ import json
 from pathlib import Path
 
 import pytest
+from types import SimpleNamespace
 
 from rgm.experiments.babi_annotation import (
-    _task3_query, _task5_query, _event, parse_source_file,
+    _task3_query, _task5_query, _event, parse_source_file, split_fit_stories,
 )
 from rgm.experiments.babi_structured import (
     StructuredEvent, task3_object_location_before_move, task5_answer_role,
@@ -90,6 +91,22 @@ def test_parser_separates_model_inputs_from_gold_labels(tmp_path: Path):
     assert labels[0]["support_event_ids"] == ["task5/fit/story000001:line000001"]
     assert not hasattr(story.queries[0], "gold_answer")
     assert not hasattr(story.queries[0], "support_event_ids")
+
+
+def test_fit_partition_split_is_deterministic_and_story_disjoint():
+    stories = [
+        (SimpleNamespace(story_id=f"task3/fit/story{i:06d}"), [{"query_id": f"q{i}"}])
+        for i in range(12)
+    ]
+    warm, online = split_fit_stories(stories, task_id=3)
+    warm_again, online_again = split_fit_stories(stories, task_id=3)
+    assert len(warm) == 8
+    assert len(online) == 4
+    assert {row[0].story_id for row in warm}.isdisjoint(
+        {row[0].story_id for row in online}
+    )
+    assert [row[0].story_id for row in warm] == [row[0].story_id for row in warm_again]
+    assert [row[0].story_id for row in online] == [row[0].story_id for row in online_again]
 
 
 def test_confirmatory_parser_does_not_read_or_emit_gold_labels(tmp_path: Path):
