@@ -592,6 +592,7 @@ class HierarchicalRuntimeDirector:
                  relation_records: Sequence[tuple[int, RelationInstance]] = (),
                  learning_relations: Sequence[RelationInstance] = (),
                  nary_events: Sequence[NaryEvent] = (),
+                 prediction_context: str | None = None,
                  eligibility_events: Sequence[EligibilityEvent] = (),
                  temporal_error: float | None = None,
                  task_outcome: tuple[str, float] | None = None) -> dict:
@@ -606,19 +607,15 @@ class HierarchicalRuntimeDirector:
             int(level): tuple(float(x) for x in values) for level, values in event_features.items()
         }
         observed_relations = [record for _, record in relation_records] + list(learning_relations)
-        if observed_relations:
-            subject_type = observed_relations[0].subject.entity_type
-            context = observed_relations[0].context
-        else:
-            subject_type = None
-            context = nary_events[0].context if nary_events else None
+        # Prediction context is an explicit pre-observation input. It is never
+        # inferred from the target relation/event arriving in this exchange.
+        context = prediction_context
 
         # Forecasts are issued from the pre-step model and prior observation cutoff.
         previous_cutoff = self.event_log[-1]["observed_at"] if self.event_log else 0.0
         before = self.adapter.snapshot()
         predictions = self.adapter.learning.begin_tick(
-            tick=self.event_tick, observed_at=previous_cutoff,
-            subject_type=subject_type, context=context,
+            tick=self.event_tick, observed_at=previous_cutoff, context=context,
         )
         statuses = []
         try:
