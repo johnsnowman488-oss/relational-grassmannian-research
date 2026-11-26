@@ -925,7 +925,7 @@ class LearningRuntime:
             "last_signals": self.last_signals.as_dict(),
         }
 
-    def restore(self, state: Mapping) -> None:
+    def restore(self, state: Mapping, *, preserve_observations: bool = False) -> None:
         if state.get("schema") != "h1-learning-runtime-v1":
             raise ValueError("learning runtime checkpoint schema mismatch")
         if frozenset(state.get("enabled_channels", ())) != frozenset(c.value for c in self.enabled_channels):
@@ -935,7 +935,9 @@ class LearningRuntime:
         checkpoint_journal = deepcopy(list(state.get("observation_journal", ())))
         if trusted_count < 0 or trusted_count != len(checkpoint_journal):
             raise ValueError("learning checkpoint journal watermark is inconsistent")
-        if len(local_journal) >= trusted_count:
+        if preserve_observations and len(local_journal) >= trusted_count:
+            if local_journal[:trusted_count] != checkpoint_journal:
+                raise ValueError("learning observation journal prefix differs from checkpoint")
             newer_journal = local_journal[trusted_count:]
         else:
             newer_journal = []
