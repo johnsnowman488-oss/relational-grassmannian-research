@@ -359,3 +359,9 @@ The corrected native smoke harness and current repository state were exercised o
 - The prior native smoke failure was resolved by updating the smoke harness to supply the explicit integration validation receipt required by the hardened promotion API.
 
 **Acceptance conclusion:** repository tests, H1 adapter/lifecycle tests, P6 tests, and compiled-native HLA/HLB smoke all pass on the recorded head. This closes the integrated software-contract acceptance for the implemented scope; it does not establish bAbI performance or natural-language parsing capability. Official bAbI data acquisition and the structured-event campaign remain the next external-task gates.
+
+### bAbI acquisition automation — 2026-11-26
+
+- Added `.github/workflows/h1-babi-structured-freeze.yml` for manual acquisition and structured smoke.
+- Added a branch-scoped `babi-source-freeze` job to the existing repository CI workflow. It downloads the pinned v1.2 archive, verifies its SHA-256 and size, extracts only the six official Task 3/5 splits, records per-file hashes and row/story counts in the manifest, runs the structured-event/evidence tests, and uploads the frozen data plus updated manifest as an artifact.
+- The archive itself has not yet been acquired in a completed workflow run. The workflow must pass before the six file-level hashes can be treated as frozen. No official bAbI benchmark score is claimed.
