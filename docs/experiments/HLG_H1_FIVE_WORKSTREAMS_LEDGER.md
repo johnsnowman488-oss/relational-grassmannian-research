@@ -298,13 +298,13 @@ No H1 results or claims are upgraded by this design document. The P6 stability e
 
 ### bAbI Tasks 3 and 5
 
-- Added `scripts/freeze_babi_tasks.py` to acquire the pinned Hugging Face-hosted bAbI v1.2 archive, verify its exact 15,719,851-byte size and upstream SHA-256, safely extract only the six selected files, and write per-file hashes/line/story counts back into the manifest. The script has been committed but not run in this environment.
+- Added `scripts/freeze_babi_tasks.py` to acquire the official bAbI v1.2 `en-10k` archive from the historical S3 mirror, verify its exact 11,745,123-byte size and SHA-256, preserve official Task 3/5 train/test files, and derive a deterministic 10% validation partition from whole training stories. The script writes archive/file hashes, byte counts, line counts and story counts into the manifest. Acquisition is now being revalidated in CI.
 - Added `src/rgm/experiments/babi_structured.py` with oracle structured-event reference solvers:
   - Task 3: temporal object-location reconstruction before a target movement event.
   - Task 5: role-conditioned retrieval from a single n-ary GIVE event, preventing cross-event role mixing.
 - Added structured fixtures and tests in `tests/test_babi_structured.py`. These are adapter/solver tests, not official benchmark scores and not text parsing.
 - Frozen protocol: `docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json`.
-- Source identity: bAbI QA v1.2, English `en-valid-10k`, Tasks 3 and 5, official train/validation/test files. The archive's upstream Git LFS object digest is pinned as SHA-256 `0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898`, size 15,719,851 bytes. The local archive has not yet been acquired/verified, and the six extracted split-file hashes remain pending. Official-data scoring is blocked until those byte checks pass.
+- Source identity: bAbI QA v1.2, English `en-10k`, Tasks 3 and 5. The exact S3 archive bytes observed in CI are pinned as SHA-256 `84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c`, size 11,745,123 bytes. The Hugging Face staff-hosted LFS archive has digest `0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898`, size 15,719,851 bytes, but its CDN returned 403 during acquisition. The S3 archive contains the original `en-10k` train/test files, not the HF-generated `en-valid-10k` convenience layout. We therefore preserve official train/test bytes and derive validation from whole training stories using a frozen seed; we do not mislabel the derived validation split as upstream-official.
 - Partition policy: preserve official story-level splits; train only on train, select on valid, access test only after configuration freeze. No story/question/support-index splitting.
 
 ### CI and claim boundary
@@ -363,5 +363,14 @@ The corrected native smoke harness and current repository state were exercised o
 ### bAbI acquisition automation — 2026-11-26
 
 - Added `.github/workflows/h1-babi-structured-freeze.yml` for manual acquisition and structured smoke.
-- Added a branch-scoped `babi-source-freeze` job to the existing repository CI workflow. It downloads the pinned v1.2 archive, verifies its SHA-256 and size, extracts only the six official Task 3/5 splits, records per-file hashes and row/story counts in the manifest, runs the structured-event/evidence tests, and uploads the frozen data plus updated manifest as an artifact.
+- Added a branch-scoped `babi-source-freeze` job to the existing repository CI workflow. It downloads the pinned v1.2 archive, verifies its SHA-256 and size, extracts official Task 3/5 en-10k train/test files, creates deterministic whole-story fit/validation partitions, records hashes and row/story counts in the manifest, runs the structured-event/evidence tests, and uploads the frozen data plus updated manifest as an artifact.
 - The archive itself has not yet been acquired in a completed workflow run. The workflow must pass before the six file-level hashes can be treated as frozen. No official bAbI benchmark score is claimed.
+
+
+### CI diagnosis and source-freeze correction — 2026-11-26
+
+- Inspected the latest failed GitHub Actions runs and their job logs. H1 hierarchical adapters/lifecycle, P6 controller/checkpoint tests, compiled native runtime smoke, and Python 3.10/3.12 unit tests passed on the latest previously completed head. The aggregate repository workflow was red because its bAbI acquisition sub-job failed; it was not a separate HLA/HLB regression.
+- The initial source-freeze attempt pinned the Hugging Face staff-hosted LFS object. GitHub Actions received HTTP 403 from the LFS CDN despite the object pointer being publicly visible. The S3 archive is a different archive layout and does not contain the HF-generated validation directory.
+- The S3 archive is the v1.2 archive referenced by the official Hugging Face dataset builder, and its exact bytes were observed in CI: 11,745,123 bytes, SHA-256 `84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c`. It contains the official English `en-10k` Task 3/5 train and test files.
+- Revised the freeze protocol to pin that archive identity, preserve the official test split, and derive a deterministic 10% validation split by complete story blocks from the official training data. The derived split is explicitly labelled as derived, not an upstream official split. This avoids question-level/story-level leakage and keeps the confirmatory test bytes untouched.
+- Added deterministic split tests and wired them into the source-freeze workflow. Latest source-freeze run is pending; no claim of successful acquisition or frozen per-file hashes until that run completes.
