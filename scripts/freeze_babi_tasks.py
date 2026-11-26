@@ -86,9 +86,10 @@ def inventory(payload: bytes) -> dict:
     lines = payload.splitlines()
     story_starts = 0
     for line in lines:
-        if not line:
+        stripped = line.strip()
+        if not stripped:
             continue
-        prefix = line.split(None, 1)[0]
+        prefix = stripped.split(None, 1)[0]
         if prefix == b"1":
             story_starts += 1
     return {
