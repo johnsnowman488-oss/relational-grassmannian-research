@@ -130,7 +130,7 @@ jobs:
           test -s native/libgfe_core.so
           sha256sum -c native/libgfe_core.sha256
           test -s artifacts/babi-structured/annotation-manifest.json
-          test -s artifacts/babi-confirmatory/confirmatory-manifest.json
+          test -s artifacts/babi-confirmatory/confirmatory-input-manifest.json
       - name: Run ten-seed matched campaign and six ablations
         env:
           GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
