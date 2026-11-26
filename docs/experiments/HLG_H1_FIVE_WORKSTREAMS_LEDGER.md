@@ -321,3 +321,12 @@ No H1 results or claims are upgraded by this design document. The P6 stability e
 4. Run deterministic oracle/reference checks on train/validation/test separately.
 5. Run matched HLA/HLB structured-input campaigns; retain test as confirmatory.
 6. Only after the structured-event stage is stable, add text-to-event parsing and report parser errors separately from reasoning errors.
+
+### Follow-up hardening — 2026-11-26
+
+- HLB now distinguishes transient/candidate relation insertion (`observe`) from observed source relation ingestion (`observe_source`). The latter is held in a separate bounded append-only journal, carries its own watermark in composite snapshots, and is reindexed after rollback. If the canonical index is temporarily full, the source relation remains recoverable by ID and is reindexed when rollback frees capacity; if the source journal itself is full, ingestion explicitly abstains.
+- Added monotonic source-relation journal recovery and exact lookup for records that are not currently indexed. Journal recovery is atomic and does not delete newer records.
+- Added `EvidenceStore.recover_chain` / `HLBAdapter.recover_evidence_chain` to recover the summary, derivation, witness IDs and exact source-event chain, preserving witness traversal order.
+- Promotion now requires an explicit independent validation receipt with passed status, validation partition, SHA-256 protocol/criteria/data-manifest fingerprints, measured metrics and the exact active candidate fingerprint. Failed, incomplete or stale receipts are rejected. Validation receipts are stored with promoted trusted checkpoints. The initial trusted checkpoint cannot be reset to bypass validation.
+- Added tests for failed promotion, stale receipt rejection, source relation retention through rollback, source journal capacity abstention, and monotonic relation journal recovery.
+- Repository CI now includes `workflow_dispatch` and the H1 branch in its push filter. A run observed during execution (`45827809639`) remained queued at earlier head `97b6a569...`; no completed CI result exists for the latest head `72b1037ebefb3bde91782e3b2f9921a87624fd15`. Do not treat the earlier successful run as validation of these later changes.
