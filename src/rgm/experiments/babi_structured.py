@@ -159,8 +159,11 @@ def task3_object_location_before_move(
             actor_location[actor] = _role(event, "destination")
         elif event.event_type == "PICK_UP":
             actor, obj = _role(event, "actor"), _role(event, "object")
-            pickup_location = roles.get("location")
+            pickup_location = roles.get("location") or object_location.get(obj)
             if pickup_location:
+                known_actor_location = actor_location.get(actor)
+                if known_actor_location is not None and known_actor_location != pickup_location:
+                    raise ValueError("PICK_UP location conflicts with actor's known location")
                 actor_location.setdefault(actor, pickup_location)
             held_by[obj] = actor
             object_location.pop(obj, None)
