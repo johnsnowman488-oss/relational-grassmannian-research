@@ -844,7 +844,7 @@ class LearningRuntime:
             "task_outcomes": self.task_outcomes.snapshot(),
             "eligibility": self.eligibility.snapshot(),
             "journal_count": len(self._observation_journal),
-            "observation_journal": copy.deepcopy(self._observation_journal),
+            "observation_journal": deepcopy(self._observation_journal),
             "prediction_sequence": self._prediction_sequence,
             "last_observed_at": self._last_observed_at,
             "last_signals": self.last_signals.as_dict(),
@@ -855,7 +855,7 @@ class LearningRuntime:
             raise ValueError("learning runtime checkpoint schema mismatch")
         local_journal = list(self._observation_journal)
         trusted_count = int(state["journal_count"])
-        checkpoint_journal = copy.deepcopy(list(state.get("observation_journal", ())))
+        checkpoint_journal = deepcopy(list(state.get("observation_journal", ())))
         if trusted_count < 0 or trusted_count != len(checkpoint_journal):
             raise ValueError("learning checkpoint journal watermark is inconsistent")
         if len(local_journal) >= trusted_count:
