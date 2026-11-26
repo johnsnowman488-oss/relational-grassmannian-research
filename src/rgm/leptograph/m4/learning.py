@@ -23,6 +23,12 @@ def fingerprint(value: Any) -> str:
                          ensure_ascii=False, allow_nan=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
+def _finite_vector(value: Sequence[float], *, name: str) -> np.ndarray:
+    vector = np.asarray(value, dtype=np.float64).reshape(-1)
+    if vector.size == 0 or not np.all(np.isfinite(vector)):
+        raise ValueError(f"{name} must be a non-empty finite vector")
+    return vector.copy()
+
 
 class Level(str, Enum):
     L0 = "L0_GROUNDING"
