@@ -9,7 +9,7 @@
     "paper": "Jason Weston et al., Towards AI-Complete Question Answering: A Set of Prerequisite Toy Tasks, arXiv:1502.05698",
     "dataset_builder_script_commit": "07549ca",
     "dataset_builder_script": "https://huggingface.co/datasets/facebook/babi_qa/blob/main/babi_qa.py",
-    "canonical_archive": "http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz",
+    "canonical_archive": "https://huggingface.co/datasets/facebook/babi_qa/resolve/dc80d34/data/tasks_1-20_v1-2.tar.gz",
     "homepage": "https://research.fb.com/downloads/babi/",
     "configuration": "en-valid-10k",
     "archive_path_prefix": "tasks_1-20_v1-2/en-valid-10k/",
@@ -18,15 +18,14 @@
       "archive_sha256": "0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898",
       "archive_size_bytes": 15719851,
       "selected_file_sha256": {},
-      "rule": "Acquire from the primary S3 mirror or a fallback, verify local SHA-256 and size against the upstream Git LFS object record, then hash the six extracted split files and commit those digests. The historical original archive URL remains provenance. No source is accepted unless its full archive bytes match the pinned identity.",
+      "rule": "Acquire the exact archive object from immutable Hugging Face dataset commit dc80d34 using huggingface_hub, verify the complete archive SHA-256 and size, then extract only the six en-valid-10k Task 3/5 splits and commit each selected file hash, byte count, line count and story count. The S3 mirror is a different legacy archive layout and is not an accepted source for this protocol.",
       "acquisition_utility": "scripts/freeze_babi_tasks.py"
     },
-    "acquisition_url": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
-    "archive_mirror_note": "The primary acquisition source is the long-used S3 mirror referenced by Keras bAbI examples; the historical archive host and Hugging Face Staff-hosted LFS mirror are fallbacks. All are accepted only if the complete archive matches the pinned SHA-256 and size.",
-    "acquisition_fallbacks": [
-      "https://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz",
-      "https://huggingface.co/datasets/facebook/babi_qa/resolve/refs%2Fpr%2F5/data/tasks_1-20_v1-2.tar.gz"
-    ]
+    "acquisition_url": "https://huggingface.co/datasets/facebook/babi_qa/resolve/dc80d34/data/tasks_1-20_v1-2.tar.gz",
+    "archive_mirror_note": "The legacy S3 mirror is intentionally excluded: it contains en-10k files without the validation split and therefore does not satisfy the frozen en-valid-10k protocol. The selected Hugging Face archive object is pinned by commit and LFS SHA-256.",
+    "acquisition_fallbacks": [],
+    "archive_object_commit": "dc80d34",
+    "archive_object_revision": "immutable Hugging Face dataset repository commit"
   },
   "selected_tasks": [
     {
