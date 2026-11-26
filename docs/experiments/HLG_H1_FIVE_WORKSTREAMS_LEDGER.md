@@ -298,6 +298,7 @@ No H1 results or claims are upgraded by this design document. The P6 stability e
 
 ### bAbI Tasks 3 and 5
 
+- Added `scripts/freeze_babi_tasks.py` to acquire the pinned Hugging Face-hosted bAbI v1.2 archive, verify its exact 15,719,851-byte size and upstream SHA-256, safely extract only the six selected files, and write per-file hashes/line/story counts back into the manifest. The script has been committed but not run in this environment.
 - Added `src/rgm/experiments/babi_structured.py` with oracle structured-event reference solvers:
   - Task 3: temporal object-location reconstruction before a target movement event.
   - Task 5: role-conditioned retrieval from a single n-ary GIVE event, preventing cross-event role mixing.
