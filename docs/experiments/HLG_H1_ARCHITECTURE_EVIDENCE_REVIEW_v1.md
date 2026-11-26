@@ -53,7 +53,7 @@ Interpretation is deliberately limited to the tested task generators, depths, co
 
 ### 2.3 P6 coupled adaptive stability and rollback
 
-P6 v4 passed 37/37 frozen acceptance checks for each architecture over 20 seeds per architecture, 300 operating steps per seed, and 100-step stationary negative controls. Both architectures:
+P6 v4 passed all 37/37 frozen acceptance checks across the HLA and HLB campaign runs, with 20 seeds per architecture, 300 operating steps per seed, and 100-step stationary negative controls. Both architectures:
 - remained within the frozen P6 state norm limit of 25 and native-level norm limit of 1,500;
 - had transition spectral radius 0.6663325 and finite native state throughout;
 - produced exactly two CUSUM alarms per seed and zero negative-control false alarms;
