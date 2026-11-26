@@ -1,6 +1,6 @@
 # bAbI Tasks 3 and 5 — HLA/HLB Learning Protocol v1.2
 
-**Protocol ID:** HLG-BABI-T3-T5-LEARNING-v1.2  
+**Protocol ID:** HLG-BABI-T3-T5-LEARNING-v1.2.1  
 **Status:** FROZEN — 2026-11-26; execution gated on G0/G1/G2 acceptance  
 **Supersedes:** v1.1 before any model training, candidate selection or confirmatory evaluation  
 **Scope:** structured-event learning and retrieval; natural-language parsing is excluded.
