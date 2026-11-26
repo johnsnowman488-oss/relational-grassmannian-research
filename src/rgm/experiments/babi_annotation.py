@@ -29,8 +29,8 @@ def _event(task_id: int, story_id: str, line_no: int, sentence: str) -> Structur
     if task_id == 3:
         patterns = (
             ("MOVE", r"(?P<actor>[A-Za-z]+)\s+(?:went(?:\s+back)?|moved|travelled|traveled|journeyed)\s+to\s+the\s+(?P<destination>.+?)\.?"),
-            ("PICK_UP", r"(?P<actor>[A-Za-z]+)\s+(?:picked\s+up|grabbed|took|got)\s+the\s+(?P<object>.+?)\.?"),
-            ("DROP", r"(?P<actor>[A-Za-z]+)\s+(?:dropped|left|put\s+down)\s+the\s+(?P<object>.+?)\.?"),
+            ("PICK_UP", r"(?P<actor>[A-Za-z]+)\s+(?:picked\s+up|grabbed|took|got)\s+the\s+(?P<object>.+?)(?:\s+there)?\.?"),
+            ("DROP", r"(?P<actor>[A-Za-z]+)\s+(?:dropped|left|put\s+down)\s+the\s+(?P<object>.+?)(?:\s+there)?\.?"),
         )
         for kind, pattern in patterns:
             match = re.fullmatch(pattern, sentence.strip(), flags=re.IGNORECASE)
