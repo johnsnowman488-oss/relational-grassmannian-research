@@ -148,3 +148,16 @@ def test_source_relations_survive_candidate_rollback_but_candidate_relations_do_
     assert set(director.adapter.source_relation_checkpoint()["records"][0]["record"]) >= {
         "instance_id", "subject", "object", "relation_type"
     }
+
+def test_source_relation_journal_has_its_own_capacity_abstention():
+    runtime, director, lifecycle = make_system(capacity=1)
+    from rgm.leptograph.m4.composition import Entity, RelationInstance, RelationType
+    person, place = Entity("p", "person"), Entity("x", "place")
+    relation = RelationType("located_at", "person", "place")
+    first = RelationInstance("source-1", relation, person, place, 1.0, 1.0,
+                             provenance="source-1")
+    second = RelationInstance("source-2", relation, person, place, 2.0, 2.0,
+                              provenance="source-2")
+    assert director.adapter.observe_source(0, first) == "STORED"
+    assert director.adapter.observe_source(0, second) == "ABSTAIN_SOURCE_JOURNAL_CAPACITY"
+    assert director.adapter.source_relation_checkpoint()["records"][0]["record"]["instance_id"] == "source-1"
