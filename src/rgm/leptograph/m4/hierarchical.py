@@ -578,24 +578,46 @@ class HLBAdapter:
 
 
 class HierarchicalRuntimeDirector:
-    """One orchestration point: validate a tick, then perform one H0 bridge step."""
+    """One orchestration point for pre-step forecasts, H0 evolution and online learning."""
     def __init__(self, adapter: HLAAdapter | HLBAdapter):
         self.adapter = adapter
         self.event_tick = 0
         self.event_log: list[dict] = []
+        # Append-only input journal permits native-state replay after candidate rollback.
+        # HLA stores only numerical inputs here; it does not retain relational witnesses.
+        self._observation_journal: list[dict] = []
 
     def exchange(self, *, event_time: float, observed_at: float,
                  event_features: Mapping[int, Sequence[float]] | None = None,
-                 relation_records: Sequence[tuple[int, RelationInstance]] = ()) -> dict:
+                 relation_records: Sequence[tuple[int, RelationInstance]] = (),
+                 learning_relations: Sequence[RelationInstance] = (),
+                 nary_events: Sequence[NaryEvent] = (),
+                 eligibility_events: Sequence[EligibilityEvent] = ()) -> dict:
         if not math.isfinite(event_time) or not math.isfinite(observed_at) or event_time < 0 or observed_at < event_time:
             raise ValueError("event_time and observed_at must be finite and observation cannot precede event")
         if observed_at < (self.event_log[-1]["observed_at"] if self.event_log else 0.0):
             raise ValueError("observation time must be nondecreasing; late events retain their original event_time")
         if isinstance(self.adapter, HLAAdapter) and relation_records:
-            raise ValueError("HLA cannot retain relation instances")
-        # Validate and insert records before the numerical cycle. If the native
-        # step fails, restore the adapter snapshot so the whole exchange rolls back.
+            raise ValueError("HLA cannot retain relation instances; use learning_relations for caller-supplied labels")
+        next_tick = self.event_tick + 1
+        supplied = {} if event_features is None else {
+            int(level): tuple(float(x) for x in values) for level, values in event_features.items()
+        }
+        observed_relations = [record for _, record in relation_records] + list(learning_relations)
+        if observed_relations:
+            subject_type = observed_relations[0].subject.entity_type
+            context = observed_relations[0].context
+        else:
+            subject_type = None
+            context = nary_events[0].context if nary_events else None
+
+        # Forecasts are issued from the pre-step model and prior observation cutoff.
+        previous_cutoff = self.event_log[-1]["observed_at"] if self.event_log else 0.0
         before = self.adapter.snapshot()
+        predictions = self.adapter.learning.begin_tick(
+            tick=self.event_tick, observed_at=previous_cutoff,
+            subject_type=subject_type, context=context,
+        )
         statuses = []
         try:
             if isinstance(self.adapter, HLBAdapter):
@@ -603,14 +625,41 @@ class HierarchicalRuntimeDirector:
                     statuses.append(self.adapter.observe_source(level, record))
                     if statuses[-1].startswith("ABSTAIN"):
                         raise RuntimeError(f"HLB source relation storage abstained: {statuses[-1]}")
-            result = self.adapter.step(event_features)
+                for event in nary_events:
+                    status = self.adapter.observe_event(event)
+                    if status.startswith("ABSTAIN"):
+                        raise RuntimeError(f"HLB n-ary evidence storage abstained: {status}")
+            result = self.adapter.step(supplied)
+            for record in observed_relations:
+                self.adapter.learning.observe_relation(record, tick=next_tick)
+            for event in nary_events:
+                self.adapter.learning.observe_nary_event(event, tick=next_tick)
+            for event in eligibility_events:
+                if event.observed_tick != next_tick:
+                    raise ValueError("eligibility observation tick must match the exchange tick")
+                self.adapter.learning.observe_eligibility(event)
         except Exception:
             self.adapter.restore(before)
             raise
-        self.event_tick += 1
-        self.event_log.append({"event_time": float(event_time), "observed_at": float(observed_at),
-                               "tick": self.event_tick})
-        return {"tick": self.event_tick, "relation_status": tuple(statuses), "result": result}
+
+        self.event_tick = next_tick
+        log_row = {"event_time": float(event_time), "observed_at": float(observed_at),
+                   "tick": self.event_tick}
+        self.event_log.append(log_row)
+        # This journal is deliberately independent of candidate/model checkpoints.
+        self._observation_journal.append({
+            "event_time": float(event_time), "observed_at": float(observed_at),
+            "event_features": {str(k): list(v) for k, v in supplied.items()},
+        })
+        return {
+            "tick": self.event_tick, "relation_status": tuple(statuses),
+            "predictions": tuple(predictions),
+            "learning_errors": {
+                "relational": self.adapter.learning.last_signals.relational,
+                "abstraction": self.adapter.learning.last_signals.abstraction,
+            },
+            "result": result,
+        }
 
     def close(self) -> None:
         """Release the single persistent native handle owned by this director."""
@@ -619,23 +668,48 @@ class HierarchicalRuntimeDirector:
             close()
 
     def snapshot(self) -> dict:
-        return {"schema_version": H1_SCHEMA_VERSION, "event_tick": self.event_tick,
-                "event_log": copy.deepcopy(self.event_log),
-                "adapter": self.adapter.snapshot()}
+        return {
+            "schema_version": H1_SCHEMA_VERSION, "event_tick": self.event_tick,
+            "event_log": copy.deepcopy(self.event_log),
+            "observation_journal": copy.deepcopy(self._observation_journal),
+            "observation_watermark": len(self._observation_journal),
+            "adapter": self.adapter.snapshot(),
+        }
 
     def validate_snapshot(self, state: Mapping) -> None:
         if state.get("schema_version") != H1_SCHEMA_VERSION:
             raise ValueError("director snapshot schema mismatch")
         self.adapter.validate_snapshot(state["adapter"])
         log = state.get("event_log", ())
-        if len(log) != int(state["event_tick"]):
-            raise ValueError("director event tick/log mismatch")
+        journal = state.get("observation_journal", ())
+        if len(log) != int(state["event_tick"]) or len(journal) != int(state["observation_watermark"]):
+            raise ValueError("director event tick/log/journal watermark mismatch")
+        if int(state["event_tick"]) < 0:
+            raise ValueError("director event tick cannot be negative")
 
     def restore(self, state: Mapping) -> None:
         self.validate_snapshot(state)
+        local_journal = copy.deepcopy(self._observation_journal)
+        watermark = int(state["observation_watermark"])
+        checkpoint_journal = copy.deepcopy(list(state["observation_journal"]))
+        newer = local_journal[watermark:] if len(local_journal) >= watermark else []
         self.adapter.restore(state["adapter"])
         self.event_tick = int(state["event_tick"])
         self.event_log = copy.deepcopy(list(state["event_log"]))
+        self._observation_journal = checkpoint_journal + newer
+
+        # Replay observations received while a candidate was active through the
+        # restored incumbent H0/runtime. Learning labels are reconciled separately
+        # by LearningRuntime.restore, so replay does not double-train them.
+        for item in newer:
+            features = {int(k): tuple(v) for k, v in item["event_features"].items()}
+            self.adapter.step(features, advance_learning=False)
+            self.event_tick += 1
+            self.event_log.append({
+                "event_time": float(item["event_time"]),
+                "observed_at": float(item["observed_at"]),
+                "tick": self.event_tick,
+            })
 
 
 class CompositeLifecycle:
