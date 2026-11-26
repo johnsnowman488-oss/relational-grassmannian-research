@@ -31,7 +31,7 @@ jobs:
 
   babi-source-freeze:
     name: Freeze official bAbI Tasks 3 and 5 source data
-    if: (github.event_name == 'pull_request' && (github.event.pull_request.head.ref == 'research/h1-hla-hlb-five-workstreams' || github.event.pull_request.head.ref == 'research/h1-babi-learning-campaign')) || ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'research/h1-hla-hlb-five-workstreams')
+    if: (github.event_name == 'pull_request' && (github.event.pull_request.head.ref == 'research/h1-hla-hlb-five-workstreams' || github.event.pull_request.head.ref == 'research/h1-babi-learning-campaign' || github.event.pull_request.head.ref == 'research/h1-babi-learning-campaign-v1-1')) || ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref_name == 'research/h1-hla-hlb-five-workstreams' || github.ref_name == 'research/h1-babi-learning-campaign-v1-1'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
