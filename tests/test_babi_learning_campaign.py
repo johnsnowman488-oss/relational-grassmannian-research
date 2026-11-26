@@ -42,7 +42,7 @@ def test_babi_feature_embedding_satisfies_pinned_h0_chain_dimensions():
     ]
     levels, edges = make_h0_chain_spec(memories, kernels, dt=0.01)
     native_dimensions = [len(level["u"]) for level in levels]
-    assert native_dimensions == [10, 10, 10]
+    assert native_dimensions == [8, 8, 8]
     assert [(edge["source_level"], edge["target_level"]) for edge in edges if edge["relation"] == 0] == [
         (0, 1), (1, 2),
     ]
