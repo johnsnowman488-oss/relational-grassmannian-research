@@ -1,0 +1,730 @@
+"""Matched HLA/HLB bAbI structured learning campaign runner.
+
+The task-answer executor is deterministic and evidence-backed. Learned prediction
+metrics are reported separately; query accuracy is not claimed as learned QA.
+"""
+from __future__ import annotations
+
+from copy import deepcopy
+from dataclasses import asdict, replace
+from pathlib import Path
+from typing import Any, Callable
+import hashlib
+import json
+import math
+
+import numpy as np
+
+from rgm.experiments.babi_structured import (
+    StructuredEvent, StructuredQuery, StructuredStory,
+    task3_object_location_before_move, task5_answer_role,
+)
+from rgm.leptograph.m4.evidence import (
+    Entity, NaryEvent, Participant, RelationInstance, RelationType,
+)
+from rgm.leptograph.m4.hierarchical import (
+    HierarchicalRuntimeDirector, create_hla_adapter, create_hlb_adapter,
+)
+from rgm.leptograph.m4.learning import (
+    EligibilityEvent, ErrorChannel, LearningRuntime,
+)
+from rgm.memory.soe import SOEMemory
+
+
+HLB_CAPACITY = 65536
+ELIGIBILITY_CAPACITY = 131072
+SOE_DT = 0.01
+SOE_BANK_CONFIG = (
+    (2, (0.1, 0.4)),
+    (3, (0.2, 0.7)),
+    (4, (0.05, 0.3)),
+)
+CHANNELS = {
+    "full_learning": frozenset(ErrorChannel),
+    "no_temporal": frozenset({ErrorChannel.RELATIONAL, ErrorChannel.ABSTRACTION, ErrorChannel.TASK}),
+    "no_relational": frozenset({ErrorChannel.TEMPORAL, ErrorChannel.ABSTRACTION, ErrorChannel.TASK}),
+    "no_abstraction": frozenset({ErrorChannel.TEMPORAL, ErrorChannel.RELATIONAL, ErrorChannel.TASK}),
+    "no_task": frozenset({ErrorChannel.TEMPORAL, ErrorChannel.RELATIONAL, ErrorChannel.ABSTRACTION}),
+    "no_learning": frozenset(),
+}
+EVENT_CONTEXT = {"MOVE": "movement", "PICK_UP": "acquisition", "DROP": "release", "GIVE": "transfer"}
+CONTEXT_CODE = {"start": 0.0, "movement": 0.2, "acquisition": 0.4,
+                "release": 0.6, "transfer": 0.8, "query": 1.0}
+EVENT_CODE = {"MOVE": 0.0, "PICK_UP": 1.0 / 3.0, "DROP": 2.0 / 3.0, "GIVE": 1.0}
+ENTITY_TYPES = {
+    "actor": "person", "giver": "person", "recipient": "person",
+    "object": "object", "destination": "location",
+}
+
+
+class CtypesPersistentRuntime:
+    """Stateful Python adapter issuing exactly one compiled C++ chain step per tick."""
+
+    def __init__(self, gfe_module, native_library, levels, edges):
+        self.gfe = gfe_module
+        self.library = native_library
+        self.levels = deepcopy(levels)
+        self.edges = deepcopy(edges)
+        self.level_states = [
+            {"u": list(level["u"]), "chi": list(level["chi"]), "t": float(level["t"])}
+            for level in self.levels
+        ]
+        self.step_count = 0
+        self.last_diagnostics: dict[str, Any] = {}
+
+    def get_state(self) -> dict[str, Any]:
+        return {"level_states": deepcopy(self.level_states)}
+
+    def restore(self, state: dict[str, Any]) -> None:
+        self.level_states = deepcopy(state["level_states"])
+        for level, current in zip(self.levels, self.level_states):
+            level["u"], level["chi"], level["t"] = (
+                list(current["u"]), list(current["chi"]), float(current["t"])
+            )
+
+    def step(self, feedback_by_level: dict[int, list[float]]) -> dict[str, Any]:
+        states = []
+        for index, current in enumerate(self.level_states):
+            u = list(feedback_by_level.get(index, current["u"]))
+            chi, t = list(current["chi"]), float(current["t"])
+            self.levels[index]["u"] = u
+            self.levels[index]["chi"] = chi
+            self.levels[index]["t"] = t
+            states.append({"u": u, "chi": chi, "t": t})
+        zero_forcing = [0.0] * len(states[0]["u"])
+        result = self.gfe.step_hierarchical_chain_spec(
+            self.library, self.levels, self.edges,
+            level_states=states, external_forcing=zero_forcing, forcing_level=0,
+        )
+        self.level_states = deepcopy(result["level_states"])
+        for level, current in zip(self.levels, self.level_states):
+            level["u"], level["chi"], level["t"] = (
+                list(current["u"]), list(current["chi"]), float(current["t"])
+            )
+        self.step_count += 1
+        self.last_diagnostics = {
+            key: result[key] for key in ("spectral_units", "active_kernels")
+            if key in result
+        }
+        return result
+
+    def close(self) -> None:
+        return None
+
+
+def _jsonable(value: Any) -> Any:
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in sorted(value.items(), key=lambda kv: str(kv[0]))}
+    if isinstance(value, (tuple, list)):
+        return [_jsonable(v) for v in value]
+    if hasattr(value, "value") and not isinstance(value, (str, bytes)):
+        return _jsonable(value.value)
+    if hasattr(value, "__dataclass_fields__"):
+        return _jsonable(asdict(value))
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    return value
+
+
+def _digest_json(value: Any) -> str:
+    payload = json.dumps(_jsonable(value), sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _model_state(learning: LearningRuntime) -> dict[str, Any]:
+    return {
+        "level0": learning.level0.snapshot(),
+        "relations": learning.relations.snapshot(),
+        "event_roles": learning.event_roles.snapshot(),
+        "context_transitions": learning.context_transitions.snapshot(),
+        "temporal_credit": learning.temporal_credit.snapshot(),
+        "task_outcomes": learning.task_outcomes.snapshot(),
+    }
+
+
+def model_fingerprint(learning: LearningRuntime) -> str:
+    return _digest_json(_model_state(learning))
+
+
+def _load_stories(input_path: Path, labels_path: Path | None = None) -> list[tuple[StructuredStory, dict[str, dict[str, Any]]]]:
+    labels: dict[str, dict[str, Any]] = {}
+    if labels_path is not None:
+        labels = {
+            row["query_id"]: row
+            for row in (json.loads(line) for line in labels_path.read_text(encoding="utf-8").splitlines() if line)
+        }
+    result = []
+    for line in input_path.read_text(encoding="utf-8").splitlines():
+        if not line:
+            continue
+        row = json.loads(line)
+        events = tuple(
+            StructuredEvent(
+                event["event_id"], event["event_type"],
+                tuple(tuple(pair) for pair in event["roles"]),
+                int(event["event_time"]), int(event["observed_at"]), event["source_ref"],
+            )
+            for event in row["events"]
+        )
+        queries = tuple(
+            StructuredQuery(
+                query["query_id"], query["story_id"], int(query["task_id"]),
+                query["query_type"], query["answer_role"], int(query["observed_at"]),
+                query["source_ref"],
+                object_id=query.get("object_id"),
+                destination_id=query.get("destination_id"),
+                target_event_id=query.get("target_event_id"),
+                bound_roles=tuple(tuple(pair) for pair in query.get("bound_roles", ())),
+            )
+            for query in row["queries"]
+        )
+        story = StructuredStory(row["story_id"], events, queries)
+        result.append((story, {q.query_id: labels[q.query_id] for q in queries if q.query_id in labels}))
+    return result
+
+
+def _ordered(stories, seed: int):
+    return sorted(stories, key=lambda item: hashlib.sha256(
+        f"{seed}:{item[0].story_id}".encode("utf-8")
+    ).digest())
+
+
+def _event_context(event: StructuredEvent) -> str:
+    return EVENT_CONTEXT[event.event_type]
+
+
+def _payload(event: StructuredEvent) -> bytes:
+    return json.dumps({
+        "event_id": event.event_id,
+        "event_type": event.event_type,
+        "roles": list(event.roles),
+        "source_ref": event.source_ref,
+    }, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _make_nary(event: StructuredEvent, context: str, source_name: str) -> NaryEvent:
+    participants = tuple(
+        Participant(role, entity_id, ENTITY_TYPES[role])
+        for role, entity_id in event.roles
+    )
+    payload = _payload(event)
+    return NaryEvent(
+        event.event_id, event.event_type.lower(), participants,
+        float(event.event_time), float(event.observed_at), source_name,
+        event.source_ref, hashlib.sha256(payload).hexdigest(), context,
+    )
+
+
+def _make_relations(event: StructuredEvent, context: str) -> tuple[RelationInstance, ...]:
+    roles = event.role_map()
+    pairs: list[tuple[str, str, str, str]] = []
+    if event.event_type == "MOVE":
+        pairs.append(("located_at", "person", roles["actor"], "location", roles["destination"]))
+    elif event.event_type == "PICK_UP":
+        pairs.append(("holds", "person", roles["actor"], "object", roles["object"]))
+    elif event.event_type == "DROP":
+        pairs.append(("released", "person", roles["actor"], "object", roles["object"]))
+    elif event.event_type == "GIVE":
+        pairs.extend((
+            ("gave_to", "person", roles["giver"], "person", roles["recipient"]),
+            ("gave_object", "person", roles["giver"], "object", roles["object"]),
+        ))
+    records = []
+    for name, subject_type, subject_id, object_type, object_id in pairs:
+        signature = RelationType(name, subject_type, object_type)
+        records.append(RelationInstance(
+            f"{event.event_id}:rel:{name}", signature,
+            Entity(subject_id, subject_type), Entity(object_id, object_type),
+            float(event.event_time), float(event.observed_at), context,
+            f"source={event.source_ref};event={event.event_id};relation={name}",
+        ))
+    return tuple(records)
+
+
+def _features(task_id: int, item: Any, previous_context: str,
+              index: int, total: int) -> dict[int, list[float]]:
+    context_code = CONTEXT_CODE[previous_context]
+    if isinstance(item, StructuredEvent):
+        roles = item.role_map()
+        unique_entities = len(set(roles.values()))
+        l0 = [EVENT_CODE[item.event_type], min(1.0, len(roles) / 3.0)]
+        l1 = [min(1.0, len(roles) / 3.0), min(1.0, unique_entities / 3.0), context_code]
+        l2 = [task_id / 5.0, index / max(total, 1), context_code, 0.0]
+    else:
+        l0 = [1.0, 0.0]
+        l1 = [0.0, 0.0, context_code]
+        l2 = [task_id / 5.0, index / max(total, 1), context_code, 1.0]
+    return {0: l0, 1: l1, 2: l2}
+
+
+def _timeline(story: StructuredStory):
+    items = [(event.observed_at, 0, event) for event in story.events]
+    items.extend((query.observed_at, 1, query) for query in story.queries)
+    return sorted(items, key=lambda item: (item[0], item[1]))
+
+
+def _fit_warm_start(learning: LearningRuntime, stories, task_id: int) -> None:
+    l0_features: list[list[float]] = []
+    relation_patterns: list[RelationInstance] = []
+    event_patterns: list[NaryEvent] = []
+    context_transitions: list[tuple[str, str]] = []
+    for story, _labels in stories:
+        current_context = "start"
+        timeline = _timeline(story)
+        for index, (_time, kind, item) in enumerate(timeline, start=1):
+            features = _features(task_id, item, current_context, index, len(timeline))
+            l0_features.append(features[0])
+            if kind == 0:
+                event = item
+                event_patterns.append(_make_nary(event, current_context, "babi-en10k-fit"))
+                relation_patterns.extend(_make_relations(event, current_context))
+                next_context = _event_context(event)
+            else:
+                next_context = "query"
+            context_transitions.append((current_context, next_context))
+            current_context = next_context
+    learning.fit_level0_predictor(l0_features, partition="fit")
+    learning.fit_relation_patterns(relation_patterns, partition="fit")
+    learning.fit_event_role_patterns(event_patterns, partition="fit")
+    learning.fit_context_transitions(context_transitions, partition="fit")
+
+
+def _soe_fingerprint(memories) -> str:
+    return _digest_json({
+        "dt": SOE_DT,
+        "banks": [
+            {"feature_dim": memory.feature_dim, "decay_rates": list(memory.decay_rates)}
+            for memory in memories
+        ],
+    })
+
+
+def _make_eligibility(adapter, event: StructuredEvent, global_time: int,
+                      source_tick: int, soe_fingerprint: str) -> tuple[EligibilityEvent, ...]:
+    result = []
+    for level, memory in enumerate(adapter.bridge.memories):
+        traces = np.asarray(memory.snapshot(), dtype=float)
+        for channel in range(traces.shape[0]):
+            magnitude = float(np.linalg.norm(traces[channel, :]))
+            feature_id = f"soe_l{level}_c{channel}"
+            result.append(EligibilityEvent(
+                event.event_id, feature_id, feature_id,
+                float(global_time), float(global_time), source_tick,
+                magnitude, soe_fingerprint,
+            ))
+    return tuple(result)
+
+
+def _from_nary(event: NaryEvent) -> StructuredEvent:
+    return StructuredEvent(
+        event.event_id, event.event_type.upper(),
+        tuple(sorted((p.role, p.entity_id) for p in event.participants)),
+        int(event.event_time), int(event.observed_at), event.source_locator,
+    )
+
+
+def _query_events(adapter, architecture: str, story_id: str,
+                  cutoff: int, caller_events: list[StructuredEvent]) -> list[StructuredEvent]:
+    if architecture == "HLA":
+        return [event for event in caller_events if event.observed_at <= cutoff]
+    recovered = []
+    for event_id in adapter.evidence.event_ids:
+        if not event_id.startswith(story_id + ":"):
+            continue
+        event = adapter.recover_evidence(event_id, observation_cutoff=float(cutoff))
+        if event is not None:
+            recovered.append(_from_nary(event))
+    return sorted(recovered, key=lambda event: (event.observed_at, event.event_time, event.event_id))
+
+
+def _derive_support(story: StructuredStory, query: StructuredQuery) -> list[str]:
+    if query.task_id == 5:
+        matches = [
+            event for event in story.events
+            if event.event_type == "GIVE"
+            and event.observed_at <= query.observed_at
+            and all(event.role_map().get(role) == value for role, value in query.bound_roles)
+        ]
+        if not matches:
+            return []
+        return [max(matches, key=lambda event: (event.event_time, event.event_id)).event_id]
+    target = next((event for event in story.events if event.event_id == query.target_event_id), None)
+    if target is None:
+        return []
+    roles = target.role_map()
+    prior = [event for event in story.events if event.event_time < target.event_time]
+    moves = [event for event in prior if event.event_type == "MOVE" and event.role_map().get("actor") == roles.get("actor")]
+    pickups = [
+        event for event in prior if event.event_type == "PICK_UP"
+        and event.role_map().get("actor") == roles.get("actor")
+        and event.role_map().get("object") == query.object_id
+    ]
+    if not moves or not pickups:
+        return [target.event_id]
+    return [max(moves, key=lambda e: e.event_time).event_id,
+            max(pickups, key=lambda e: e.event_time).event_id, target.event_id]
+
+
+def _reference_label(story: StructuredStory, query: StructuredQuery) -> dict[str, Any]:
+    if query.task_id == 3:
+        answer = task3_object_location_before_move(
+            story.events, object_id=query.object_id or "",
+            destination_id=query.destination_id or "",
+            target_event_id=query.target_event_id or "",
+            observation_cutoff=query.observed_at,
+        )
+    else:
+        values = task5_answer_role(
+            story.events, bound_roles=dict(query.bound_roles),
+            answer_role=query.answer_role, observation_cutoff=query.observed_at,
+        )
+        answer = values[0] if len(values) == 1 else None
+    return {"gold_answer": answer, "support_event_ids": _derive_support(story, query)}
+
+
+def _score_prediction_delta(adapter, start_index: int) -> dict[str, Any]:
+    grouped: dict[str, dict[str, Any]] = {}
+    scores = adapter.learning.predictions.scores[start_index:]
+    for score in scores:
+        prediction = adapter.learning.predictions.get(score.prediction_id)
+        name = prediction.target_name
+        metric = str(score.metric)
+        row = grouped.setdefault(name, {"metric": metric, "count": 0, "values": [], "correct": 0})
+        row["count"] += 1
+        row["values"].append(float(score.value))
+        if metric == "exact_match":
+            row["correct"] += int(float(score.value) == 0.0)
+        elif metric == "accuracy":
+            row["correct"] += int(float(score.value) == 1.0)
+    output = {}
+    for name, row in grouped.items():
+        values = row.pop("values")
+        output[name] = {
+            "metric": row["metric"],
+            "count": row["count"],
+            "mean_value": float(sum(values) / len(values)) if values else None,
+            "accuracy": (row["correct"] / row["count"]
+                         if row["metric"] in {"exact_match", "accuracy"} and row["count"] else None),
+        }
+    return output
+
+
+def _query_answer(task_id: int, events: list[StructuredEvent], query: StructuredQuery,
+                  cutoff: int) -> str | None:
+    if task_id == 3:
+        return task3_object_location_before_move(
+            events, object_id=query.object_id or "",
+            destination_id=query.destination_id or "",
+            target_event_id=query.target_event_id or "",
+            observation_cutoff=cutoff,
+        )
+    values = task5_answer_role(
+        events, bound_roles=dict(query.bound_roles),
+        answer_role=query.answer_role, observation_cutoff=cutoff,
+    )
+    return values[0] if len(values) == 1 else None
+
+
+def _process_phase(adapter, director, architecture: str, task_id: int, stories,
+                   labels_by_story: dict[str, dict[str, dict[str, Any]]],
+                   phase: str, learn: bool, source_name: str,
+                   soe_fingerprint: str, global_clock: int) -> tuple[dict[str, Any], int]:
+    score_start = len(adapter.learning.predictions.scores)
+    totals = {
+        "queries": 0, "correct": 0, "abstained": 0,
+        "support_total": 0, "support_available": 0,
+        "provenance_checked": 0, "provenance_failures": 0,
+        "evidence_capacity_misses": 0, "false_witnesses": 0,
+    }
+    for story, story_labels in stories:
+        offset = global_clock + 1
+        seen_events: list[StructuredEvent] = []
+        source_payloads: dict[str, bytes] = {}
+        nary_by_id: dict[str, NaryEvent] = {}
+        current_context = "start"
+        timeline = _timeline(story)
+        for index, (_local_time, kind, item) in enumerate(timeline, start=1):
+            global_time = offset + int(item.observed_at)
+            if kind == 0:
+                event = item
+                global_event = replace(
+                    event, event_time=offset + int(event.event_time),
+                    observed_at=offset + int(event.observed_at),
+                )
+                nary = _make_nary(global_event, current_context, source_name)
+                payload = _payload(global_event)
+                source_payloads[global_event.source_ref] = payload
+                nary_by_id[event.event_id] = nary
+                relations = _make_relations(global_event, current_context)
+                eligibility = _make_eligibility(
+                    adapter, global_event, global_time, adapter.ticks + 1, soe_fingerprint
+                ) if learn else ()
+                features = _features(task_id, event, current_context, index, len(timeline))
+                kwargs = {
+                    "event_time": float(global_time), "observed_at": float(global_time),
+                    "event_features": features, "prediction_context": current_context,
+                    "observed_context": _event_context(event), "nary_events": (nary,),
+                    "eligibility_events": eligibility, "learn": learn,
+                }
+                if architecture == "HLB":
+                    kwargs["relation_records"] = tuple((1, relation) for relation in relations)
+                else:
+                    kwargs["learning_relations"] = relations
+                result = director.exchange(**kwargs)
+                if architecture == "HLB" and event.event_id not in adapter.evidence.event_ids:
+                    totals["evidence_capacity_misses"] += 1
+                seen_events.append(global_event)
+                current_context = _event_context(event)
+            else:
+                query = item
+                global_query = replace(query, observed_at=global_time)
+                evidence_events = _query_events(
+                    adapter, architecture, story.story_id, global_time, seen_events
+                )
+                evidence_ids = {event.event_id for event in evidence_events}
+                label = story_labels.get(query.query_id)
+                if label is None:
+                    label = _reference_label(story, query)
+                support_ids = list(label.get("support_event_ids", ()))
+                totals["support_total"] += len(support_ids)
+                available = [event_id for event_id in support_ids if event_id in evidence_ids]
+                totals["support_available"] += len(available)
+                answer = _query_answer(task_id, evidence_events, global_query, global_time)
+                gold = label.get("gold_answer")
+                totals["queries"] += 1
+                if answer is None:
+                    totals["abstained"] += 1
+                elif answer == gold:
+                    totals["correct"] += 1
+                if architecture == "HLB":
+                    for event_id in available:
+                        totals["provenance_checked"] += 1
+                        if not adapter.verify_event_provenance(
+                            event_id, lambda locator: source_payloads.get(locator)
+                        ):
+                            totals["provenance_failures"] += 1
+                else:
+                    for event_id in available:
+                        totals["provenance_checked"] += 1
+                        original = nary_by_id.get(event_id)
+                        if original is None or hashlib.sha256(
+                            source_payloads.get(original.source_locator, b"")
+                        ).hexdigest() != original.payload_digest:
+                            totals["provenance_failures"] += 1
+                task_error = 0.0 if answer == gold else 1.0
+                query_features = _features(task_id, query, current_context, index, len(timeline))
+                director.exchange(
+                    event_time=float(global_time), observed_at=float(global_time),
+                    event_features=query_features, prediction_context=current_context,
+                    observed_context="query",
+                    task_outcome=(f"task{task_id}", task_error), learn=learn,
+                )
+                current_context = "query"
+        global_clock = offset + max(
+            [int(event.observed_at) for event in story.events]
+            + [int(query.observed_at) for query in story.queries] + [0]
+        ) + 1
+
+    predictions = _score_prediction_delta(adapter, score_start)
+    query_count = totals["queries"]
+    support_total = totals["support_total"]
+    metrics = {
+        "phase": phase,
+        "learn_enabled": learn,
+        **totals,
+        "query_accuracy": totals["correct"] / query_count if query_count else None,
+        "abstention_rate": totals["abstained"] / query_count if query_count else None,
+        "support_witness_recall": (
+            totals["support_available"] / support_total if support_total else None
+        ),
+        "provenance_failure_rate": (
+            totals["provenance_failures"] / totals["provenance_checked"]
+            if totals["provenance_checked"] else 0.0
+        ),
+        "prediction_metrics": predictions,
+    }
+    return metrics, global_clock
+
+
+def _make_adapter(architecture: str, gfe_module, native_library,
+                  enabled_channels: frozenset[ErrorChannel]):
+    memories = [
+        SOEMemory(feature_dim=dim, decay_rates=decays)
+        for dim, decays in SOE_BANK_CONFIG
+    ]
+    kernels = [
+        {"gamma": list(reversed(decays)), "w": [0.5, 0.5]}
+        for _dim, decays in SOE_BANK_CONFIG
+    ]
+    soe_fingerprint = _digest_json({
+        "dt": SOE_DT, "banks": SOE_BANK_CONFIG, "kernels": kernels,
+    })
+    def runtime_factory(lib, levels, edges):
+        return CtypesPersistentRuntime(gfe_module, lib, levels, edges)
+    if architecture == "HLA":
+        adapter = create_hla_adapter(
+            native_library, memories, kernels, dt=SOE_DT, runtime_factory=runtime_factory,
+        )
+    else:
+        adapter = create_hlb_adapter(
+            native_library, memories, kernels, dt=SOE_DT, runtime_factory=runtime_factory,
+            capacity=HLB_CAPACITY,
+        )
+    adapter.learning = LearningRuntime(
+        enabled_channels=enabled_channels,
+        eligibility_decay=0.9,
+        eligibility_capacity=ELIGIBILITY_CAPACITY,
+        eligibility_config_fingerprint=soe_fingerprint,
+    )
+    return adapter, soe_fingerprint
+
+
+def _fit_and_process(
+    task_id: int, architecture: str, variant: str, seed: int,
+    warm_start, online, validation, confirmatory,
+    gfe_module, native_library, source_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    adapter, soe_fingerprint = _make_adapter(
+        architecture, gfe_module, native_library, CHANNELS[variant]
+    )
+    director = HierarchicalRuntimeDirector(adapter)
+    warm_order = _ordered(warm_start, seed)
+    online_order = _ordered(online, seed)
+    validation_order = _ordered(validation, seed)
+    confirmatory_order = _ordered(confirmatory, seed)
+
+    _fit_warm_start(adapter.learning, warm_order, task_id)
+    global_clock = 0
+    warm_metrics, global_clock = _process_phase(
+        adapter, director, architecture, task_id, warm_order,
+        {story.story_id: labels for story, labels in warm_order},
+        "warm_start_dynamics", False, "babi-v1.2-en10k-fit",
+        soe_fingerprint, global_clock,
+    )
+    model_before_online = _model_state(adapter.learning)
+    online_metrics, global_clock = _process_phase(
+        adapter, director, architecture, task_id, online_order,
+        {story.story_id: labels for story, labels in online_order},
+        "online_adaptation", True, "babi-v1.2-en10k-fit",
+        soe_fingerprint, global_clock,
+    )
+    model_after_online = _model_state(adapter.learning)
+    candidate_fingerprint = model_fingerprint(adapter.learning)
+    online_changes = {
+        key: _digest_json(model_before_online[key]) != _digest_json(model_after_online[key])
+        for key in model_before_online
+    }
+
+    validation_metrics, global_clock = _process_phase(
+        adapter, director, architecture, task_id, validation_order,
+        {story.story_id: labels for story, labels in validation_order},
+        "validation", False, "babi-v1.2-en10k-validation",
+        soe_fingerprint, global_clock,
+    )
+    fingerprint_after_validation = model_fingerprint(adapter.learning)
+    if fingerprint_after_validation != candidate_fingerprint:
+        raise RuntimeError("score-only validation mutated candidate learner parameters")
+
+    accepted = (
+        validation_metrics["query_accuracy"] == 1.0
+        and validation_metrics["support_witness_recall"] == 1.0
+        and validation_metrics["provenance_failures"] == 0
+        and validation_metrics["evidence_capacity_misses"] == 0
+    )
+    confirmatory_metrics = None
+    fingerprint_after_confirmatory = None
+    if accepted:
+        # Gold answers and witness IDs are derived only now, after candidate freeze.
+        confirmatory_metrics, global_clock = _process_phase(
+            adapter, director, architecture, task_id, confirmatory_order,
+            {story.story_id: {} for story, _ in confirmatory_order},
+            "generated_confirmatory", False, "babi-synthetic-confirmatory-v1.2",
+            soe_fingerprint, global_clock,
+        )
+        fingerprint_after_confirmatory = model_fingerprint(adapter.learning)
+        if fingerprint_after_confirmatory != candidate_fingerprint:
+            raise RuntimeError("score-only confirmatory evaluation mutated candidate parameters")
+
+    runtime = adapter.bridge.runtime
+    output = {
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2",
+        "task_id": task_id,
+        "architecture": architecture,
+        "variant": variant,
+        "seed": seed,
+        "candidate_accepted_on_validation": accepted,
+        "candidate_fingerprint": candidate_fingerprint,
+        "candidate_fingerprint_after_validation": fingerprint_after_validation,
+        "candidate_fingerprint_after_confirmatory": fingerprint_after_confirmatory,
+        "online_learner_state_changed": online_changes,
+        "phases": {
+            "warm_start_dynamics": warm_metrics,
+            "online_adaptation": online_metrics,
+            "validation": validation_metrics,
+            "generated_confirmatory": confirmatory_metrics,
+        },
+        "runtime": {
+            "native_steps": runtime.step_count,
+            "adapter_ticks": adapter.ticks,
+            "one_native_step_per_tick": runtime.step_count == adapter.ticks,
+            "hlb_evidence_count": len(adapter.evidence.event_ids) if architecture == "HLB" else 0,
+            "hlb_relation_count": adapter.store.count if architecture == "HLB" else 0,
+            "eligibility_values": len(adapter.learning.eligibility.values(prediction_cutoff_tick=adapter.ticks)),
+            "temporal_credit_state_sha256": _digest_json(adapter.learning.temporal_credit.snapshot()),
+            "soe_configuration_fingerprint": soe_fingerprint,
+        },
+        "source_manifest": source_manifest,
+    }
+    runtime.close()
+    return output
+
+
+def run_campaign(task_id: int, architecture: str, data_root: Path,
+                 annotation_root: Path, confirmatory_root: Path,
+                 output_path: Path, seeds: list[int],
+                 gfe_module, native_library) -> dict[str, Any]:
+    warm = _load_stories(
+        annotation_root / f"task{task_id}-warm-start.inputs.jsonl",
+        annotation_root / f"task{task_id}-warm-start.labels.jsonl",
+    )
+    online = _load_stories(
+        annotation_root / f"task{task_id}-online-adaptation.inputs.jsonl",
+        annotation_root / f"task{task_id}-online-adaptation.labels.jsonl",
+    )
+    validation = _load_stories(
+        annotation_root / f"task{task_id}-validation.inputs.jsonl",
+        annotation_root / f"task{task_id}-validation.labels.jsonl",
+    )
+    confirmatory = _load_stories(
+        confirmatory_root / f"task{task_id}-confirmatory.inputs.jsonl"
+    )
+    source_manifest = {
+        "annotation_manifest_sha256": hashlib.sha256(
+            (annotation_root / "annotation-manifest.json").read_bytes()
+        ).hexdigest(),
+        "confirmatory_manifest_sha256": hashlib.sha256(
+            (confirmatory_root / "confirmatory-input-manifest.json").read_bytes()
+        ).hexdigest(),
+    }
+    results = []
+    for seed in seeds:
+        for variant in CHANNELS:
+            results.append(_fit_and_process(
+                task_id, architecture, variant, seed,
+                warm, online, validation, confirmatory,
+                gfe_module, native_library, source_manifest,
+            ))
+    output = {
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2",
+        "task_id": task_id,
+        "architecture": architecture,
+        "seeds": seeds,
+        "variants": list(CHANNELS),
+        "run_count": len(results),
+        "results": results,
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return output
