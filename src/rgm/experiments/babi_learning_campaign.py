@@ -188,7 +188,7 @@ def _make_relations(event: StructuredEvent, context: str) -> tuple[RelationInsta
             f"{event.event_id}:rel:{name}", signature,
             Entity(subject_id, subject_type), Entity(object_id, object_type),
             float(event.event_time), float(event.observed_at), context,
-            f"source={event.source_ref};event={event.event_id};relation={name}",
+            provenance=f"source={event.source_ref};event={event.event_id};relation={name}",
         ))
     return tuple(records)
 
