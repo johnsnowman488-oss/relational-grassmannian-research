@@ -3,9 +3,9 @@ name: Repository unit and invariant tests
 on:
   workflow_dispatch:
   push:
-    branches: [main, "e00-foundations", "e01-history-dependence", "e01-a2-diagnostic-audit", "research/h0-shared-hierarchy-contract-soe-bridge", "research/h1-hla-hlb-five-workstreams"]
+    branches: [main, "e00-foundations", "e01-history-dependence", "e01-a2-diagnostic-audit", "research/h0-shared-hierarchy-contract-soe-bridge", "research/h1-hla-hlb-five-workstreams", "research/h1-learning-mechanisms"]
   pull_request:
-    branches: [main, "research/hlg-m4-preimplementation-ledger", "research/h0-shared-hierarchy-contract-soe-bridge"]
+    branches: [main, "research/hlg-m4-preimplementation-ledger", "research/h0-shared-hierarchy-contract-soe-bridge", "research/h1-hla-hlb-five-workstreams"]
 
 permissions:
   contents: read
