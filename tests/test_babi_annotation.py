@@ -54,6 +54,16 @@ def test_task5_query_templates(question, answer_role, bound):
     assert dict(query.bound_roles) == bound
 
 
+def test_task5_parses_non_give_story_distractors():
+    move = _event(5, "s", 1, "Bill travelled to the office.")
+    pickup = _event(5, "s", 2, "Bill picked up the football there.")
+    drop = _event(5, "s", 3, "Bill discarded the football there.")
+    assert move.event_type == "MOVE"
+    assert pickup.role_map()["object"] == "football"
+    assert drop.event_type == "DROP"
+    assert drop.role_map()["object"] == "football"
+
+
 def test_task3_target_move_requires_object_holder_not_merely_matching_place():
     events = [
         _event(3, "s", 1, "John picked up the apple."),
