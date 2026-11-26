@@ -73,3 +73,23 @@ def audit_resource_footprint() -> dict:
         "passed": all(checks.values()),
     }
 
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args()
+    result = audit_resource_footprint()
+    destination = Path(args.output)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\\n",
+        encoding="utf-8",
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
+    if not result["passed"]:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()
