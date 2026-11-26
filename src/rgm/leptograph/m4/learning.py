@@ -559,13 +559,16 @@ class ConsolidationGate:
 @dataclass(frozen=True)
 class RelationPattern:
     relation_type: str
+    subject_id: str
     subject_type: str
+    object_id: str
     object_type: str
     context: str | None
 
     def __post_init__(self) -> None:
-        if not all((self.relation_type, self.subject_type, self.object_type)):
-            raise ValueError("relation pattern requires a typed relation signature")
+        if not all((self.relation_type, self.subject_id, self.subject_type,
+                    self.object_id, self.object_type)):
+            raise ValueError("relation pattern requires typed relation and entity bindings")
 
 
 @dataclass(frozen=True)
@@ -619,8 +622,8 @@ class SemanticRelationLearner:
         self._counter = _PatternCounter()
 
     @staticmethod
-    def _key(subject_type: str, context: str | None) -> str:
-        return fingerprint({"subject_type": subject_type, "context": context})
+    def _key(context: str | None) -> str:
+        return fingerprint({"context": context})
 
     @staticmethod
     def _encode(pattern: RelationPattern) -> str:
@@ -631,12 +634,13 @@ class SemanticRelationLearner:
         return RelationPattern(**json.loads(value))
 
     def observe(self, record: Any) -> None:
-        pattern = RelationPattern(record.relation_type.name, record.subject.entity_type,
+        pattern = RelationPattern(record.relation_type.name, record.subject.entity_id,
+                                  record.subject.entity_type, record.object.entity_id,
                                   record.object.entity_type, record.context)
-        self._counter.observe(self._key(record.subject.entity_type, record.context), self._encode(pattern))
+        self._counter.observe(self._key(record.context), self._encode(pattern))
 
-    def predict(self, subject_type: str, context: str | None = None) -> RelationPattern | None:
-        value = self._counter.predict(self._key(subject_type, context))
+    def predict(self, context: str | None = None) -> RelationPattern | None:
+        value = self._counter.predict(self._key(context))
         return None if value is None else self._decode(value)
 
     def snapshot(self) -> dict:
@@ -787,19 +791,17 @@ class LearningRuntime:
             self.event_roles.observe(event)
         return len(events)
 
-    def begin_tick(self, *, tick: int, observed_at: float, subject_type: str | None = None,
+    def begin_tick(self, *, tick: int, observed_at: float,
                    context: str | None = None) -> tuple[Prediction, ...]:
         if tick < 0 or not math.isfinite(observed_at) or observed_at < self._last_observed_at:
             raise ValueError("learning tick/time must be monotone")
         self._last_observed_at = observed_at
         self._last_issue_context = {
-            "tick": tick, "cutoff": observed_at,
-            "subject_type": subject_type, "context": context,
+            "tick": tick, "cutoff": observed_at, "context": context,
         }
         issued = []
-        if subject_type:
-            pattern = self.relations.predict(subject_type, context)
-            if pattern is not None:
+        pattern = self.relations.predict(context)
+        if pattern is not None:
                 self._prediction_sequence += 1
                 schema = self.schemas["next_relation_pattern"]
                 prediction = Prediction(
@@ -841,7 +843,8 @@ class LearningRuntime:
         return score.value
 
     def observe_relation(self, record: Any, *, tick: int) -> float | None:
-        pattern = RelationPattern(record.relation_type.name, record.subject.entity_type,
+        pattern = RelationPattern(record.relation_type.name, record.subject.entity_id,
+                                  record.subject.entity_type, record.object.entity_id,
                                   record.object.entity_type, record.context)
         key = f"relation@{tick}"
         encoded = self.relations._encode(pattern)
@@ -850,8 +853,7 @@ class LearningRuntime:
                                        record.observed_at, tick)
         self._observation_journal.append({
             "kind": "relation", "value": encoded, "target_name": "next_relation_pattern",
-            "target_key": key, "subject_type": record.subject.entity_type,
-            "context": record.context, "source_id": record.instance_id,
+            "target_key": key, "context": record.context, "source_id": record.instance_id,
             "event_time": record.event_time, "observed_at": record.observed_at, "tick": tick,
             "issue_context": deepcopy(self._last_issue_context),
         })
@@ -959,14 +961,13 @@ class LearningRuntime:
                 issue = item.get("issue_context") or {
                     "tick": int(item["tick"]) - 1,
                     "cutoff": float(item["observed_at"]),
-                    "subject_type": item.get("subject_type"),
                     "context": item.get("context"),
                 }
                 prediction_tick = int(issue["tick"])
                 if prediction_tick not in replayed_prediction_ticks:
                     self.begin_tick(
                         tick=prediction_tick, observed_at=float(issue["cutoff"]),
-                        subject_type=issue.get("subject_type"), context=issue.get("context"),
+                        context=issue.get("context"),
                     )
                     replayed_prediction_ticks.add(prediction_tick)
                 error = self._score_and_update(
@@ -979,7 +980,7 @@ class LearningRuntime:
                     routed = self.error_router.route(self.last_signals)
                     if item["kind"] == "relation" and "semantic_relation_learner" in routed:
                         self.relations._counter.observe(
-                            self.relations._key(item["subject_type"], item["context"]), item["value"])
+                            self.relations._key(item["context"]), item["value"])
                     if item["kind"] == "event_role" and "nary_event_role_learner" in routed:
                         self.event_roles._counter.observe(
                             self.event_roles._key(item["context"]), item["value"])
