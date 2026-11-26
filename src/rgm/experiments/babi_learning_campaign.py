@@ -219,7 +219,7 @@ def _make_nary(event: StructuredEvent, context: str, source_name: str) -> NaryEv
 
 def _make_relations(event: StructuredEvent, context: str) -> tuple[RelationInstance, ...]:
     roles = event.role_map()
-    pairs: list[tuple[str, str, str, str]] = []
+    pairs: list[tuple[str, str, str, str, str]] = []
     if event.event_type == "MOVE":
         pairs.append(("located_at", "person", roles["actor"], "location", roles["destination"]))
     elif event.event_type == "PICK_UP":
@@ -428,7 +428,6 @@ def _query_answer(task_id: int, events: list[StructuredEvent], query: Structured
 
 
 def _process_phase(adapter, director, architecture: str, task_id: int, stories,
-                   labels_by_story: dict[str, dict[str, dict[str, Any]]],
                    phase: str, learn: bool, source_name: str,
                    soe_fingerprint: str, global_clock: int) -> tuple[dict[str, Any], int]:
     score_start = len(adapter.learning.predictions.scores)
@@ -484,6 +483,8 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                     adapter, architecture, story.story_id, global_time, seen_events
                 )
                 evidence_ids = {event.event_id for event in evidence_events}
+                if any(not event_id.startswith(story.story_id + ":") for event_id in evidence_ids):
+                    totals["false_witnesses"] += 1
                 label = story_labels.get(query.query_id)
                 if label is None:
                     label = _reference_label(story, query)
@@ -539,6 +540,7 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
         "support_witness_recall": (
             totals["support_available"] / support_total if support_total else None
         ),
+        "cross_story_witness_count": totals["false_witnesses"],
         "provenance_failure_rate": (
             totals["provenance_failures"] / totals["provenance_checked"]
             if totals["provenance_checked"] else 0.0
@@ -639,7 +641,6 @@ def _fit_and_process(
         # Gold answers and witness IDs are derived only now, after candidate freeze.
         confirmatory_metrics, global_clock = _process_phase(
             adapter, director, architecture, task_id, confirmatory_order,
-            {story.story_id: {} for story, _ in confirmatory_order},
             "generated_confirmatory", False, "babi-synthetic-confirmatory-v1.2",
             soe_fingerprint, global_clock,
         )
@@ -670,7 +671,10 @@ def _fit_and_process(
             "adapter_ticks": adapter.ticks,
             "one_native_step_per_tick": runtime.step_count == adapter.ticks,
             "hlb_evidence_count": len(adapter.evidence.event_ids) if architecture == "HLB" else 0,
-            "hlb_relation_count": adapter.store.count if architecture == "HLB" else 0,
+            "hlb_relation_count": (
+            adapter.store.count if architecture == "HLB" and not callable(adapter.store.count)
+            else adapter.store.count() if architecture == "HLB" else 0
+        ),
             "eligibility_values": len(adapter.learning.eligibility.values(prediction_cutoff_tick=adapter.ticks)),
             "temporal_credit_state_sha256": _digest_json(adapter.learning.temporal_credit.snapshot()),
             "soe_configuration_fingerprint": soe_fingerprint,
