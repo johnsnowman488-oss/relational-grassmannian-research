@@ -213,6 +213,20 @@ def test_production_runtime_factories_create_one_native_handle_per_adapter():
     assert len(calls) == 2
 
 
+
+def validation_record(lifecycle):
+    return {
+        "validation_id": "unit-validation-1",
+        "passed": True,
+        "independent": True,
+        "partition": "validation",
+        "candidate_fingerprint": lifecycle.candidate_fingerprint(),
+        "protocol_fingerprint": "protocol-sha256",
+        "criteria_fingerprint": "criteria-sha256",
+        "data_manifest_fingerprint": "validation-data-sha256",
+        "metrics": {"exact_accuracy": 1.0},
+    }
+
 def test_lifecycle_rollback_after_promotion_restores_previous_trusted_version():
     bridge, runtime = make_bridge()
     director = HierarchicalRuntimeDirector(HLBAdapter(bridge))
@@ -220,7 +234,7 @@ def test_lifecycle_rollback_after_promotion_restores_previous_trusted_version():
     lifecycle.checkpoint()
     director.exchange(event_time=1.0, observed_at=1.0,
                       event_features={0: [1.0, 0.0]})
-    assert lifecycle.promote() == 1
+    assert lifecycle.promote(validation_record(lifecycle)) == 1
     assert runtime.state["step_count"] == 1
     director.exchange(event_time=2.0, observed_at=2.0,
                       event_features={0: [0.0, 1.0]})
