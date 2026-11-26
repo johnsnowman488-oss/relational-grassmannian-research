@@ -30,11 +30,11 @@ def test_task3_late_observation_does_not_leak_into_earlier_cutoff():
         ev("3", "MOVE", {"actor": "john", "destination": "kitchen"}, 3, observed=5),
     ]
     assert task3_object_location_before_move(
-        story, object_id="apple", actor_id="john",
+        story, object_id="apple", target_event_id="3",
         destination_id="kitchen", observation_cutoff=4,
     ) is None
     assert task3_object_location_before_move(
-        story, object_id="apple", actor_id="john",
+        story, object_id="apple", target_event_id="3",
         destination_id="kitchen", observation_cutoff=5,
     ) == "office"
 
