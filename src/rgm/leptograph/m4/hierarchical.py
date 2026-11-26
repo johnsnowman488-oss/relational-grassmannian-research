@@ -438,6 +438,9 @@ class HLBAdapter:
                 raise ValueError("source relation journal ID collision")
             candidate[record.instance_id] = value
         self._source_relation_journal = candidate
+        for relation_id, (level, record) in sorted(candidate.items()):
+            if relation_id not in self.store._records:
+                self.store.insert(level, record)
 
     def observe_event(self, event: NaryEvent) -> str:
         """Append source-grounded n-ary evidence outside candidate rollback state."""
