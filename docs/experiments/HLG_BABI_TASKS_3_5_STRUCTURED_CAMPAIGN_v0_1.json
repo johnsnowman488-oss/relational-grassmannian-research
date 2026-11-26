@@ -1,6 +1,6 @@
 {
   "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
-  "status": "official en-10k source bytes and learning protocol v1.0 frozen; structured annotation bundle pending",
+  "status": "en-10k fit/validation source frozen; en-10k test quarantined; independent en confirmatory source pending G0.5",
   "benchmark": {
     "dataset": "bAbI Question Answering 20 Tasks",
     "publisher_namespace": "facebook/babi_qa",
@@ -361,8 +361,8 @@
     "annotation_protocol": "Structured event/query annotations must be frozen independently of model runs, preserve all story events and role bindings, be checked against source lines by an independent reviewer, and record annotation version and reviewer agreement. The official support indices and answer column are evaluation-only."
   },
   "learning_protocol": {
-    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.0",
-    "status": "FROZEN; execution gated on source-indexed structured annotation bundle and current-head CI",
+    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.1",
+    "status": "FROZEN; independent en confirmatory source identity and zero-overlap verification are mandatory G0.5 gates",
     "frozen_at": "2026-11-26",
     "implementation_parent": "research/h1-learning-runtime-integration",
     "data_identity": {
@@ -373,7 +373,14 @@
       "archive_sha256": "84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c",
       "archive_size_bytes": 11745123,
       "source_freeze_artifact_run": 45832843743,
-      "source_freeze_artifact_id": 15123500490
+      "source_freeze_artifact_id": 15123500490,
+      "fit_validation_configuration": "en-10k",
+      "confirmatory_configuration": "en",
+      "confirmatory_source_files": [
+        "qa3_three-supporting-facts_test.txt",
+        "qa5_three-arg-relations_test.txt"
+      ],
+      "quarantined_test_configuration": "en-10k"
     },
     "partitions": {
       "fit": "1800 complete stories per task, deterministically derived from the official 2000-story training source",
@@ -493,13 +500,16 @@
       "claim_boundary": "Structured-event reasoning only; no natural-language parsing, open-world reasoning, general semantic understanding or architecture-wide superiority claim."
     },
     "execution_gates": [
-      "G0: verify source archive and all eight frozen split-file hashes",
-      "G1: implement source-indexed structured annotation conversion for Task 3 and Task 5; freeze annotation manifest and independent audit",
-      "G2: run current-head full CI, H1 adapter/evidence tests and compiled-native smoke",
-      "G3: run train/validation learning and ablation campaigns; freeze candidates",
-      "G4: unlock official test once for confirmatory campaign",
-      "G5: publish artifact hashes and complete evidence ledger"
-    ]
+      "G0: verify archive and all fit/validation/independent en confirmatory file hashes",
+      "G0.5: require zero normalized story-block overlap between en confirmatory and en-10k training/quarantined test sources",
+      "G1: source-indexed structured annotation and fit/validation audit; confirmatory inputs only, no labels",
+      "G2: full current-head CI, H1 adapter/evidence acceptance and compiled-native smoke",
+      "G3: fit/validation learning, ablations and candidate freeze",
+      "G4: unlock independent en confirmatory labels once",
+      "G5: publish artifacts and evidence ledger"
+    ],
+    "supersedes": "HLG-BABI-T3-T5-LEARNING-v1.0",
+    "supersession_reason": "The en-10k test labels were inadvertently inspected during preprocessing debugging; no learning, candidate selection or campaign metric used them. They are quarantined and replaced by the separate official en test files."
   },
-  "learning_protocol_ref": "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_0.md"
+  "learning_protocol_ref": "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_1.md"
 }
