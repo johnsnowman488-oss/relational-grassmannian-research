@@ -778,8 +778,8 @@ class Level0FeaturePredictor:
             raise ValueError("level-0 predictor learning-rate mismatch")
         mean = state.get("mean")
         candidate = None if mean is None else _finite_vector(mean, name="level-0 checkpoint mean")
-        if int(state["update_count"]) < 0:
-            raise ValueError("level-0 update count cannot be negative")
+        if int(state["update_count"]) < 0 or (candidate is None and int(state["update_count"]) != 0):
+            raise ValueError("level-0 update count is inconsistent with fitted state")
         self.mean = candidate
         self.update_count = int(state["update_count"])
 
@@ -1060,8 +1060,8 @@ class LearningRuntime:
         return error
 
     def observe_eligibility(self, event: EligibilityEvent) -> None:
-        self._observation_journal.append({"kind": "eligibility", "value": event.__dict__})
         self.eligibility.ingest(event)
+        self._observation_journal.append({"kind": "eligibility", "value": event.__dict__})
 
     def advance_temporal(self, tick: int) -> dict:
         self.eligibility.advance(tick)
@@ -1069,6 +1069,8 @@ class LearningRuntime:
         return values
 
     def observe_temporal_error(self, error: float, *, tick: int) -> None:
+        if not math.isfinite(error) or error < 0:
+            raise ValueError("temporal error must be finite and non-negative")
         self._observation_journal.append({"kind": "temporal_error", "error": float(error), "tick": int(tick)})
         values = self.eligibility.values(prediction_cutoff_tick=tick)
         self.last_signals = LearningSignals(
