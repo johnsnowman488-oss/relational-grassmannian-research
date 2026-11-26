@@ -771,6 +771,7 @@ class LearningRuntime:
         self._prediction_sequence = 0
         self._last_observed_at = 0.0
         self.last_signals = LearningSignals()
+        self._last_issue_context: dict[str, Any] | None = None
 
     def fit_relation_patterns(self, records: Sequence[Any], *, partition: str) -> int:
         if partition != "fit":
@@ -791,6 +792,10 @@ class LearningRuntime:
         if tick < 0 or not math.isfinite(observed_at) or observed_at < self._last_observed_at:
             raise ValueError("learning tick/time must be monotone")
         self._last_observed_at = observed_at
+        self._last_issue_context = {
+            "tick": tick, "cutoff": observed_at,
+            "subject_type": subject_type, "context": context,
+        }
         issued = []
         if subject_type:
             pattern = self.relations.predict(subject_type, context)
@@ -848,6 +853,7 @@ class LearningRuntime:
             "target_key": key, "subject_type": record.subject.entity_type,
             "context": record.context, "source_id": record.instance_id,
             "event_time": record.event_time, "observed_at": record.observed_at, "tick": tick,
+            "issue_context": deepcopy(self._last_issue_context),
         })
         if error is not None:
             self.last_signals = LearningSignals(relational=error)
@@ -868,6 +874,7 @@ class LearningRuntime:
             "kind": "event_role", "value": encoded, "target_name": "next_event_role_pattern",
             "target_key": key, "context": event.context, "source_id": event.event_id,
             "event_time": event.event_time, "observed_at": event.observed_at, "tick": tick,
+            "issue_context": deepcopy(self._last_issue_context),
         })
         if error is not None:
             self.last_signals = LearningSignals(abstraction=error)
@@ -944,8 +951,22 @@ class LearningRuntime:
         # New labels received during candidate execution survive rollback and
         # are deterministically applied to the restored incumbent learners.
         self._observation_journal = replay_journal
+        replayed_prediction_ticks = set()
         for item in newer_journal:
             if item["kind"] in ("relation", "event_role"):
+                issue = item.get("issue_context") or {
+                    "tick": int(item["tick"]) - 1,
+                    "cutoff": float(item["observed_at"]),
+                    "subject_type": item.get("subject_type"),
+                    "context": item.get("context"),
+                }
+                prediction_tick = int(issue["tick"])
+                if prediction_tick not in replayed_prediction_ticks:
+                    self.begin_tick(
+                        tick=prediction_tick, observed_at=float(issue["cutoff"]),
+                        subject_type=issue.get("subject_type"), context=issue.get("context"),
+                    )
+                    replayed_prediction_ticks.add(prediction_tick)
                 error = self._score_and_update(
                     item["target_name"], item["target_key"], item["value"],
                     item["source_id"], item["event_time"], item["observed_at"], item["tick"],
