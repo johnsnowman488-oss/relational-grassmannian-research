@@ -1,4 +1,4 @@
-# bAbI Tasks 3 and 5 — HLA/HLB Learning Protocol v1.2
+# bAbI Tasks 3 and 5 — HLA/HLB Learning Protocol v1.2.1
 
 **Protocol ID:** HLG-BABI-T3-T5-LEARNING-v1.2.1  
 **Status:** FROZEN — 2026-11-26; execution gated on G0/G1/G2 acceptance  
@@ -9,7 +9,7 @@
 
 The official `en-10k` test labels were inadvertently inspected during preprocessing debugging. The separate official `en` test files were then checked and found to overlap the `en-10k` training/test story corpus exactly (Task 3: 200/200 story blocks). Neither official test configuration can serve as independent confirmation. Both are quarantined and excluded from all campaign metrics and candidate selection.
 
-Protocol v1.2 therefore uses:
+Protocol v1.2.1 therefore uses:
 - Official `en-10k` training source for fit and validation.
 - A deterministic, independently generated **bAbI-compatible structured challenge** for confirmatory evaluation.
 
@@ -19,7 +19,7 @@ The generated challenge is not an official bAbI test set. Results must be report
 
 **Task 3 — Three Supporting Facts:** reconstruct an object's location immediately before a semantically identified movement to a queried destination, integrating pickup, movement and drop/discard events while preserving the supporting event chain.
 
-**Task 5 — Three Argument Relations:** represent each GIVE as one n-ary event `GIVE(giver, object, recipient)`, answer role-conditioned queries, and prevent participant roles from being assembled across different event identities.
+**Task 5 — Three Argument Relations:** represent each GIVE as one n-ary event `GIVE(giver, object, recipient)`, answer role-conditioned queries, and prevent participant roles from being assembled across different event identities. Preserve `PASS(sender, object, recipient)` as a distinct predicate so a PASS event cannot satisfy or overwrite a GIVE query.
 
 The campaign reports four distinct outcomes: task-query retrieval, learned event prediction, evidence integrity and operational behaviour. Task-query retrieval is a deterministic structured-evidence executor, not a learned answer-generation model. It must not be presented as proof that the prediction learners have learned the task.
 
@@ -49,13 +49,13 @@ The G1 bundle contains confirmatory inputs only. It emits no answers or supporti
 
 The official source-template compiler is a narrow deterministic benchmark adapter, not general NLP. It converts:
 - Task 3: MOVE, PICK_UP and DROP, including source variants such as `got ... there`, `took`, `picked up`, `left` and `discarded`.
-- Task 5: GIVE in active/passive forms, plus MOVE/PICK_UP/DROP distractors present in the same stories.
+- Task 5: GIVE (source forms `gave` and `handed`) in active/passive forms; PASS (source form `passed`) is a separate n-ary event; MOVE/PICK_UP/DROP distractors remain represented.
 
 Model inputs contain story-scoped event/query IDs and exact source-line provenance. Fit/validation gold answers and official support IDs are isolated in separate evaluator label streams. Confirmatory generation emits input records only; label derivation is deferred to G4.
 
 Task 3 query anchoring is derived from the question destination and timeline: the target is a MOVE by the actor currently holding the queried object. Gold support indices are not used to select it.
 
-Task 5 queries contain bound roles and a distinct answer role. All bound roles must match within one GIVE event.
+Task 5 queries contain bound roles and a distinct answer role. All bound roles must match within one GIVE event. PASS events are never eligible witnesses for GIVE_ROLE queries. The v1.2.1 correction follows the independent source audit: a later “passed” statement must not replace the official answer supported by an earlier “handed” statement.
 
 ## 5. Matched HLA/HLB learning schedule
 
@@ -64,7 +64,7 @@ Run both architectures with identical event/query streams, feature encodings, pe
 For each architecture/task/seed:
 
 1. **Warm-start fit:** initialise the L0 feature predictor, typed relation-pattern learner, n-ary event-role learner and context-transition learner from the 1,200 warm-start stories only, using the existing `LearningRuntime.fit_* (partition="fit")` APIs.
-2. **Warm-start dynamics:** process those stories through the hierarchical runtime in score-only mode (`learn=False`) to establish matched SOE/native state and retain source evidence without changing learned parameters.
+2. **Warm-start dynamics:** process those stories through the hierarchical runtime in score-only mode (`learn=False`) to establish matched per-story SOE/native trajectories and retain source evidence without changing learned parameters; reset transient state at every story boundary.
 3. **Online adaptation:** process the 600 disjoint online-adaptation stories in source order with `learn=True`. Issue predictions from the pre-event state, ingest evidence, score newly observable targets, then route only permitted learning updates. Fit labels may update task-outcome calibration only after the answer is committed.
 4. **Validation:** process all 200 validation stories in score-only mode. Predictions are evaluated, but no learner, temporal eligibility or task calibrator is updated.
 5. **Confirmatory:** after candidate fingerprints and validation decisions are frozen, process the generated challenge in score-only mode. No confirmatory observation updates candidate parameters.
