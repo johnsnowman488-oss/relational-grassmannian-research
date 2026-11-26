@@ -420,8 +420,8 @@ class HLBAdapter:
         return self.evidence.snapshot()
 
     def restore_evidence_checkpoint(self, state: Mapping) -> None:
-        """Restore a journal during explicit storage recovery, never model rollback."""
-        self.evidence = EvidenceStore.from_snapshot(state)
+        """Merge a journal during storage recovery without deleting newer local evidence."""
+        self.evidence.merge_snapshot(state)
 
     def query(self, start: Entity, relation_path: Sequence[RelationType], *,
               context: str | None, query_time: float, observation_cutoff: float,
