@@ -616,7 +616,7 @@ def _fit_and_process(
 
     runtime = adapter.bridge.runtime
     output = {
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.1",
         "task_id": task_id,
         "architecture": architecture,
         "variant": variant,
@@ -694,7 +694,7 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
                 gfe_module, native_library, source_manifest,
             ))
     output = {
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.1",
         "task_id": task_id,
         "architecture": architecture,
         "seeds": seeds,
