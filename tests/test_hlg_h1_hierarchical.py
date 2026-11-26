@@ -221,9 +221,9 @@ def validation_record(lifecycle):
         "independent": True,
         "partition": "validation",
         "candidate_fingerprint": lifecycle.candidate_fingerprint(),
-        "protocol_fingerprint": "a".repeat(64),
-        "criteria_fingerprint": "b".repeat(64),
-        "data_manifest_fingerprint": "c".repeat(64),
+        "protocol_fingerprint": "a" * 64,
+        "criteria_fingerprint": "b" * 64,
+        "data_manifest_fingerprint": "c" * 64,
         "metrics": {"exact_accuracy": 1.0},
     }
 
