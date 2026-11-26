@@ -281,3 +281,42 @@ The contract formalises five previously discussed interfaces against the existin
 **Gate before external tasks:** implement and test state schemas/cycle ordering; prediction objects and leakage-safe evaluation; attributable learning signals and explicit temporal eligibility; candidate validation/promotion/evidence-safe rollback; and per-level evidence retrieval including n-ary role binding. Only then freeze and begin the planned bAbI Tasks 3/5 campaign (oracle structured events first, text parsing measured separately).
 
 No H1 results or claims are upgraded by this design document. The P6 stability evidence remains limited to its frozen finite-horizon operating envelope; new learning rules require separate stability and task validation.
+
+---
+
+## Evidence lifecycle and external-task continuation — 2026-11-26
+
+**Parent objective:** implement the proposed HLG-HYBRID-PLCE-v0.1 evidence lifecycle and then resume bAbI Tasks 3 and 5 without conflating structured reasoning with language parsing.
+
+### Evidence lifecycle implementation
+
+- Added `src/rgm/leptograph/m4/evidence.py` with immutable n-ary source events; same-event participant-role binding; source payload SHA-256 and provenance verification; append-only revision lineage; derived evidence with witness IDs; summaries with source digests; exact source-witness recovery; observation-cutoff enforcement; contradiction reporting; explicit capacity abstention; and independent journal serialization.
+- Integrated a separate append-only evidence journal into `HLBAdapter`. The journal is intentionally not part of candidate model rollback. HLB composite snapshots carry an evidence watermark, and restore verifies that all referenced source events remain available. The journal can be separately checkpointed/restored for storage recovery.
+- HLA remains the no-store reference: exact witness validation continues to require caller-supplied evidence. No HLA persistent event journal has been added.
+- Added `tests/test_hlg_evidence_lifecycle.py` and `tests/test_hlg_integrated_contract_acceptance.py` for n-ary role integrity, late observations, contradictions, missing witnesses, provenance tampering, summary/derivation recovery, capacity exhaustion, failed validation, promotion and rollback while retaining intervening evidence.
+- The source journal and canonical binary relation store remain separate: one preserves source event identity and n-ary roles; the other remains the existing bounded relation index/composition substrate.
+
+### bAbI Tasks 3 and 5
+
+- Added `src/rgm/experiments/babi_structured.py` with oracle structured-event reference solvers:
+  - Task 3: temporal object-location reconstruction before a target movement event.
+  - Task 5: role-conditioned retrieval from a single n-ary GIVE event, preventing cross-event role mixing.
+- Added structured fixtures and tests in `tests/test_babi_structured.py`. These are adapter/solver tests, not official benchmark scores and not text parsing.
+- Frozen protocol: `docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json`.
+- Source identity: bAbI QA v1.2, English `en-valid-10k`, Tasks 3 and 5, official train/validation/test files. The archive's upstream Git LFS object digest is pinned as SHA-256 `0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898`, size 15,719,851 bytes. The local archive has not yet been acquired/verified, and the six extracted split-file hashes remain pending. Official-data scoring is blocked until those byte checks pass.
+- Partition policy: preserve official story-level splits; train only on train, select on valid, access test only after configuration freeze. No story/question/support-index splitting.
+
+### CI and claim boundary
+
+- The preceding commit `b5b85585a80e88ed818317480a1c6af837acc400` passed H1 tests, repository regression, P6 controller tests and compiled native smoke on Python 3.10/3.12.
+- Later commits integrated HLB's durable evidence journal, watermark validation, and bAbI structured-event adapters. They do **not** yet have a corresponding CI run. Do not transfer the earlier pass to these later commits.
+- No official bAbI task result, HLA/HLB performance comparison, or natural-language parsing result is claimed.
+
+### Next execution
+
+1. Obtain the pinned bAbI archive and verify its local SHA-256/size; extract and hash the six selected files; update the manifest.
+2. Run focused and full CI on the current H1 head, fixing only demonstrated failures.
+3. Extend the structured adapter from fixture-level inputs to source-indexed official task records without parsing sentence text; validate source-line/support-index lineage.
+4. Run deterministic oracle/reference checks on train/validation/test separately.
+5. Run matched HLA/HLB structured-input campaigns; retain test as confirmatory.
+6. Only after the structured-event stage is stable, add text-to-event parsing and report parser errors separately from reasoning errors.
