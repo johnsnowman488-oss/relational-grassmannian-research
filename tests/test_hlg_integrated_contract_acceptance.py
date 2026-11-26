@@ -161,3 +161,23 @@ def test_source_relation_journal_has_its_own_capacity_abstention():
     assert director.adapter.observe_source(0, first) == "STORED"
     assert director.adapter.observe_source(0, second) == "ABSTAIN_SOURCE_JOURNAL_CAPACITY"
     assert director.adapter.source_relation_checkpoint()["records"][0]["record"]["instance_id"] == "source-1"
+
+def test_source_relation_waits_out_candidate_capacity_then_reindexes_after_rollback():
+    runtime, director, lifecycle = make_system(capacity=1)
+    from rgm.leptograph.m4.composition import Entity, RelationInstance, RelationType
+    person, place = Entity("p", "person"), Entity("x", "place")
+    relation = RelationType("located_at", "person", "place")
+    candidate = RelationInstance("candidate", relation, person, place, 1.0, 1.0,
+                                 provenance="candidate")
+    source = RelationInstance("source", relation, person, place, 2.0, 2.0,
+                              provenance="source")
+    lifecycle.checkpoint()
+    assert director.adapter.observe(0, candidate) == "STORED"
+    assert director.adapter.observe_source(0, source) == "ABSTAIN_CAPACITY"
+    assert director.adapter.unindexed_source_relation_ids == ("source",)
+    assert director.adapter.recover_source_relation("source") == (0, source)
+
+    lifecycle.rollback()
+    assert director.adapter.store.count == 1
+    assert director.adapter.store.records(cutoff=3.0)[0].instance_id == "source"
+    assert director.adapter.unindexed_source_relation_ids == ()
