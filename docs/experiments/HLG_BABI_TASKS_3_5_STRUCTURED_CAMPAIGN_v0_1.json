@@ -1,6 +1,6 @@
 {
   "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
-  "status": "protocol-frozen; source-byte-acquisition-pending",
+  "status": "protocol-and-source-byte-identity-frozen; local-acquisition-pending",
   "benchmark": {
     "dataset": "bAbI Question Answering 20 Tasks",
     "publisher_namespace": "facebook/babi_qa",
@@ -14,10 +14,11 @@
     "configuration": "en-valid-10k",
     "archive_path_prefix": "tasks_1-20_v1-2/en-valid-10k/",
     "byte_freeze": {
-      "status": "PENDING",
-      "archive_sha256": null,
+      "status": "EXPECTED_HASH_PINNED_LOCAL_VERIFICATION_PENDING",
+      "archive_sha256": "0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898",
+      "archive_size_bytes": 15719851,
       "selected_file_sha256": {},
-      "rule": "No benchmark scoring run may be described as official-data evaluation until the archive or each selected source file is acquired, SHA-256 hashed locally, and these fields are committed. Do not substitute generated task data or an unverified mirror."
+      "rule": "The expected archive digest and byte size are pinned from the facebook/babi_qa dataset repository's Git LFS object record. Before official scoring, acquire the archive, verify its local SHA-256 and size against these values, then hash the six extracted split files and commit those digests. Do not substitute generated task data or an unverified mirror."
     }
   },
   "selected_tasks": [
