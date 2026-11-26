@@ -394,7 +394,8 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                    soe_fingerprint: str, global_clock: int, baseline_native_checkpoint: dict[str, Any], gfe_module) -> tuple[dict[str, Any], int]:
     score_start = len(adapter.learning.predictions.scores)
     totals = {
-        "queries": 0, "correct": 0, "abstained": 0,
+        "queries": 0, "eligible_queries": 0, "quarantined_queries": 0,
+        "correct": 0, "abstained": 0,
         "support_total": 0, "support_available": 0,
         "provenance_checked": 0, "provenance_failures": 0,
         "evidence_capacity_misses": 0, "false_witnesses": 0,
@@ -452,38 +453,45 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                 if label is None:
                     label = _reference_label(story, query)
                 support_ids = list(label.get("support_event_ids", ()))
-                totals["support_total"] += len(support_ids)
-                available = [event_id for event_id in support_ids if event_id in evidence_ids]
-                totals["support_available"] += len(available)
                 answer = _query_answer(task_id, evidence_events, global_query, global_time)
                 gold = label.get("gold_answer")
                 totals["queries"] += 1
-                if answer is None:
-                    totals["abstained"] += 1
-                elif answer == gold:
-                    totals["correct"] += 1
-                if architecture == "HLB":
-                    for event_id in available:
-                        totals["provenance_checked"] += 1
-                        if not adapter.verify_event_provenance(
-                            event_id, lambda locator: source_payloads.get(locator)
-                        ):
-                            totals["provenance_failures"] += 1
+                quarantined = label.get("audit_status") == "quarantined"
+                task_outcome = None
+                if quarantined:
+                    totals["quarantined_queries"] += 1
                 else:
-                    for event_id in available:
-                        totals["provenance_checked"] += 1
-                        original = nary_by_id.get(event_id)
-                        if original is None or hashlib.sha256(
-                            source_payloads.get(original.source_locator, b"")
-                        ).hexdigest() != original.payload_digest:
-                            totals["provenance_failures"] += 1
-                task_error = 0.0 if answer == gold else 1.0
+                    totals["eligible_queries"] += 1
+                    totals["support_total"] += len(support_ids)
+                    available = [event_id for event_id in support_ids if event_id in evidence_ids]
+                    totals["support_available"] += len(available)
+                    if answer is None:
+                        totals["abstained"] += 1
+                    elif answer == gold:
+                        totals["correct"] += 1
+                    if architecture == "HLB":
+                        for event_id in available:
+                            totals["provenance_checked"] += 1
+                            if not adapter.verify_event_provenance(
+                                event_id, lambda locator: source_payloads.get(locator)
+                            ):
+                                totals["provenance_failures"] += 1
+                    else:
+                        for event_id in available:
+                            totals["provenance_checked"] += 1
+                            original = nary_by_id.get(event_id)
+                            if original is None or hashlib.sha256(
+                                source_payloads.get(original.source_locator, b"")
+                            ).hexdigest() != original.payload_digest:
+                                totals["provenance_failures"] += 1
+                    task_error = 0.0 if answer == gold else 1.0
+                    task_outcome = (f"task{task_id}", task_error)
                 query_features = _features(task_id, query, current_context, index, len(timeline))
                 director.exchange(
                     event_time=float(global_time), observed_at=float(global_time),
                     event_features=query_features, prediction_context=current_context,
                     observed_context="query",
-                    task_outcome=(f"task{task_id}", task_error), learn=learn,
+                    task_outcome=task_outcome, learn=learn,
                 )
                 current_context = "query"
         global_clock = offset + max(
@@ -492,12 +500,14 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
         ) + 1
 
     predictions = _score_prediction_delta(adapter, score_start)
-    query_count = totals["queries"]
+    query_count = totals["eligible_queries"]
     support_total = totals["support_total"]
     metrics = {
         "phase": phase,
         "learn_enabled": learn,
         **totals,
+        "eligible_query_coverage": query_count / totals["queries"] if totals["queries"] else None,
+        "quarantine_fraction": totals["quarantined_queries"] / totals["queries"] if totals["queries"] else 0.0,
         "query_accuracy": totals["correct"] / query_count if query_count else None,
         "abstention_rate": totals["abstained"] / query_count if query_count else None,
         "support_witness_recall": (
