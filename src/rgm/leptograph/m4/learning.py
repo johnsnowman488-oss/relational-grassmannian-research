@@ -741,6 +741,73 @@ class TaskOutcomeLearner:
         self.outcomes = candidate
 
 
+class Level0FeaturePredictor:
+    """Fit-partition mean predictor with error-driven online adaptation."""
+    def __init__(self, learning_rate: float = 0.1):
+        if not math.isfinite(learning_rate) or not 0 < learning_rate <= 1:
+            raise ValueError("feature predictor learning rate must be in (0, 1]")
+        self.learning_rate = float(learning_rate)
+        self.mean: np.ndarray | None = None
+        self.update_count = 0
+
+    def fit(self, examples: Sequence[Sequence[float]]) -> None:
+        if not examples:
+            raise ValueError("level-0 predictor requires fit examples")
+        rows = [_finite_vector(row, name="level-0 fit vector") for row in examples]
+        if len({row.size for row in rows}) != 1:
+            raise ValueError("level-0 fit vectors must have a fixed dimension")
+        self.mean = np.mean(np.vstack(rows), axis=0)
+
+    def predict(self) -> list[float] | None:
+        return None if self.mean is None else self.mean.tolist()
+
+    def update(self, target: Sequence[float]) -> None:
+        values = _finite_vector(target, name="level-0 target")
+        if self.mean is None or values.size != self.mean.size:
+            raise ValueError("level-0 update requires a fitted predictor with matching dimension")
+        self.mean = self.mean + self.learning_rate * (values - self.mean)
+        self.update_count += 1
+
+    def snapshot(self) -> dict:
+        return {"learning_rate": self.learning_rate,
+                "mean": None if self.mean is None else self.mean.tolist(),
+                "update_count": self.update_count}
+
+    def restore(self, state: Mapping) -> None:
+        if float(state["learning_rate"]) != self.learning_rate:
+            raise ValueError("level-0 predictor learning-rate mismatch")
+        mean = state.get("mean")
+        candidate = None if mean is None else _finite_vector(mean, name="level-0 checkpoint mean")
+        if int(state["update_count"]) < 0:
+            raise ValueError("level-0 update count cannot be negative")
+        self.mean = candidate
+        self.update_count = int(state["update_count"])
+
+
+class ContextTransitionLearner:
+    """Context-conditioned categorical predictor for L2 regime/context transitions."""
+    def __init__(self) -> None:
+        self._counter = _PatternCounter()
+
+    @staticmethod
+    def _key(context: str | None) -> str:
+        return fingerprint({"current_context": context})
+
+    def observe(self, current_context: str | None, next_context: str | None) -> None:
+        encoded = json.dumps(next_context, ensure_ascii=False, separators=(",", ":"))
+        self._counter.observe(self._key(current_context), encoded)
+
+    def predict(self, current_context: str | None) -> str | None:
+        encoded = self._counter.predict(self._key(current_context))
+        return None if encoded is None else json.loads(encoded)
+
+    def snapshot(self) -> dict:
+        return self._counter.snapshot()
+
+    def restore(self, state: Mapping) -> None:
+        self._counter.restore(state)
+
+
 class LearningRuntime:
     """Shared HLA/HLB prediction and learning cycle.
 
@@ -756,12 +823,16 @@ class LearningRuntime:
         if any(not isinstance(channel, ErrorChannel) for channel in self.enabled_channels):
             raise ValueError("enabled_channels must contain ErrorChannel values")
         self.schemas = {
+            "next_l0_features": TargetSchema("next_l0_features", Level.L0, "continuous", 1, "mse"),
             "next_relation_pattern": TargetSchema("next_relation_pattern", Level.L1, "relation", 1, "exact_match"),
             "next_event_role_pattern": TargetSchema("next_event_role_pattern", Level.L1, "relation", 1, "exact_match"),
+            "next_context": TargetSchema("next_context", Level.L2, "categorical", 1, "accuracy"),
         }
         self.predictions = PredictionJournal()
+        self.level0 = Level0FeaturePredictor()
         self.relations = SemanticRelationLearner()
         self.event_roles = NaryEventRoleLearner()
+        self.context_transitions = ContextTransitionLearner()
         self.task_outcomes = TaskOutcomeLearner()
         self.temporal_credit = TemporalCreditLearner()
         self.eligibility = EligibilityLedger(decay=eligibility_decay, capacity=eligibility_capacity,
@@ -769,8 +840,10 @@ class LearningRuntime:
         self.error_router = ErrorRouter([
             route for route in (
                 ParameterRoute("temporal_eligibility", frozenset({ErrorChannel.TEMPORAL})),
+                ParameterRoute("temporal_feature_predictor", frozenset({ErrorChannel.TEMPORAL})),
                 ParameterRoute("semantic_relation_learner", frozenset({ErrorChannel.RELATIONAL})),
                 ParameterRoute("nary_event_role_learner", frozenset({ErrorChannel.ABSTRACTION})),
+                ParameterRoute("context_transition_learner", frozenset({ErrorChannel.ABSTRACTION})),
                 ParameterRoute("task_outcome_learner", frozenset({ErrorChannel.TASK})),
             ) if route.allowed_channels.issubset(self.enabled_channels)
         ])
@@ -779,6 +852,20 @@ class LearningRuntime:
         self._last_observed_at = 0.0
         self.last_signals = LearningSignals()
         self._last_issue_context: dict[str, Any] | None = None
+
+    def fit_level0_predictor(self, examples: Sequence[Sequence[float]], *, partition: str) -> int:
+        if partition != "fit":
+            raise ValueError("level-0 predictor fitting accepts the fit partition only")
+        self.level0.fit(examples)
+        return len(examples)
+
+    def fit_context_transitions(self, transitions: Sequence[tuple[str | None, str | None]], *,
+                                partition: str) -> int:
+        if partition != "fit":
+            raise ValueError("context transition fitting accepts the fit partition only")
+        for current, following in transitions:
+            self.context_transitions.observe(current, following)
+        return len(transitions)
 
     def fit_relation_patterns(self, records: Sequence[Any], *, partition: str) -> int:
         if partition != "fit":
@@ -804,6 +891,18 @@ class LearningRuntime:
             "tick": tick, "cutoff": observed_at, "context": context,
         }
         issued = []
+        level0_value = self.level0.predict()
+        if level0_value is not None:
+            self._prediction_sequence += 1
+            schema = self.schemas["next_l0_features"]
+            prediction = Prediction(
+                f"lrn-l0-{self._prediction_sequence}", Level.L0, schema.name,
+                f"level0@{tick + 1}", tick, observed_at, schema.horizon_ticks,
+                observed_at, level0_value, fingerprint(self.level0.snapshot()),
+                fingerprint(schema.__dict__),
+            )
+            self.predictions.issue(prediction)
+            issued.append(prediction)
         pattern = self.relations.predict(context)
         if pattern is not None:
                 self._prediction_sequence += 1
@@ -816,6 +915,18 @@ class LearningRuntime:
                 )
                 self.predictions.issue(prediction)
                 issued.append(prediction)
+        next_context = self.context_transitions.predict(context)
+        if next_context is not None:
+            self._prediction_sequence += 1
+            schema = self.schemas["next_context"]
+            prediction = Prediction(
+                f"lrn-l2-{self._prediction_sequence}", Level.L2, schema.name,
+                f"context@{tick + 1}", tick, observed_at, schema.horizon_ticks,
+                observed_at, next_context, fingerprint(self.context_transitions.snapshot()),
+                fingerprint(schema.__dict__),
+            )
+            self.predictions.issue(prediction)
+            issued.append(prediction)
         role_pattern = self.event_roles.predict(context)
         if role_pattern is not None:
             self._prediction_sequence += 1
@@ -844,7 +955,58 @@ class LearningRuntime:
             TargetObservation(name, key, value, event_time, observed_at, tick, source_id),
             schema, evaluated_tick=tick,
         )
-        return score.value
+        return (1.0 - score.value) if schema.metric == "accuracy" else score.value
+
+    def observe_level0_features(self, features: Sequence[float], *, event_time: float,
+                                observed_at: float, tick: int) -> float | None:
+        key = f"level0@{tick}"
+        values = _finite_vector(features, name="observed level-0 features").tolist()
+        error = self._score_and_update(
+            "next_l0_features", key, values, f"level0-source-{tick}",
+            event_time, observed_at, tick,
+        )
+        self._observation_journal.append({
+            "kind": "level0", "value": values, "target_name": "next_l0_features",
+            "target_key": key, "source_id": f"level0-source-{tick}",
+            "event_time": event_time, "observed_at": observed_at, "tick": tick,
+            "issue_context": deepcopy(self._last_issue_context),
+        })
+        if error is not None and error > 0:
+            self.last_signals = LearningSignals(
+                temporal=error, relational=self.last_signals.relational,
+                abstraction=self.last_signals.abstraction, task=self.last_signals.task,
+                integrity_failures=self.last_signals.integrity_failures,
+            )
+            routed = self.error_router.route(self.last_signals)
+            if "temporal_feature_predictor" in routed:
+                self.level0.update(values)
+            if "temporal_eligibility" in routed:
+                self.temporal_credit.update(error, self.eligibility.values(prediction_cutoff_tick=tick))
+        return error
+
+    def observe_context_transition(self, current_context: str | None, next_context: str | None, *,
+                                   source_id: str, event_time: float, observed_at: float,
+                                   tick: int) -> float | None:
+        key = f"context@{tick}"
+        error = self._score_and_update(
+            "next_context", key, next_context, source_id, event_time, observed_at, tick,
+        )
+        self._observation_journal.append({
+            "kind": "context", "value": next_context, "target_name": "next_context",
+            "target_key": key, "current_context": current_context, "source_id": source_id,
+            "event_time": event_time, "observed_at": observed_at, "tick": tick,
+            "issue_context": deepcopy(self._last_issue_context),
+        })
+        if error is not None and error > 0:
+            self.last_signals = LearningSignals(
+                temporal=self.last_signals.temporal, relational=self.last_signals.relational,
+                abstraction=error, task=self.last_signals.task,
+                integrity_failures=self.last_signals.integrity_failures,
+            )
+            routed = self.error_router.route(self.last_signals)
+            if "context_transition_learner" in routed:
+                self.context_transitions.observe(current_context, next_context)
+        return error
 
     def observe_relation(self, record: Any, *, tick: int) -> float | None:
         pattern = RelationPattern(record.relation_type.name, record.subject.entity_id,
@@ -937,8 +1099,10 @@ class LearningRuntime:
             "schema": "h1-learning-runtime-v1",
             "enabled_channels": sorted(channel.value for channel in self.enabled_channels),
             "predictions": self.predictions.snapshot(),
+            "level0": self.level0.snapshot(),
             "relations": self.relations.snapshot(),
             "event_roles": self.event_roles.snapshot(),
+            "context_transitions": self.context_transitions.snapshot(),
             "task_outcomes": self.task_outcomes.snapshot(),
             "temporal_credit": self.temporal_credit.snapshot(),
             "eligibility": self.eligibility.snapshot(),
@@ -968,8 +1132,10 @@ class LearningRuntime:
             newer_journal = []
         replay_journal = checkpoint_journal + newer_journal
         self.predictions.restore(state["predictions"])
+        self.level0.restore(state["level0"])
         self.relations.restore(state["relations"])
         self.event_roles.restore(state["event_roles"])
+        self.context_transitions.restore(state["context_transitions"])
         self.task_outcomes.restore(state["task_outcomes"])
         self.temporal_credit.restore(state["temporal_credit"])
         self.eligibility.restore(state["eligibility"])
@@ -988,7 +1154,7 @@ class LearningRuntime:
         self._observation_journal = replay_journal
         replayed_prediction_ticks = set()
         for item in newer_journal:
-            if item["kind"] in ("relation", "event_role"):
+            if item["kind"] in ("level0", "relation", "event_role", "context"):
                 issue = item.get("issue_context") or {
                     "tick": int(item["tick"]) - 1,
                     "cutoff": float(item["observed_at"]),
@@ -1006,7 +1172,9 @@ class LearningRuntime:
                     item["source_id"], item["event_time"], item["observed_at"], item["tick"],
                 )
                 if error is not None and error > 0:
-                    channel = ErrorChannel.RELATIONAL if item["kind"] == "relation" else ErrorChannel.ABSTRACTION
+                    channel = (ErrorChannel.TEMPORAL if item["kind"] == "level0" else
+                               ErrorChannel.RELATIONAL if item["kind"] == "relation" else
+                               ErrorChannel.ABSTRACTION)
                     current = self.last_signals.as_dict()
                     current[channel.value] = error
                     self.last_signals = LearningSignals(
@@ -1015,12 +1183,19 @@ class LearningRuntime:
                         integrity_failures=self.last_signals.integrity_failures,
                     )
                     routed = self.error_router.route(self.last_signals)
+                    if item["kind"] == "level0" and "temporal_feature_predictor" in routed:
+                        self.level0.update(item["value"])
+                    if item["kind"] == "level0" and "temporal_eligibility" in routed:
+                        self.temporal_credit.update(error, self.eligibility.values(
+                            prediction_cutoff_tick=int(item["tick"])))
                     if item["kind"] == "relation" and "semantic_relation_learner" in routed:
                         self.relations._counter.observe(
                             self.relations._key(item["context"]), item["value"])
                     if item["kind"] == "event_role" and "nary_event_role_learner" in routed:
                         self.event_roles._counter.observe(
                             self.event_roles._key(item["context"]), item["value"])
+                    if item["kind"] == "context" and "context_transition_learner" in routed:
+                        self.context_transitions.observe(item["current_context"], item["value"])
             elif item["kind"] == "task":
                 if item["error"] > 0:
                     self.task_outcomes.observe_error(item["task_key"], item["error"])
