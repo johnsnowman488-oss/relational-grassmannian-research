@@ -217,6 +217,50 @@ class EvidenceStore:
         finally:
             seen.remove(evidence_id)
 
+    def recover_chain(self, evidence_id: str, *, observation_cutoff: float) -> dict:
+        """Recover the complete summary/derivation chain and its exact source events."""
+        if not math.isfinite(observation_cutoff):
+            raise ValueError("observation cutoff must be finite")
+        events: dict[str, NaryEvent] = {}
+        derivations: dict[str, DerivedEvidence] = {}
+        summaries: dict[str, EvidenceSummary] = {}
+        visiting: set[str] = set()
+
+        def visit(reference: str) -> None:
+            if reference in visiting:
+                raise ValueError("cyclic evidence reference")
+            if reference in events or reference in derivations or reference in summaries:
+                return
+            visiting.add(reference)
+            try:
+                if reference in self._events:
+                    event = self._events[reference]
+                    if event.observed_at > observation_cutoff:
+                        raise PermissionError("source evidence is beyond observation cutoff")
+                    events[reference] = event
+                elif reference in self._derivations:
+                    item = self._derivations[reference]
+                    derivations[reference] = item
+                    for witness in item.witness_ids:
+                        visit(witness)
+                elif reference in self._summaries:
+                    item = self._summaries[reference]
+                    summaries[reference] = item
+                    for source in item.source_ids:
+                        visit(source)
+                else:
+                    raise KeyError(f"unknown evidence reference: {reference}")
+            finally:
+                visiting.remove(reference)
+
+        visit(evidence_id)
+        return {
+            "root_id": evidence_id,
+            "summaries": tuple(summaries.values()),
+            "derivations": tuple(derivations.values()),
+            "source_events": tuple(events.values()),
+        }
+
     def verify_provenance(self, event_id: str,
                           payload_loader: Callable[[str], bytes]) -> bool:
         event = self._events[event_id]
