@@ -92,6 +92,21 @@ def test_parser_separates_model_inputs_from_gold_labels(tmp_path: Path):
     assert not hasattr(story.queries[0], "support_event_ids")
 
 
+def test_confirmatory_parser_does_not_read_or_emit_gold_labels(tmp_path: Path):
+    source = tmp_path / "qa5_confirmatory.txt"
+    source.write_text(
+        "1 Mary gave the cake to Fred.\\n"
+        "2 Who gave the cake to Fred?\\n",
+        encoding="utf-8",
+    )
+    parsed = parse_source_file(source, task_id=5, split="confirmatory", include_labels=False)
+    story, labels = parsed[0]
+    assert len(story.queries) == 1
+    assert labels == []
+    assert not hasattr(story.queries[0], "gold_answer")
+    assert not hasattr(story.queries[0], "support_event_ids")
+
+
 def test_task3_there_adverb_is_not_part_of_object_identity():
     pickup = _event(3, "s", 1, "Mary picked up the football there.")
     drop = _event(3, "s", 2, "Mary dropped the football there.")
