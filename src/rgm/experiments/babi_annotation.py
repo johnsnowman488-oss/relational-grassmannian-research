@@ -205,7 +205,7 @@ def write_annotation_bundle(source_root: Path, output_root: Path) -> dict[str, A
     output_root.mkdir(parents=True, exist_ok=True)
     report: dict[str, Any] = {
         "schema": "HLG-BABI-ANNOTATION-BUNDLE-v1",
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.1",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2",
         "parser": "deterministic source-template grammar; not general NLP",
         "splits": {},
         "audit": {"fit_validation_queries": 0, "fit_validation_exact_matches": 0},
@@ -215,7 +215,6 @@ def write_annotation_bundle(source_root: Path, output_root: Path) -> dict[str, A
         for split, filename in (
             ("fit", f"{prefix}_train.txt"),
             ("validation", f"{prefix}_valid.txt"),
-            ("confirmatory", f"{prefix}_confirmatory_source.txt"),
         ):
             source = source_root / filename
             stories = parse_source_file(
