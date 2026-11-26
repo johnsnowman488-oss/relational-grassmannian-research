@@ -413,8 +413,11 @@ class HLBAdapter:
         if level not in (0, 1, 2) or not isinstance(record, RelationInstance):
             raise ValueError("source relation requires level 0, 1 or 2 and a typed record")
         prior = self._source_relation_journal.get(record.instance_id)
+        indexed = self.store._records.get(record.instance_id)
         if prior is not None and prior != (level, record):
             raise ValueError("source relation ID collision")
+        if indexed is not None and indexed != record:
+            raise ValueError("source relation collides with a different indexed relation")
         if prior is None and len(self._source_relation_journal) >= self.source_relation_capacity:
             return "ABSTAIN_SOURCE_JOURNAL_CAPACITY"
         self._source_relation_journal[record.instance_id] = (level, record)
