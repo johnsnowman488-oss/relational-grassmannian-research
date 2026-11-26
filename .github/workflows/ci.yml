@@ -28,3 +28,36 @@ jobs:
         run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
       - name: Run unit and invariant tests
         run: python -m pytest
+
+  babi-source-freeze:
+    name: Freeze official bAbI Tasks 3 and 5 source data
+    if: (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'research/h1-hla-hlb-five-workstreams') || (github.event_name == 'push' && github.ref_name == 'research/h1-hla-hlb-five-workstreams')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Acquire and verify pinned official bAbI archive
+        run: python scripts/freeze_babi_tasks.py
+      - name: Run structured-event and evidence lifecycle tests
+        run: |
+          python -m pytest -q \
+            tests/test_babi_structured.py \
+            tests/test_hlg_evidence_lifecycle.py \
+            tests/test_hlg_integrated_contract_acceptance.py
+      - name: Upload frozen source splits and updated manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-tasks-3-5-frozen-source
+          path: |
+            data/babi-v1.2/
+            docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json
+          if-no-files-found: error
+          compression-level: 6
