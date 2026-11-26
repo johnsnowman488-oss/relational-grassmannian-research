@@ -452,7 +452,50 @@
       "confirmatory": "generated inputs only before G4; score-only after candidate freeze",
       "hla_evidence": "complete current-story caller-supplied evidence window",
       "hlb_evidence": "single canonical persistent store, story-scoped retrieval, capacity 65536",
-      "soe_native": "freeze SOE configuration, native kernels, cross-level gains, dt and feature dimensions"
+      "soe_native": "freeze SOE configuration, native kernels, cross-level gains, dt and feature dimensions",
+      "native_runtime_repository": "johnsnowman488-oss/aberconics-framework",
+      "native_runtime_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
+      "native_runtime_factory": "gfe_ctypes.create_persistent_hierarchy_runtime",
+      "native_runtime_semantics": "one actual persistent C++ hierarchy handle per adapter; all-level feedback injected simultaneously; one native step per director exchange",
+      "soe_dt": 0.01,
+      "soe_feature_dimensions": [
+        2,
+        3,
+        4
+      ],
+      "soe_decay_rates": [
+        [
+          0.1,
+          0.4
+        ],
+        [
+          0.2,
+          0.7
+        ],
+        [
+          0.05,
+          0.3
+        ]
+      ],
+      "native_kernel_gamma": "reverse of each SOE decay-rate vector",
+      "native_kernel_weights": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ]
+      ],
+      "soe_to_credit": "pre-step SOE trace row L2 norm per level/channel; six eligibility features per source event",
+      "eligibility_decay": 0.9,
+      "eligibility_capacity": 131072,
+      "hlb_evidence_capacity": 65536
     },
     "evaluation": {
       "task3_primary": [
