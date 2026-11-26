@@ -24,7 +24,7 @@ def test_story_split_is_deterministic_and_never_splits_a_story():
     assert record_a["fit_story_count"] == 18
     def story_ids(payload):
         return {
-            block.split(b"\\n", 1)[0][:-1].decode()
+            block.split(b"\n", 1)[0][:-1].decode()
             for block in payload.split(b"1 fact-")[1:]
         }
 
