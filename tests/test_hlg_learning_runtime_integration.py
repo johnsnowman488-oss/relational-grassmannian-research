@@ -148,7 +148,7 @@ def test_prediction_error_replay_reissues_incumbent_forecasts_after_rollback():
     learner.observe_nary_event(nary("new-e", event_type="moved", observed_at=1.0), tick=1)
     assert len(learner.predictions.scores) == 2
 
-    learner.restore(checkpoint)
+    learner.restore(checkpoint, preserve_observations=True)
     assert len(learner.predictions.scores) == 2
     assert {s.value for s in learner.predictions.scores} == {1.0}
     assert len(learner.relations.snapshot()) == 1
