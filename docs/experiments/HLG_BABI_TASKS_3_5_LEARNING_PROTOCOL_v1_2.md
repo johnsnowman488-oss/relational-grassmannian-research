@@ -75,6 +75,23 @@ Use ten paired seeds `953000–953009`. The same SHA-256-ranked story order is u
 
 Freeze SOE decay/configuration, native kernels, cross-level gains, `dt` and feature dimensions. This campaign does not adapt the dynamical substrate.
 
+The matched runtime configuration is fixed as follows:
+- SOE feature dimensions: L0=2, L1=3, L2=4.
+- SOE decay rates: L0=(0.1, 0.4), L1=(0.2, 0.7), L2=(0.05, 0.3).
+- Native kernel `gamma`: the reverse of the corresponding SOE decay-rate vector; `w=(0.5, 0.5)` at each level.
+- `dt=0.01`; use the frozen H0 default cross-level edge specification.
+- Native runtime: `gfe_ctypes.create_persistent_hierarchy_runtime` from Aberconics framework commit `2539df6bda7ef3c9dd7c707abe26eff8bdbb59de`. Each adapter owns one actual persistent C++ hierarchy handle. The bridge injects all three levels' SOE feedback simultaneously and the native runtime commits exactly one step per director exchange. Record the built `libgfe_core.so` SHA-256 in every campaign artifact.
+
+### SOE-to-temporal-credit contract
+
+For every source event during online adaptation, capture the **pre-step** SOE bank snapshots before the current observation is injected. For each of the two SOE channels at each of the three levels, calculate the L2 norm of that channel's feature vector and append one event-resolved eligibility item:
+- `feature_id=soe_l{level}_c{channel}` and the same channel key;
+- event identity, event time, observation time and the next observed tick;
+- magnitude equal to the pre-step SOE channel-vector norm;
+- the frozen SOE configuration fingerprint.
+
+This yields six trace-derived eligibility features per source event. The eligibility ledger uses decay `0.9`, capacity **131,072**, and no silent eviction. The L0 prediction residual updates temporal credit against the current and decayed prior event eligibility values. Thus SOE traces contribute through an explicit, inspectable projection; the system does not invert aggregate SOE state into unique causal event contributions. Eligibility is not advanced or ingested in score-only phases.
+
 ### Evidence-store parity
 
 HLA remains the no-persistent-relation-store baseline and receives the current story's complete caller-supplied evidence window for query execution.
