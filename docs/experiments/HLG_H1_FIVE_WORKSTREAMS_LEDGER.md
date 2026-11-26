@@ -1,6 +1,6 @@
 # H1 implementation ledger — five hierarchical workstreams
 
-**Status:** compiled C++ HLA/HLB smoke, checkpoint continuation and trusted rollback passed; independent partitions frozen; matched validation and confirmatory campaigns passed. Full HLA/HLB P6 coupled adaptive-stability acceptance remains open.
+**Status:** compiled C++ HLA/HLB smoke, checkpoint continuation and trusted rollback passed; independent partitions frozen; matched validation and confirmatory campaigns passed; full P6 v4 finite-horizon coupled adaptive-stability campaign passed for both architectures within the frozen claim boundary.
 **Base:** `research/h0-shared-hierarchy-contract-soe-bridge`
 **Branch:** `research/h1-hla-hlb-five-workstreams`
 **H0 contract:** 0.1.0
@@ -53,7 +53,7 @@
 - G1–G5 development workflow [45712033907](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45712033907): passed on Python 3.10 and 3.12.
 - Job 4 A/B integration workflow [45712033972](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45712033972): passed on Python 3.10 and 3.12.
 - **Completed since the initial implementation review:** actual compiled C++ runtime integration, HLA/HLB checkpoint continuation, native trusted rollback, independent partition freeze, and matched validation/confirmatory campaigns. See the execution reconciliation below.
-- **Still pending:** full HLA/HLB P6 estimator/detector/candidate lifecycle integration and finite-horizon coupled-stability acceptance against the compiled runtime.
+- **Completed:** full P6 v4 estimator/context/activation/detector/dormancy/recovery/candidate lifecycle, HLB relation-store integrity, resource-envelope and finite-horizon stability acceptance against the compiled runtime. A global stability theorem and broader operating-envelope claims remain outside the evidence.
 - The evidence does not establish that HLA or HLB is universally superior.
 
 ## Important integration boundary
@@ -197,3 +197,26 @@ The v3 result validates the core 2D P6 controller + native HLA/HLB feedback + de
 ### Campaign workflow trigger correction
 
 Several additional H1 campaign invocations were triggered by an initially broad PR path filter while P6-only files were changing. They reused the same H1 campaign implementation, frozen configuration, and seed sets; they were not used for tuning and are not counted as independent confirmation. The canonical H1 result remains run 45719571254, with the deterministic reproducibility repeat 45719954582. The workflow trigger was narrowed and made one-shot to prevent further confirmatory-seed reuse.
+
+
+## Full P6 coupled adaptive stability — v4 execution (2026-11-26)
+
+**Result: PASS — 37/37 frozen acceptance checks across HLA and HLB.** This closes the previously open full P6 execution gate for the declared runtime and bounded operating envelope.
+
+- Protocol: `HLG-H1-P6-FULL-RUNTIME-v4`; protocol JSON SHA-256 `7c4c96e0ddef3a9e6cd1201783a190e30a44dfcb0cd0ded5e6d044f8a65bde8d`.
+- Workflow: [45725650801](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45725650801), passed; artifact ID `15073354015`.
+- Artifact ZIP SHA-256 `babbdedf20ce5874ca98d714d27ad49bb83cf06f6d8b8aee5fcfa1e1fc009991`; extracted result JSON SHA-256 `d0ab65bb06d202d63695ce0b026aa27ec2faaf589bdd9c3991253f96507123da`.
+- P6 source SHA-256 `43f322461c94bae08e910d4013c3419fad69518731b10e84cf4f9d79a081bf2c`; pinned M4 commit `2539df6bda7ef3c9dd7c707abe26eff8bdbb59de`; compiled shared-library SHA-256 `38b278a93a5b3fa3b544f55d958a2f7a44bb6e1d39154e63072f5ed7be511e4b`.
+- Frozen seeds: 953000–953019 (20 per architecture); 300 coupled operating steps per seed, 100-step stationary negative control, candidate continuation and exact incumbent replay. Native execution: 9,200 steps per architecture, 18,400 total.
+- Both HLA and HLB: maximum P6 state norm **19.6131** (<25); maximum native-level state norm **1,022.2545** (<1,500); transition spectral radius **0.6663325**; all native states finite; exactly two CUSUM alarms per seed; zero negative-control false alarms.
+- Both architectures completed the `DETECT → DORMANT → RECOVERY → NORMAL` mode path on all 20 seeds. Context/estimator state updated; all four context slots were exercised; fifth-context capacity probes abstained without eviction on all 20 seeds. Lower and upper relations were active for 208–293 of 300 operating steps (mean 280).
+- Candidate lifecycle: **20/20** independently validated promotions per architecture; **20/20** exact operator rollbacks; **20/20** exact composite checkpoint rollbacks; **20/20** exact incumbent replay fingerprints. Mean independent validation improvement **0.0774273** (minimum **0.0631968**).
+- Resource envelope, using the frozen M3 numeric ledger plus P6 SOE memory accounting: maximum **854 bytes**, **26** trainable parameters, **1,272** update multiply-add upper bound, and **741** query multiply-add upper bound; all below the frozen caps.
+- HLB-only relational integrity: the protected two-edge witness remained available; candidate-only relation insertion raised store count from 2 to 3; the next insertion returned `ABSTAIN_CAPACITY`; composite rollback removed the candidate-only record and restored exactly the two protected records on all 20 seeds.
+- HLA and HLB P6/native trajectory metrics are identical in this campaign; HLB's additional result is the explicit relation-store capacity and witness-integrity coverage. No overall architecture winner is inferred.
+
+**Claim boundary:** this is finite-horizon evidence for the specified HLA/HLB implementation, compiled M4 kernel, input distribution, timestep, coupling gains, context/store capacities and perturbation schedule. It is not a global stability theorem, an ISS theorem, an arbitrary-switching guarantee, or evidence for other kernels, gains, dimensions, or unbounded inputs. The resource figure is the protocol's declared numeric accounting scope (M3 integrated state plus P6 SOE arrays); it excludes Python object/container overhead and does not claim whole-process RAM.
+
+### Follow-up audit
+
+The v4 acceptance is complete. A separate resource-accounting refinement should include the P6 controller's own state vector and transition-matrix payload explicitly in the numeric byte total; these small arrays were norm/spectral-radius checked but were not included in the 854-byte resource subtotal. This does not change the v4 finite-horizon stability result, but should be closed before using the resource subtotal as a complete whole-controller footprint.
