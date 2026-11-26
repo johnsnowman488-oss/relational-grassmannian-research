@@ -181,3 +181,21 @@ def test_source_relation_waits_out_candidate_capacity_then_reindexes_after_rollb
     assert director.adapter.store.count == 1
     assert director.adapter.store.records(cutoff=3.0)[0].instance_id == "source"
     assert director.adapter.unindexed_source_relation_ids == ()
+
+def test_source_relation_storage_recovery_merges_monotonically_and_reindexes():
+    runtime, director, lifecycle = make_system(capacity=4)
+    from rgm.leptograph.m4.composition import Entity, RelationInstance, RelationType
+    person, place = Entity("p", "person"), Entity("x", "place")
+    relation = RelationType("located_at", "person", "place")
+    first = RelationInstance("source-1", relation, person, place, 1.0, 1.0, provenance="one")
+    second = RelationInstance("source-2", relation, person, place, 2.0, 2.0, provenance="two")
+    director.adapter.observe_source(0, first)
+    checkpoint = director.adapter.source_relation_checkpoint()
+    director.adapter.observe_source(0, second)
+
+    director.adapter.restore_source_relation_checkpoint(checkpoint)
+    assert set(director.adapter.recover_source_relation("source-1")) == {0, first}
+    assert set(director.adapter.recover_source_relation("source-2")) == {0, second}
+    assert {r.instance_id for r in director.adapter.store.records(cutoff=3.0)} == {
+        "source-1", "source-2"
+    }
