@@ -121,3 +121,15 @@ def test_nary_give_event_requires_all_three_roles():
             (("giver", "mary"), ("object", "football")),
             7, 7, "story-1:7",
         )
+
+def test_task3_pickup_inherits_known_object_location_when_actor_location_is_unknown():
+    story = [
+        ev("1", "MOVE", {"actor": "john", "destination": "office"}, 1),
+        ev("2", "DROP", {"actor": "john", "object": "apple"}, 2),
+        ev("3", "PICK_UP", {"actor": "mary", "object": "apple"}, 3),
+        ev("4", "MOVE", {"actor": "mary", "destination": "kitchen"}, 4),
+    ]
+    assert task3_object_location_before_move(
+        story, object_id="apple", target_event_id="4",
+        destination_id="kitchen", observation_cutoff=4,
+    ) == "office"
