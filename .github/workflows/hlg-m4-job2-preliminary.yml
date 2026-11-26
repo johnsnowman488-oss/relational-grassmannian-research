@@ -1,0 +1,32 @@
+name: HLG-M4 Job 2 P5 preliminary comparison
+on:
+  pull_request:
+    branches: [research/hlg-m4-preimplementation-ledger]
+    paths:
+      - 'src/rgm/leptograph/m4/architectures.py'
+      - 'src/rgm/experiments/hlg_m4_job2.py'
+      - 'tests/test_hlg_m4_p5.py'
+      - '.github/workflows/hlg-m4-job2-preliminary.yml'
+permissions:
+  contents: read
+jobs:
+  p5-comparison:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10','3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - run: python -m pytest tests/test_hlg_m4_p5.py
+      - run: python -m rgm.experiments.hlg_m4_job2 "$RUNNER_TEMP/m4-job2-results.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hlg-m4-job2-p5-py${{ matrix.python-version }}
+          path: ${{ runner.temp }}/m4-job2-results.json
+          if-no-files-found: error

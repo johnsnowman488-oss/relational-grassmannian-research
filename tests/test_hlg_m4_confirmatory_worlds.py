@@ -1,0 +1,104 @@
+from rgm.experiments.m4_confirmatory_worlds import (
+    default_partitions, generate_world, generate_order_world, condition_world, partition_manifest,
+    preflight_audit, structural_fingerprint, validate_partitions,
+)
+
+
+def test_worlds_are_deterministic_but_structurally_varied():
+    first = generate_world(10001, 2)
+    again = generate_world(10001, 2)
+    assert first.events == again.events
+    same_graph_other_namespace = generate_world(10001, 2, schema_namespace=6)
+    assert structural_fingerprint(first) == structural_fingerprint(same_graph_other_namespace)
+    worlds = [generate_world(11000 + i, (2, 3, 4)[i % 3]) for i in range(36)]
+    assert len({structural_fingerprint(w) for w in worlds}) > 1
+    assert len({w.schema_namespace for w in worlds}) > 1
+
+
+def test_partitions_are_disjoint_at_world_level():
+    parts = default_partitions(12, 8, 10)
+    validate_partitions(parts)
+    manifest = partition_manifest(parts)
+    assert manifest["partition_disjoint"] is True
+    ids = [seed for part in parts for seed in part.seeds]
+    assert len(ids) == len(set(ids))
+    assert set(parts[-1].seeds).isdisjoint(parts[0].seeds)
+    assert set(parts[-1].seeds).isdisjoint(parts[1].seeds)
+
+
+def test_typed_world_and_oracle_separation():
+    world = generate_world(70001, 4)
+    assert len(world.relation_types) == 8
+    assert len({r.domain for r in world.relation_types}) > 1
+    assert all(e.subject.entity_type == e.relation_type.domain for e in world.events)
+    assert all(e.object.entity_type == e.relation_type.codomain for e in world.events)
+    view = world.learner_view()
+    assert hasattr(view, "events")
+    assert not hasattr(view, "oracle_target_path")
+    assert not hasattr(view, "condition")
+    assert all(hasattr(e, "instance_id") for e in view.events)
+    early = world.learner_view(world.observation_cutoff - 0.1)
+    assert all(e.observed_at <= early.observation_cutoff for e in early.events)
+    assert len(early.events) <= len(view.events)
+    assert len(world.oracle_target_path) == 4
+    assert all(name.startswith("a") for name in world.oracle_target_path)
+    assert len(set(world.oracle_target_path)) == 4
+
+
+def test_preflight_is_generator_only():
+    result = preflight_audit(48)
+    assert result["classification"] == "generator_preflight_only_no_model_performance"
+    assert result["unique_identity_invariant_topologies"] > 1
+    assert result["typed_edge_invariant"]
+    assert result["mode_counts"]["heterogeneous_typed_chain"] == 24
+    assert result["mode_counts"]["homogeneous_order_sensitive"] == 24
+    assert result["future_observation_invariant"]
+
+
+def test_order_sensitive_worlds_preserve_same_bag_different_order():
+    world = generate_order_world(80001, 4)
+    assert world.mode == "homogeneous_order_sensitive"
+    assert sorted(world.oracle_target_path) == sorted(world.oracle_decoy_paths[0])
+    assert world.oracle_target_path != world.oracle_decoy_paths[0]
+    assert all(event.subject.entity_type == event.relation_type.domain
+               and event.object.entity_type == event.relation_type.codomain
+               for event in world.events)
+
+
+def test_g1_condition_variants_are_controlled_and_oracle_free():
+    base = generate_world(61001, 4)
+    missing = condition_world(base, "missing_target_edge")
+    missing_target = [e for e in missing.events if "-target-edge-" in e.instance_id]
+    assert len(missing_target) == 3
+
+    temporal = condition_world(base, "temporal_invalid_target")
+    temporal_target = sorted(
+        [e for e in temporal.events if "-target-edge-" in e.instance_id],
+        key=lambda e: e.instance_id,
+    )
+    assert temporal_target[1].event_time < temporal_target[0].event_time
+
+    wrong_context = condition_world(base, "wrong_context_target")
+    wrong_target = [e for e in wrong_context.events if "-target-edge-" in e.instance_id]
+    assert all(e.context == "other-context" for e in wrong_target)
+
+    multiple = condition_world(base, "multiple_target_witnesses")
+    multiple_target = [e for e in multiple.events if "-target-edge-" in e.instance_id]
+    assert len(multiple_target) == 8
+    assert not hasattr(multiple.learner_view(), "condition")
+
+
+def test_train_corpus_is_disjoint_and_world_patterns_vary():
+    from rgm.experiments.m4_confirmatory_worlds import build_training_corpus
+    seeds = tuple(range(10_000, 10_020))
+    corpus, world_ids, digest = build_training_corpus(seeds, generate_world)
+    ambiguous, ambiguous_ids, ambiguous_digest = build_training_corpus(
+        seeds, generate_world, condition="ambiguous_competing_paths"
+    )
+    targets = {generate_world(seed, (2, 3, 4)[seed % 3]).oracle_target_path
+               for seed in seeds}
+    assert len(world_ids) == len(seeds)
+    assert world_ids == ambiguous_ids
+    assert len(targets) > 1
+    assert digest != ambiguous_digest
+    assert len(corpus) > 0 and len(ambiguous) == len(corpus)
