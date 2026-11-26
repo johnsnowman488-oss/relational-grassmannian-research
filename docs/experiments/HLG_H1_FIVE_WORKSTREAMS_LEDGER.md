@@ -346,3 +346,16 @@ No H1 results or claims are upgraded by this design document. The P6 stability e
 - The compiled native library built successfully and matched the pinned SHA-256, but the native smoke job then failed because its legacy test harness still called `lifecycle.promote()` without the newly required validation receipt. This was a harness/API migration failure; the native runtime smoke assertions were not reached.
 - Updated `scripts/h1_native_runtime_smoke.py` to provide an explicit, fingerprinted software-integration validation receipt for the smoke-only promotion/rollback exercise (commit `3a479aed04bd17eaf49d0b92f359858883091cae`). This is not a model-performance validation claim.
 - The corrected native smoke script has not yet been rerun. The native smoke workflow already supports manual dispatch. Do not mark compiled-runtime evidence-lifecycle acceptance complete until that rerun passes.
+
+### Corrected full acceptance cycle — 2026-11-26
+
+The corrected native smoke harness and current repository state were exercised on head `fc2acbc8c3e4e323d5d5c2efb3be1c64561ec29a`:
+
+- Repository unit/invariant suite passed on Python 3.10 and 3.12: [45828807472](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45828807472). The push-triggered duplicate run [45828796751](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45828796751) also passed both versions.
+- H1 hierarchical adapters/lifecycle suite passed on Python 3.10 and 3.12: [45828807247](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45828807247).
+- P6 adaptive state/checkpoint/rollback tests passed: [45828807281](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45828807281).
+- Compiled C++ native runtime smoke passed: [45828807523](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45828807523). The native library was built from pinned Aberconics commit `2539df6bda7ef3c9dd7c707abe26eff8bdbb59de`, SHA-256 `38b278a93a5b3fa3b544f55d958a2f7a44bb6e1d39154e63072f5ed7be511e4b`.
+- Native smoke results: HLA and HLB each completed two native steps; checkpoint restore and P6 trusted rollback passed for both; HLB restored its one relation record. Artifact `h1-native-runtime-smoke`, ID `15122020830`, preserves the compiled shared library.
+- The prior native smoke failure was resolved by updating the smoke harness to supply the explicit integration validation receipt required by the hardened promotion API.
+
+**Acceptance conclusion:** repository tests, H1 adapter/lifecycle tests, P6 tests, and compiled-native HLA/HLB smoke all pass on the recorded head. This closes the integrated software-contract acceptance for the implemented scope; it does not establish bAbI performance or natural-language parsing capability. Official bAbI data acquisition and the structured-event campaign remain the next external-task gates.
