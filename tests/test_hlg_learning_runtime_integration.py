@@ -114,6 +114,34 @@ def test_hla_and_hlb_issue_and_score_semantic_predictions_in_live_cycle():
             assert adapter.evidence.event_ids == ("obs-e",)
 
 
+def test_score_only_exchange_scores_predictions_without_updating_learners():
+    for architecture in ("HLA", "HLB"):
+        _, adapter, director = system(architecture)
+        seed(adapter.learning)
+        roles_before = adapter.learning.event_roles.snapshot()
+        relations_before = adapter.learning.relations.snapshot()
+        temporal_before = adapter.learning.temporal_credit.snapshot()
+        task_before = adapter.learning.task_outcomes.snapshot()
+        eligibility_before = adapter.learning.eligibility.snapshot()
+
+        result = director.exchange(
+            event_time=1.0, observed_at=1.0, prediction_context="home",
+            nary_events=(nary("score-only-event", event_type="moved", observed_at=1.0),),
+            eligibility_events=(eligibility("score-only-credit"),),
+            temporal_error=0.5, task_outcome=("babi-validation", 1.0),
+            learn=False,
+        )
+
+        assert any(p.target_name == "next_event_role_pattern" for p in result["predictions"])
+        assert len(adapter.learning.predictions.scores) == 1
+        assert adapter.learning.event_roles.snapshot() == roles_before
+        assert adapter.learning.relations.snapshot() == relations_before
+        assert adapter.learning.temporal_credit.snapshot() == temporal_before
+        assert adapter.learning.task_outcomes.snapshot() == task_before
+        assert adapter.learning.eligibility.snapshot() == eligibility_before
+        assert adapter.ticks == 1
+
+
 def test_semantic_relation_and_nary_role_errors_update_only_their_own_learners():
     _, adapter, director = system("HLB")
     seed(adapter.learning)
