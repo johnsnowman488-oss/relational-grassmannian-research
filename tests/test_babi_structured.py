@@ -1,7 +1,7 @@
 import pytest
 
 from rgm.experiments.babi_structured import (
-    StructuredEvent, task3_object_location_before_move, task5_answer_role,
+    StructuredEvent, StructuredQuery, StructuredStory, task3_object_location_before_move, task5_answer_role,
 )
 
 
@@ -91,3 +91,25 @@ def test_task3_exact_anchor_disambiguates_repeated_destination():
         story, object_id="apple", target_event_id="5",
         destination_id="kitchen", observation_cutoff=5,
     ) == "garden"
+
+def test_structured_query_contract_excludes_gold_answers_and_support_witnesses():
+    movement = ev("story-1:3", "MOVE", {"actor": "mary", "destination": "bathroom"}, 3)
+    query = StructuredQuery(
+        query_id="story-1:4", story_id="story-1", task_id=3,
+        query_type="OBJECT_LOCATION_BEFORE_MOVE", object_id="football",
+        destination_id="bathroom", target_event_id=movement.event_id,
+        answer_role="location", observed_at=4, source_ref="story-1:4",
+    )
+    story = StructuredStory("story-1", (movement,), (query,))
+    assert story.queries == (query,)
+    assert not hasattr(query, "answer")
+    assert not hasattr(query, "supporting_event_ids")
+
+
+def test_task5_query_contract_rejects_answer_role_as_input():
+    with pytest.raises(ValueError, match="cannot also be supplied"):
+        StructuredQuery(
+            query_id="s:4", story_id="s", task_id=5, query_type="GIVE_ROLE",
+            bound_roles=(("object", "football"), ("recipient", "fred")),
+            answer_role="recipient", observed_at=4, source_ref="s:4",
+        )
