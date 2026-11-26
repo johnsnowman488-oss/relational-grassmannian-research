@@ -603,7 +603,7 @@ def _fit_and_process(
         confirmatory_metrics, global_clock = _process_phase(
             adapter, director, architecture, task_id, confirmatory_order,
             "generated_confirmatory", False, "babi-synthetic-confirmatory-v1.2",
-            soe_fingerprint, global_clock,
+            soe_fingerprint, global_clock, baseline_native_checkpoint, gfe_module,
         )
         fingerprint_after_confirmatory = model_fingerprint(adapter.learning)
         if fingerprint_after_confirmatory != candidate_fingerprint:
