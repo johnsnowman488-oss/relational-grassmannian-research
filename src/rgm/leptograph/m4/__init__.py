@@ -11,8 +11,9 @@ from .soe_bridge import (
 )
 from .p6_runtime import P6RuntimeCoupler
 from .learning import (
-    ErrorChannel, EligibilityEvent, EligibilityLedger, EventRolePattern,
-    LearningRuntime, LearningSignals, NaryEventRoleLearner,
+    ContextTransitionLearner, ErrorChannel, EligibilityEvent, EligibilityLedger,
+    EventRolePattern, LearningRuntime, LearningSignals, Level0FeaturePredictor,
+    NaryEventRoleLearner,
     RelationPattern, SemanticRelationLearner, TargetObservation,
     TargetSchema, TemporalCreditLearner,
 )
@@ -42,8 +43,9 @@ __all__ = [
     "HierarchicalEvaluationRunner", "HierarchicalRuntimeDirector",
     "LinearReadout", "ReadoutExample", "P6RuntimeCoupler",
     "DerivedEvidence", "EvidenceStore", "EvidenceSummary", "NaryEvent", "Participant",
-    "ErrorChannel", "EligibilityEvent", "EligibilityLedger", "EventRolePattern",
-    "LearningRuntime", "LearningSignals", "NaryEventRoleLearner",
+    "ContextTransitionLearner", "ErrorChannel", "EligibilityEvent", "EligibilityLedger",
+    "EventRolePattern", "LearningRuntime", "LearningSignals", "Level0FeaturePredictor",
+    "NaryEventRoleLearner",
     "RelationPattern", "SemanticRelationLearner", "TargetObservation",
     "TargetSchema", "TemporalCreditLearner",
 ]
