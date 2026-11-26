@@ -459,6 +459,13 @@ class HLBAdapter:
             raise ValueError("HLB snapshot schema or architecture mismatch")
         probe = CanonicalRelationStore()
         probe.restore(state["store"])
+        # The append-only source journal is not rolled back with candidate state,
+        # but every checkpoint watermark must still resolve in the active journal.
+        watermark = tuple(state.get("evidence_watermark", ()))
+        if len(watermark) != len(set(watermark)) or any(
+            event_id not in self.evidence.event_ids for event_id in watermark
+        ):
+            raise ValueError("HLB checkpoint references unavailable source evidence")
         _validate_memory_snapshots(self.bridge, state.get("soe_banks", ()))
         if len(state.get("readouts", ())) != 2:
             raise ValueError("HLB snapshot must contain both upper readouts")
