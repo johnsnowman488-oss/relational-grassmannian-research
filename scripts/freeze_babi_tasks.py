@@ -42,7 +42,7 @@ def inventory(payload: bytes) -> dict:
     for line in lines:
         if not line:
             continue
-        prefix = line.split(b"\t", 1)[0]
+        prefix = line.split(None, 1)[0]
         if prefix == b"1":
             story_starts += 1
     return {
