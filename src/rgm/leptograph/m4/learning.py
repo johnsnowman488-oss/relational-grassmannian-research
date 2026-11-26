@@ -242,8 +242,9 @@ class ParameterRoute:
 class ErrorRouter:
     """Explicit error-to-parameter routing; integrity failures block updates."""
     def __init__(self, routes: Iterable[ParameterRoute]):
-        self.routes = {r.parameter_family: r for r in routes}
-        if not self.routes or len(self.routes) != len(list(self.routes.values())):
+        declared = list(routes)
+        self.routes = {r.parameter_family: r for r in declared}
+        if not self.routes or len(self.routes) != len(declared):
             raise ValueError("at least one unique parameter route is required")
 
     def route(self, signals: LearningSignals) -> dict[str, dict[str, float]]:
@@ -492,3 +493,34 @@ class ConsolidationGate:
                 "candidate_fingerprint": self.candidate_fingerprint,
                 "receipt": None if self.receipt is None else self.receipt.__dict__,
                 "history": deepcopy(self.history)}
+
+
+    def restore(self, snapshot: Mapping) -> None:
+        """Restore a validated checkpoint without rolling back the evidence watermark."""
+        if snapshot.get("schema") != 1:
+            raise ValueError("unsupported consolidation checkpoint schema")
+        trusted = deepcopy(dict(snapshot["trusted"]))
+        trusted_fp = fingerprint(trusted)
+        if snapshot.get("trusted_fingerprint") != trusted_fp:
+            raise ValueError("trusted checkpoint fingerprint mismatch")
+        watermark = int(snapshot["evidence_watermark"])
+        if watermark < self.evidence_watermark:
+            raise ValueError("checkpoint cannot discard newer observed evidence")
+        candidate = snapshot.get("candidate")
+        candidate_fp = snapshot.get("candidate_fingerprint")
+        if candidate is None:
+            if candidate_fp is not None or snapshot.get("receipt") is not None:
+                raise ValueError("checkpoint has detached candidate metadata")
+        else:
+            candidate = deepcopy(dict(candidate))
+            if fingerprint(candidate) != candidate_fp:
+                raise ValueError("candidate checkpoint fingerprint mismatch")
+        self.trusted = trusted
+        self.trusted_fingerprint = trusted_fp
+        self.evidence_watermark = watermark
+        self.candidate = candidate
+        self.candidate_fingerprint = candidate_fp
+        # Receipts are intentionally not restored as promotable authority:
+        # validation must be rerun against the restored process and journal.
+        self.receipt = None
+        self.history = deepcopy(list(snapshot.get("history", [])))
