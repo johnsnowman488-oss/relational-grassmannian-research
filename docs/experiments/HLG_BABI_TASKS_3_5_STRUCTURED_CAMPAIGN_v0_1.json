@@ -1,0 +1,151 @@
+{
+  "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
+  "status": "protocol-frozen; source-byte-acquisition-pending",
+  "benchmark": {
+    "dataset": "bAbI Question Answering 20 Tasks",
+    "publisher_namespace": "facebook/babi_qa",
+    "version": "1.2.0",
+    "license": "CC BY 3.0",
+    "paper": "Jason Weston et al., Towards AI-Complete Question Answering: A Set of Prerequisite Toy Tasks, arXiv:1502.05698",
+    "dataset_builder_script_commit": "07549ca",
+    "dataset_builder_script": "https://huggingface.co/datasets/facebook/babi_qa/blob/main/babi_qa.py",
+    "canonical_archive": "http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz",
+    "homepage": "https://research.fb.com/downloads/babi/",
+    "configuration": "en-valid-10k",
+    "archive_path_prefix": "tasks_1-20_v1-2/en-valid-10k/",
+    "byte_freeze": {
+      "status": "PENDING",
+      "archive_sha256": null,
+      "selected_file_sha256": {},
+      "rule": "No benchmark scoring run may be described as official-data evaluation until the archive or each selected source file is acquired, SHA-256 hashed locally, and these fields are committed. Do not substitute generated task data or an unverified mirror."
+    }
+  },
+  "selected_tasks": [
+    {
+      "task_id": 3,
+      "name": "Three Supporting Facts",
+      "train": "tasks_1-20_v1-2/en-valid-10k/qa3_train.txt",
+      "validation": "tasks_1-20_v1-2/en-valid-10k/qa3_valid.txt",
+      "test": "tasks_1-20_v1-2/en-valid-10k/qa3_test.txt",
+      "reasoning_target": "temporal object-state reconstruction from a multi-event story",
+      "oracle_event_schema": {
+        "MOVE": {
+          "actor": "entity_id",
+          "destination": "location_id",
+          "event_id": "source_line_id",
+          "event_time": "story_order"
+        },
+        "PICK_UP": {
+          "actor": "entity_id",
+          "object": "entity_id",
+          "location": "location_id|null",
+          "event_id": "source_line_id",
+          "event_time": "story_order"
+        },
+        "DROP": {
+          "actor": "entity_id",
+          "object": "entity_id",
+          "location": "location_id|null",
+          "event_id": "source_line_id",
+          "event_time": "story_order"
+        },
+        "QUERY": {
+          "target": "object_state_before_or_after_event",
+          "anchor_event": "source_line_id",
+          "answer_type": "location_id"
+        }
+      },
+      "primary_metrics": [
+        "exact_answer_accuracy",
+        "supporting_event_recall",
+        "temporal_order_validity",
+        "abstention_rate"
+      ]
+    },
+    {
+      "task_id": 5,
+      "name": "Three Argument Relations",
+      "train": "tasks_1-20_v1-2/en-valid-10k/qa5_train.txt",
+      "validation": "tasks_1-20_v1-2/en-valid-10k/qa5_valid.txt",
+      "test": "tasks_1-20_v1-2/en-valid-10k/qa5_test.txt",
+      "reasoning_target": "typed three-participant relation binding and role-conditioned retrieval",
+      "oracle_event_schema": {
+        "GIVE": {
+          "event_id": "source_line_id",
+          "giver": {
+            "entity_id": "person"
+          },
+          "object": {
+            "entity_id": "object"
+          },
+          "recipient": {
+            "entity_id": "person"
+          },
+          "event_time": "story_order",
+          "observed_at": "ingestion_order",
+          "provenance": "source_line_id"
+        },
+        "QUERY": {
+          "event_type": "GIVE",
+          "role": "giver|object|recipient",
+          "bound_roles": "role_to_entity_id",
+          "answer_role": "role"
+        }
+      },
+      "primary_metrics": [
+        "exact_answer_accuracy",
+        "same_event_role_binding_accuracy",
+        "witness_recall",
+        "cross_event_role_mixup_rate",
+        "abstention_rate"
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "id": "A",
+      "name": "Byte acquisition and immutable freeze",
+      "gate": "archive and six selected split files have verified SHA-256 digests and exact row counts"
+    },
+    {
+      "id": "B",
+      "name": "Oracle structured-event adapter",
+      "gate": "all task records represented as typed events/questions with source-line provenance; no natural-language parser"
+    },
+    {
+      "id": "C",
+      "name": "Deterministic reference solver",
+      "gate": "passes authored oracle fixtures and independently checks support witnesses; not counted as learned-model performance"
+    },
+    {
+      "id": "D",
+      "name": "HLA/HLB matched structured-input campaign",
+      "gate": "same frozen records, query set, seeds and resource limits; report each architecture separately"
+    },
+    {
+      "id": "E",
+      "name": "Text parsing evaluation",
+      "gate": "introduced only after B-D; parser errors scored separately from memory/reasoning errors"
+    }
+  ],
+  "partition_policy": {
+    "source_splits": "Use official train, valid and test files as provided. Never repartition individual questions across story boundaries.",
+    "fit": "train only",
+    "validation": "valid only; used for model/threshold selection",
+    "confirmatory": "test only; accessed once after configuration freeze",
+    "leakage": "A story and all its questions/support indices remain in one source split."
+  },
+  "comparators": [
+    "HLA",
+    "HLB",
+    "deterministic oracle/reference solver",
+    "direct structured retrieval baseline"
+  ],
+  "claim_boundaries": [
+    "Structured-event results do not measure natural-language parsing.",
+    "Task 3 evaluates temporal multi-fact reasoning; Task 5 evaluates n-ary role binding, not arbitrary semantic understanding.",
+    "Generated fixtures validate adapters and solver mechanics but are not official benchmark evidence.",
+    "No HLA/HLB winner is selected from a single task or unmatched workload.",
+    "Official-data claims require verified source bytes, hashes, row counts and provenance."
+  ]
+}
