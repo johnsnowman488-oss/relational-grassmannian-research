@@ -180,7 +180,8 @@ class PredictionJournal:
                     raise ValueError("Brier target must be one-hot")
                 value = float(np.mean((probs - y) ** 2))
         else:
-            value = float(prediction.value == target.value)
+            # Relation exact-match is an error/loss: zero is a correct witness.
+            value = 0.0 if prediction.value == target.value else 1.0
         outcome = PredictionStatus.CONFIRMED if value == 0.0 or (
             schema.metric == "accuracy" and value == 1.0
         ) else PredictionStatus.CONTRADICTED
