@@ -23,9 +23,11 @@ VALIDATION_FRACTION = 0.10
 VALIDATION_SEED = "HLG-BABI-T3-T5-VALIDATION-v1"
 SOURCE_FILES = {
     "task3_train_source": PREFIX + "qa3_three-supporting-facts_train.txt",
-    "task3_test": PREFIX + "qa3_three-supporting-facts_test.txt",
+    "task3_test_debug_only": PREFIX + "qa3_three-supporting-facts_test.txt",
+    "task3_confirmatory_source": "tasks_1-20_v1-2/en/qa3_three-supporting-facts_test.txt",
     "task5_train_source": PREFIX + "qa5_three-arg-relations_train.txt",
-    "task5_test": PREFIX + "qa5_three-arg-relations_test.txt",
+    "task5_test_debug_only": PREFIX + "qa5_three-arg-relations_test.txt",
+    "task5_confirmatory_source": "tasks_1-20_v1-2/en/qa5_three-arg-relations_test.txt",
 }
 
 
@@ -80,6 +82,29 @@ def split_story_blocks(payload: bytes, *, task_id: int) -> tuple[bytes, bytes, d
         "split_unit": "whole story block; all questions/support lines remain together",
     }
     return fit, validation, record
+
+
+def normalized_story_digests(payload: bytes) -> list[str]:
+    """Hash story content without evaluator-only answer/support columns."""
+    stories: list[list[str]] = []
+    current: list[str] = []
+    for raw in payload.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        parts = line.split(b"\\t")
+        if len(parts) < 1:
+            continue
+        prefix, sentence = parts[0].split(None, 1)
+        if prefix == b"1":
+            if current:
+                stories.append(current)
+            current = []
+        normalized = b" ".join(sentence.strip().split())
+        current.append(normalized.decode("utf-8").casefold())
+    if current:
+        stories.append(current)
+    return [digest("\\n".join(story).encode("utf-8")) for story in stories]
 
 
 def inventory(payload: bytes) -> dict:
@@ -155,16 +180,39 @@ def main() -> int:
         payloads[f"{prefix}_train"] = (fit, "derived whole-story fit partition")
         payloads[f"{prefix}_validation"] = (validation, "derived whole-story validation partition")
 
+    independence_records = {}
+    for task_id in (3, 5):
+        prefix = f"task{task_id}"
+        independent = normalized_story_digests(payloads[f"{prefix}_confirmatory_source"][0])
+        en10k_train = normalized_story_digests(payloads[f"{prefix}_train_source"][0])
+        en10k_test = normalized_story_digests(payloads[f"{prefix}_test_debug_only"][0])
+        if len(independent) != len(set(independent)):
+            raise SystemExit(f"Duplicate story blocks within independent Task {task_id} confirmatory source")
+        overlap = set(independent) & (set(en10k_train) | set(en10k_test))
+        if overlap:
+            raise SystemExit(
+                f"Task {task_id} en confirmatory source overlaps en-10k train/test by {len(overlap)} story blocks"
+            )
+        independence_records[prefix] = {
+            "confirmatory_configuration": "en",
+            "confirmatory_story_count": len(independent),
+            "overlap_with_en10k_training_or_test": 0,
+            "overlap_check": "normalized statement/question text; evaluator answer/support columns excluded",
+            "confirmatory_story_digest_set_sha256": digest("\\n".join(sorted(independent)).encode("ascii")),
+        }
+
     file_records = {}
     output_names = {
         "task3_train_source": "qa3_train_source.txt",
         "task3_train": "qa3_train.txt",
         "task3_validation": "qa3_valid.txt",
-        "task3_test": "qa3_test.txt",
+        "task3_test_debug_only": "qa3_test_debug_only.txt",
+        "task3_confirmatory_source": "qa3_confirmatory_source.txt",
         "task5_train_source": "qa5_train_source.txt",
         "task5_train": "qa5_train.txt",
         "task5_validation": "qa5_valid.txt",
-        "task5_test": "qa5_test.txt",
+        "task5_test_debug_only": "qa5_test_debug_only.txt",
+        "task5_confirmatory_source": "qa5_confirmatory_source.txt",
     }
     for key, (payload, source_description) in payloads.items():
         target = args.output / output_names[key]
@@ -188,7 +236,7 @@ def main() -> int:
         "derived_validation_partitions": partition_records,
     })
     manifest["status"] = "official en-10k source bytes verified; deterministic story-level validation derived"
-    benchmark["configuration"] = "en-10k"
+    benchmark["configuration"] = "en-10k fit/validation; independent en confirmatory"
     benchmark["canonical_archive"] = ARCHIVE_URL
     benchmark["archive_object_commit"] = None
     benchmark["archive_object_revision"] = "official v1.2 archive mirrored by S3; immutable SHA-256 pinned"
@@ -201,22 +249,49 @@ def main() -> int:
         "directly, and validation is derived deterministically from whole training stories."
     )
     benchmark["partition_policy"] = {
-        "source_splits": "Official en-10k train and test files. The official test split is byte-preserved and never repartitioned.",
-        "fit": "90% of complete source training story blocks, selected deterministically by SHA-256 ranking",
-        "validation": "10% of complete source training story blocks, selected by the frozen seed; this is a derived validation partition, not an upstream-provided official split",
-        "confirmatory": "Official test split only; accessed once after configuration freeze",
+        "fit": "90% of complete en-10k training story blocks, selected deterministically by SHA-256 ranking",
+        "validation": "10% of complete en-10k training story blocks, selected by the frozen seed",
+        "confirmatory": "Independent official en test files; exact normalized story-block overlap with en-10k train and test sources is required to be zero",
+        "quarantined": "The en-10k test files were inspected only during preprocessing/debugging and are excluded from all campaign metrics and candidate selection",
         "leakage": "All lines, questions and supporting facts within one story remain in the same fit or validation partition.",
         "validation_seed": VALIDATION_SEED,
+        "confirmatory_source_independence": independence_records,
     }
     for task in manifest["selected_tasks"]:
-        prefix = f"task{task['task_id']}"
-        task["train"] = f"data/babi-v1.2/{'qa3' if task['task_id'] == 3 else 'qa5'}_train.txt"
-        task["validation"] = f"data/babi-v1.2/{'qa3' if task['task_id'] == 3 else 'qa5'}_valid.txt"
-        task["test"] = f"data/babi-v1.2/{'qa3' if task['task_id'] == 3 else 'qa5'}_test.txt"
-        task["official_training_source"] = f"data/babi-v1.2/{'qa3' if task['task_id'] == 3 else 'qa5'}_train_source.txt"
+        prefix = f"qa{task['task_id']}"
+        task["train"] = f"data/babi-v1.2/{prefix}_train.txt"
+        task["validation"] = f"data/babi-v1.2/{prefix}_valid.txt"
+        task["test"] = f"data/babi-v1.2/{prefix}_confirmatory_source.txt"
+        task["quarantined_en10k_test_debug_only"] = f"data/babi-v1.2/{prefix}_test_debug_only.txt"
+        task["official_training_source"] = f"data/babi-v1.2/{prefix}_train_source.txt"
+
+    protocol = manifest.get("learning_protocol", {})
+    protocol.update({
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.1",
+        "status": "FROZEN; independent en confirmatory source identity and zero-overlap verified by this freezer",
+        "supersedes": "HLG-BABI-T3-T5-LEARNING-v1.0; en-10k test was quarantined after preprocessing-only inspection",
+        "data_identity": {
+            **protocol.get("data_identity", {}),
+            "fit_validation_configuration": "en-10k",
+            "confirmatory_configuration": "en",
+            "confirmatory_source_independence": independence_records,
+            "quarantined_test_configuration": "en-10k",
+        },
+        "execution_gates": [
+            "G0: verify source archive, all fit/validation hashes and independent en confirmatory hashes",
+            "G0.5: require zero normalized story-block overlap between en confirmatory and en-10k train/test sources",
+            "G1: source-indexed structured annotation bundle and independent audit",
+            "G2: current-head full CI, H1 adapter/evidence tests and compiled-native smoke",
+            "G3: fit/validation learning and ablation campaigns; freeze candidates",
+            "G4: unlock independent en confirmatory test once",
+            "G5: publish artifact hashes and complete evidence ledger"
+        ]
+    })
+    manifest["learning_protocol_ref"] = "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_1.md"
     args.manifest.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({
         "archive_sha256": actual_digest,
+        "confirmatory_source_independence": independence_records,
         "archive_size_bytes": len(archive),
         "acquisition_url": ARCHIVE_URL,
         "files": file_records,
