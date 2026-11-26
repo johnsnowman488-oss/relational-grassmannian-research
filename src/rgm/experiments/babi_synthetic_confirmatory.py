@@ -46,11 +46,10 @@ def _add_event(story_id: str, events: list[StructuredEvent], event_type: str,
     return event
 
 
-def _task3_story(story_number: int, rng: random.Random) -> tuple[StructuredStory, dict[str, Any]]:
+def _task3_story(story_number: int, rng: random.Random) -> StructuredStory:
     story_id = f"task3/confirmatory/story{story_number:06d}"
     events: list[StructuredEvent] = []
     queries: list[StructuredQuery] = []
-    support: dict[str, Any] = {}
     objects = rng.sample(OBJECTS, QUERIES_PER_STORY)
     for q_index, object_id in enumerate(objects, start=1):
         actor = rng.choice(PEOPLE)
@@ -86,20 +85,13 @@ def _task3_story(story_number: int, rng: random.Random) -> tuple[StructuredStory
             target_event_id=target_move.event_id,
         )
         queries.append(query)
-        support[query_id] = {
-            "gold_answer": origin,
-            "support_event_ids": [
-                location_event.event_id, pickup_event.event_id, target_move.event_id,
-            ],
-        }
-    return StructuredStory(story_id, tuple(events), tuple(queries)), support
+    return StructuredStory(story_id, tuple(events), tuple(queries))
 
 
-def _task5_story(story_number: int, rng: random.Random) -> tuple[StructuredStory, dict[str, Any]]:
+def _task5_story(story_number: int, rng: random.Random) -> StructuredStory:
     story_id = f"task5/confirmatory/story{story_number:06d}"
     events: list[StructuredEvent] = []
     queries: list[StructuredQuery] = []
-    support: dict[str, Any] = {}
     objects = rng.sample(OBJECTS, QUERIES_PER_STORY)
     for q_index, object_id in enumerate(objects):
         giver, recipient = rng.sample(PEOPLE, 2)
@@ -152,11 +144,7 @@ def _task5_story(story_number: int, rng: random.Random) -> tuple[StructuredStory
             bound_roles=tuple(sorted(bound_roles.items())),
         )
         queries.append(query)
-        support[query_id] = {
-            "gold_answer": {"giver": giver, "object": object_id, "recipient": recipient}[answer_role],
-            "support_event_ids": [target.event_id],
-        }
-    return StructuredStory(story_id, tuple(events), tuple(queries)), support
+    return StructuredStory(story_id, tuple(events), tuple(queries))
 
 
 def _story_payload(story: StructuredStory) -> dict[str, Any]:
@@ -192,7 +180,7 @@ def _official_entity_vocabulary(annotation_root: Path) -> set[str]:
 def write_confirmatory_inputs(output_root: Path, annotation_root: Path) -> dict[str, Any]:
     """Write inputs and manifest only; do not emit or score confirmatory labels."""
     official_vocabulary = _official_entity_vocabulary(annotation_root)
-    challenge_vocabulary = set(PEOPLE) | set(OBJECTS) | set(LOCATIONS)
+    challenge_vocabulary = set(PEOPLE) | set(OBJECTS) | set(LOCATIONS) | {f"decoy_{obj}" for obj in OBJECTS}
     overlap = sorted(official_vocabulary & challenge_vocabulary)
     if overlap:
         raise ValueError(f"confirmatory entity vocabulary overlaps fit/validation: {overlap}")
@@ -217,8 +205,8 @@ def write_confirmatory_inputs(output_root: Path, annotation_root: Path) -> dict[
         event_count = query_count = 0
         story_ids = set()
         for story_number in range(1, STORIES_PER_TASK + 1):
-            story, _labels = (_task3_story(story_number, rng) if task_id == 3
-                              else _task5_story(story_number, rng))
+            story = (_task3_story(story_number, rng) if task_id == 3
+                     else _task5_story(story_number, rng))
             if story.story_id in story_ids:
                 raise ValueError(f"duplicate generated story ID: {story.story_id}")
             story_ids.add(story.story_id)
