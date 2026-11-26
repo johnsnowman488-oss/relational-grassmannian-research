@@ -88,7 +88,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: johnsnowman488-oss/aberconics-framework
-          ref: 978117218c17fdf7cee87037bbb35789a676d174
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
           path: vendor/aberconics-framework
 
       - name: Configure shared C++ runtime
@@ -103,6 +103,9 @@ jobs:
 
       - name: Build native runtime
         run: cmake --build "vendor/aberconics-framework/code/c++ core/build-shared" --parallel 2
+
+      - name: Record compiled native library digest
+        run: sha256sum "vendor/aberconics-framework/code/c++ core/build-shared/libgfe_core.so"
 
       - name: Upload compiled native library
         uses: actions/upload-artifact@v4
@@ -138,7 +141,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: johnsnowman488-oss/aberconics-framework
-          ref: 978117218c17fdf7cee87037bbb35789a676d174
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
           path: vendor/aberconics-framework
 
       - name: Download frozen data and annotation bundle
@@ -167,6 +170,7 @@ jobs:
       - name: Run ten-seed matched learning campaign and six ablations
         env:
           PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
+          GFE_ABERCONICS_COMMIT: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
         run: |
           python scripts/run_babi_learning_campaign.py \
             --task-id ${{ matrix.task_id }} \
