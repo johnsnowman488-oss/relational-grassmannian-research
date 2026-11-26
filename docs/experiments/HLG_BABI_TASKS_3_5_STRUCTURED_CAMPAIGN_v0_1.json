@@ -1,6 +1,6 @@
 {
   "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
-  "status": "en-10k fit/validation frozen; official test quarantined; independent generated structured confirmatory challenge defined",
+  "status": "en-10k fit/validation source pinned; official test quarantined; synthetic structured confirmatory challenge v1.2 frozen",
   "benchmark": {
     "dataset": "bAbI Question Answering 20 Tasks",
     "publisher_namespace": "facebook/babi_qa",
@@ -128,12 +128,12 @@
     "archive_object_revision": "official v1.2 archive mirrored by S3; immutable SHA-256 pinned",
     "partition_policy": {
       "fit": "1800 complete en-10k training story blocks per task",
-      "warm_start": "1200 stories selected deterministically from fit",
-      "online_adaptation": "600 disjoint stories from fit",
-      "validation": "200 complete story blocks derived from official en-10k training source",
-      "confirmatory": "200 generated structured stories per task, 5 queries per story, fixed seeds 953900/953901; not an official bAbI test set",
-      "quarantined": "Official en-10k test files are preprocessing/debug-only and excluded from all campaign metrics",
-      "leakage": "Whole stories remain within one partition; confirmatory inputs contain no labels before G4."
+      "warm_start": "1200 whole stories selected deterministically by SHA-256 story-ID ranking",
+      "online_adaptation": "600 disjoint whole stories remaining after warm-start selection",
+      "validation": "200 complete whole-story blocks derived from en-10k training source",
+      "confirmatory": "200 generated structured stories per task, 5 queries/story, fixed seeds 953900/953901; not an official bAbI test set",
+      "quarantined": "Official en-10k test files retained as preprocessing/debug-only provenance and excluded from all campaign metrics",
+      "leakage": "Whole stories remain in one partition; generated confirmatory bundle contains no gold labels before G4."
     }
   },
   "selected_tasks": [
@@ -380,10 +380,6 @@
       "source_freeze_artifact_id": 15123500490,
       "fit_validation_configuration": "en-10k",
       "confirmatory_configuration": "independent generated structured challenge",
-      "confirmatory_source_files": [
-        "qa3_three-supporting-facts_test.txt",
-        "qa5_three-arg-relations_test.txt"
-      ],
       "quarantined_test_configuration": "en-10k",
       "warm_start_stories_per_task": 1200,
       "online_adaptation_stories_per_task": 600,
@@ -393,7 +389,9 @@
       "confirmatory_seed_task5": 953901,
       "confirmatory_stories_per_task": 200,
       "confirmatory_queries_per_story": 5,
-      "confirmatory_total_queries_per_task": 1000
+      "confirmatory_total_queries_per_task": 1000,
+      "hlb_evidence_capacity": 65536,
+      "confirmatory_source": "independent structured generator; no labels emitted before G4"
     },
     "partitions": {
       "fit": "1800 complete stories per task, deterministically derived from the official 2000-story training source",
