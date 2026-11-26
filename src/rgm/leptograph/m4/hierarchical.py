@@ -655,9 +655,13 @@ class CompositeLifecycle:
     def restore(self, state: Mapping) -> None:
         if state.get("schema_version") != H1_SCHEMA_VERSION:
             raise ValueError("composite checkpoint schema mismatch")
-        expected = _fingerprint({"director": state["director"], "native": state["native"],
-                                 "version": int(state["version"]),
-                                 "validation_record": state.get("validation_record")})
+        fingerprint_payload = {
+            "director": state["director"], "native": state["native"],
+            "version": int(state["version"]),
+        }
+        if "validation_record" in state:
+            fingerprint_payload["validation_record"] = state["validation_record"]
+        expected = _fingerprint(fingerprint_payload)
         if state.get("fingerprint") != expected:
             raise ValueError("composite checkpoint fingerprint mismatch")
         self.director.validate_snapshot(state["director"])
