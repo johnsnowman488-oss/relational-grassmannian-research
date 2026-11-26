@@ -85,8 +85,10 @@ def test_parser_separates_model_inputs_from_gold_labels(tmp_path: Path):
 def test_task3_there_adverb_is_not_part_of_object_identity():
     pickup = _event(3, "s", 1, "Mary picked up the football there.")
     drop = _event(3, "s", 2, "Mary dropped the football there.")
+    discarded = _event(3, "s", 3, "Sandra discarded the milk there.")
     assert pickup.role_map()["object"] == "football"
     assert drop.role_map()["object"] == "football"
+    assert discarded.role_map()["object"] == "milk"
 
 
 def test_task3_unanchorable_query_fails_closed():
