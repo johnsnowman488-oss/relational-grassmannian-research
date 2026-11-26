@@ -1,0 +1,35 @@
+name: H1 learning mechanism ablations
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["research/h1-learning-runtime-integration"]
+  pull_request:
+    branches: ["research/h1-hla-hlb-five-workstreams"]
+
+permissions:
+  contents: read
+
+jobs:
+  learning-ablations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run matched learning-channel ablations
+        run: python scripts/run_h1_learning_ablations.py --output artifacts/h1-learning-ablations.json
+      - name: Upload ablation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: h1-learning-ablation-evidence
+          path: artifacts/h1-learning-ablations.json
+          if-no-files-found: error
+          compression-level: 6
