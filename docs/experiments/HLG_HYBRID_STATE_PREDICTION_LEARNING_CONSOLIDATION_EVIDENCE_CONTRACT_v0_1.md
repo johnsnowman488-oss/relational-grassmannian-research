@@ -1,7 +1,7 @@
 # Hybrid State, Prediction, Learning, Consolidation and Evidence Contract
 
 **Contract ID:** HLG-HYBRID-PLCE-v0.1  
-**Status:** Proposed design contract; implementation and task validation not yet claimed  
+**Status:** Proposed design contract; evidence-lifecycle primitives and structured bAbI oracle adapters are implemented on the H1 branch; integrated CI acceptance and official-data byte acquisition remain pending  
 **Applies to:** H0 shared three-level SOE/native hierarchy and H1 HLA/HLB adapters  
 **Prerequisite architecture:** H0 shared hierarchy/SOE bridge; H1 persistent-runtime adapters, readouts, HLB canonical relation store, composite checkpoint and rollback
 
@@ -306,7 +306,7 @@ Must not:
 
 **HLA:** keeps SOE temporal banks, native state, learned readouts and runtime metadata. It has no persistent relation-instance store. Exact relation/path queries are evaluated only against caller-supplied evidence and the shared witness validator. If evidence is unavailable, HLA abstains or emits a separately typed abstract prediction. It must not imply that it can recover an exact historical witness it did not retain.
 
-**HLB:** keeps the same shared SOE/native substrate plus one bounded canonical relation store. Level-scoped indexes are secondary views, not independent copies. Canonical IDs, provenance, time/context filters, witness references, capacity abstention and composite rollback are mandatory. A summary/index can be rebuilt from canonical records; it cannot become an alternate untracked source of truth.
+**HLB:** keeps the same shared SOE/native substrate plus one bounded canonical binary-relation store and a separate append-only source-event evidence journal. Level-scoped indexes are secondary views, not independent copies. Canonical IDs, provenance, time/context filters, witness references, capacity abstention and composite rollback are mandatory. The source-event journal is deliberately outside candidate model rollback: composite checkpoints record its evidence watermark, rollback restores model/runtime and derived relation-store state, and source events received during the candidate interval remain available for reconciliation. The journal is independently serializable/restorable for storage recovery. A summary/index can be rebuilt from canonical records; it cannot become an alternate untracked source of truth.
 
 ### 5.5 Evidence retrieval protocol
 
@@ -335,7 +335,7 @@ The contract is not considered implementation-complete until tests demonstrate:
 7. **Candidate isolation:** failed candidate learning cannot mutate the trusted model or evidence.
 8. **Independent promotion:** candidate validation is independent, predeclared and fingerprinted; promotion is atomic.
 9. **Evidence-safe rollback:** model/runtime rollback restores trusted state while preserving and reconciling observations received during the candidate interval.
-10. **Per-level evidence preservation:** witness chains, n-ary role binding, contradictions, time/context scope and provenance survive abstraction, checkpoint and restore.
+10. **Per-level evidence preservation:** witness chains, n-ary role binding, contradictions, time/context scope and provenance survive abstraction, checkpoint and restore. Source-event journals remain append-only across model rollback; checkpoint watermarks must resolve against the active journal.
 11. **HLA/HLB parity boundaries:** matched shared dynamics remain identical; HLA abstains without supplied witnesses; HLB retrieval and capacity behavior remain canonical and auditable.
 12. **Resource accounting:** temporal state, native state, model parameters, HLB records/indexes, prediction journal and process overhead are reported separately.
 
@@ -365,3 +365,15 @@ This contract does not establish:
 - that the tested P6 finite-horizon stability envelope extends to new learning rules, kernels, gains, dimensions or input distributions.
 
 All new mechanisms require separate implementation, ablation and independent validation.
+
+## 9. Implementation update — 2026-11-26
+
+The first evidence-lifecycle implementation has been added on the H1 branch:
+
+- `src/rgm/leptograph/m4/evidence.py`: immutable n-ary source events, role binding, source digests, provenance verification, append-only revisions, summaries, derived evidence, exact witness recovery, observation-cutoff checks, contradiction reporting, explicit capacity abstention, and independent journal snapshots.
+- `HLBAdapter`: owns the bounded source-event journal separately from its candidate relation store. HLB model snapshots carry an evidence watermark; model restore validates that checkpoint references still resolve but does not truncate the append-only source journal. Explicit evidence journal checkpoint/restore is a separate storage-recovery operation.
+- `tests/test_hlg_evidence_lifecycle.py` and `tests/test_hlg_integrated_contract_acceptance.py`: unit and lifecycle cases cover role integrity, late arrival, contradictory claims, missing witnesses, provenance tampering, summary/derivation recovery, capacity exhaustion, failed validation, promotion, rollback and evidence received during a candidate interval.
+- `src/rgm/experiments/babi_structured.py`: oracle structured-event solvers for Task 3 temporal object-state questions and Task 5 same-event three-role retrieval. These accept typed events only; no story-text parsing is present.
+- `docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json`: freezes bAbI v1.2, English `en-valid-10k`, task-specific train/validation/test paths and the structured campaign stages. The archive SHA-256 is pinned to the upstream Git LFS object digest `0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898` (15,719,851 bytes); local acquisition and extracted-file hashes remain outstanding.
+
+**Validation status:** workflows for the preceding evidence-test commit `b5b85585a80e88ed818317480a1c6af837acc400` passed on Python 3.10/3.12, including H1, repository regression, P6 and compiled native smoke. Subsequent commits integrated the HLB-owned journal, checkpoint watermark validation, and bAbI structured adapters; these later changes have not yet received a CI run. No official bAbI score is claimed. The archive must be acquired and its pinned digest verified before official-data scoring.
