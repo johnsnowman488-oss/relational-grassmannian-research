@@ -766,6 +766,20 @@ class LearningRuntime:
         self._last_observed_at = 0.0
         self.last_signals = LearningSignals()
 
+    def fit_relation_patterns(self, records: Sequence[Any], *, partition: str) -> int:
+        if partition != "fit":
+            raise ValueError("semantic relation learner fitting accepts the fit partition only")
+        for record in records:
+            self.relations.observe(record)
+        return len(records)
+
+    def fit_event_role_patterns(self, events: Sequence[Any], *, partition: str) -> int:
+        if partition != "fit":
+            raise ValueError("n-ary event-role learner fitting accepts the fit partition only")
+        for event in events:
+            self.event_roles.observe(event)
+        return len(events)
+
     def begin_tick(self, *, tick: int, observed_at: float, subject_type: str | None = None,
                    context: str | None = None) -> tuple[Prediction, ...]:
         if tick < 0 or not math.isfinite(observed_at) or observed_at < self._last_observed_at:
@@ -938,7 +952,8 @@ class LearningRuntime:
                         self.event_roles._counter.observe(
                             self.event_roles._key(item["context"]), item["value"])
             elif item["kind"] == "task":
-                self.observe_task_error(item["task_key"], item["error"])
+                if item["error"] > 0:
+                    self.task_outcomes.observe_error(item["task_key"], item["error"])
             elif item["kind"] == "temporal_error":
                 self.observe_temporal_error(item["error"], tick=int(item["tick"]))
             elif item["kind"] == "eligibility":
