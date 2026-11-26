@@ -163,10 +163,10 @@ def parse_source_file(path: Path, *, task_id: int, split: str,
         if current_id is None:
             raise ValueError(f"source file {path} does not begin with story line 1")
         if include_labels:
-            fields = payload.split("\\t")
+            fields = payload.split("\t")
             sentence = fields[0].strip()
         else:
-            sentence = payload.split("\\t", 1)[0].strip()
+            sentence = payload.split("\t", 1)[0].strip()
             fields = [sentence]
         if sentence.endswith("?"):
             query = (_task3_query(current_id, line_no, sentence, events) if task_id == 3
