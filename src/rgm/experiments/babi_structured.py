@@ -33,6 +33,7 @@ class StructuredEvent:
             "PICK_UP": {"actor", "object"},
             "DROP": {"actor", "object"},
             "GIVE": {"giver", "object", "recipient"},
+            "PASS": {"sender", "object", "recipient"},
         }
         if self.event_type not in required_roles:
             raise ValueError(f"unsupported structured event type {self.event_type!r}")
