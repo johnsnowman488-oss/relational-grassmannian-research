@@ -362,6 +362,13 @@ class EligibilityLedger:
                 state.last_tick = tick
         self._last_tick = tick
 
+    def reset(self, *, tick: int) -> None:
+        """Explicitly end an episode without silently evicting its eligibility."""
+        if isinstance(tick, bool) or tick < self._last_tick:
+            raise ValueError("eligibility reset tick cannot move backwards")
+        self._states = {}
+        self._last_tick = int(tick)
+
     def values(self, *, prediction_cutoff_tick: int) -> dict[tuple[str, str, str], float]:
         return {
             key: state.value for key, state in sorted(self._states.items())
@@ -1065,6 +1072,21 @@ class LearningRuntime:
                 self.event_roles.observe(event)
         return error
 
+    def reset_episode_eligibility(self, *, tick: int, observed_at: float) -> None:
+        """Reset transient temporal eligibility at an episode boundary.
+
+        The boundary is journaled so checkpoint continuation and replay reproduce
+        the same event-credit isolation while learned temporal weights persist.
+        """
+        if (isinstance(tick, bool) or tick < 0 or not math.isfinite(observed_at)
+            or observed_at < self._last_observed_at):
+            raise ValueError("episode boundary tick/time must be valid and monotone")
+        self.eligibility.reset(tick=tick)
+        self._observation_journal.append({
+            "kind": "episode_boundary", "tick": int(tick),
+            "observed_at": float(observed_at),
+        })
+
     def observe_eligibility(self, event: EligibilityEvent) -> None:
         self.eligibility.ingest(event)
         self._observation_journal.append({"kind": "eligibility", "value": event.__dict__})
@@ -1220,6 +1242,8 @@ class LearningRuntime:
                 routed = self.error_router.route(signals)
                 if "temporal_eligibility" in routed:
                     self.temporal_credit.update(float(item["error"]), values)
+            elif item["kind"] == "episode_boundary":
+                self.eligibility.reset(tick=int(item["tick"]))
             elif item["kind"] == "eligibility":
                 event = EligibilityEvent(**item["value"])
                 if event.observed_tick > self.eligibility._last_tick:
