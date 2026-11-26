@@ -16,7 +16,7 @@ from urllib.request import urlopen
 
 
 ARCHIVE_URL = (
-    "https://huggingface.co/datasets/facebook/babi_qa/resolve/main/"
+    "https://huggingface.co/datasets/facebook/babi_qa/resolve/refs%2Fpr%2F5/"
     "data/tasks_1-20_v1-2.tar.gz"
 )
 EXPECTED_SHA256 = "0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898"
