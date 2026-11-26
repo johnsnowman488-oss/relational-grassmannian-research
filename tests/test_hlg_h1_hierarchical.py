@@ -142,7 +142,7 @@ def test_composite_checkpoint_restore_and_rollback_restore_native_and_python_sta
     # The candidate's observed input is replayed through the restored incumbent.
     assert runtime.state["step_count"] == 1
     assert director.event_tick == 1
-    assert all(np.count_nonzero(memory.channels) > 0 for memory in bridge.memories[:1])
+    assert runtime.state["level_states"][0]["u"] == [1.0, 0.0]
     damaged = copy.deepcopy(trusted)
     damaged["director"]["event_tick"] = 99
     with pytest.raises(ValueError):
