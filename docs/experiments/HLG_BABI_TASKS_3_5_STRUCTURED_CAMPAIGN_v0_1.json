@@ -18,8 +18,10 @@
       "archive_sha256": "0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898",
       "archive_size_bytes": 15719851,
       "selected_file_sha256": {},
-      "rule": "The expected archive digest and byte size are pinned from the facebook/babi_qa dataset repository's Git LFS object record. Before official scoring, acquire the archive, verify its local SHA-256 and size against these values, then hash the six extracted split files and commit those digests. Do not substitute generated task data or an unverified mirror."
-    }
+      "rule": "The expected archive digest and byte size are pinned from the facebook/babi_qa dataset repository's Git LFS object record. Before official scoring, acquire the archive, verify its local SHA-256 and size against these values, then hash the six extracted split files and commit those digests. Do not substitute generated task data or an unverified mirror.",
+      "acquisition_utility": "scripts/freeze_babi_tasks.py"
+    },
+    "acquisition_url": "https://huggingface.co/datasets/facebook/babi_qa/resolve/main/data/tasks_1-20_v1-2.tar.gz"
   },
   "selected_tasks": [
     {
