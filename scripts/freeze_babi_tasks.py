@@ -17,10 +17,10 @@ from urllib.request import Request, urlopen
 
 
 ARCHIVE_URLS = (
-    "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
-    "https://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz",
-    "https://huggingface.co/datasets/facebook/babi_qa/resolve/refs%2Fpr%2F5/data/tasks_1-20_v1-2.tar.gz",
+    "https://huggingface.co/datasets/facebook/babi_qa/resolve/dc80d34/data/tasks_1-20_v1-2.tar.gz",
 )
+HF_REPO = "facebook/babi_qa"
+HF_REVISION = "dc80d34"
 EXPECTED_SHA256 = "0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898"
 EXPECTED_SIZE = 15_719_851
 PREFIX = "tasks_1-20_v1-2/en-valid-10k/"
@@ -57,8 +57,6 @@ def inventory(payload: bytes) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--inspect-candidates", action="store_true",
-                        help="inventory candidate archive bytes without accepting or freezing them")
     parser.add_argument("--output", type=Path, default=Path("data/babi-v1.2"))
     parser.add_argument(
         "--manifest", type=Path,
@@ -68,55 +66,31 @@ def main() -> int:
 
     archive = None
     acquisition_errors = []
-    acquisition_url = None
-    for url in ARCHIVE_URLS:
-        try:
-            request = Request(url, headers={"User-Agent": "LeptographResearch-bAbI-freezer/0.1"})
-            candidate = urlopen(request, timeout=90).read()
-        except (HTTPError, URLError, TimeoutError) as exc:
-            acquisition_errors.append(f"{url}: {exc}")
-            continue
-        candidate_digest = digest(candidate)
-        if len(candidate) == EXPECTED_SIZE and candidate_digest == EXPECTED_SHA256:
-            archive = candidate
-            acquisition_url = url
-            break
-        if args.inspect_candidates:
-            try:
-                inspected = {}
-                task_members = []
-                with tarfile.open(fileobj=BytesIO(candidate), mode="r:gz") as probe:
-                    for member in probe.getmembers():
-                        if member.isfile() and any(token in PurePosixPath(member.name).name for token in ("qa3_", "qa5_")):
-                            task_members.append(member.name)
-                        if member.name not in set(FILES.values()):
-                            continue
-                        if not member.isfile() or member.issym() or member.islnk():
-                            raise ValueError(f"unsafe/non-regular member: {member.name}")
-                        stream = probe.extractfile(member)
-                        if stream is None:
-                            raise ValueError(f"cannot read member: {member.name}")
-                        inspected[member.name] = inventory(stream.read())
-                print(json.dumps({
-                    "inspection_only": True,
-                    "accepted": False,
-                    "url": url,
-                    "archive_size_bytes": len(candidate),
-                    "archive_sha256": candidate_digest,
-                    "selected_members": inspected,
-                    "task3_task5_members": task_members,
-                    "missing_members": sorted(set(FILES.values()) - set(inspected)),
-                }, indent=2))
-                return 0
-            except (tarfile.TarError, OSError, ValueError) as exc:
-                acquisition_errors.append(f"{url}: inspection failed: {exc}")
-                continue
-        acquisition_errors.append(
-            f"{url}: digest mismatch size={len(candidate)} sha256={candidate_digest}"
+    acquisition_url = ARCHIVE_URLS[0]
+    try:
+        from huggingface_hub import hf_hub_download
+        archive_path = hf_hub_download(
+            repo_id=HF_REPO,
+            repo_type="dataset",
+            filename="data/tasks_1-20_v1-2.tar.gz",
+            revision=HF_REVISION,
         )
+        archive = Path(archive_path).read_bytes()
+    except Exception as exc:
+        acquisition_errors.append(
+            f"Hugging Face Hub revision {HF_REVISION}: {type(exc).__name__}: {exc}"
+        )
+
     if archive is None:
-        raise SystemExit("No bAbI source matched the pinned archive identity:\\n" +
-                         "\\n".join(acquisition_errors))
+        raise SystemExit("Could not acquire the pinned bAbI v1.2 archive:\n" +
+                         "\n".join(acquisition_errors))
+    candidate_digest = digest(archive)
+    if len(archive) != EXPECTED_SIZE or candidate_digest != EXPECTED_SHA256:
+        raise SystemExit(
+            "Pinned bAbI archive identity mismatch: "
+            f"size={len(archive)} sha256={candidate_digest}; "
+            f"expected size={EXPECTED_SIZE} sha256={EXPECTED_SHA256}"
+        )
     actual_digest = digest(archive)
 
     wanted = set(FILES.values())
