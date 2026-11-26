@@ -75,9 +75,14 @@ def _task3_query(story_id: str, line_no: int, question: str,
             if roles["object"] == object_id and holder.get(object_id) == roles["actor"]:
                 holder.pop(object_id, None)
     if not candidates:
+        timeline = [
+            (event.event_time, event.event_type, event.role_map())
+            for event in sorted(prior_events, key=lambda item: (item.event_time, item.event_id))
+        ]
         raise ValueError(
             f"cannot independently anchor Task 3 query to a MOVE by the current holder: "
-            f"{story_id}#line={line_no}"
+            f"{story_id}#line={line_no}; object={object_id}; destination={destination_id}; "
+            f"timeline={timeline!r}"
         )
     target = candidates[-1]
     return StructuredQuery(
