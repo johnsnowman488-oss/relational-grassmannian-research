@@ -630,6 +630,10 @@ class HierarchicalRuntimeDirector:
                     if status.startswith("ABSTAIN"):
                         raise RuntimeError(f"HLB n-ary evidence storage abstained: {status}")
             result = self.adapter.step(supplied)
+            for event in eligibility_events:
+                if event.observed_tick != next_tick:
+                    raise ValueError("eligibility observation tick must match the exchange tick")
+                self.adapter.learning.observe_eligibility(event)
             if 0 in supplied:
                 self.adapter.learning.observe_level0_features(
                     supplied[0], event_time=event_time, observed_at=observed_at, tick=next_tick,
@@ -653,10 +657,6 @@ class HierarchicalRuntimeDirector:
                     prediction_context, target_context, source_id=source_id,
                     event_time=target_event_time, observed_at=observed_at, tick=next_tick,
                 )
-            for event in eligibility_events:
-                if event.observed_tick != next_tick:
-                    raise ValueError("eligibility observation tick must match the exchange tick")
-                self.adapter.learning.observe_eligibility(event)
             if temporal_error is not None:
                 self.adapter.learning.observe_temporal_error(float(temporal_error), tick=next_tick)
             if task_outcome is not None:
