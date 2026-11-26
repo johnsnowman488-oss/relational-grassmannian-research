@@ -78,3 +78,16 @@ def test_structured_event_rejects_duplicate_roles():
     with pytest.raises(ValueError, match="unique"):
         StructuredEvent("bad", "GIVE", (("giver", "mary"), ("giver", "fred")),
                         1, 1, "source")
+
+def test_task3_exact_anchor_disambiguates_repeated_destination():
+    story = [
+        ev("1", "PICK_UP", {"actor": "john", "object": "apple"}, 1),
+        ev("2", "MOVE", {"actor": "john", "destination": "office"}, 2),
+        ev("3", "MOVE", {"actor": "john", "destination": "kitchen"}, 3),
+        ev("4", "MOVE", {"actor": "john", "destination": "garden"}, 4),
+        ev("5", "MOVE", {"actor": "john", "destination": "kitchen"}, 5),
+    ]
+    assert task3_object_location_before_move(
+        story, object_id="apple", target_event_id="5",
+        destination_id="kitchen", observation_cutoff=5,
+    ) == "garden"
