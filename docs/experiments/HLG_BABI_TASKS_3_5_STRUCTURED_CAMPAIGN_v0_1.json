@@ -495,7 +495,8 @@
       "soe_to_credit": "pre-step SOE trace row L2 norm per level/channel; six eligibility features per source event",
       "eligibility_decay": 0.9,
       "eligibility_capacity": 131072,
-      "hlb_evidence_capacity": 65536
+      "hlb_evidence_capacity": 65536,
+      "episode_policy": "At each story boundary reset SOE banks and native state to baseline while preserving persistent native handle and cumulative step count; journal and reset transient eligibility; retain learned parameters, prediction journal and HLB canonical evidence; story-scoped query retrieval."
     },
     "evaluation": {
       "task3_primary": [
