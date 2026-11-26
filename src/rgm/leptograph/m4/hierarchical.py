@@ -682,7 +682,7 @@ class CompositeLifecycle:
         self._rollback_point = None
 
     def candidate_fingerprint(self) -> str:
-        """Fingerprint candidate model/runtime state, excluding append-only journal watermarks."""
+        """Fingerprint candidate model/runtime state and its exact evidence watermarks."""
         director_state = self.director.snapshot()
         runtime = self.director.adapter.bridge.runtime
         return _fingerprint({
