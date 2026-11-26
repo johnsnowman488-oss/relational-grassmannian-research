@@ -1,55 +1,92 @@
 # H1 dedicated learning implementation — phase ledger
 
-**Status:** implementation in progress; no external-task learning claim  
+**Status:** integrated mechanism implementation and synthetic channel ablations passed; external-task learning campaigns not started  
 **Parent contract:** `HLG-HYBRID-PLCE-v0.1`  
-**Implementation branch:** `research/h1-learning-mechanisms`
+**Implementation branch:** `research/h1-learning-runtime-integration`  
+**Implementation PR:** [#50](https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/50)
 
 ## Objective
 
-Implement the learning mechanisms that the H1 hybrid state/prediction/learning contract requires but that the first H1 adapter milestone did not yet provide. Keep the H0 SOE/native dynamics frozen. HLA and HLB must consume identical pre-step learning inputs and retain their existing architectural distinction: HLA does not persist relational evidence; HLB uses its bounded canonical evidence store.
+Complete the H1 learning mechanisms that were not present in the initial HLA/HLB adapter implementation. Integrate them into the actual runtime while preserving the frozen H0 SOE/native dynamics and the HLA/HLB architectural distinction.
 
-## Phase map and acceptance evidence
+## Implemented mechanisms
 
-| Phase | Required mechanism | Initial implementation | Closure condition |
-|---|---|---|---|
-| LRN-1 | Explicit L0/L1/L2 target schemas and prediction lifecycle | `learning.py`: `TargetSchema`, `Prediction`, `PredictionJournal` | Adapter-integrated issue/evaluate ordering; per-level target schemas frozen; cutoff/horizon tests pass |
-| LRN-2 | Separate error channels and parameter-family routing | `LearningSignals`, `ErrorRouter`, `ParameterRoute` | Actual readout/encoder/context learners consume only declared signals; integrity failures block candidate updates |
-| LRN-3 | SOE temporal credit assignment | `EligibilityLedger`, `EligibilityEvent`, `replay_eligibility` | Exact replay parity against the immutable event-input journal; overlapping-event, late-arrival, expiry, reset and cross-level isolation tests |
-| LRN-4 | Candidate adaptation and independent validation | `ConsolidationGate`, `ValidationReceipt` | Candidate learners operate on copies; validation receipts bind protocol, partition, criteria, model and evidence watermark; promotion/rollback integrate with composite HLA/HLB checkpoints |
-| LRN-5 | Relational and abstraction learning | target schemas and routing primitives only | Implement and test typed event/role prediction, relation existence, ordering/composition and context-transition learners; predictions stay outside canonical evidence |
-| LRN-6 | Evidence-safe consolidation | append-only journal/watermark contract in gate | Integrate with HLB source journal and HLA caller-supplied witnesses; rollback restores model/runtime while retaining/reconciling all observations received during candidate interval |
-| LRN-7 | Matched validation and ablation | Not yet executed | Fit/validation/confirmatory separation, frozen bAbI Tasks 3/5 structured inputs, paired HLA/HLB campaigns, ablations for eligibility and error routing, full report |
+### LRN-1 — Three-level prediction lifecycle
 
-## Implemented primitives in this branch
+- **L0 grounding:** predicts the next observed feature vector using a fit-partition mean baseline; scores with MSE.
+- **L1 relational:** predicts an exact typed relation pattern containing relation type, subject identity/type, object identity/type and context.
+- **L1 event roles:** predicts one n-ary event as an event type plus every named role's exact entity identity and type. Roles remain bound to one event identity.
+- **L2 context/control:** predicts the next context label conditioned on an explicitly supplied pre-observation context.
+- Prediction records include level, target identity, issue tick/time, evidence cutoff, horizon, model fingerprint and target-schema fingerprint.
+- The director issues predictions from pre-step state. The context used to issue a forecast is an explicit caller-supplied prior context; it is never inferred from the target event arriving in that exchange.
+- A target is scoreable only after its observation cutoff and issue tick, and within its declared horizon. Prediction records remain separate from observed and derived evidence.
 
-- Prediction objects carry level, target identity, issue tick/time, horizon, evidence cutoff, model fingerprint, schema fingerprint, value and uncertainty.
-- Scoring requires a target observed strictly after the forecast cutoff and issue tick, within the declared horizon. Continuous, categorical, relation and context target types have distinct scoring paths.
-- Temporal, relational, abstraction and task residuals remain separate. An integrity failure (for example false witness or provenance violation) blocks all ordinary parameter routing.
-- Event-resolved eligibility records retain event identity, feature identity, channel, event time, observed-at time, observed tick, magnitude and SOE-kernel/config fingerprint. Late evidence is never backfilled. Capacity exhaustion is explicit.
-- Deterministic replay rebuilds eligibility from the immutable input-event sequence.
-- Candidate parameters are copied before staging. Validation receipts bind the candidate and trusted parent fingerprints, independent protocol/partition/criteria fingerprints, metrics and evidence watermark. New evidence invalidates an earlier receipt.
+### LRN-2 — Error-specific learning
 
-## Non-negotiable design boundaries
+| Error channel | Permitted learner(s) |
+|---|---|
+| Temporal / L0 feature residual | L0 feature predictor and event-resolved temporal credit learner |
+| Relational | Typed semantic relation-pattern learner |
+| Abstraction | N-ary event-role learner and L2 context-transition learner |
+| Task / action outcome | Task outcome calibration learner |
 
-1. Eligibility is an event-resolved learning trace, not a claim of causal identification. Aggregate SOE `χ` alone is not inverted into event contributions.
-2. The first implementation keeps SOE decay, injection matrices, native kernels and cross-level gains frozen.
-3. A feature readout is not relabelled as a semantic event/relation predictor.
-4. A predicted relation is never inserted into HLB's canonical observed/derived relation store.
-5. HLA cannot recover exact historical witnesses it did not retain.
-6. HLB's source journal is append-only and distinct from rollback-scoped candidate/model state.
-7. Validation and confirmatory data are not recycled for fitting or candidate selection.
-8. No universal HLA/HLB winner or general reasoning claim follows from passing these implementation tests.
+The channels remain separate; there is no universal scalar loss broadcast. Parameter-family routing returns only the explicitly permitted updates. Integrity failures block ordinary learning routes.
 
-## Immediate follow-on sequence
+### LRN-3 — SOE temporal credit
 
-1. Run the full repository CI and fix every regression.
-2. Add adapter-level integration so prediction issuance occurs from common pre-step snapshots and learning state participates in composite checkpoint/restore.
-3. Add typed relational/event-role predictors and separate relation/context learners; test role integrity and witness-aware scoring.
-4. Add immutable eligibility-input journal and verify incremental/replayed traces byte-for-byte, including late observations and overlapping events.
-5. Wire actual candidate learners to LRN-2 routing and LRN-4 validation; add failure injection and rollback with intervening evidence.
-6. Freeze structured bAbI Tasks 3 and 5 learning protocols and partitions; run fit/validation first, then untouched confirmatory campaigns.
-7. Conduct ablations and matched HLA/HLB cost/workload analysis separately. A task score is not an efficiency result.
+- Eligibility is event-resolved: event ID, feature ID, channel, event time, observed-at time, observed tick, magnitude and SOE configuration fingerprint.
+- The bounded ledger decays per event/channel and refuses silent eviction at capacity.
+- Late observations begin eligibility at their actual observed tick; event time is retained but is not used to backfill prior credit.
+- Incremental and deterministic replay paths are available. Eligibility state and its input journal are checkpointed with the learning runtime.
+- Eligibility is a learning attribution signal, not proof of causal responsibility. Aggregate SOE `χ` is not inverted into unique event contributions.
 
-## Current disposition
+### LRN-4 — Composite checkpoint, validation and rollback
 
-The initial primitives are committed, but the learning programme is **not complete** until LRN-1 through LRN-7 meet their closure conditions. In particular, current H1 readouts remain feature-vector readouts; semantic relational learning, adapter integration, composite learning checkpoint tests and bAbI learning results remain open.
+- Both HLA and HLB adapters own the same `LearningRuntime`; its predictions, L0/L1/L2 learners, task calibrator, eligibility ledger, temporal credit and observation journal are included in adapter snapshots and composite fingerprints.
+- Composite promotion binds the active candidate fingerprint, independent validation partition, protocol, criteria, data manifest and measured metrics. Failed or stale validation cannot promote.
+- Ordinary checkpoint restoration is exact.
+- Candidate rollback is explicitly different: it restores the incumbent model/runtime, retains observations received during the candidate interval, regenerates forecasts from the incumbent, re-evaluates intervening labels against those forecasts, and replays intervening numerical inputs through the restored native runtime.
+- HLB's source event and source relation journals remain append-only; source relations are reconciled into the canonical index after rollback. HLA retains no canonical relation-witness store; its learning journal contains compact typed labels, not recoverable historical witnesses.
+- Observations are not discarded merely because the candidate that first processed them is rejected.
+
+### LRN-5 — Semantic relational and n-ary event-role learning
+
+The feature-vector readouts remain abstract feature predictors. They are not relabelled as semantic event predictors. Separate typed learners now score:
+- relation type and both endpoint identities/types;
+- event type and every named participant role's entity identity/type;
+- context transitions at L2.
+
+A predicted relation or event pattern is a forecast, not a canonical observed/derived evidence record. HLB's canonical evidence store receives only source-grounded observations.
+
+## Acceptance evidence
+
+<badge color="success">CI passed</badge> **Run 45856623520:** 464 tests passed on Python 3.10 and 464 passed on Python 3.12.
+
+<badge color="success">Ablations passed</badge> **Run 45856623504:** six matched synthetic variants passed, with artifact **15135123986** (`h1-learning-ablation-evidence`), ZIP SHA-256 `6118f9ecc7bfefa1f4a5a41f55f7f460a7789ea800bd41bb2f3178f16cd809ef`.
+
+### Synthetic channel ablation outcomes
+
+Values below are counts of online updates, not task-performance scores. Every variant received the same fit patterns and the same deliberately mismatching L0/L1/L2/task observations.
+
+| Variant | Relation | Event roles | L2 context | L0 features | Temporal credit | Task |
+|---|---:|---:|---:|---:|---:|---:|
+| Full | 1 | 1 | 1 | 1 | 1 | 1 |
+| Without temporal | 1 | 1 | 1 | 0 | 0 | 1 |
+| Without relational | 0 | 1 | 1 | 1 | 1 | 1 |
+| Without abstraction | 1 | 0 | 0 | 1 | 1 | 1 |
+| Without task | 1 | 1 | 1 | 1 | 1 | 0 |
+| No learning | 0 | 0 | 0 | 0 | 0 | 0 |
+
+The ablation confirms update-route isolation: disabling one channel suppresses its designated learner updates without suppressing the other channels. The no-learning control produces no online updates while still scoring the same prediction errors.
+
+## Scientific boundaries and remaining work
+
+1. The L0 learner is currently a mean baseline; L1 relation/event-role and L2 context learners are deterministic empirical pattern counters. These are explicit semantic predictors and useful integration baselines, not yet compositional generalizers or evidence of broad reasoning.
+2. The synthetic ablations validate mechanism isolation, not predictive performance, generalization or HLA-versus-HLB superiority.
+3. No bAbI Tasks 3 or 5 learning campaign has been run. The official structured source freeze remains separate. We should discuss and preregister the learning fit/validation/confirmatory protocol before starting those campaigns.
+4. HLA and HLB must receive identical fit examples, prior contexts, observation streams, prediction cutoffs and seeds in the external-task comparison.
+5. The separate matched cost/workload sweep remains a later efficiency study; it must not be conflated with task accuracy.
+
+## Disposition
+
+The requested runtime integration, three-level semantic prediction, error routing, event-level temporal credit, composite rollback preservation and synthetic channel ablations are implemented and pass the recorded CI/ablation runs. PR #50 remains draft pending review and any further refinements agreed before the bAbI learning protocol is frozen.
