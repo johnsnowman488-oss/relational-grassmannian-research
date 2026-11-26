@@ -84,8 +84,11 @@ def main() -> int:
         if args.inspect_candidates:
             try:
                 inspected = {}
+                task_members = []
                 with tarfile.open(fileobj=BytesIO(candidate), mode="r:gz") as probe:
                     for member in probe.getmembers():
+                        if member.isfile() and any(token in PurePosixPath(member.name).name for token in ("qa3_", "qa5_")):
+                            task_members.append(member.name)
                         if member.name not in set(FILES.values()):
                             continue
                         if not member.isfile() or member.issym() or member.islnk():
@@ -101,6 +104,7 @@ def main() -> int:
                     "archive_size_bytes": len(candidate),
                     "archive_sha256": candidate_digest,
                     "selected_members": inspected,
+                    "task3_task5_members": task_members,
                     "missing_members": sorted(set(FILES.values()) - set(inspected)),
                 }, indent=2))
                 return 0
