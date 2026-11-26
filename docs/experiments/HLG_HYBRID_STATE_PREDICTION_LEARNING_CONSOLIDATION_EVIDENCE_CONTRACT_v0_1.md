@@ -54,7 +54,7 @@ An observed event/relation record must carry, where applicable:
 - event/relation type and explicit participant roles;
 - event time (when it happened) and observed-at time (when received);
 - validity interval and context scope;
-- source/provenance reference and source-span or source-payload digest;
+- source/provenance reference, immutable source-payload locator/retention class, and source-span or source-payload digest;
 - uncertainty/quality metadata and parser/adapter version;
 - revision/supersession links, if corrected.
 
@@ -149,6 +149,8 @@ Each parameter family declares which error channels may update it. No global sca
 ### 3.2 SOE traces and temporal credit assignment
 
 SOE channels provide a multiscale history basis. They can inform which past inputs are temporally associated with a later prediction error. They are not, by definition, eligibility traces or proof of causal responsibility.
+
+**Attribution constraint:** an aggregate SOE channel is generally a superposition of multiple past inputs and cannot be uniquely inverted into event-specific contributions. Therefore, any event-level credit assignment must use either (a) an explicit, bounded eligibility/provenance ledger that records event ID, input feature identity, tick, channel, kernel/configuration fingerprint and eligibility update, or (b) deterministic replay from an immutable input journal under the exact SOE configuration. A current χ value alone is insufficient to claim that a particular event caused an error. The ledger/replay path must respect event-time versus observed-at time, late arrivals, reset/expiry rules and the prediction's evidence cutoff. Attribution remains a learning signal with uncertainty, not causal proof.
 
 For a channel (k) at level ℓ, an eligibility feature may be defined as a separately versioned transform of the SOE channel:
 [
@@ -329,7 +331,7 @@ The contract is not considered implementation-complete until tests demonstrate:
 3. **Prediction/evidence separation:** predictions never enter the canonical evidence store as observed/derived records without a valid confirmation/derivation transition.
 4. **Level targets:** L0/L1/L2 prediction schemas and target-specific scoring are explicit; current feature readouts remain labelled as feature predictions.
 5. **Error attribution:** temporal, relational, abstraction and task errors are logged separately; integrity violations trigger rejection/abstention.
-6. **Temporal credit assignment:** any eligibility feature has explicit recurrence, decay, reset, normalisation and parameter attribution; tests show no cross-level leakage.
+6. **Temporal credit assignment:** any eligibility feature has explicit recurrence, decay, reset, normalisation and parameter attribution; tests show no cross-level leakage, include overlapping events contributing to the same channel, and demonstrate exact replay or event-ledger attribution without future-information leakage.
 7. **Candidate isolation:** failed candidate learning cannot mutate the trusted model or evidence.
 8. **Independent promotion:** candidate validation is independent, predeclared and fingerprinted; promotion is atomic.
 9. **Evidence-safe rollback:** model/runtime rollback restores trusted state while preserving and reconciling observations received during the candidate interval.
