@@ -33,8 +33,8 @@ def test_task3_query_anchor_is_semantic_and_not_a_gold_support_input():
     ("Mary gave the cake to Fred.", "GIVE", {"giver": "mary", "object": "cake", "recipient": "fred"}),
     ("Fred was given the milk by Bill.", "GIVE", {"giver": "bill", "object": "milk", "recipient": "fred"}),
     ("Mary handed the cake to Fred.", "GIVE", {"giver": "mary", "object": "cake", "recipient": "fred"}),
-    ("Mary passed the cake to Fred.", "PASS", {"sender": "mary", "object": "cake", "recipient": "fred"}),
-    ("Fred was passed the milk by Bill.", "PASS", {"sender": "bill", "object": "milk", "recipient": "fred"}),
+    ("Mary passed the cake to Fred.", "GIVE", {"giver": "mary", "object": "cake", "recipient": "fred"}),
+    ("Fred was passed the milk by Bill.", "GIVE", {"giver": "bill", "object": "milk", "recipient": "fred"}),
 ])
 def test_task5_active_and_passive_transfer_templates(sentence, expected_type, expected):
     event = _event(5, "s", 1, sentence)
@@ -143,18 +143,18 @@ def test_task3_unanchorable_query_fails_closed():
 
 
 
-def test_task5_pass_is_not_a_give_witness():
+def test_task5_pass_is_a_give_witness():
     from rgm.experiments.babi_annotation import _event
     from rgm.experiments.babi_structured import task5_answer_role
 
     handed = _event(5, "task5/fit/story000008", 10, "Bill handed the apple to Jeff.")
     passed = _event(5, "task5/fit/story000008", 13, "Bill passed the football to Jeff.")
     assert handed.event_type == "GIVE"
-    assert passed.event_type == "PASS"
+    assert passed.event_type == "GIVE"
     answer = task5_answer_role(
         (handed, passed),
         bound_roles={"giver": "bill", "recipient": "jeff"},
         answer_role="object",
         observation_cutoff=14,
     )
-    assert answer == ("apple",)
+    assert answer == ("football",)
