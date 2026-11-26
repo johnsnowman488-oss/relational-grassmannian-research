@@ -157,7 +157,7 @@ The choice should be workload-conditional if the trade-off persists. HLA remains
 - H1 partition manifest: `docs/experiments/HLG_H1_HIERARCHICAL_PARTITIONS_v1.json`
 - P6 v4 frozen protocol: `docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.json`
 - P6 v4 result summary: `docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4_RESULT_SUMMARY.json`
-- P6 resource audit: `docs/experiments/HLG_H1_P6_RESOURCE_AUDIT_RESULT.json`
+- P6 resource audit implementation: `scripts/audit_h1_p6_resource_footprint.py`; execution evidence: workflow [45726337240](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45726337240), artifact `15074058248`
 - Compiled-runtime campaign and smoke workflows are linked in the H1 execution ledger.
 
 **Final H1 architecture disposition:** both HLA and HLB pass the current implementation and execution gates. HLB has a demonstrated persistence advantage in the no-replay condition; HLA provides the no-store alternative. Keep both. The next selection decision is empirical and workload-dependent, not a theoretical winner declaration.
