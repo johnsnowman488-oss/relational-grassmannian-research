@@ -12,12 +12,14 @@ from io import BytesIO
 import json
 from pathlib import Path, PurePosixPath
 import tarfile
-from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 
-ARCHIVE_URL = (
-    "https://huggingface.co/datasets/facebook/babi_qa/resolve/refs%2Fpr%2F5/"
-    "data/tasks_1-20_v1-2.tar.gz"
+ARCHIVE_URLS = (
+    "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
+    "https://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz",
+    "https://huggingface.co/datasets/facebook/babi_qa/resolve/refs%2Fpr%2F5/data/tasks_1-20_v1-2.tar.gz",
 )
 EXPECTED_SHA256 = "0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898"
 EXPECTED_SIZE = 15_719_851
@@ -62,13 +64,28 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    archive = urlopen(ARCHIVE_URL, timeout=60).read()
-    actual_digest = digest(archive)
-    if len(archive) != EXPECTED_SIZE or actual_digest != EXPECTED_SHA256:
-        raise SystemExit(
-            "Pinned bAbI archive mismatch: "
-            f"size={len(archive)} sha256={actual_digest}"
+    archive = None
+    acquisition_errors = []
+    acquisition_url = None
+    for url in ARCHIVE_URLS:
+        try:
+            request = Request(url, headers={"User-Agent": "LeptographResearch-bAbI-freezer/0.1"})
+            candidate = urlopen(request, timeout=90).read()
+        except (HTTPError, URLError, TimeoutError) as exc:
+            acquisition_errors.append(f"{url}: {exc}")
+            continue
+        candidate_digest = digest(candidate)
+        if len(candidate) == EXPECTED_SIZE and candidate_digest == EXPECTED_SHA256:
+            archive = candidate
+            acquisition_url = url
+            break
+        acquisition_errors.append(
+            f"{url}: digest mismatch size={len(candidate)} sha256={candidate_digest}"
         )
+    if archive is None:
+        raise SystemExit("No bAbI source matched the pinned archive identity:\\n" +
+                         "\\n".join(acquisition_errors))
+    actual_digest = digest(archive)
 
     wanted = set(FILES.values())
     extracted: dict[str, bytes] = {}
@@ -108,6 +125,8 @@ def main() -> int:
         "status": "VERIFIED",
         "archive_sha256": actual_digest,
         "archive_size_bytes": len(archive),
+        "acquisition_url": acquisition_url,
+        "acquisition_url": acquisition_url,
         "selected_file_sha256": {
             key: row["sha256"] for key, row in file_records.items()
         },
@@ -121,6 +140,7 @@ def main() -> int:
     print(json.dumps({
         "archive_sha256": actual_digest,
         "archive_size_bytes": len(archive),
+        "acquisition_url": acquisition_url,
         "files": file_records,
         "manifest": str(args.manifest),
     }, indent=2))
