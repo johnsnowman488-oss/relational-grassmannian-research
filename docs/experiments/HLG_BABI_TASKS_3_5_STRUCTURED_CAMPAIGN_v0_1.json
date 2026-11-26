@@ -365,7 +365,7 @@
     "annotation_protocol": "Structured event/query annotations must be frozen independently of model runs, preserve all story events and role bindings, be checked against source lines by an independent reviewer, and record annotation version and reviewer agreement. The official support indices and answer column are evaluation-only."
   },
   "learning_protocol": {
-    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2",
+    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.1",
     "status": "FROZEN; G0/G1/G2 acceptance gates pending",
     "frozen_at": "2026-11-26",
     "implementation_parent": "research/h1-learning-runtime-integration",
@@ -496,7 +496,14 @@
       "eligibility_decay": 0.9,
       "eligibility_capacity": 131072,
       "hlb_evidence_capacity": 65536,
-      "episode_policy": "At each story boundary reset SOE banks and native state to baseline while preserving persistent native handle and cumulative step count; journal and reset transient eligibility; retain learned parameters, prediction journal and HLB canonical evidence; story-scoped query retrieval."
+      "episode_policy": "At each story boundary reset SOE banks and native state to baseline while preserving persistent native handle and cumulative step count; journal and reset transient eligibility; retain learned parameters, prediction journal and HLB canonical evidence; story-scoped query retrieval.",
+      "event_type_feature_codes": {
+        "MOVE": 0,
+        "PICK_UP": 0.25,
+        "DROP": 0.5,
+        "GIVE": 0.75,
+        "PASS": 1
+      }
     },
     "evaluation": {
       "task3_primary": [
@@ -574,6 +581,20 @@
       "rule": "Pass integrity gates; require 100% exact structured query accuracy; maximise L1 complete relation/event-role forecast accuracy; minimise L0 feature error; minimise abstention; stable candidate ID tie-break.",
       "integrity_veto": "Any false exact witness, cross-story contamination, leakage violation, role mix-up on fully specified queries or provenance failure rejects candidate.",
       "confirmatory": "Generated challenge is evaluated once after candidate fingerprints and validation decisions are frozen."
+    },
+    "task5_predicates": {
+      "give_statement_forms": [
+        "gave",
+        "handed"
+      ],
+      "pass_statement_forms": [
+        "passed"
+      ],
+      "event_types": {
+        "give": "GIVE(giver, object, recipient)",
+        "pass": "PASS(sender, object, recipient)"
+      },
+      "query_semantics": "Task 5 GIVE_ROLE queries match GIVE events only; PASS events are distinct typed distractors."
     }
   },
   "learning_protocol_ref": "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_2.md"
