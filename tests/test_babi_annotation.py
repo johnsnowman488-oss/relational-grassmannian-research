@@ -82,6 +82,13 @@ def test_parser_separates_model_inputs_from_gold_labels(tmp_path: Path):
     assert not hasattr(story.queries[0], "support_event_ids")
 
 
+def test_task3_there_adverb_is_not_part_of_object_identity():
+    pickup = _event(3, "s", 1, "Mary picked up the football there.")
+    drop = _event(3, "s", 2, "Mary dropped the football there.")
+    assert pickup.role_map()["object"] == "football"
+    assert drop.role_map()["object"] == "football"
+
+
 def test_task3_unanchorable_query_fails_closed():
     with pytest.raises(ValueError, match="cannot independently anchor"):
         _task3_query(
