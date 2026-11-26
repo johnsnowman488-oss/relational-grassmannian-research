@@ -29,15 +29,16 @@ def test_task3_query_anchor_is_semantic_and_not_a_gold_support_input():
     ) == "office"
 
 
-@pytest.mark.parametrize("sentence,expected", [
-    ("Mary gave the cake to Fred.", {"giver": "mary", "object": "cake", "recipient": "fred"}),
-    ("Fred was given the milk by Bill.", {"giver": "bill", "object": "milk", "recipient": "fred"}),
-    ("Mary handed the cake to Fred.", {"giver": "mary", "object": "cake", "recipient": "fred"}),
-    ("Mary passed the cake to Fred.", {"giver": "mary", "object": "cake", "recipient": "fred"}),
+@pytest.mark.parametrize("sentence,expected_type,expected", [
+    ("Mary gave the cake to Fred.", "GIVE", {"giver": "mary", "object": "cake", "recipient": "fred"}),
+    ("Fred was given the milk by Bill.", "GIVE", {"giver": "bill", "object": "milk", "recipient": "fred"}),
+    ("Mary handed the cake to Fred.", "GIVE", {"giver": "mary", "object": "cake", "recipient": "fred"}),
+    ("Mary passed the cake to Fred.", "PASS", {"sender": "mary", "object": "cake", "recipient": "fred"}),
+    ("Fred was passed the milk by Bill.", "PASS", {"sender": "bill", "object": "milk", "recipient": "fred"}),
 ])
-def test_task5_active_and_passive_give_templates(sentence, expected):
+def test_task5_active_and_passive_transfer_templates(sentence, expected_type, expected):
     event = _event(5, "s", 1, sentence)
-    assert event.event_type == "GIVE"
+    assert event.event_type == expected_type
     assert event.role_map() == expected
 
 
@@ -112,8 +113,8 @@ def test_fit_partition_split_is_deterministic_and_story_disjoint():
 def test_confirmatory_parser_does_not_read_or_emit_gold_labels(tmp_path: Path):
     source = tmp_path / "qa5_confirmatory.txt"
     source.write_text(
-        "1 Mary gave the cake to Fred.\\n"
-        "2 Who gave the cake to Fred?\\n",
+        "1 Mary gave the cake to Fred.\n"
+        "2 Who gave the cake to Fred?\n",
         encoding="utf-8",
     )
     parsed = parse_source_file(source, task_id=5, split="confirmatory", include_labels=False)
