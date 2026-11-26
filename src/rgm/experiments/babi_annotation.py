@@ -124,8 +124,10 @@ def _support_ids(story_id: str, raw: str) -> tuple[str, ...]:
     return tuple(f"{story_id}:line{number:06d}" for number in numbers)
 
 
-def parse_source_file(path: Path, *, task_id: int, split: str) -> list[tuple[StructuredStory, list[dict[str, Any]]]]:
-    """Parse numbered bAbI stories into model inputs and isolated gold labels."""
+def parse_source_file(path: Path, *, task_id: int, split: str,
+                      include_labels: bool = True) -> list[tuple[StructuredStory, list[dict[str, Any]]]]:
+    """Parse numbered stories; confirmatory callers can forbid label access entirely."""
+
     if task_id not in (3, 5):
         raise ValueError("only bAbI Tasks 3 and 5 are supported")
     rows = path.read_text(encoding="utf-8").splitlines()
@@ -166,14 +168,15 @@ def parse_source_file(path: Path, *, task_id: int, split: str) -> list[tuple[Str
             query = (_task3_query(current_id, line_no, sentence, events) if task_id == 3
                      else _task5_query(current_id, line_no, sentence))
             queries.append(query)
-            answer = fields[1].strip() if len(fields) > 1 else ""
-            supports = _support_ids(current_id, fields[2] if len(fields) > 2 else "")
-            labels.append({
-                "query_id": query.query_id,
-                "gold_answer": _entity(answer),
-                "support_event_ids": list(supports),
-                "source_ref": query.source_ref,
-            })
+            if include_labels:
+                answer = fields[1].strip() if len(fields) > 1 else ""
+                supports = _support_ids(current_id, fields[2] if len(fields) > 2 else "")
+                labels.append({
+                    "query_id": query.query_id,
+                    "gold_answer": _entity(answer),
+                    "support_event_ids": list(supports),
+                    "source_ref": query.source_ref,
+                })
         else:
             events.append(_event(task_id, current_id, line_no, sentence))
     finish()
@@ -198,7 +201,7 @@ def write_annotation_bundle(source_root: Path, output_root: Path) -> dict[str, A
     output_root.mkdir(parents=True, exist_ok=True)
     report: dict[str, Any] = {
         "schema": "HLG-BABI-ANNOTATION-BUNDLE-v1",
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.0",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.1",
         "parser": "deterministic source-template grammar; not general NLP",
         "splits": {},
         "audit": {"fit_validation_queries": 0, "fit_validation_exact_matches": 0},
@@ -211,9 +214,13 @@ def write_annotation_bundle(source_root: Path, output_root: Path) -> dict[str, A
             ("confirmatory", f"{prefix}_confirmatory_source.txt"),
         ):
             source = source_root / filename
-            stories = parse_source_file(source, task_id=task_id, split=split)
+            stories = parse_source_file(
+                source, task_id=task_id, split=split,
+                include_labels=(split != "confirmatory"),
+            )
             input_path = output_root / f"task{task_id}-{split}.inputs.jsonl"
-            label_path = output_root / f"task{task_id}-{split}.labels.jsonl"
+            label_path = (output_root / f"task{task_id}-{split}.labels.jsonl"
+                          if split != "confirmatory" else None)
             input_lines, label_lines = [], []
             exact = 0
             for story, labels in stories:
@@ -247,18 +254,19 @@ def write_annotation_bundle(source_root: Path, output_root: Path) -> dict[str, A
                             raise ValueError(f"support witness missing from parsed story: {query.query_id}")
                         exact += 1
             input_path.write_text("\n".join(input_lines) + "\n", encoding="utf-8")
-            label_path.write_text("\n".join(label_lines) + "\n", encoding="utf-8")
+            if label_path is not None:
+                label_path.write_text("\n".join(label_lines) + "\n", encoding="utf-8")
             report["splits"][f"task{task_id}_{split}"] = {
                 "story_count": len(stories),
                 "query_count": sum(len(story.queries) for story, _ in stories),
                 "input_path": str(input_path),
                 "input_sha256": _digest(input_path),
-                "label_path": str(label_path),
-                "label_sha256": _digest(label_path),
+                "label_path": str(label_path) if label_path is not None else None,
+                "label_sha256": _digest(label_path) if label_path is not None else None,
                 "source_path": str(source),
                 "source_sha256": _digest(source),
                 "annotation_coverage": "100% or hard failure",
-                "gold_audit": "not accessed" if split == "confirmatory" else "exact answer and support-ID resolution passed",
+                "gold_audit": "not read; confirmatory labels were not parsed or emitted" if split == "confirmatory" else "exact answer and support-ID resolution passed",
             }
             if split != "confirmatory":
                 report["audit"]["fit_validation_queries"] += sum(len(story.queries) for story, _ in stories)
