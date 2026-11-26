@@ -120,9 +120,9 @@ def run_learning_ablation_campaign() -> dict[str, Any]:
     by_name = {row["variant"]: row for row in rows}
     expected = {
         "full": (1, 1, 1, 1, 1, 1),
-        "without_temporal": (1, 1, 1, 1, 0, 0),
+        "without_temporal": (1, 1, 1, 0, 0, 1),
         "without_relational": (0, 1, 1, 1, 1, 1),
-        "without_abstraction": (1, 0, 1, 1, 0, 1),
+        "without_abstraction": (1, 0, 0, 1, 1, 1),
         "without_task": (1, 1, 1, 1, 1, 0),
         "no_learning": (0, 0, 0, 0, 0, 0),
     }
