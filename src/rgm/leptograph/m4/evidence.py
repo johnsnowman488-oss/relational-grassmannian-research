@@ -253,6 +253,29 @@ class EvidenceStore:
             "derivations": [d.__dict__ for d in self._derivations.values()],
         }
 
+    def merge_snapshot(self, state: Mapping) -> None:
+        """Merge a durable journal snapshot without deleting newer local evidence."""
+        incoming = type(self).from_snapshot(state)
+        candidate = type(self)(self.capacity)
+        for event_id in self._event_order:
+            if candidate.append(self._events[event_id]) == "ABSTAIN_CAPACITY":
+                raise ValueError("current evidence exceeds configured capacity")
+        for event_id in incoming._event_order:
+            if candidate.append(incoming._events[event_id]) == "ABSTAIN_CAPACITY":
+                raise ValueError("merged evidence exceeds configured capacity")
+        for item in self._derivations.values():
+            candidate.append_derivation(item)
+        for item in incoming._derivations.values():
+            candidate.append_derivation(item)
+        for item in self._summaries.values():
+            candidate.append_summary(item)
+        for item in incoming._summaries.values():
+            candidate.append_summary(item)
+        self._events = candidate._events
+        self._event_order = candidate._event_order
+        self._derivations = candidate._derivations
+        self._summaries = candidate._summaries
+
     @classmethod
     def from_snapshot(cls, state: Mapping) -> "EvidenceStore":
         if state.get("schema") != "hlg-evidence-v1":
