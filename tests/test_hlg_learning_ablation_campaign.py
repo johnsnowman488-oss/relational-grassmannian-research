@@ -11,4 +11,6 @@ def test_matched_learning_ablation_campaign_isolates_all_four_update_channels():
     assert by_name["without_abstraction"]["event_role_online_updates"] == 0
     assert by_name["without_temporal"]["temporal_parameter_updates"] == 0
     assert by_name["without_task"]["task_outcome_updates"] == 0
+    assert by_name["without_temporal"]["level0_feature_updates"] == 0
+    assert by_name["without_abstraction"]["context_transition_online_updates"] == 0
     assert by_name["no_learning"]["relation_online_updates"] == 0
