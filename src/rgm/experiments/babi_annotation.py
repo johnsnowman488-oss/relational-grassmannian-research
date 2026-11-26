@@ -200,80 +200,110 @@ def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+WARM_ONLINE_SEED = "HLG-BABI-T3-T5-WARM-ONLINE-v1"
+WARM_START_FRACTION = 2.0 / 3.0
+
+
+def split_fit_stories(
+    stories: list[tuple[StructuredStory, list[dict[str, Any]]]], *, task_id: int,
+) -> tuple[list[tuple[StructuredStory, list[dict[str, Any]]]],
+           list[tuple[StructuredStory, list[dict[str, Any]]]]]:
+    """Deterministically split the 1,800 fit stories into 1,200/600 whole-story sets."""
+    ranked = sorted(
+        stories,
+        key=lambda item: hashlib.sha256(
+            f"{WARM_ONLINE_SEED}:{task_id}:{item[0].story_id}".encode("utf-8")
+        ).digest(),
+    )
+    warm_count = round(len(stories) * WARM_START_FRACTION)
+    warm_ids = {item[0].story_id for item in ranked[:warm_count]}
+    warm = [item for item in stories if item[0].story_id in warm_ids]
+    online = [item for item in stories if item[0].story_id not in warm_ids]
+    return warm, online
+
+
 def write_annotation_bundle(source_root: Path, output_root: Path) -> dict[str, Any]:
-    """Build split-specific input/label streams and audit fit/validation only."""
+    """Build source-indexed fit/validation inputs and isolated evaluator labels."""
     output_root.mkdir(parents=True, exist_ok=True)
     report: dict[str, Any] = {
         "schema": "HLG-BABI-ANNOTATION-BUNDLE-v1",
         "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2",
         "parser": "deterministic source-template grammar; not general NLP",
+        "warm_online_split": {
+            "seed": WARM_ONLINE_SEED,
+            "warm_start_fraction": WARM_START_FRACTION,
+            "target_counts_per_task": {"warm_start": 1200, "online_adaptation": 600},
+            "unit": "whole story block",
+        },
         "splits": {},
         "audit": {"fit_validation_queries": 0, "fit_validation_exact_matches": 0},
     }
+
+    def write_partition(task_id: int, split_name: str,
+                        selected: list[tuple[StructuredStory, list[dict[str, Any]]]],
+                        *, audit: bool) -> None:
+        input_path = output_root / f"task{task_id}-{split_name}.inputs.jsonl"
+        label_path = output_root / f"task{task_id}-{split_name}.labels.jsonl"
+        input_lines, label_lines = [], []
+        exact = 0
+        for story, labels in selected:
+            input_lines.append(json.dumps(_story_input(story), sort_keys=True))
+            label_lines.extend(json.dumps(label, sort_keys=True) for label in labels)
+            if audit:
+                event_index = {event.event_id: event for event in story.events}
+                for query, label in zip(story.queries, labels):
+                    if task_id == 3:
+                        answer = task3_object_location_before_move(
+                            story.events, object_id=query.object_id or "",
+                            destination_id=query.destination_id or "",
+                            target_event_id=query.target_event_id or "",
+                            observation_cutoff=query.observed_at,
+                        )
+                    else:
+                        answer_values = task5_answer_role(
+                            story.events, bound_roles=dict(query.bound_roles),
+                            answer_role=query.answer_role,
+                            observation_cutoff=query.observed_at,
+                        )
+                        answer = answer_values[0] if answer_values else None
+                    if answer != label["gold_answer"]:
+                        raise ValueError(
+                            f"independent annotation/oracle audit mismatch for {query.query_id}: "
+                            f"predicted={answer!r} gold={label['gold_answer']!r}"
+                        )
+                    if not label["support_event_ids"]:
+                        raise ValueError(f"query has no official support witnesses: {query.query_id}")
+                    if not set(label["support_event_ids"]).issubset(event_index):
+                        raise ValueError(f"support witness missing from parsed story: {query.query_id}")
+                    exact += 1
+        input_path.write_text("\n".join(input_lines) + "\n", encoding="utf-8")
+        label_path.write_text("\n".join(label_lines) + "\n", encoding="utf-8")
+        report["splits"][f"task{task_id}_{split_name}"] = {
+            "story_count": len(selected),
+            "query_count": sum(len(story.queries) for story, _ in selected),
+            "input_path": str(input_path),
+            "input_sha256": _digest(input_path),
+            "label_path": str(label_path),
+            "label_sha256": _digest(label_path),
+            "annotation_coverage": "100% or hard failure",
+            "gold_audit": "exact answer and support-ID resolution passed" if audit else "fit-only labels; no separate oracle audit",
+        }
+        if audit:
+            report["audit"]["fit_validation_queries"] += sum(len(story.queries) for story, _ in selected)
+            report["audit"]["fit_validation_exact_matches"] += exact
+
     for task_id in (3, 5):
         prefix = "qa3" if task_id == 3 else "qa5"
-        for split, filename in (
-            ("fit", f"{prefix}_train.txt"),
-            ("validation", f"{prefix}_valid.txt"),
-        ):
+        for split, filename in (("fit", f"{prefix}_train.txt"),
+                                ("validation", f"{prefix}_valid.txt")):
             source = source_root / filename
-            stories = parse_source_file(
-                source, task_id=task_id, split=split,
-                include_labels=(split != "confirmatory"),
-            )
-            input_path = output_root / f"task{task_id}-{split}.inputs.jsonl"
-            label_path = (output_root / f"task{task_id}-{split}.labels.jsonl"
-                          if split != "confirmatory" else None)
-            input_lines, label_lines = [], []
-            exact = 0
-            for story, labels in stories:
-                input_lines.append(json.dumps(_story_input(story), sort_keys=True))
-                label_lines.extend(json.dumps(label, sort_keys=True) for label in labels)
-                if split != "confirmatory":
-                    event_index = {event.event_id: event for event in story.events}
-                    for query, label in zip(story.queries, labels):
-                        if task_id == 3:
-                            answer = task3_object_location_before_move(
-                                story.events, object_id=query.object_id or "",
-                                destination_id=query.destination_id or "",
-                                target_event_id=query.target_event_id or "",
-                                observation_cutoff=query.observed_at,
-                            )
-                        else:
-                            answer_values = task5_answer_role(
-                                story.events, bound_roles=dict(query.bound_roles),
-                                answer_role=query.answer_role,
-                                observation_cutoff=query.observed_at,
-                            )
-                            answer = answer_values[0] if answer_values else None
-                        if answer != label["gold_answer"]:
-                            raise ValueError(
-                                f"independent annotation/oracle audit mismatch for {query.query_id}: "
-                                f"predicted={answer!r} gold={label['gold_answer']!r}"
-                            )
-                        if not label["support_event_ids"]:
-                            raise ValueError(f"query has no official support witnesses: {query.query_id}")
-                        if not set(label["support_event_ids"]).issubset(event_index):
-                            raise ValueError(f"support witness missing from parsed story: {query.query_id}")
-                        exact += 1
-            input_path.write_text("\n".join(input_lines) + "\n", encoding="utf-8")
-            if label_path is not None:
-                label_path.write_text("\n".join(label_lines) + "\n", encoding="utf-8")
-            report["splits"][f"task{task_id}_{split}"] = {
-                "story_count": len(stories),
-                "query_count": sum(len(story.queries) for story, _ in stories),
-                "input_path": str(input_path),
-                "input_sha256": _digest(input_path),
-                "label_path": str(label_path) if label_path is not None else None,
-                "label_sha256": _digest(label_path) if label_path is not None else None,
-                "source_path": str(source),
-                "source_sha256": _digest(source),
-                "annotation_coverage": "100% or hard failure",
-                "gold_audit": "not read; confirmatory labels were not parsed or emitted" if split == "confirmatory" else "exact answer and support-ID resolution passed",
-            }
-            if split != "confirmatory":
-                report["audit"]["fit_validation_queries"] += sum(len(story.queries) for story, _ in stories)
-                report["audit"]["fit_validation_exact_matches"] += exact
+            stories = parse_source_file(source, task_id=task_id, split=split, include_labels=True)
+            write_partition(task_id, split, stories, audit=True)
+            if split == "fit":
+                warm, online = split_fit_stories(stories, task_id=task_id)
+                write_partition(task_id, "warm-start", warm, audit=False)
+                write_partition(task_id, "online-adaptation", online, audit=False)
+
     manifest_path = output_root / "annotation-manifest.json"
     manifest_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     report["manifest_sha256"] = _digest(manifest_path)
