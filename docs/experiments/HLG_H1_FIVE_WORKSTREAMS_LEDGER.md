@@ -259,3 +259,25 @@ The P6 execution milestone is **CLOSED** for the frozen v4 implementation and op
 ### Next phase
 
 The next research phase is an architecture cost and workload-envelope comparison—not another broad P6 campaign. Freeze its protocol before execution. Measure HLA and HLB under matched store occupancy, record age/expiry, outage/replay, write rate, context fragmentation, branching, witness multiplicity, retrieval latency, checkpoint/restore cost, and component-separated memory accounting. Test readout generalization separately on noisy held-out relational tasks. Do not select a primary architecture until these workload-conditional trade-offs are measured.
+
+
+## Hybrid state, prediction, learning, consolidation and evidence contract — 2026-11-26
+
+**Design contract:** `docs/experiments/HLG_HYBRID_STATE_PREDICTION_LEARNING_CONSOLIDATION_EVIDENCE_CONTRACT_v0_1.md`  
+**Contract ID:** `HLG-HYBRID-PLCE-v0.1`  
+**Status:** proposed design contract; implementation and external-task validation are not yet claimed.  
+**Commit:** `e15dd3fcf3def71b96eab097f262da5ee43b7ea4`
+
+The contract formalises five previously discussed interfaces against the existing H0/H1 architecture:
+
+1. **State and epistemic separation:** SOE temporal banks, native runtime state, observed evidence, derived evidence, predictions, learned parameters and runtime metadata are distinct state classes. The H0 row-major SOE embedding remains an encoding bridge; native evolution is not SOE evolution.
+2. **Prediction:** explicit time-stamped, model-fingerprinted prediction objects at L0 grounding, L1 relational abstraction and L2 context/control. Forecasts are scored only against later eligible observations; current H1 upper readouts remain feature predictions, not semantic event predictors.
+3. **Learning:** temporal, relational, abstraction and task errors remain attributable. SOE channels provide multiscale history features; they are not automatically eligibility traces. Any eligibility mechanism must define recurrence, decay, reset, normalisation and parameter attribution.
+4. **Consolidation:** candidate → independent validation → atomic promotion or rejection; rollback restores model/runtime state but preserves observations received during candidate execution for reconciliation. Source evidence is append-only; revisions and derivations retain lineage.
+5. **Evidence lifecycle:** L0 preserves exact event grounding and provenance; L1 preserves relation/role structure and exact composition witnesses; L2 may compress but retains scope, uncertainty, contradictions and resolvable evidence references. HLA remains no-store; HLB retains one canonical bounded relation store with level-scoped secondary indexes.
+
+**Important implementation boundary:** this document is a normative design target. It does not claim that current H1 implements relational semantic prediction, temporal eligibility learning, n-ary event storage, or the complete evidence-safe consolidation lifecycle. Current H1 already supplies the SOE/native bridge, feature readouts, HLA/HLB distinction, HLB canonical binary relation store, composite snapshots and tested promotion/rollback primitives.
+
+**Gate before external tasks:** implement and test state schemas/cycle ordering; prediction objects and leakage-safe evaluation; attributable learning signals and explicit temporal eligibility; candidate validation/promotion/evidence-safe rollback; and per-level evidence retrieval including n-ary role binding. Only then freeze and begin the planned bAbI Tasks 3/5 campaign (oracle structured events first, text parsing measured separately).
+
+No H1 results or claims are upgraded by this design document. The P6 stability evidence remains limited to its frozen finite-horizon operating envelope; new learning rules require separate stability and task validation.
