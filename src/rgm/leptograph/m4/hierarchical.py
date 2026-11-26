@@ -593,6 +593,7 @@ class HierarchicalRuntimeDirector:
                  learning_relations: Sequence[RelationInstance] = (),
                  nary_events: Sequence[NaryEvent] = (),
                  prediction_context: str | None = None,
+                 observed_context: str | None = None,
                  eligibility_events: Sequence[EligibilityEvent] = (),
                  temporal_error: float | None = None,
                  task_outcome: tuple[str, float] | None = None) -> dict:
@@ -629,10 +630,29 @@ class HierarchicalRuntimeDirector:
                     if status.startswith("ABSTAIN"):
                         raise RuntimeError(f"HLB n-ary evidence storage abstained: {status}")
             result = self.adapter.step(supplied)
+            if 0 in supplied:
+                self.adapter.learning.observe_level0_features(
+                    supplied[0], event_time=event_time, observed_at=observed_at, tick=next_tick,
+                )
             for record in observed_relations:
                 self.adapter.learning.observe_relation(record, tick=next_tick)
             for event in nary_events:
                 self.adapter.learning.observe_nary_event(event, tick=next_tick)
+            target_context = observed_context
+            if target_context is None:
+                if observed_relations:
+                    target_context = observed_relations[0].context
+                elif nary_events:
+                    target_context = nary_events[0].context
+            if observed_context is not None or observed_relations or nary_events:
+                source_id = (observed_relations[0].instance_id if observed_relations else
+                             nary_events[0].event_id if nary_events else f"context-source-{next_tick}")
+                target_event_time = (observed_relations[0].event_time if observed_relations else
+                                     nary_events[0].event_time if nary_events else event_time)
+                self.adapter.learning.observe_context_transition(
+                    prediction_context, target_context, source_id=source_id,
+                    event_time=target_event_time, observed_at=observed_at, tick=next_tick,
+                )
             for event in eligibility_events:
                 if event.observed_tick != next_tick:
                     raise ValueError("eligibility observation tick must match the exchange tick")
