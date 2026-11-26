@@ -1,6 +1,6 @@
 {
   "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
-  "status": "official en-10k source identity pinned; deterministic story-level validation acquisition pending",
+  "status": "official source bytes frozen; structured-event annotation freeze pending",
   "benchmark": {
     "dataset": "bAbI Question Answering 20 Tasks",
     "publisher_namespace": "facebook/babi_qa",
@@ -229,12 +229,12 @@
     {
       "id": "B",
       "name": "Oracle structured-event adapter",
-      "gate": "all source story statements and questions represented as typed event/query records with story-scoped source IDs, event_time, observed_at, role bindings and source-line provenance; target query annotations are independent of gold supporting-fact IDs; no natural-language parser"
+      "gate": "complete structured event/query annotation bundle matching structured_input_freeze schema, with story-scoped provenance and no gold answer/support leakage; annotation manifest and hashes frozen"
     },
     {
       "id": "C",
       "name": "Deterministic reference solver",
-      "gate": "deterministic reference solver passes fixtures including repeated target destinations, late observations and repeated GIVE relations; gold support IDs are used only for post-prediction witness scoring, never as input"
+      "gate": "reference solvers pass temporal and n-ary role tests, including repeated target destinations, late observations, repeated GIVE relations and same-event role integrity; official support indices used only after prediction for witness scoring"
     },
     {
       "id": "D",
@@ -268,5 +268,96 @@
     "Official-data claims require verified source bytes, hashes, row counts and provenance.",
     "The raw bAbI supporting-fact indices and answers are held out as evaluation metadata; neither may be supplied to structured HLA/HLB inputs.",
     "Task 3 query anchors identify the target movement event independently of the official support-index column; Task 5 answers use the latest observed same-event role match."
-  ]
+  ],
+  "structured_input_freeze": {
+    "schema_id": "HLG-BABI-STRUCTURED-INPUT-v1",
+    "status": "SCHEMA_DEFINED_ANNOTATIONS_PENDING",
+    "story_id": "task_id/split/story_ordinal",
+    "event_id": "story_id:source_line_number",
+    "query_id": "story_id:question_line_number",
+    "event_fields": [
+      "event_id",
+      "event_type",
+      "roles",
+      "event_time",
+      "observed_at",
+      "source_ref"
+    ],
+    "event_types": {
+      "MOVE": {
+        "required_roles": [
+          "actor",
+          "destination"
+        ]
+      },
+      "PICK_UP": {
+        "required_roles": [
+          "actor",
+          "object"
+        ],
+        "optional_roles": [
+          "location"
+        ]
+      },
+      "DROP": {
+        "required_roles": [
+          "actor",
+          "object"
+        ],
+        "optional_roles": [
+          "location"
+        ]
+      },
+      "GIVE": {
+        "required_roles": [
+          "giver",
+          "object",
+          "recipient"
+        ]
+      }
+    },
+    "query_fields": [
+      "query_id",
+      "story_id",
+      "task_id",
+      "query_type",
+      "answer_role",
+      "observed_at",
+      "source_ref",
+      "task_specific_arguments"
+    ],
+    "task3_query": {
+      "query_type": "OBJECT_LOCATION_BEFORE_MOVE",
+      "required": [
+        "object_id",
+        "destination_id",
+        "target_event_id"
+      ],
+      "answer_role": "location",
+      "target_event_id_rule": "independently annotated from query semantics and story timeline; must not be copied from official supporting-fact indices"
+    },
+    "task5_query": {
+      "query_type": "GIVE_ROLE",
+      "required": [
+        "bound_roles",
+        "answer_role"
+      ],
+      "temporal_policy": "most recent observed same-event GIVE matching all bound roles"
+    },
+    "leakage_controls": {
+      "excluded_from_model_input": [
+        "gold_answer",
+        "official_supporting_line_ids",
+        "raw question answer column",
+        "test-set labels"
+      ],
+      "allowed_for_post_prediction_scoring": [
+        "gold_answer",
+        "official_supporting_line_ids"
+      ],
+      "source_provenance": "every event and query must retain story-scoped source line identity",
+      "text_parser": "not part of structured-event campaign; text parsing is a later separately scored stage"
+    },
+    "annotation_protocol": "Structured event/query annotations must be frozen independently of model runs, preserve all story events and role bindings, be checked against source lines by an independent reviewer, and record annotation version and reviewer agreement. The official support indices and answer column are evaluation-only."
+  }
 }
