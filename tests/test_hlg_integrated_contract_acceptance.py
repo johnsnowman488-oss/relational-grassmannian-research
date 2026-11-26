@@ -68,6 +68,20 @@ def evidence(event_id, *, event_time, observed_at, value="fred"):
     )
 
 
+
+def validation_record(lifecycle, *, passed=True):
+    return {
+        "validation_id": "integrated-validation",
+        "passed": passed,
+        "independent": True,
+        "partition": "validation",
+        "candidate_fingerprint": lifecycle.candidate_fingerprint(),
+        "protocol_fingerprint": "frozen-protocol-sha256",
+        "criteria_fingerprint": "frozen-criteria-sha256",
+        "data_manifest_fingerprint": "validation-data-sha256",
+        "metrics": {"integrity_pass": 1.0},
+    }
+
 def test_integrated_failed_validation_never_promotes_and_rollback_keeps_new_evidence():
     runtime, director, lifecycle = make_system()
     evidence_store = director.adapter.evidence
@@ -76,9 +90,8 @@ def test_integrated_failed_validation_never_promotes_and_rollback_keeps_new_evid
     director.adapter.observe_event(evidence("during-candidate", event_time=1.0, observed_at=1.0))
 
     # A failed independent validation is a hard promotion rejection.
-    validation_passed = False
-    if validation_passed:
-        lifecycle.promote()
+    with pytest.raises(ValueError, match="did not pass"):
+        lifecycle.promote(validation_record(lifecycle, passed=False))
     assert lifecycle.version == 0
     lifecycle.rollback()
 
@@ -96,7 +109,7 @@ def test_integrated_promotion_then_rollback_preserves_intervening_and_late_evide
 
     director.exchange(event_time=1.0, observed_at=1.0, event_features={0: [0.5, 0.25]})
     director.adapter.observe_event(evidence("candidate-observation", event_time=1.0, observed_at=1.0))
-    assert lifecycle.promote() == 1
+    assert lifecycle.promote(validation_record(lifecycle)) == 1
 
     # This observation arrives while the promoted candidate is active. Its
     # event time is earlier than arrival time, but the source journal is append-only.
