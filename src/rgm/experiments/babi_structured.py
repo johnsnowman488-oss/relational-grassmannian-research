@@ -44,26 +44,35 @@ def _role(event: StructuredEvent, name: str) -> str:
 
 def task3_object_location_before_move(
     events: Sequence[StructuredEvent], *, object_id: str,
-    actor_id: str, destination_id: str, observation_cutoff: int,
+    destination_id: str, target_event_id: str, observation_cutoff: int,
 ) -> str | None:
-    """Resolve an object's location immediately before a matching MOVE event."""
+    """Resolve an object's location immediately before one explicitly anchored MOVE."""
     ordered = sorted(events, key=lambda e: (e.event_time, e.event_id))
-    if len({e.event_id for e in ordered}) != len(ordered):
-        raise ValueError("event IDs must be unique")
+    by_id = {event.event_id: event for event in ordered}
+    if len(by_id) != len(ordered):
+        raise ValueError("event IDs must be unique within a story")
+    if target_event_id not in by_id:
+        raise KeyError(f"unknown target movement event {target_event_id!r}")
+    target = by_id[target_event_id]
+    if target.event_type != "MOVE" or _role(target, "destination") != destination_id:
+        raise ValueError("target event must be a MOVE to the queried destination")
+    if target.observed_at > observation_cutoff:
+        return None
+
+    actor_id = _role(target, "actor")
+    target_key = (target.event_time, target.event_id)
     actor_location: dict[str, str] = {}
     object_location: dict[str, str] = {}
     held_by: dict[str, str] = {}
     for event in ordered:
+        if (event.event_time, event.event_id) >= target_key:
+            break
         if event.observed_at > observation_cutoff:
             continue
         roles = event.role_map()
         if event.event_type == "MOVE":
             actor = _role(event, "actor")
-            destination = _role(event, "destination")
-            if actor == actor_id and destination == destination_id:
-                holder = held_by.get(object_id)
-                return actor_location.get(holder) if holder else object_location.get(object_id)
-            actor_location[actor] = destination
+            actor_location[actor] = _role(event, "destination")
         elif event.event_type == "PICK_UP":
             actor, obj = _role(event, "actor"), _role(event, "object")
             pickup_location = roles.get("location")
@@ -77,17 +86,23 @@ def task3_object_location_before_move(
             drop_location = roles.get("location") or actor_location.get(actor)
             if drop_location:
                 object_location[obj] = drop_location
-    return None
 
+    holder = held_by.get(object_id)
+    if holder:
+        return actor_location.get(holder)
+    return object_location.get(object_id)
 
 def task5_answer_role(
     events: Sequence[StructuredEvent], *, bound_roles: Mapping[str, str],
     answer_role: str, observation_cutoff: int,
 ) -> tuple[str, ...]:
-    """Return role values only from a single matching n-ary GIVE event."""
+    """Answer from the most recent single GIVE event matching all bound roles."""
     if not bound_roles or answer_role in bound_roles:
         raise ValueError("bound roles must be non-empty and exclude answer_role")
-    answers = set()
+    event_ids = [event.event_id for event in events]
+    if len(event_ids) != len(set(event_ids)):
+        raise ValueError("event IDs must be unique within a story")
+    matches = []
     for event in events:
         if event.event_type != "GIVE" or event.observed_at > observation_cutoff:
             continue
@@ -95,5 +110,8 @@ def task5_answer_role(
         if all(roles.get(role) == value for role, value in bound_roles.items()):
             if answer_role not in roles:
                 raise ValueError(f"GIVE event lacks answer role {answer_role!r}")
-            answers.add(roles[answer_role])
-    return tuple(sorted(answers))
+            matches.append(event)
+    if not matches:
+        return ()
+    latest = max(matches, key=lambda event: (event.event_time, event.event_id))
+    return (_role(latest, answer_role),)
