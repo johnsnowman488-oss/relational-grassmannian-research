@@ -14,6 +14,10 @@ on:
       - "scripts/annotate_babi_structured.py"
       - "tests/test_babi_annotation.py"
       - "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_0.md"
+      - "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_2.md"
+      - "src/rgm/experiments/babi_synthetic_confirmatory.py"
+      - "scripts/generate_babi_confirmatory.py"
+      - "tests/test_babi_synthetic_confirmatory.py"
       - ".github/workflows/h1-babi-structured-freeze.yml"
 
 permissions:
@@ -53,6 +57,9 @@ jobs:
       - name: Build source-indexed structured annotations and audit fit/validation
         run: python scripts/annotate_babi_structured.py
 
+      - name: Generate independent confirmatory structured inputs (labels withheld)
+        run: python scripts/generate_babi_confirmatory.py
+
       - name: Upload frozen source splits, annotations and updated manifest
         if: always()
         uses: actions/upload-artifact@v4
@@ -61,7 +68,9 @@ jobs:
           path: |
             data/babi-v1.2/
             artifacts/babi-structured/
+            artifacts/babi-confirmatory/
             docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json
             docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_1.md
+            docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_2.md
           if-no-files-found: warn
           compression-level: 6
