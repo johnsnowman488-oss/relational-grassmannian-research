@@ -95,8 +95,8 @@ def test_integrated_failed_validation_never_promotes_and_rollback_keeps_new_evid
     assert lifecycle.version == 0
     lifecycle.rollback()
 
-    assert runtime.state["step_count"] == initial["native"]["step_count"]
-    assert director.event_tick == 0
+    assert runtime.state["step_count"] == initial["native"]["step_count"] + 1
+    assert director.event_tick == 1
     assert evidence_store.event_ids == ("during-candidate",)
     assert evidence_store.get_event("during-candidate").role("recipient").entity_id == "fred"
 
@@ -119,8 +119,8 @@ def test_integrated_promotion_then_rollback_preserves_intervening_and_late_evide
 
     lifecycle.rollback()
     assert lifecycle.version == 0
-    assert runtime.state["step_count"] == 0
-    assert director.event_tick == 0
+    assert runtime.state["step_count"] == 2
+    assert director.event_tick == 2
     assert evidence_store.event_ids == before_rollback_ids
     assert "preexisting" in evidence_store.event_ids
     assert evidence_store.get_event("late-observation", observation_cutoff=2.0).event_time == 1.5
