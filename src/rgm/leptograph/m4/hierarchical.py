@@ -684,9 +684,6 @@ class CompositeLifecycle:
     def candidate_fingerprint(self) -> str:
         """Fingerprint candidate model/runtime state, excluding append-only journal watermarks."""
         director_state = self.director.snapshot()
-        adapter_state = director_state["adapter"]
-        adapter_state.pop("evidence_watermark", None)
-        adapter_state.pop("source_relation_watermark", None)
         runtime = self.director.adapter.bridge.runtime
         return _fingerprint({
             "director": director_state,
