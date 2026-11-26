@@ -574,15 +574,18 @@ class RelationPattern:
 @dataclass(frozen=True)
 class EventRolePattern:
     event_type: str
-    roles: tuple[tuple[str, str], ...]
+    roles: tuple[tuple[str, str, str], ...]
     context: str | None
 
     def __post_init__(self) -> None:
         if not self.event_type or len(self.roles) < 2:
             raise ValueError("event-role pattern requires an event type and at least two roles")
-        names = [name for name, _ in self.roles]
-        if len(names) != len(set(names)) or any(not a or not b for a, b in self.roles):
-            raise ValueError("event-role pattern roles must be unique and typed")
+        names = [row[0] for row in self.roles if len(row) == 3]
+        if len(names) != len(self.roles) or len(names) != len(set(names)) or any(
+            not role or not entity_id or not entity_type
+            for role, entity_id, entity_type in self.roles
+        ):
+            raise ValueError("event-role bindings require unique roles and entity identities/types")
 
 
 class _PatternCounter:
@@ -670,7 +673,7 @@ class NaryEventRoleLearner:
         return EventRolePattern(**row)
 
     def observe(self, event: Any) -> None:
-        roles = tuple(sorted((p.role, p.entity_type) for p in event.participants))
+        roles = tuple(sorted((p.role, p.entity_id, p.entity_type) for p in event.participants))
         pattern = EventRolePattern(event.event_type, roles, event.context)
         self._counter.observe(self._key(event.context), self._encode(pattern))
 
@@ -866,7 +869,7 @@ class LearningRuntime:
 
     def observe_nary_event(self, event: Any, *, tick: int) -> float | None:
         pattern = EventRolePattern(event.event_type,
-                                   tuple(sorted((p.role, p.entity_type) for p in event.participants)),
+                                   tuple(sorted((p.role, p.entity_id, p.entity_type) for p in event.participants)),
                                    event.context)
         key = f"event@{tick}"
         encoded = self.event_roles._encode(pattern)
