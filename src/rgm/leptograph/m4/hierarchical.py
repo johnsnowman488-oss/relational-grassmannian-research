@@ -672,9 +672,42 @@ class CompositeLifecycle:
         self._trusted = copy.deepcopy(target)
         self._rollback_point = None
 
-    def promote(self) -> int:
+    def candidate_fingerprint(self) -> str:
+        """Fingerprint candidate model/runtime state, excluding append-only journal watermarks."""
+        director_state = self.director.snapshot()
+        adapter_state = director_state["adapter"]
+        adapter_state.pop("evidence_watermark", None)
+        adapter_state.pop("source_relation_watermark", None)
+        runtime = self.director.adapter.bridge.runtime
+        return _fingerprint({
+            "director": director_state,
+            "native": runtime.checkpoint(),
+        })
+
+    def promote(self, validation_record: Mapping | None = None) -> int:
         if self._trusted is None:
             raise RuntimeError("an initial trusted checkpoint is required before promotion")
+        if not isinstance(validation_record, Mapping):
+            raise ValueError("promotion requires an independent validation record")
+        required = (
+            "validation_id", "passed", "independent", "partition",
+            "candidate_fingerprint", "protocol_fingerprint",
+            "criteria_fingerprint", "data_manifest_fingerprint", "metrics",
+        )
+        if any(key not in validation_record for key in required):
+            raise ValueError("validation record is incomplete")
+        if validation_record["passed"] is not True:
+            raise ValueError("candidate validation did not pass")
+        if validation_record["independent"] is not True or validation_record["partition"] != "validation":
+            raise ValueError("promotion requires independent validation partition evidence")
+        if validation_record["candidate_fingerprint"] != self.candidate_fingerprint():
+            raise ValueError("validation record does not match the active candidate fingerprint")
+        for key in ("validation_id", "protocol_fingerprint", "criteria_fingerprint",
+                    "data_manifest_fingerprint"):
+            if not isinstance(validation_record[key], str) or not validation_record[key]:
+                raise ValueError(f"validation record requires non-empty {key}")
+        if not isinstance(validation_record["metrics"], Mapping) or not validation_record["metrics"]:
+            raise ValueError("validation record must include measured metrics")
         previous_trusted = copy.deepcopy(self._trusted)
         previous_version = self.version
         self.version += 1
