@@ -22,14 +22,16 @@ def test_story_split_is_deterministic_and_never_splits_a_story():
     assert record_a["source_story_count"] == 20
     assert record_a["validation_story_count"] == 2
     assert record_a["fit_story_count"] == 18
-    assert fit_a + valid_a != source  # partitions preserve source order independently
+    def story_ids(payload):
+        return {
+            block.split(b"\\n", 1)[0][:-1].decode()
+            for block in payload.split(b"1 fact-")[1:]
+        }
 
-    fit_stories = fit_a.split(b"1 fact-")[1:]
-    valid_stories = valid_a.split(b"1 fact-")[1:]
-    fit_ids = {story.split(b"a", 1)[0] for story in fit_stories}
-    valid_ids = {story.split(b"a", 1)[0] for story in valid_stories}
+    fit_ids = story_ids(fit_a)
+    valid_ids = story_ids(valid_a)
     assert fit_ids.isdisjoint(valid_ids)
-    assert len(fit_ids | valid_ids) == 20
+    assert fit_ids | valid_ids == {str(i) for i in range(20)}
 
 
 def test_story_split_rejects_malformed_source_without_story_reset():
