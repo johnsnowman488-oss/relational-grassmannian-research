@@ -221,3 +221,12 @@ def test_stale_validation_receipt_cannot_promote_a_changed_candidate():
     with pytest.raises(ValueError, match="fingerprint"):
         lifecycle.promote(receipt)
     assert lifecycle.version == 0
+
+def test_new_source_evidence_invalidates_an_older_validation_receipt():
+    runtime, director, lifecycle = make_system()
+    lifecycle.checkpoint()
+    receipt = validation_record(lifecycle)
+    director.adapter.observe_event(evidence("arrived-after-validation", event_time=1.0, observed_at=1.0))
+    with pytest.raises(ValueError, match="fingerprint"):
+        lifecycle.promote(receipt)
+    assert lifecycle.version == 0
