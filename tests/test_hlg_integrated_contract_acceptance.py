@@ -91,6 +91,7 @@ def test_integrated_failed_validation_never_promotes_and_rollback_keeps_new_evid
 def test_integrated_promotion_then_rollback_preserves_intervening_and_late_evidence():
     runtime, director, lifecycle = make_system()
     evidence_store = director.adapter.evidence
+    director.adapter.observe_event(evidence("preexisting", event_time=0.5, observed_at=0.5))
     lifecycle.checkpoint()
 
     director.exchange(event_time=1.0, observed_at=1.0, event_features={0: [0.5, 0.25]})
@@ -108,6 +109,7 @@ def test_integrated_promotion_then_rollback_preserves_intervening_and_late_evide
     assert runtime.state["step_count"] == 0
     assert director.event_tick == 0
     assert evidence_store.event_ids == before_rollback_ids
+    assert "preexisting" in evidence_store.event_ids
     assert evidence_store.get_event("late-observation", observation_cutoff=2.0).event_time == 1.5
     with pytest.raises(PermissionError):
         evidence_store.get_event("late-observation", observation_cutoff=1.9)
