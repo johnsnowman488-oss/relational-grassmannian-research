@@ -1,6 +1,6 @@
 {
   "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
-  "status": "protocol-and-source-byte-identity-frozen; local-acquisition-pending",
+  "status": "official en-10k source identity pinned; deterministic story-level validation acquisition pending",
   "benchmark": {
     "dataset": "bAbI Question Answering 20 Tasks",
     "publisher_namespace": "facebook/babi_qa",
@@ -9,31 +9,38 @@
     "paper": "Jason Weston et al., Towards AI-Complete Question Answering: A Set of Prerequisite Toy Tasks, arXiv:1502.05698",
     "dataset_builder_script_commit": "07549ca",
     "dataset_builder_script": "https://huggingface.co/datasets/facebook/babi_qa/blob/main/babi_qa.py",
-    "canonical_archive": "https://huggingface.co/datasets/facebook/babi_qa/resolve/dc80d34/data/tasks_1-20_v1-2.tar.gz",
+    "canonical_archive": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
     "homepage": "https://research.fb.com/downloads/babi/",
-    "configuration": "en-valid-10k",
+    "configuration": "en-10k",
     "archive_path_prefix": "tasks_1-20_v1-2/en-valid-10k/",
     "byte_freeze": {
-      "status": "EXPECTED_HASH_PINNED_MULTI_SOURCE_VERIFICATION_PENDING",
-      "archive_sha256": "0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898",
-      "archive_size_bytes": 15719851,
+      "status": "EXPECTED_HASH_PINNED; CI_ACQUISITION_PENDING",
+      "archive_sha256": "84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c",
+      "archive_size_bytes": 11745123,
       "selected_file_sha256": {},
-      "rule": "Acquire the exact archive object from immutable Hugging Face dataset commit dc80d34 using huggingface_hub, verify the complete archive SHA-256 and size, then extract only the six en-valid-10k Task 3/5 splits and commit each selected file hash, byte count, line count and story count. The S3 mirror is a different legacy archive layout and is not an accepted source for this protocol.",
+      "rule": "Verify the official v1.2 en-10k archive by complete SHA-256 and byte size. Preserve official train/test source files; derive validation deterministically from whole training story blocks and hash every source and derived split.",
       "acquisition_utility": "scripts/freeze_babi_tasks.py"
     },
-    "acquisition_url": "https://huggingface.co/datasets/facebook/babi_qa/resolve/dc80d34/data/tasks_1-20_v1-2.tar.gz",
-    "archive_mirror_note": "The legacy S3 mirror is intentionally excluded: it contains en-10k files without the validation split and therefore does not satisfy the frozen en-valid-10k protocol. The selected Hugging Face archive object is pinned by commit and LFS SHA-256.",
+    "acquisition_url": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
+    "archive_mirror_note": "The Hugging Face staff-hosted archive object has a distinct LFS digest but its CDN currently returns 403. The official v1.2 S3 archive contains the en-10k Task 3/5 train/test splits. The convenience en-valid-10k split is not used; validation is derived deterministically from whole training stories.",
     "acquisition_fallbacks": [],
-    "archive_object_commit": "dc80d34",
-    "archive_object_revision": "immutable Hugging Face dataset repository commit"
+    "archive_object_commit": null,
+    "archive_object_revision": "official v1.2 archive mirrored by S3; immutable SHA-256 pinned",
+    "partition_policy": {
+      "source_splits": "Official en-10k train and test files. The official test split is byte-preserved and never repartitioned.",
+      "fit": "90% of complete source training story blocks, selected deterministically by SHA-256 ranking",
+      "validation": "10% of complete source training story blocks, selected by frozen seed HLG-BABI-T3-T5-VALIDATION-v1; derived, not upstream-provided",
+      "confirmatory": "Official test split only; accessed once after configuration freeze",
+      "leakage": "All lines, questions and supporting facts within one story remain in the same fit or validation partition."
+    }
   },
   "selected_tasks": [
     {
       "task_id": 3,
       "name": "Three Supporting Facts",
-      "train": "tasks_1-20_v1-2/en-valid-10k/qa3_train.txt",
-      "validation": "tasks_1-20_v1-2/en-valid-10k/qa3_valid.txt",
-      "test": "tasks_1-20_v1-2/en-valid-10k/qa3_test.txt",
+      "train": "data/babi-v1.2/qa3_train.txt",
+      "validation": "data/babi-v1.2/qa3_valid.txt",
+      "test": "data/babi-v1.2/qa3_test.txt",
       "reasoning_target": "temporal object-state reconstruction from a multi-event story",
       "oracle_event_schema": {
         "MOVE": {
@@ -67,14 +74,15 @@
         "supporting_event_recall",
         "temporal_order_validity",
         "abstention_rate"
-      ]
+      ],
+      "official_training_source": "data/babi-v1.2/qa3_train_source.txt"
     },
     {
       "task_id": 5,
       "name": "Three Argument Relations",
-      "train": "tasks_1-20_v1-2/en-valid-10k/qa5_train.txt",
-      "validation": "tasks_1-20_v1-2/en-valid-10k/qa5_valid.txt",
-      "test": "tasks_1-20_v1-2/en-valid-10k/qa5_test.txt",
+      "train": "data/babi-v1.2/qa5_train.txt",
+      "validation": "data/babi-v1.2/qa5_valid.txt",
+      "test": "data/babi-v1.2/qa5_test.txt",
       "reasoning_target": "typed three-participant relation binding and role-conditioned retrieval",
       "oracle_event_schema": {
         "GIVE": {
@@ -105,7 +113,8 @@
         "witness_recall",
         "cross_event_role_mixup_rate",
         "abstention_rate"
-      ]
+      ],
+      "official_training_source": "data/babi-v1.2/qa5_train_source.txt"
     }
   ],
   "stages": [
