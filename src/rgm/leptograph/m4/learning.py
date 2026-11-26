@@ -1227,5 +1227,5 @@ class LearningRuntime:
                 if (event.event_id, event.feature_id, event.channel) not in self.eligibility._states:
                     self.eligibility.ingest(event)
         self._last_observed_at = max(
-            [self._last_observed_at] + [float(x.get("observed_at", 0.0)) for x in local_journal[trusted_count:]]
+            [self._last_observed_at] + [float(x.get("observed_at", 0.0)) for x in newer_journal]
         )
