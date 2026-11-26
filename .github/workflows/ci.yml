@@ -50,7 +50,8 @@ jobs:
         run: |
           python -m pytest -q \
             tests/test_babi_freeze.py \
-            tests/test_babi_structured.py \
+            tests/test_babi_structured.py
+            tests/test_babi_annotation.py \
             tests/test_hlg_evidence_lifecycle.py \
             tests/test_hlg_integrated_contract_acceptance.py
       - name: Build source-indexed structured annotation bundle and audit fit/validation
@@ -61,6 +62,7 @@ jobs:
           name: babi-tasks-3-5-frozen-source
           path: |
             data/babi-v1.2/
+            artifacts/babi-structured/
             docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json
           if-no-files-found: error
           compression-level: 6
