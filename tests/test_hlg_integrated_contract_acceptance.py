@@ -76,9 +76,9 @@ def validation_record(lifecycle, *, passed=True):
         "independent": True,
         "partition": "validation",
         "candidate_fingerprint": lifecycle.candidate_fingerprint(),
-        "protocol_fingerprint": "d".repeat(64),
-        "criteria_fingerprint": "e".repeat(64),
-        "data_manifest_fingerprint": "c".repeat(64),
+        "protocol_fingerprint": "d" * 64,
+        "criteria_fingerprint": "e" * 64,
+        "data_manifest_fingerprint": "c" * 64,
         "metrics": {"integrity_pass": 1.0},
     }
 
