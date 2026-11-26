@@ -46,13 +46,12 @@ CHANNELS = {
     "no_task": frozenset({ErrorChannel.TEMPORAL, ErrorChannel.RELATIONAL, ErrorChannel.ABSTRACTION}),
     "no_learning": frozenset(),
 }
-EVENT_CONTEXT = {"MOVE": "movement", "PICK_UP": "acquisition", "DROP": "release",
-                 "GIVE": "transfer", "PASS": "transfer_pass"}
+EVENT_CONTEXT = {"MOVE": "movement", "PICK_UP": "acquisition", "DROP": "release", "GIVE": "transfer"}
 CONTEXT_CODE = {"start": 0.0, "movement": 0.2, "acquisition": 0.4,
-                "release": 0.6, "transfer": 0.8, "transfer_pass": 0.9, "query": 1.0}
-EVENT_CODE = {"MOVE": 0.0, "PICK_UP": 0.25, "DROP": 0.5, "GIVE": 0.75, "PASS": 1.0}
+                "release": 0.6, "transfer": 0.8, "query": 1.0}
+EVENT_CODE = {"MOVE": 0.0, "PICK_UP": 1.0 / 3.0, "DROP": 2.0 / 3.0, "GIVE": 1.0}
 ENTITY_TYPES = {
-    "actor": "person", "giver": "person", "sender": "person", "recipient": "person",
+    "actor": "person", "giver": "person", "recipient": "person",
     "object": "object", "destination": "location",
 }
 
@@ -175,11 +174,6 @@ def _make_relations(event: StructuredEvent, context: str) -> tuple[RelationInsta
         pairs.extend((
             ("gave_to", "person", roles["giver"], "person", roles["recipient"]),
             ("gave_object", "person", roles["giver"], "object", roles["object"]),
-        ))
-    elif event.event_type == "PASS":
-        pairs.extend((
-            ("passed_to", "person", roles["sender"], "person", roles["recipient"]),
-            ("passed_object", "person", roles["sender"], "object", roles["object"]),
         ))
     records = []
     for name, subject_type, subject_id, object_type, object_id in pairs:
@@ -616,7 +610,7 @@ def _fit_and_process(
 
     runtime = adapter.bridge.runtime
     output = {
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.1",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
         "task_id": task_id,
         "architecture": architecture,
         "variant": variant,
@@ -694,7 +688,7 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
                 gfe_module, native_library, source_manifest,
             ))
     output = {
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.1",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
         "task_id": task_id,
         "architecture": architecture,
         "seeds": seeds,
