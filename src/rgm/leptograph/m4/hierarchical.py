@@ -456,10 +456,13 @@ class HLBAdapter:
             candidate[record.instance_id] = value
         if len(candidate) > self.source_relation_capacity:
             raise ValueError("source relation journal capacity exceeded")
-        self._source_relation_journal = candidate
+        candidate_store = CanonicalRelationStore()
+        candidate_store.restore(self.store.snapshot())
         for relation_id, (level, record) in sorted(candidate.items()):
-            if relation_id not in self.store._records:
-                self.store.insert(level, record)
+            if relation_id not in candidate_store._records:
+                candidate_store.insert(level, record)
+        self._source_relation_journal = candidate
+        self.store = candidate_store
 
     def observe_event(self, event: NaryEvent) -> str:
         """Append source-grounded n-ary evidence outside candidate rollback state."""
