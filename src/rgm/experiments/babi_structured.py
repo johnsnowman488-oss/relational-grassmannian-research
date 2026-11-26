@@ -88,6 +88,8 @@ class StructuredQuery:
                 raise ValueError("Task 5 queries do not use Task 3 movement anchors")
             if not self.bound_roles or self.answer_role not in {"giver", "object", "recipient"}:
                 raise ValueError("Task 5 requires bound GIVE roles and a valid answer role")
+            if not set(role_names).issubset({"giver", "object", "recipient"}):
+                raise ValueError("Task 5 bound roles must be GIVE roles")
             if self.answer_role in role_names:
                 raise ValueError("answer role cannot also be supplied as a bound role")
 
@@ -106,6 +108,10 @@ class StructuredStory:
         query_ids = [query.query_id for query in self.queries]
         if len(event_ids) != len(set(event_ids)) or len(query_ids) != len(set(query_ids)):
             raise ValueError("event and query IDs must be unique within a story")
+        if any(not event_id.startswith(self.story_id + ":") for event_id in event_ids):
+            raise ValueError("event IDs must be story-scoped source-line identities")
+        if any(not query_id.startswith(self.story_id + ":") for query_id in query_ids):
+            raise ValueError("query IDs must be story-scoped source-line identities")
         if any(query.story_id != self.story_id for query in self.queries):
             raise ValueError("query story identity does not match containing story")
         if any(query.target_event_id is not None and query.target_event_id not in set(event_ids)
