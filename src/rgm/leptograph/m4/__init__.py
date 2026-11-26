@@ -10,6 +10,7 @@ from .soe_bridge import (
     make_native_level_spec,
 )
 from .p6_runtime import P6RuntimeCoupler
+from .evidence import DerivedEvidence, EvidenceStore, EvidenceSummary, NaryEvent, Participant
 from .hierarchical import (
     AbstractPrediction,
     H1_SCHEMA_VERSION,
@@ -34,4 +35,5 @@ __all__ = [
     "EvaluationPartition", "HLAAdapter", "HLBAdapter",
     "HierarchicalEvaluationRunner", "HierarchicalRuntimeDirector",
     "LinearReadout", "ReadoutExample", "P6RuntimeCoupler",
+    "DerivedEvidence", "EvidenceStore", "EvidenceSummary", "NaryEvent", "Participant",
 ]
