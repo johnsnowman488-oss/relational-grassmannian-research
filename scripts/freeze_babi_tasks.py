@@ -126,7 +126,6 @@ def main() -> int:
         "archive_sha256": actual_digest,
         "archive_size_bytes": len(archive),
         "acquisition_url": acquisition_url,
-        "acquisition_url": acquisition_url,
         "selected_file_sha256": {
             key: row["sha256"] for key, row in file_records.items()
         },
