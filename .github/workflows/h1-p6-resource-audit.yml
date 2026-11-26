@@ -1,0 +1,42 @@
+name: H1 P6 complete controller resource audit
+
+on:
+  push:
+    branches:
+      - research/h1-hla-hlb-five-workstreams
+    paths:
+      - "scripts/audit_h1_p6_resource_footprint.py"
+      - "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.json"
+      - ".github/workflows/h1-p6-resource-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p6-resource-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout research implementation
+        uses: actions/checkout@v4
+        with:
+          path: research
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "research[dev]"
+
+      - name: Audit full P6 controller numeric state
+        env:
+          PYTHONPATH: ${{ github.workspace }}/research/src
+        run: |
+          python research/scripts/audit_h1_p6_resource_footprint.py \
+            --output research/artifacts/h1-p6-resource-audit-v1.json
+
+      - name: Upload resource audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: h1-p6-resource-audit-v1
+          path: research/artifacts/h1-p6-resource-audit-v1.json
