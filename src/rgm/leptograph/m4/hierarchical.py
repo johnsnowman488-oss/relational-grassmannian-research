@@ -592,7 +592,9 @@ class HierarchicalRuntimeDirector:
                  relation_records: Sequence[tuple[int, RelationInstance]] = (),
                  learning_relations: Sequence[RelationInstance] = (),
                  nary_events: Sequence[NaryEvent] = (),
-                 eligibility_events: Sequence[EligibilityEvent] = ()) -> dict:
+                 eligibility_events: Sequence[EligibilityEvent] = (),
+                 temporal_error: float | None = None,
+                 task_outcome: tuple[str, float] | None = None) -> dict:
         if not math.isfinite(event_time) or not math.isfinite(observed_at) or event_time < 0 or observed_at < event_time:
             raise ValueError("event_time and observed_at must be finite and observation cannot precede event")
         if observed_at < (self.event_log[-1]["observed_at"] if self.event_log else 0.0):
@@ -638,6 +640,10 @@ class HierarchicalRuntimeDirector:
                 if event.observed_tick != next_tick:
                     raise ValueError("eligibility observation tick must match the exchange tick")
                 self.adapter.learning.observe_eligibility(event)
+            if temporal_error is not None:
+                self.adapter.learning.observe_temporal_error(float(temporal_error), tick=next_tick)
+            if task_outcome is not None:
+                self.adapter.learning.observe_task_error(str(task_outcome[0]), float(task_outcome[1]))
         except Exception:
             self.adapter.restore(before)
             raise
@@ -657,6 +663,8 @@ class HierarchicalRuntimeDirector:
             "learning_errors": {
                 "relational": self.adapter.learning.last_signals.relational,
                 "abstraction": self.adapter.learning.last_signals.abstraction,
+                "temporal": self.adapter.learning.last_signals.temporal,
+                "task": self.adapter.learning.last_signals.task,
             },
             "result": result,
         }
