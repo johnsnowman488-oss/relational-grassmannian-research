@@ -272,8 +272,8 @@ class ErrorRouter:
     def __init__(self, routes: Iterable[ParameterRoute]):
         declared = list(routes)
         self.routes = {r.parameter_family: r for r in declared}
-        if not self.routes or len(self.routes) != len(declared):
-            raise ValueError("at least one unique parameter route is required")
+        if len(self.routes) != len(declared):
+            raise ValueError("parameter-family routes must be unique")
 
     def route(self, signals: LearningSignals) -> dict[str, dict[str, float]]:
         if signals.integrity_failures:
@@ -743,7 +743,11 @@ class LearningRuntime:
     the incumbent learners. It stores typed learning labels, not HLA witnesses.
     """
     def __init__(self, *, eligibility_decay: float = 0.9, eligibility_capacity: int = 4096,
-                 eligibility_config_fingerprint: str = "h1-soe-eligibility-v1"):
+                 eligibility_config_fingerprint: str = "h1-soe-eligibility-v1",
+                 enabled_channels: Iterable[ErrorChannel] | None = None):
+        self.enabled_channels = frozenset(ErrorChannel) if enabled_channels is None else frozenset(enabled_channels)
+        if any(not isinstance(channel, ErrorChannel) for channel in self.enabled_channels):
+            raise ValueError("enabled_channels must contain ErrorChannel values")
         self.schemas = {
             "next_relation_pattern": TargetSchema("next_relation_pattern", Level.L1, "relation", 1, "exact_match"),
             "next_event_role_pattern": TargetSchema("next_event_role_pattern", Level.L1, "relation", 1, "exact_match"),
@@ -756,10 +760,12 @@ class LearningRuntime:
         self.eligibility = EligibilityLedger(decay=eligibility_decay, capacity=eligibility_capacity,
                                              config_fingerprint=eligibility_config_fingerprint)
         self.error_router = ErrorRouter([
-            ParameterRoute("temporal_eligibility", frozenset({ErrorChannel.TEMPORAL})),
-            ParameterRoute("semantic_relation_learner", frozenset({ErrorChannel.RELATIONAL})),
-            ParameterRoute("nary_event_role_learner", frozenset({ErrorChannel.ABSTRACTION})),
-            ParameterRoute("task_outcome_learner", frozenset({ErrorChannel.TASK})),
+            route for route in (
+                ParameterRoute("temporal_eligibility", frozenset({ErrorChannel.TEMPORAL})),
+                ParameterRoute("semantic_relation_learner", frozenset({ErrorChannel.RELATIONAL})),
+                ParameterRoute("nary_event_role_learner", frozenset({ErrorChannel.ABSTRACTION})),
+                ParameterRoute("task_outcome_learner", frozenset({ErrorChannel.TASK})),
+            ) if route.allowed_channels.issubset(self.enabled_channels)
         ])
         self._observation_journal: list[dict] = []
         self._prediction_sequence = 0
@@ -898,6 +904,7 @@ class LearningRuntime:
     def snapshot(self) -> dict:
         return {
             "schema": "h1-learning-runtime-v1",
+            "enabled_channels": sorted(channel.value for channel in self.enabled_channels),
             "predictions": self.predictions.snapshot(),
             "relations": self.relations.snapshot(),
             "event_roles": self.event_roles.snapshot(),
@@ -914,6 +921,8 @@ class LearningRuntime:
     def restore(self, state: Mapping) -> None:
         if state.get("schema") != "h1-learning-runtime-v1":
             raise ValueError("learning runtime checkpoint schema mismatch")
+        if frozenset(state.get("enabled_channels", ())) != frozenset(c.value for c in self.enabled_channels):
+            raise ValueError("learning ablation configuration mismatch")
         local_journal = list(self._observation_journal)
         trusted_count = int(state["journal_count"])
         checkpoint_journal = deepcopy(list(state.get("observation_journal", ())))
