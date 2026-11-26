@@ -113,3 +113,11 @@ def test_task5_query_contract_rejects_answer_role_as_input():
             bound_roles=(("object", "football"), ("recipient", "fred")),
             answer_role="recipient", observed_at=4, source_ref="s:4",
         )
+
+def test_nary_give_event_requires_all_three_roles():
+    with pytest.raises(ValueError, match="GIVE event roles"):
+        StructuredEvent(
+            "story-1:7", "GIVE",
+            (("giver", "mary"), ("object", "football")),
+            7, 7, "story-1:7",
+        )
