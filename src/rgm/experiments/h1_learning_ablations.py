@@ -43,6 +43,8 @@ def _count_nested(snapshot: dict) -> int:
 
 def _run_variant(name: str, enabled: frozenset[ErrorChannel]) -> dict[str, Any]:
     learner = LearningRuntime(enabled_channels=enabled)
+    learner.fit_level0_predictor([[0.0, 0.0]], partition="fit")
+    learner.fit_context_transitions([("home", "home")], partition="fit")
     learner.fit_relation_patterns([_relation("fit-relation", "located_at")], partition="fit")
     learner.fit_event_role_patterns([_event("fit-event", "gave", "fred")], partition="fit")
 
@@ -60,12 +62,22 @@ def _run_variant(name: str, enabled: frozenset[ErrorChannel]) -> dict[str, Any]:
     )
     learner.advance_temporal(1)
     learner.observe_eligibility(eligibility)
+    level0_error = learner.observe_level0_features(
+        [1.0, 0.0], event_time=1.0, observed_at=1.0, tick=1,
+    )
+    context_error = learner.observe_context_transition(
+        "home", "work", source_id="context-observation",
+        event_time=1.0, observed_at=1.0, tick=1,
+    )
     learner.observe_temporal_error(0.5, tick=1)
     learner.observe_task_error("synthetic-task", 1.0)
 
     relation_count = _count_nested(learner.relations.snapshot())
     role_count = _count_nested(learner.event_roles.snapshot())
+    context_count = _count_nested(learner.context_transitions.snapshot())
     temporal_updates = len(learner.temporal_credit.snapshot()["weights"])
+    level0_updates = learner.level0.update_count
+    context_updates = context_count - 1
     task_updates = len(learner.task_outcomes.outcomes.get("synthetic-task", ()))
     score_by_target = {
         learner.predictions.get(score.prediction_id).target_name: score.value
@@ -77,10 +89,15 @@ def _run_variant(name: str, enabled: frozenset[ErrorChannel]) -> dict[str, Any]:
         "issued_prediction_count": len(issued),
         "relation_error": relation_error,
         "event_role_error": role_error,
+        "level0_error": level0_error,
+        "context_error": context_error,
         "relation_pattern_observations": relation_count,
         "event_role_pattern_observations": role_count,
         "relation_online_updates": relation_count - 1,
         "event_role_online_updates": role_count - 1,
+        "context_transition_observations": context_count,
+        "context_transition_online_updates": context_updates,
+        "level0_feature_updates": level0_updates,
         "temporal_parameter_updates": temporal_updates,
         "task_outcome_updates": task_updates,
         "scored_prediction_errors": score_by_target,
@@ -102,26 +119,27 @@ def run_learning_ablation_campaign() -> dict[str, Any]:
     rows = [_run_variant(name, enabled) for name, enabled in variants]
     by_name = {row["variant"]: row for row in rows}
     expected = {
-        "full": (1, 1, 1, 1),
-        "without_temporal": (1, 1, 0, 1),
-        "without_relational": (0, 1, 1, 1),
-        "without_abstraction": (1, 0, 1, 1),
-        "without_task": (1, 1, 1, 0),
-        "no_learning": (0, 0, 0, 0),
+        "full": (1, 1, 1, 1, 1, 1),
+        "without_temporal": (1, 1, 1, 1, 0, 0),
+        "without_relational": (0, 1, 1, 1, 1, 1),
+        "without_abstraction": (1, 0, 1, 1, 0, 1),
+        "without_task": (1, 1, 1, 1, 1, 0),
+        "no_learning": (0, 0, 0, 0, 0, 0),
     }
     for name, values in expected.items():
         row = by_name[name]
         observed = (
             row["relation_online_updates"], row["event_role_online_updates"],
+            row["context_transition_online_updates"], row["level0_feature_updates"],
             row["temporal_parameter_updates"], row["task_outcome_updates"],
         )
         if observed != values:
             raise AssertionError(f"{name} ablation update isolation failed: {observed} != {values}")
     manifest = {
         "protocol": "H1-learning-channel-ablation-v1",
-        "data": "deterministic synthetic typed relation and n-ary event-role sequence",
-        "fit_partition": "one relation pattern and one n-ary event-role pattern",
-        "evaluation": "one mismatching relation, one mismatching n-ary event, one temporal error, one task error",
+        "data": "deterministic synthetic L0 feature, L1 typed relation and n-ary event-role, and L2 context sequence",
+        "fit_partition": "one feature mean, one relation pattern, one event-role pattern, and one context transition",
+        "evaluation": "one feature residual, one mismatching relation, one mismatching n-ary event, one context transition error, one temporal credit signal, one task error",
         "variants": [name for name, _ in variants],
         "claim_boundary": "mechanism isolation only; not bAbI or generalization performance",
     }
