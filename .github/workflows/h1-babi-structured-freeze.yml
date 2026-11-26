@@ -3,13 +3,17 @@ name: bAbI Tasks 3 and 5 source freeze
 on:
   workflow_dispatch:
   pull_request:
-    branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
+    branches: ["research/h0-shared-hierarchy-contract-soe-bridge", "research/h1-learning-runtime-integration"]
     paths:
       - "scripts/freeze_babi_tasks.py"
       - "docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json"
       - "src/rgm/experiments/babi_structured.py"
       - "tests/test_babi_structured.py"
       - "tests/test_babi_freeze.py"
+      - "src/rgm/experiments/babi_annotation.py"
+      - "scripts/annotate_babi_structured.py"
+      - "tests/test_babi_annotation.py"
+      - "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_0.md"
       - ".github/workflows/h1-babi-structured-freeze.yml"
 
 permissions:
@@ -46,12 +50,16 @@ jobs:
             tests/test_hlg_evidence_lifecycle.py \
             tests/test_hlg_integrated_contract_acceptance.py
 
-      - name: Upload frozen source splits and updated manifest
+      - name: Build source-indexed structured annotations and audit fit/validation
+        run: python scripts/annotate_babi_structured.py
+
+      - name: Upload frozen source splits, annotations and updated manifest
         uses: actions/upload-artifact@v4
         with:
           name: babi-tasks-3-5-frozen-source
           path: |
             data/babi-v1.2/
+            artifacts/babi-structured/
             docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json
           if-no-files-found: error
           compression-level: 6
