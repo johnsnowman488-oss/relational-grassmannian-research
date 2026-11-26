@@ -206,13 +206,13 @@ class EvidenceStore:
                 out = []
                 for witness in item.witness_ids:
                     out.extend(self.recover(witness, observation_cutoff=observation_cutoff, _seen=seen))
-                return tuple({e.event_id: e for e in out}[k] for k in sorted({e.event_id for e in out}))
+                return tuple(dict((e.event_id, e) for e in out).values())
             if evidence_id in self._summaries:
                 summary = self._summaries[evidence_id]
                 out = []
                 for source in summary.source_ids:
                     out.extend(self.recover(source, observation_cutoff=observation_cutoff, _seen=seen))
-                return tuple({e.event_id: e for e in out}[k] for k in sorted({e.event_id for e in out}))
+                return tuple(dict((e.event_id, e) for e in out).values())
             raise KeyError(f"unknown evidence reference: {evidence_id}")
         finally:
             seen.remove(evidence_id)
