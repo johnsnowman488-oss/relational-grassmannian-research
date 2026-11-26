@@ -33,9 +33,13 @@ from rgm.memory.soe import SOEMemory
 HLB_CAPACITY = 65536
 ELIGIBILITY_CAPACITY = 131072
 SOE_DT = 0.01
+# The pinned H0 native chain requires equal native state dimensions across
+# adjacent levels. Preserve the three level-specific feature semantics in a
+# common four-coordinate embedding, padding only unused trailing coordinates.
+# Each level keeps its own two-channel SOE decay configuration.
 SOE_BANK_CONFIG = (
-    (2, (0.1, 0.4)),
-    (3, (0.2, 0.7)),
+    (4, (0.1, 0.4)),
+    (4, (0.2, 0.7)),
     (4, (0.05, 0.3)),
 )
 CHANNELS = {
@@ -193,12 +197,12 @@ def _features(task_id: int, item: Any, previous_context: str,
     if isinstance(item, StructuredEvent):
         roles = item.role_map()
         unique_entities = len(set(roles.values()))
-        l0 = [EVENT_CODE[item.event_type], min(1.0, len(roles) / 3.0)]
-        l1 = [min(1.0, len(roles) / 3.0), min(1.0, unique_entities / 3.0), context_code]
+        l0 = [EVENT_CODE[item.event_type], min(1.0, len(roles) / 3.0), 0.0, 0.0]
+        l1 = [min(1.0, len(roles) / 3.0), min(1.0, unique_entities / 3.0), context_code, 0.0]
         l2 = [task_id / 5.0, index / max(total, 1), context_code, 0.0]
     else:
-        l0 = [1.0, 0.0]
-        l1 = [0.0, 0.0, context_code]
+        l0 = [1.0, 0.0, 0.0, 0.0]
+        l1 = [0.0, 0.0, context_code, 0.0]
         l2 = [task_id / 5.0, index / max(total, 1), context_code, 1.0]
     return {0: l0, 1: l1, 2: l2}
 
