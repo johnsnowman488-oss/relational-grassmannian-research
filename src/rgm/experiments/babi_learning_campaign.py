@@ -668,40 +668,6 @@ def _fit_and_process(
     return output
 
 
-def run_campaign(task_id: int, architecture: str, data_root: Path,
-                 annotation_root: Path, confirmatory_root: Path,
-                 output_path: Path, seeds: list[int],
-                 gfe_module, native_library) -> dict[str, Any]:
-    warm = _load_stories(
-        annotation_root / f"task{task_id}-warm-start.inputs.jsonl",
-        annotation_root / f"task{task_id}-warm-start.labels.jsonl",
-    )
-    online = _load_stories(
-        annotation_root / f"task{task_id}-online-adaptation.inputs.jsonl",
-        annotation_root / f"task{task_id}-online-adaptation.labels.jsonl",
-    )
-    validation = _load_stories(
-        annotation_root / f"task{task_id}-validation.inputs.jsonl",
-        annotation_root / f"task{task_id}-validation.labels.jsonl",
-    )
-    confirmatory = _load_stories(
-        confirmatory_root / f"task{task_id}-confirmatory.inputs.jsonl"
-    )
-    native_path = Path(gfe_module.__file__).resolve().parent.parent / "c++ core" / "build-shared" / "libgfe_core.so"
-    campaign_manifest_path = Path("docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json")
-    source_manifest = {
-        "annotation_manifest_sha256": hashlib.sha256(
-            (annotation_root / "annotation-manifest.json").read_bytes()
-        ).hexdigest(),
-        "confirmatory_manifest_sha256": hashlib.sha256(
-            (confirmatory_root / "confirmatory-input-manifest.json").read_bytes()
-        ).hexdigest(),
-        "campaign_manifest_sha256": hashlib.sha256(campaign_manifest_path.read_bytes()).hexdigest()
-            if campaign_manifest_path.exists() else None,
-        "native_runtime_commit": __import__("os").environ.get("GFE_ABERCONICS_COMMIT"),
-        "native_library_sha256": hashlib.sha256(native_path.read_bytes()).hexdigest()
-            if native_path.exists() else None,
-    }
 def _write_campaign_checkpoint(
     output_path: Path, *, task_id: int, architecture: str,
     seeds: list[int], results: list[dict[str, Any]],
@@ -796,4 +762,3 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         seeds=seeds, results=results,
         expected_run_count=expected_run_count, complete=True,
     )
-
