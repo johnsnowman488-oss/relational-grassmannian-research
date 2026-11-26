@@ -278,13 +278,22 @@ def _query_events(adapter, architecture: str, story_id: str,
     if architecture == "HLA":
         return [event for event in caller_events if event.observed_at <= cutoff]
     recovered = []
-    for event_id in adapter.evidence.event_ids:
-        if not event_id.startswith(story_id + ":"):
+    for evidence_id in adapter.evidence.event_ids:
+        if not evidence_id.startswith(story_id + ":"):
             continue
-        event = adapter.recover_evidence(event_id, observation_cutoff=float(cutoff))
-        if event is not None:
+        # Evidence recovery resolves a reference to one or more exact source
+        # events. Even a direct source reference is returned as a singleton
+        # tuple, so consume the documented collection rather than treating it
+        # as a single NaryEvent.
+        source_events = adapter.recover_evidence(
+            evidence_id, observation_cutoff=float(cutoff)
+        )
+        for event in source_events:
             recovered.append(_from_nary(event))
-    return sorted(recovered, key=lambda event: (event.observed_at, event.event_time, event.event_id))
+    return sorted(
+        {event.event_id: event for event in recovered}.values(),
+        key=lambda event: (event.observed_at, event.event_time, event.event_id),
+    )
 
 
 def _derive_support(story: StructuredStory, query: StructuredQuery) -> list[str]:
