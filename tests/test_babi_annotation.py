@@ -139,3 +139,21 @@ def test_task3_unanchorable_query_fails_closed():
             "s", 2, "Where was the apple before the kitchen?",
             [_event(3, "s", 1, "Mary went to the kitchen.")],
         )
+
+
+
+def test_task5_pass_is_not_a_give_witness():
+    from rgm.experiments.babi_annotation import _event
+    from rgm.experiments.babi_structured import task5_answer_role
+
+    handed = _event(5, "task5/fit/story000008", 10, "Bill handed the apple to Jeff.")
+    passed = _event(5, "task5/fit/story000008", 13, "Bill passed the football to Jeff.")
+    assert handed.event_type == "GIVE"
+    assert passed.event_type == "PASS"
+    answer = task5_answer_role(
+        (handed, passed),
+        bound_roles={"giver": "bill", "recipient": "jeff"},
+        answer_role="object",
+        observation_cutoff=14,
+    )
+    assert answer == ("apple",)
