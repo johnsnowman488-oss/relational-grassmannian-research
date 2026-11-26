@@ -420,6 +420,17 @@ class HLBAdapter:
         self._source_relation_journal[record.instance_id] = (level, record)
         return self.store.insert(level, record)
 
+    @property
+    def unindexed_source_relation_ids(self) -> tuple[str, ...]:
+        return tuple(sorted(
+            relation_id for relation_id in self._source_relation_journal
+            if relation_id not in self.store._records
+        ))
+
+    def recover_source_relation(self, relation_id: str) -> tuple[int, RelationInstance]:
+        """Recover the exact observed relation even when its index was capacity-blocked."""
+        return self._source_relation_journal[relation_id]
+
     def source_relation_checkpoint(self) -> dict:
         return {
             "schema": "hlg-source-relations-v1",
