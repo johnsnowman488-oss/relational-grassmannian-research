@@ -985,7 +985,11 @@ class LearningRuntime:
                 if item["error"] > 0:
                     self.task_outcomes.observe_error(item["task_key"], item["error"])
             elif item["kind"] == "temporal_error":
-                self.observe_temporal_error(item["error"], tick=int(item["tick"]))
+                values = self.eligibility.values(prediction_cutoff_tick=int(item["tick"]))
+                signals = LearningSignals(temporal=float(item["error"]))
+                routed = self.error_router.route(signals)
+                if "temporal_eligibility" in routed:
+                    self.temporal_credit.update(float(item["error"]), values)
             elif item["kind"] == "eligibility":
                 event = EligibilityEvent(**item["value"])
                 if event.observed_tick > self.eligibility._last_tick:
