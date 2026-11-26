@@ -337,3 +337,12 @@ No H1 results or claims are upgraded by this design document. The P6 stability e
 - Failure diagnosis: the late-arrival fixture asked for an object's location after two MOVE events but omitted the PICK_UP event that makes the object follow the actor. The solver correctly returned unknown. The fixture now includes PICK_UP before movement (commit `ed628152596b9e9995941c333dfe6cade93d4f81`).
 - This was a fixture defect, not a solver failure. The later promotion-receipt and evidence-watermark hardening was added after the failing run.
 - **Current status:** latest changes have not yet been exercised by a completed CI run. The failed run must not be treated as acceptance of the latest head. Repository CI has a manual `workflow_dispatch` entry and includes the H1 branch in its push filter.
+
+### Latest CI reconciliation — 2026-11-26
+
+- On head `62bab60d3e44542fff97c5573e2f2d1d08b1d8cf`, repository unit/invariant CI passed on Python 3.10 and 3.12: [45828409811](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45828409811) (PR) and [45828397709](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45828397709) (push).
+- H1 hierarchical adapter/lifecycle tests passed on Python 3.10 and 3.12: [45828409791](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45828409791).
+- P6 controller tests passed: [45828410688](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45828410688).
+- The compiled native library built successfully and matched the pinned SHA-256, but the native smoke job then failed because its legacy test harness still called `lifecycle.promote()` without the newly required validation receipt. This was a harness/API migration failure; the native runtime smoke assertions were not reached.
+- Updated `scripts/h1_native_runtime_smoke.py` to provide an explicit, fingerprinted software-integration validation receipt for the smoke-only promotion/rollback exercise (commit `3a479aed04bd17eaf49d0b92f359858883091cae`). This is not a model-performance validation claim.
+- The corrected native smoke script has not yet been rerun. The native smoke workflow already supports manual dispatch. Do not mark compiled-runtime evidence-lifecycle acceptance complete until that rerun passes.
