@@ -601,14 +601,12 @@ def _fit_and_process(
     global_clock = 0
     warm_metrics, global_clock = _process_phase(
         adapter, director, architecture, task_id, warm_order,
-        {story.story_id: labels for story, labels in warm_order},
         "warm_start_dynamics", False, "babi-v1.2-en10k-fit",
         soe_fingerprint, global_clock,
     )
     model_before_online = _model_state(adapter.learning)
     online_metrics, global_clock = _process_phase(
         adapter, director, architecture, task_id, online_order,
-        {story.story_id: labels for story, labels in online_order},
         "online_adaptation", True, "babi-v1.2-en10k-fit",
         soe_fingerprint, global_clock,
     )
@@ -621,7 +619,6 @@ def _fit_and_process(
 
     validation_metrics, global_clock = _process_phase(
         adapter, director, architecture, task_id, validation_order,
-        {story.story_id: labels for story, labels in validation_order},
         "validation", False, "babi-v1.2-en10k-validation",
         soe_fingerprint, global_clock,
     )
@@ -672,9 +669,9 @@ def _fit_and_process(
             "one_native_step_per_tick": runtime.step_count == adapter.ticks,
             "hlb_evidence_count": len(adapter.evidence.event_ids) if architecture == "HLB" else 0,
             "hlb_relation_count": (
-            adapter.store.count if architecture == "HLB" and not callable(adapter.store.count)
-            else adapter.store.count() if architecture == "HLB" else 0
-        ),
+                (adapter.store.count() if callable(adapter.store.count) else adapter.store.count)
+                if architecture == "HLB" else 0
+            ),
             "eligibility_values": len(adapter.learning.eligibility.values(prediction_cutoff_tick=adapter.ticks)),
             "temporal_credit_state_sha256": _digest_json(adapter.learning.temporal_credit.snapshot()),
             "soe_configuration_fingerprint": soe_fingerprint,
