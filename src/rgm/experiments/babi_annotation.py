@@ -27,9 +27,9 @@ def _event(task_id: int, story_id: str, line_no: int, sentence: str) -> Structur
     source_ref = f"{story_id}#line={line_no}"
     event_id = f"{story_id}:line{line_no:06d}"
     common_patterns = (
-        ("MOVE", r"(?P<actor>[A-Za-z]+)\\s+(?:went(?:\\s+back)?|moved|travelled|traveled|journeyed)\\s+to\\s+the\\s+(?P<destination>.+?)\\.?"),
-        ("PICK_UP", r"(?P<actor>[A-Za-z]+)\\s+(?:picked\\s+up|grabbed|took|got)\\s+the\\s+(?P<object>.+?)(?:\\s+there)?\\.?"),
-        ("DROP", r"(?P<actor>[A-Za-z]+)\\s+(?:dropped|left|discarded|put\\s+down)\\s+the\\s+(?P<object>.+?)(?:\\s+there)?\\.?"),
+        ("MOVE", r"(?P<actor>[A-Za-z]+)\s+(?:went(?:\s+back)?|moved|travelled|traveled|journeyed)\s+to\s+the\s+(?P<destination>.+?)\.?"),
+        ("PICK_UP", r"(?P<actor>[A-Za-z]+)\s+(?:picked\s+up|grabbed|took|got)\s+the\s+(?P<object>.+?)(?:\s+there)?\.?"),
+        ("DROP", r"(?P<actor>[A-Za-z]+)\s+(?:dropped|left|discarded|put\s+down)\s+the\s+(?P<object>.+?)(?:\s+there)?\.?"),
     )
     for kind, pattern in common_patterns:
         match = re.fullmatch(pattern, sentence.strip(), flags=re.IGNORECASE)
@@ -38,8 +38,8 @@ def _event(task_id: int, story_id: str, line_no: int, sentence: str) -> Structur
             return StructuredEvent(event_id, kind, tuple(roles.items()), line_no, line_no, source_ref)
     if task_id == 5:
         give_patterns = (
-            r"(?P<giver>[A-Za-z]+)\\s+(?:gave|handed|passed)\\s+the\\s+(?P<object>.+?)\\s+to\\s+(?P<recipient>[A-Za-z]+)\\.?",
-            r"(?P<recipient>[A-Za-z]+)\\s+was\\s+(?:given|handed|passed)\\s+the\\s+(?P<object>.+?)\\s+by\\s+(?P<giver>[A-Za-z]+)\\.?",
+            r"(?P<giver>[A-Za-z]+)\s+(?:gave|handed|passed)\s+the\s+(?P<object>.+?)\s+to\s+(?P<recipient>[A-Za-z]+)\.?",
+            r"(?P<recipient>[A-Za-z]+)\s+was\s+(?:given|handed|passed)\s+the\s+(?P<object>.+?)\s+by\s+(?P<giver>[A-Za-z]+)\.?",
         )
         for pattern in give_patterns:
             match = re.fullmatch(pattern, sentence.strip(), flags=re.IGNORECASE)
