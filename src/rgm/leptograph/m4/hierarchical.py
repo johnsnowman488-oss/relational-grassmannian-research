@@ -281,13 +281,13 @@ class HLAAdapter:
         probe_learning = LearningRuntime()
         probe_learning.restore(state["learning"])
 
-    def restore(self, state: Mapping) -> None:
+    def restore(self, state: Mapping, *, preserve_observations: bool = False) -> None:
         self.validate_snapshot(state)
         _restore_memories(self.bridge, state["soe_banks"])
         for readout, candidate in zip(self.readouts, state["readouts"]):
             readout.restore(candidate)
         self.ticks, self.abstentions = int(state["ticks"]), int(state["abstentions"])
-        self.learning.restore(state["learning"])
+        self.learning.restore(state["learning"], preserve_observations=preserve_observations)
 
 
 class CanonicalRelationStore:
@@ -560,7 +560,7 @@ class HLBAdapter:
         probe_learning = LearningRuntime()
         probe_learning.restore(state["learning"])
 
-    def restore(self, state: Mapping) -> None:
+    def restore(self, state: Mapping, *, preserve_observations: bool = False) -> None:
         self.validate_snapshot(state)
         restored_store = CanonicalRelationStore()
         restored_store.restore(state["store"])
@@ -574,7 +574,7 @@ class HLBAdapter:
         for readout, candidate in zip(self.readouts, state["readouts"]):
             readout.restore(candidate)
         self.ticks, self.abstentions = int(state["ticks"]), int(state["abstentions"])
-        self.learning.restore(state["learning"])
+        self.learning.restore(state["learning"], preserve_observations=preserve_observations)
 
 
 class HierarchicalRuntimeDirector:
@@ -695,13 +695,18 @@ class HierarchicalRuntimeDirector:
         if int(state["event_tick"]) < 0:
             raise ValueError("director event tick cannot be negative")
 
-    def restore(self, state: Mapping) -> None:
+    def restore(self, state: Mapping, *, preserve_observations: bool = False) -> None:
         self.validate_snapshot(state)
         local_journal = copy.deepcopy(self._observation_journal)
         watermark = int(state["observation_watermark"])
         checkpoint_journal = copy.deepcopy(list(state["observation_journal"]))
-        newer = local_journal[watermark:] if len(local_journal) >= watermark else []
-        self.adapter.restore(state["adapter"])
+        if preserve_observations and len(local_journal) >= watermark:
+            if local_journal[:watermark] != checkpoint_journal:
+                raise ValueError("director observation journal prefix differs from checkpoint")
+            newer = local_journal[watermark:]
+        else:
+            newer = []
+        self.adapter.restore(state["adapter"], preserve_observations=preserve_observations)
         self.event_tick = int(state["event_tick"])
         self.event_log = copy.deepcopy(list(state["event_log"]))
         self._observation_journal = checkpoint_journal + newer
@@ -751,7 +756,7 @@ class CompositeLifecycle:
         self._rollback_point = None
         return copy.deepcopy(state)
 
-    def restore(self, state: Mapping) -> None:
+    def restore(self, state: Mapping, *, preserve_observations: bool = False) -> None:
         if state.get("schema_version") != H1_SCHEMA_VERSION:
             raise ValueError("composite checkpoint schema mismatch")
         fingerprint_payload = {
@@ -769,14 +774,14 @@ class CompositeLifecycle:
             raise TypeError("persistent native runtime must expose restore(checkpoint)")
         # Native restore is required to be internally compute-then-commit (M4 ABI).
         runtime.restore(state["native"])
-        self.director.restore(state["director"])
+        self.director.restore(state["director"], preserve_observations=preserve_observations)
         self.version = int(state["version"])
 
     def rollback(self) -> None:
         target = self._rollback_point if self._rollback_point is not None else self._trusted
         if target is None:
             raise RuntimeError("no trusted composite checkpoint exists")
-        self.restore(target)
+        self.restore(target, preserve_observations=True)
         self._trusted = copy.deepcopy(target)
         self._rollback_point = None
 
