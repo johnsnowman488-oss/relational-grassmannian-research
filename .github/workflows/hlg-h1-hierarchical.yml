@@ -1,0 +1,30 @@
+name: H1 hierarchical adapters and lifecycle
+
+on:
+  pull_request:
+    branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hierarchical-tests:
+    name: H1 tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install package and test dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Run H1 hierarchical tests
+        run: python -m pytest tests/test_hlg_h1_hierarchical.py tests/test_hlg_m4_soe_bridge.py
+      - name: Run complete repository suite
+        run: python -m pytest

@@ -51,15 +51,10 @@ An earlier run exposed one test-fixture inconsistency: a silent-cycle test pre-p
 - H0-05 silent-cycle semantics: **PASS**
 - H0-06 native evolved u distinguished from Python SOE: **PASS**
 - H0-07 fake-runtime synchronisation and failure-atomicity tests: **PASS**
-- H0-08 HLA and HLB adapters both consume the common API: **PENDING** — the shared bridge is architecture-neutral, but the separate HLA/HLB adapter work packages have not yet been implemented against it.
+- H0-08 HLA and HLB adapters both consume the common API: **PASS** — both adapters were instantiated against the compiled persistent C++ M4 runtime and exercised through the common SOE bridge in [workflow 45723216234](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45723216234).
 
-## Next
+## Closure
 
-Proceed to the parallel implementation work packages:
-1. HLA hierarchical adapter and learned upper-level readouts.
-2. HLB hierarchical persistent relation store and witness-preserving composition.
-3. Native runtime bridge integration into the execution director and composite checkpoint.
-4. Common hierarchical task/evaluation runner.
-5. P6 composite lifecycle and rollback.
+H0-01 through H0-08 are accepted. The downstream H1 five-workstream implementation, independent hierarchical task campaigns, and P6 finite-horizon runtime campaign are tracked in [HLG H1 Five Workstreams Ledger](HLG_H1_FIVE_WORKSTREAMS_LEDGER.md). H0 remains the shared architecture-neutral contract; HLA/HLB policy and P6 control remain outside the native C++ ABI.
 
-Do not use the existing flat confirmatory test partition to tune the hierarchical adapters. Freeze new validation and confirmatory partitions before the new hierarchical campaign.
+The compiled-runtime smoke test establishes that both HLA and HLB can use the persistent M4 runtime through the frozen bridge. It does not establish global native-state stability; the P6 ledger records the finite-horizon result and its explicit native-state claim boundary.

@@ -1,0 +1,363 @@
+{
+  "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
+  "status": "official source bytes frozen; structured-event annotation freeze pending",
+  "benchmark": {
+    "dataset": "bAbI Question Answering 20 Tasks",
+    "publisher_namespace": "facebook/babi_qa",
+    "version": "1.2.0",
+    "license": "CC BY 3.0",
+    "paper": "Jason Weston et al., Towards AI-Complete Question Answering: A Set of Prerequisite Toy Tasks, arXiv:1502.05698",
+    "dataset_builder_script_commit": "07549ca",
+    "dataset_builder_script": "https://huggingface.co/datasets/facebook/babi_qa/blob/main/babi_qa.py",
+    "canonical_archive": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
+    "homepage": "https://research.fb.com/downloads/babi/",
+    "configuration": "en-10k",
+    "archive_path_prefix": "tasks_1-20_v1-2/en-valid-10k/",
+    "byte_freeze": {
+      "status": "VERIFIED",
+      "archive_sha256": "84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c",
+      "archive_size_bytes": 11745123,
+      "selected_file_sha256": {
+        "task3_train_source": "d125e8d2987ef764d107bf9f23223bfd166400581c1ace418533b540fd19592f",
+        "task3_test": "17795c977100baf8188f386522ae301b62d6c1a13efc01b3aea781e588b4d57f",
+        "task5_train_source": "2506910935b701bac64fc8b1d7ff12bd8d0f47ceefca183454282bec784c12a5",
+        "task5_test": "ec825c1c8a76e63a31f0d7a7763cd63740e98332fa9bdf246a19068949bd5f97",
+        "task3_train": "cdad5e4154693d833911c3093e0dcd118b1853cfab89a9a3a5123c8e1d03b63e",
+        "task3_validation": "5e8460f07f50f70ae845f43ea40012bf9d7633154addf85a3e7f1181cbf1de34",
+        "task5_train": "cac8d78eeb2a540e7d61b94b6331d20b7f6c7d9d492bc6f3215ea761ad868782",
+        "task5_validation": "68ac25abdc15ecb64c474b74d4053d617fb811900c97fac49f5fabf4f5282923"
+      },
+      "rule": "Verify the official v1.2 en-10k archive by complete SHA-256 and byte size. Preserve official train/test source files; derive validation deterministically from whole training story blocks and hash every source and derived split.",
+      "acquisition_utility": "scripts/freeze_babi_tasks.py",
+      "selected_files": {
+        "task3_train_source": {
+          "local_path": "data/babi-v1.2/qa3_train_source.txt",
+          "source": "official en-10k train source",
+          "sha256": "d125e8d2987ef764d107bf9f23223bfd166400581c1ace418533b540fd19592f",
+          "size_bytes": 5317883,
+          "line_count": 158786,
+          "story_count_by_line_reset": 2000
+        },
+        "task3_test": {
+          "local_path": "data/babi-v1.2/qa3_test.txt",
+          "source": "official en-10k test source",
+          "sha256": "17795c977100baf8188f386522ae301b62d6c1a13efc01b3aea781e588b4d57f",
+          "size_bytes": 526527,
+          "line_count": 15710,
+          "story_count_by_line_reset": 200
+        },
+        "task5_train_source": {
+          "local_path": "data/babi-v1.2/qa5_train_source.txt",
+          "source": "official en-10k train source",
+          "sha256": "2506910935b701bac64fc8b1d7ff12bd8d0f47ceefca183454282bec784c12a5",
+          "size_bytes": 2122413,
+          "line_count": 64532,
+          "story_count_by_line_reset": 2000
+        },
+        "task5_test": {
+          "local_path": "data/babi-v1.2/qa5_test.txt",
+          "source": "official en-10k test source",
+          "sha256": "ec825c1c8a76e63a31f0d7a7763cd63740e98332fa9bdf246a19068949bd5f97",
+          "size_bytes": 207037,
+          "line_count": 6290,
+          "story_count_by_line_reset": 200
+        },
+        "task3_train": {
+          "local_path": "data/babi-v1.2/qa3_train.txt",
+          "source": "derived whole-story fit partition",
+          "sha256": "cdad5e4154693d833911c3093e0dcd118b1853cfab89a9a3a5123c8e1d03b63e",
+          "size_bytes": 4770046,
+          "line_count": 142400,
+          "story_count_by_line_reset": 1800
+        },
+        "task3_validation": {
+          "local_path": "data/babi-v1.2/qa3_valid.txt",
+          "source": "derived whole-story validation partition",
+          "sha256": "5e8460f07f50f70ae845f43ea40012bf9d7633154addf85a3e7f1181cbf1de34",
+          "size_bytes": 547837,
+          "line_count": 16386,
+          "story_count_by_line_reset": 200
+        },
+        "task5_train": {
+          "local_path": "data/babi-v1.2/qa5_train.txt",
+          "source": "derived whole-story fit partition",
+          "sha256": "cac8d78eeb2a540e7d61b94b6331d20b7f6c7d9d492bc6f3215ea761ad868782",
+          "size_bytes": 1908959,
+          "line_count": 58054,
+          "story_count_by_line_reset": 1800
+        },
+        "task5_validation": {
+          "local_path": "data/babi-v1.2/qa5_valid.txt",
+          "source": "derived whole-story validation partition",
+          "sha256": "68ac25abdc15ecb64c474b74d4053d617fb811900c97fac49f5fabf4f5282923",
+          "size_bytes": 213454,
+          "line_count": 6478,
+          "story_count_by_line_reset": 200
+        }
+      },
+      "derived_validation_partitions": {
+        "task3": {
+          "source_story_count": 2000,
+          "fit_story_count": 1800,
+          "validation_story_count": 200,
+          "validation_fraction": 0.1,
+          "validation_seed": "HLG-BABI-T3-T5-VALIDATION-v1",
+          "split_unit": "whole story block; all questions/support lines remain together"
+        },
+        "task5": {
+          "source_story_count": 2000,
+          "fit_story_count": 1800,
+          "validation_story_count": 200,
+          "validation_fraction": 0.1,
+          "validation_seed": "HLG-BABI-T3-T5-VALIDATION-v1",
+          "split_unit": "whole story block; all questions/support lines remain together"
+        }
+      },
+      "freeze_artifact": {
+        "workflow_run_id": 45832843743,
+        "workflow_run_url": "https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45832843743",
+        "artifact_id": 15123500490,
+        "artifact_name": "babi-tasks-3-5-frozen-source",
+        "note": "Verified artifact generated after the structured input schema was added; contains the eight frozen source/derived split files and updated manifest."
+      }
+    },
+    "acquisition_url": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
+    "archive_mirror_note": "The Hugging Face staff-hosted archive object has a distinct LFS digest but its CDN currently returns 403. The official v1.2 S3 archive contains the en-10k Task 3/5 train/test splits. The convenience en-valid-10k split is not used; validation is derived deterministically from whole training stories.",
+    "acquisition_fallbacks": [],
+    "archive_object_commit": null,
+    "archive_object_revision": "official v1.2 archive mirrored by S3; immutable SHA-256 pinned",
+    "partition_policy": {
+      "source_splits": "Official en-10k train and test files. The official test split is byte-preserved and never repartitioned.",
+      "fit": "90% of complete source training story blocks, selected deterministically by SHA-256 ranking",
+      "validation": "10% of complete source training story blocks, selected by frozen seed HLG-BABI-T3-T5-VALIDATION-v1; derived, not upstream-provided",
+      "confirmatory": "Official test split only; accessed once after configuration freeze",
+      "leakage": "All lines, questions and supporting facts within one story remain in the same fit or validation partition."
+    }
+  },
+  "selected_tasks": [
+    {
+      "task_id": 3,
+      "name": "Three Supporting Facts",
+      "train": "data/babi-v1.2/qa3_train.txt",
+      "validation": "data/babi-v1.2/qa3_valid.txt",
+      "test": "data/babi-v1.2/qa3_test.txt",
+      "reasoning_target": "temporal object-state reconstruction from a multi-event story",
+      "oracle_event_schema": {
+        "MOVE": {
+          "actor": "entity_id",
+          "destination": "location_id",
+          "event_id": "source_line_id",
+          "event_time": "story_order"
+        },
+        "PICK_UP": {
+          "actor": "entity_id",
+          "object": "entity_id",
+          "location": "location_id|null",
+          "event_id": "source_line_id",
+          "event_time": "story_order"
+        },
+        "DROP": {
+          "actor": "entity_id",
+          "object": "entity_id",
+          "location": "location_id|null",
+          "event_id": "source_line_id",
+          "event_time": "story_order"
+        },
+        "QUERY": {
+          "target": "object_state_before_or_after_event",
+          "anchor_event": "story_id:source_line_id for the target MOVE, independently annotated from query semantics; not taken from the gold supporting-fact column",
+          "answer_type": "location_id",
+          "input_exclusion": "Gold supporting line IDs and answer are evaluation-only metadata and must not be passed to HLA/HLB"
+        }
+      },
+      "primary_metrics": [
+        "exact_answer_accuracy",
+        "supporting_event_recall",
+        "temporal_order_validity",
+        "abstention_rate"
+      ],
+      "official_training_source": "data/babi-v1.2/qa3_train_source.txt"
+    },
+    {
+      "task_id": 5,
+      "name": "Three Argument Relations",
+      "train": "data/babi-v1.2/qa5_train.txt",
+      "validation": "data/babi-v1.2/qa5_valid.txt",
+      "test": "data/babi-v1.2/qa5_test.txt",
+      "reasoning_target": "typed three-participant relation binding and role-conditioned retrieval",
+      "oracle_event_schema": {
+        "GIVE": {
+          "event_id": "story_id:source_line_id",
+          "giver": {
+            "entity_id": "person"
+          },
+          "object": {
+            "entity_id": "object"
+          },
+          "recipient": {
+            "entity_id": "person"
+          },
+          "event_time": "story_order",
+          "observed_at": "ingestion_order",
+          "provenance": "source_line_id"
+        },
+        "QUERY": {
+          "event_type": "GIVE",
+          "role": "giver|object|recipient",
+          "bound_roles": "role_to_entity_id",
+          "answer_role": "role",
+          "temporal_policy": "select the most recent observed GIVE event matching all bound roles, ordered by event_time then event_id",
+          "input_exclusion": "Gold supporting line IDs and answer are evaluation-only metadata and must not be passed to HLA/HLB"
+        }
+      },
+      "primary_metrics": [
+        "exact_answer_accuracy",
+        "same_event_role_binding_accuracy",
+        "witness_recall",
+        "cross_event_role_mixup_rate",
+        "abstention_rate"
+      ],
+      "official_training_source": "data/babi-v1.2/qa5_train_source.txt"
+    }
+  ],
+  "stages": [
+    {
+      "id": "A",
+      "name": "Byte acquisition and immutable freeze",
+      "gate": "archive and six selected split files have verified SHA-256 digests and exact row counts"
+    },
+    {
+      "id": "B",
+      "name": "Oracle structured-event adapter",
+      "gate": "complete structured event/query annotation bundle matching structured_input_freeze schema, with story-scoped provenance and no gold answer/support leakage; annotation manifest and hashes frozen"
+    },
+    {
+      "id": "C",
+      "name": "Deterministic reference solver",
+      "gate": "reference solvers pass temporal and n-ary role tests, including repeated target destinations, late observations, repeated GIVE relations and same-event role integrity; official support indices used only after prediction for witness scoring"
+    },
+    {
+      "id": "D",
+      "name": "HLA/HLB matched structured-input campaign",
+      "gate": "same frozen records, query set, seeds and resource limits; report each architecture separately"
+    },
+    {
+      "id": "E",
+      "name": "Text parsing evaluation",
+      "gate": "introduced only after B-D; parser errors scored separately from memory/reasoning errors"
+    }
+  ],
+  "partition_policy": {
+    "source_splits": "Use official train, valid and test files as provided. Never repartition individual questions across story boundaries.",
+    "fit": "train only",
+    "validation": "valid only; used for model/threshold selection",
+    "confirmatory": "test only; accessed once after configuration freeze",
+    "leakage": "A story and all its questions/support indices remain in one source split."
+  },
+  "comparators": [
+    "HLA",
+    "HLB",
+    "deterministic oracle/reference solver",
+    "direct structured retrieval baseline"
+  ],
+  "claim_boundaries": [
+    "Structured-event results do not measure natural-language parsing.",
+    "Task 3 evaluates temporal multi-fact reasoning; Task 5 evaluates n-ary role binding, not arbitrary semantic understanding.",
+    "Generated fixtures validate adapters and solver mechanics but are not official benchmark evidence.",
+    "No HLA/HLB winner is selected from a single task or unmatched workload.",
+    "Official-data claims require verified source bytes, hashes, row counts and provenance.",
+    "The raw bAbI supporting-fact indices and answers are held out as evaluation metadata; neither may be supplied to structured HLA/HLB inputs.",
+    "Task 3 query anchors identify the target movement event independently of the official support-index column; Task 5 answers use the latest observed same-event role match."
+  ],
+  "structured_input_freeze": {
+    "schema_id": "HLG-BABI-STRUCTURED-INPUT-v1",
+    "status": "SCHEMA_DEFINED_ANNOTATIONS_PENDING",
+    "story_id": "task_id/split/story_ordinal",
+    "event_id": "story_id:source_line_number",
+    "query_id": "story_id:question_line_number",
+    "event_fields": [
+      "event_id",
+      "event_type",
+      "roles",
+      "event_time",
+      "observed_at",
+      "source_ref"
+    ],
+    "event_types": {
+      "MOVE": {
+        "required_roles": [
+          "actor",
+          "destination"
+        ]
+      },
+      "PICK_UP": {
+        "required_roles": [
+          "actor",
+          "object"
+        ],
+        "optional_roles": [
+          "location"
+        ]
+      },
+      "DROP": {
+        "required_roles": [
+          "actor",
+          "object"
+        ],
+        "optional_roles": [
+          "location"
+        ]
+      },
+      "GIVE": {
+        "required_roles": [
+          "giver",
+          "object",
+          "recipient"
+        ]
+      }
+    },
+    "query_fields": [
+      "query_id",
+      "story_id",
+      "task_id",
+      "query_type",
+      "answer_role",
+      "observed_at",
+      "source_ref",
+      "task_specific_arguments"
+    ],
+    "task3_query": {
+      "query_type": "OBJECT_LOCATION_BEFORE_MOVE",
+      "required": [
+        "object_id",
+        "destination_id",
+        "target_event_id"
+      ],
+      "answer_role": "location",
+      "target_event_id_rule": "independently annotated from query semantics and story timeline; must not be copied from official supporting-fact indices"
+    },
+    "task5_query": {
+      "query_type": "GIVE_ROLE",
+      "required": [
+        "bound_roles",
+        "answer_role"
+      ],
+      "temporal_policy": "most recent observed same-event GIVE matching all bound roles"
+    },
+    "leakage_controls": {
+      "excluded_from_model_input": [
+        "gold_answer",
+        "official_supporting_line_ids",
+        "raw question answer column",
+        "test-set labels"
+      ],
+      "allowed_for_post_prediction_scoring": [
+        "gold_answer",
+        "official_supporting_line_ids"
+      ],
+      "source_provenance": "every event and query must retain story-scoped source line identity",
+      "text_parser": "not part of structured-event campaign; text parsing is a later separately scored stage"
+    },
+    "annotation_protocol": "Structured event/query annotations must be frozen independently of model runs, preserve all story events and role bindings, be checked against source lines by an independent reviewer, and record annotation version and reviewer agreement. The official support indices and answer column are evaluation-only."
+  }
+}

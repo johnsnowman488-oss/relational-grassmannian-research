@@ -1,0 +1,92 @@
+name: H1 P6 v4 full coupled adaptive stability
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/h1-hla-hlb-five-workstreams
+    paths:
+      - "src/rgm/leptograph/m4/**"
+      - "src/rgm/leptograph/m3/**"
+      - "scripts/run_h1_p6_runtime_v4.py"
+      - "tests/test_hlg_h1_p6_runtime.py"
+      - "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.json"
+      - "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.sha256"
+      - ".github/workflows/h1-p6-runtime-v4.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  p6-v4-full-runtime:
+    name: Full P6 v4 coupled HLA/HLB campaign
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout research implementation
+        uses: actions/checkout@v4
+        with:
+          path: research
+          fetch-depth: 0
+
+      - name: Checkout pinned Aberconics M4 runtime
+        uses: actions/checkout@v4
+        with:
+          repository: johnsnowman488-oss/aberconics-framework
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          path: aberconics
+
+      - name: Verify frozen source identities
+        id: source
+        working-directory: research
+        run: |
+          IMPLEMENTATION="3e82fabc8c3d83dcaf99c7b84f4fada9efdfbe89"
+          git cat-file -e "$IMPLEMENTATION^{commit}"
+          git diff --quiet "$IMPLEMENTATION" HEAD -- src/rgm/leptograph/m4 src/rgm/leptograph/m3 scripts/run_h1_p6_runtime_v4.py tests/test_hlg_h1_p6_runtime.py
+          echo "m4_commit=2539df6bda7ef3c9dd7c707abe26eff8bdbb59de" >> "$GITHUB_OUTPUT"
+          echo "p6_implementation_commit=$IMPLEMENTATION" >> "$GITHUB_OUTPUT"
+
+      - name: Configure and build M4 shared library
+        run: |
+          cmake -S "aberconics/code/c++ core" -B "aberconics/code/c++ core/build-shared" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
+            -DGFE_BUILD_TESTS=OFF -DGFE_BUILD_APPS=OFF
+          cmake --build "aberconics/code/c++ core/build-shared" --parallel 2
+
+      - name: Verify compiled library
+        id: library
+        run: |
+          LIB="$GITHUB_WORKSPACE/aberconics/code/c++ core/build-shared/libgfe_core.so"
+          test -s "$LIB"
+          echo "path=$LIB" >> "$GITHUB_OUTPUT"
+          sha256sum "$LIB"
+
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "research[dev]"
+
+      - name: Run focused P6 unit and checkpoint tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/research/src:${{ github.workspace }}/aberconics/code/python
+        run: pytest research/tests/test_hlg_h1_p6_runtime.py -q
+
+      - name: Execute frozen P6 v4 actual-runtime campaign
+        env:
+          GFE_CORE_LIB: ${{ steps.library.outputs.path }}
+          ABERCONICS_PYTHON: ${{ github.workspace }}/aberconics/code/python
+          ABERCONICS_COMMIT: ${{ steps.source.outputs.m4_commit }}
+          P6_IMPLEMENTATION_COMMIT: ${{ steps.source.outputs.p6_implementation_commit }}
+          PYTHONPATH: ${{ github.workspace }}/research/src:${{ github.workspace }}/aberconics/code/python
+        run: |
+          mkdir -p research/artifacts
+          python research/scripts/run_h1_p6_runtime_v4.py \
+            --output research/artifacts/h1-p6-v4-full-runtime.json
+
+      - name: Upload P6 v4 full-runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h1-p6-v4-full-runtime
+          path: research/artifacts/h1-p6-v4-full-runtime.json
+          if-no-files-found: warn

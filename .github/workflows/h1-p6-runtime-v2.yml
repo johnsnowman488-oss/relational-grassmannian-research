@@ -1,0 +1,73 @@
+name: H1 P6 v2 coupled runtime stability and rollback
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p6-v2-actual-runtime:
+    name: Run frozen P6 v2 protocol against compiled HLA/HLB runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout research implementation
+        uses: actions/checkout@v4
+        with:
+          path: research
+
+      - name: Checkout pinned Aberconics M4 runtime
+        uses: actions/checkout@v4
+        with:
+          repository: johnsnowman488-oss/aberconics-framework
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          path: aberconics
+
+      - name: Verify frozen source identities
+        id: source
+        working-directory: aberconics
+        run: |
+          ACTUAL="$(git rev-parse HEAD)"
+          test "$ACTUAL" = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
+          echo "m4_commit=$ACTUAL" >> "$GITHUB_OUTPUT"
+          echo "p6_implementation_commit=7b0ccf3603e2a517fdbf1cc03d0f8e9363df8e97" >> "$GITHUB_OUTPUT"
+
+      - name: Configure and build M4 shared library
+        run: |
+          cmake -S "aberconics/code/c++ core" -B "aberconics/code/c++ core/build-shared" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
+            -DGFE_BUILD_TESTS=OFF -DGFE_BUILD_APPS=OFF
+          cmake --build "aberconics/code/c++ core/build-shared" --parallel 2
+
+      - name: Verify compiled library
+        id: library
+        run: |
+          LIB="$GITHUB_WORKSPACE/aberconics/code/c++ core/build-shared/libgfe_core.so"
+          test -s "$LIB"
+          echo "path=$LIB" >> "$GITHUB_OUTPUT"
+          sha256sum "$LIB"
+
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "research[dev]"
+
+      - name: Execute frozen P6 v2 actual-runtime campaign
+        env:
+          GFE_CORE_LIB: ${{ steps.library.outputs.path }}
+          ABERCONICS_PYTHON: ${{ github.workspace }}/aberconics/code/python
+          ABERCONICS_COMMIT: ${{ steps.source.outputs.m4_commit }}
+          P6_IMPLEMENTATION_COMMIT: ${{ steps.source.outputs.p6_implementation_commit }}
+          PYTHONPATH: ${{ github.workspace }}/research/src:${{ github.workspace }}/aberconics/code/python
+        run: |
+          python research/scripts/run_h1_p6_runtime_v2.py \
+            --output artifacts/h1-p6-v2-actual-runtime.json
+
+      - name: Upload P6 v2 actual-runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h1-p6-v2-actual-runtime
+          path: artifacts/h1-p6-v2-actual-runtime.json
+          if-no-files-found: warn

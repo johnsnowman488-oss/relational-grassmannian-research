@@ -1,0 +1,41 @@
+name: H1 P6 controller unit and checkpoint tests
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: ["research/h0-shared-hierarchy-contract-soe-bridge"]
+    paths:
+      - "src/rgm/leptograph/m3/activation.py"
+      - "src/rgm/leptograph/m3/context.py"
+      - "src/rgm/leptograph/m3/estimation.py"
+      - "src/rgm/leptograph/m3/resource.py"
+      - "src/rgm/leptograph/m3/revision.py"
+      - "src/rgm/leptograph/m4/stability.py"
+      - "src/rgm/leptograph/m4/p6_runtime.py"
+      - "scripts/run_h1_p6_runtime_v4.py"
+      - "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.*"
+      - "tests/test_hlg_h1_p6_runtime.py"
+      - ".github/workflows/h1-p6-runtime.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p6-controller-tests:
+    name: Test P6 adaptive state, checkpoint and rollback contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout research implementation
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run P6 unit and checkpoint tests
+        run: pytest tests/test_hlg_h1_p6_runtime.py -q
