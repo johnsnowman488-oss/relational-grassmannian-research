@@ -7,6 +7,7 @@ on:
     paths:
       - "scripts/audit_h1_p6_resource_footprint.py"
       - "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4.json"
+      - "docs/experiments/HLG_H1_P6_FULL_RUNTIME_v4_RESULT_SUMMARY.json"
       - ".github/workflows/h1-p6-resource-audit.yml"
   workflow_dispatch:
 
