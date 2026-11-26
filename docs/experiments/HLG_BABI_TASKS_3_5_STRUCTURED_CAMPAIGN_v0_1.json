@@ -365,7 +365,7 @@
     "annotation_protocol": "Structured event/query annotations must be frozen independently of model runs, preserve all story events and role bindings, be checked against source lines by an independent reviewer, and record annotation version and reviewer agreement. The official support indices and answer column are evaluation-only."
   },
   "learning_protocol": {
-    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.1",
+    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
     "status": "FROZEN; G0/G1/G2 acceptance gates pending",
     "frozen_at": "2026-11-26",
     "implementation_parent": "research/h1-learning-runtime-integration",
@@ -499,10 +499,9 @@
       "episode_policy": "At each story boundary reset SOE banks and native state to baseline while preserving persistent native handle and cumulative step count; journal and reset transient eligibility; retain learned parameters, prediction journal and HLB canonical evidence; story-scoped query retrieval.",
       "event_type_feature_codes": {
         "MOVE": 0,
-        "PICK_UP": 0.25,
-        "DROP": 0.5,
-        "GIVE": 0.75,
-        "PASS": 1
+        "PICK_UP": 0.3333333333333333,
+        "DROP": 0.6666666666666666,
+        "GIVE": 1
       }
     },
     "evaluation": {
@@ -585,16 +584,16 @@
     "task5_predicates": {
       "give_statement_forms": [
         "gave",
-        "handed"
-      ],
-      "pass_statement_forms": [
+        "handed",
         "passed"
       ],
-      "event_types": {
-        "give": "GIVE(giver, object, recipient)",
-        "pass": "PASS(sender, object, recipient)"
-      },
-      "query_semantics": "Task 5 GIVE_ROLE queries match GIVE events only; PASS events are distinct typed distractors."
+      "event_type": "GIVE(giver, object, recipient)",
+      "query_semantics": "All three source surface forms map to the same n-ary GIVE event; role bindings must match within one event."
+    },
+    "source_label_policy": {
+      "inconsistent_gold_oracle_query": "preserve source input and gold label; mark audit_status=quarantined; record exact query/support/oracle provenance; exclude from task-error updates and evaluation denominators",
+      "missing_support_witness": "hard annotation failure",
+      "max_quarantine_fraction_per_task": 0.005
     }
   },
   "learning_protocol_ref": "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_2.md"
