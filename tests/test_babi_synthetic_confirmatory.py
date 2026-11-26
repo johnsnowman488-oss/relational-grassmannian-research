@@ -26,6 +26,7 @@ def test_synthetic_task5_contains_nary_give_and_decoy_context_without_label_fiel
     story = _task5_story(1, random.Random(TASK5_SEED))
     assert len(story.queries) == 5
     assert sum(event.event_type == "GIVE" for event in story.events) == 20
+    assert sum(event.event_type == "PASS" for event in story.events) == 5
     assert any(event.event_type == "MOVE" for event in story.events)
     assert any(event.event_type == "PICK_UP" for event in story.events)
     assert any(event.event_type == "DROP" for event in story.events)
