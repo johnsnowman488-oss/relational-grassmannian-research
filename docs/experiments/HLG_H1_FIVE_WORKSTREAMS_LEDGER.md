@@ -330,3 +330,10 @@ No H1 results or claims are upgraded by this design document. The P6 stability e
 - Promotion now requires an explicit independent validation receipt with passed status, validation partition, SHA-256 protocol/criteria/data-manifest fingerprints, measured metrics and the exact active candidate fingerprint. Failed, incomplete or stale receipts are rejected. Validation receipts are stored with promoted trusted checkpoints. The initial trusted checkpoint cannot be reset to bypass validation.
 - Added tests for failed promotion, stale receipt rejection, source relation retention through rollback, source journal capacity abstention, and monotonic relation journal recovery.
 - Repository CI now includes `workflow_dispatch` and the H1 branch in its push filter. A run observed during execution (`45827809639`) remained queued at earlier head `97b6a569...`; no completed CI result exists for the latest head `72b1037ebefb3bde91782e3b2f9921a87624fd15`. Do not treat the earlier successful run as validation of these later changes.
+
+### CI reconciliation — 2026-11-26
+
+- Repository CI run [45827809639](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45827809639) executed against earlier head `97b6a56918df91e59956da1244c58d46e1f312f0` and failed on one new Task 3 fixture assertion; **414 tests passed, one failed** on both Python 3.10 and 3.12.
+- Failure diagnosis: the late-arrival fixture asked for an object's location after two MOVE events but omitted the PICK_UP event that makes the object follow the actor. The solver correctly returned unknown. The fixture now includes PICK_UP before movement (commit `ed628152596b9e9995941c333dfe6cade93d4f81`).
+- This was a fixture defect, not a solver failure. The later promotion-receipt and evidence-watermark hardening was added after the failing run.
+- **Current status:** latest changes have not yet been exercised by a completed CI run. The failed run must not be treated as acceptance of the latest head. Repository CI has a manual `workflow_dispatch` entry and includes the H1 branch in its push filter.
