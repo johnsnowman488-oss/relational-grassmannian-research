@@ -66,13 +66,17 @@ def task3_object_location_before_move(
             actor_location[actor] = destination
         elif event.event_type == "PICK_UP":
             actor, obj = _role(event, "actor"), _role(event, "object")
+            pickup_location = roles.get("location")
+            if pickup_location:
+                actor_location.setdefault(actor, pickup_location)
             held_by[obj] = actor
             object_location.pop(obj, None)
         elif event.event_type == "DROP":
             actor, obj = _role(event, "actor"), _role(event, "object")
             held_by.pop(obj, None)
-            if actor in actor_location:
-                object_location[obj] = actor_location[actor]
+            drop_location = roles.get("location") or actor_location.get(actor)
+            if drop_location:
+                object_location[obj] = drop_location
     return None
 
 
