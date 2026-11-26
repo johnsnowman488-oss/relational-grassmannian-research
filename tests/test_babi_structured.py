@@ -18,7 +18,7 @@ def test_task3_three_supporting_fact_temporal_object_state_fixture():
         ev("4", "DROP", {"actor": "john", "object": "apple"}, 4),
     ]
     assert task3_object_location_before_move(
-        story, object_id="apple", actor_id="john",
+        story, object_id="apple", target_event_id="3",
         destination_id="kitchen", observation_cutoff=4,
     ) == "office"
 
@@ -49,6 +49,12 @@ def test_task5_three_argument_give_queries_bind_roles_within_one_event():
         events, bound_roles={"object": "cake", "recipient": "fred"},
         answer_role="giver", observation_cutoff=4,
     ) == ("mary",)
+
+    # Repeated matching object relations resolve to the latest event.
+    assert task5_answer_role(
+        events, bound_roles={"object": "cake"},
+        answer_role="recipient", observation_cutoff=4,
+    ) == ("bill",)
     assert task5_answer_role(
         events, bound_roles={"giver": "fred", "object": "cake"},
         answer_role="recipient", observation_cutoff=4,
