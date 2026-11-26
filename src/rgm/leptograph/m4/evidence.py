@@ -237,7 +237,11 @@ class EvidenceStore:
                     continue
                 if left.role(value_role).entity_id == right.role(value_role).entity_id:
                     continue
-                if left.event_time == right.event_time:
+                if left.revision_of == right.event_id or right.revision_of == left.event_id:
+                    continue
+                left_end = left.valid_until if left.valid_until is not None else math.inf
+                right_end = right.valid_until if right.valid_until is not None else math.inf
+                if max(left.event_time, right.event_time) < min(left_end, right_end):
                     conflicts.append((left.event_id, right.event_id))
         return tuple(sorted(conflicts))
 
