@@ -799,6 +799,7 @@ class LearningRuntime:
         if tick < 0 or not math.isfinite(observed_at) or observed_at < self._last_observed_at:
             raise ValueError("learning tick/time must be monotone")
         self._last_observed_at = observed_at
+        self.last_signals = LearningSignals()
         self._last_issue_context = {
             "tick": tick, "cutoff": observed_at, "context": context,
         }
@@ -861,7 +862,11 @@ class LearningRuntime:
             "issue_context": deepcopy(self._last_issue_context),
         })
         if error is not None:
-            self.last_signals = LearningSignals(relational=error)
+            self.last_signals = LearningSignals(
+                temporal=self.last_signals.temporal, relational=error,
+                abstraction=self.last_signals.abstraction, task=self.last_signals.task,
+                integrity_failures=self.last_signals.integrity_failures,
+            )
             routed = self.error_router.route(self.last_signals)
             if "semantic_relation_learner" in routed:
                 self.relations.observe(record)
@@ -882,7 +887,11 @@ class LearningRuntime:
             "issue_context": deepcopy(self._last_issue_context),
         })
         if error is not None:
-            self.last_signals = LearningSignals(abstraction=error)
+            self.last_signals = LearningSignals(
+                temporal=self.last_signals.temporal, relational=self.last_signals.relational,
+                abstraction=error, task=self.last_signals.task,
+                integrity_failures=self.last_signals.integrity_failures,
+            )
             routed = self.error_router.route(self.last_signals)
             if "nary_event_role_learner" in routed:
                 self.event_roles.observe(event)
@@ -900,15 +909,25 @@ class LearningRuntime:
     def observe_temporal_error(self, error: float, *, tick: int) -> None:
         self._observation_journal.append({"kind": "temporal_error", "error": float(error), "tick": int(tick)})
         values = self.eligibility.values(prediction_cutoff_tick=tick)
-        self.last_signals = LearningSignals(temporal=float(error))
+        self.last_signals = LearningSignals(
+            temporal=float(error), relational=self.last_signals.relational,
+            abstraction=self.last_signals.abstraction, task=self.last_signals.task,
+            integrity_failures=self.last_signals.integrity_failures,
+        )
         routed = self.error_router.route(self.last_signals)
         if "temporal_eligibility" in routed:
             self.temporal_credit.update(float(error), values)
 
     def observe_task_error(self, task_key: str, error: float) -> None:
+        if not task_key or not math.isfinite(error) or error < 0:
+            raise ValueError("task outcome requires a key and finite non-negative error")
         self._observation_journal.append({"kind": "task", "task_key": task_key, "error": float(error)})
         if error > 0:
-            self.last_signals = LearningSignals(task=error)
+            self.last_signals = LearningSignals(
+                temporal=self.last_signals.temporal, relational=self.last_signals.relational,
+                abstraction=self.last_signals.abstraction, task=error,
+                integrity_failures=self.last_signals.integrity_failures,
+            )
             routed = self.error_router.route(self.last_signals)
             if "task_outcome_learner" in routed:
                 self.task_outcomes.observe_error(task_key, error)
@@ -928,6 +947,7 @@ class LearningRuntime:
             "prediction_sequence": self._prediction_sequence,
             "last_observed_at": self._last_observed_at,
             "last_signals": self.last_signals.as_dict(),
+            "integrity_failures": list(self.last_signals.integrity_failures),
         }
 
     def restore(self, state: Mapping, *, preserve_observations: bool = False) -> None:
@@ -955,6 +975,14 @@ class LearningRuntime:
         self.eligibility.restore(state["eligibility"])
         self._prediction_sequence = int(state["prediction_sequence"])
         self._last_observed_at = float(state["last_observed_at"])
+        saved_signals = state.get("last_signals", {})
+        self.last_signals = LearningSignals(
+            temporal=float(saved_signals.get("temporal", 0.0)),
+            relational=float(saved_signals.get("relational", 0.0)),
+            abstraction=float(saved_signals.get("abstraction", 0.0)),
+            task=float(saved_signals.get("task", 0.0)),
+            integrity_failures=tuple(state.get("integrity_failures", ())),
+        )
         # New labels received during candidate execution survive rollback and
         # are deterministically applied to the restored incumbent learners.
         self._observation_journal = replay_journal
@@ -979,7 +1007,13 @@ class LearningRuntime:
                 )
                 if error is not None and error > 0:
                     channel = ErrorChannel.RELATIONAL if item["kind"] == "relation" else ErrorChannel.ABSTRACTION
-                    self.last_signals = LearningSignals(**{channel.value: error})
+                    current = self.last_signals.as_dict()
+                    current[channel.value] = error
+                    self.last_signals = LearningSignals(
+                        temporal=current["temporal"], relational=current["relational"],
+                        abstraction=current["abstraction"], task=current["task"],
+                        integrity_failures=self.last_signals.integrity_failures,
+                    )
                     routed = self.error_router.route(self.last_signals)
                     if item["kind"] == "relation" and "semantic_relation_learner" in routed:
                         self.relations._counter.observe(
@@ -992,7 +1026,14 @@ class LearningRuntime:
                     self.task_outcomes.observe_error(item["task_key"], item["error"])
             elif item["kind"] == "temporal_error":
                 values = self.eligibility.values(prediction_cutoff_tick=int(item["tick"]))
-                signals = LearningSignals(temporal=float(item["error"]))
+                current = self.last_signals.as_dict()
+                current["temporal"] = float(item["error"])
+                signals = LearningSignals(
+                    temporal=current["temporal"], relational=current["relational"],
+                    abstraction=current["abstraction"], task=current["task"],
+                    integrity_failures=self.last_signals.integrity_failures,
+                )
+                self.last_signals = signals
                 routed = self.error_router.route(signals)
                 if "temporal_eligibility" in routed:
                     self.temporal_credit.update(float(item["error"]), values)
