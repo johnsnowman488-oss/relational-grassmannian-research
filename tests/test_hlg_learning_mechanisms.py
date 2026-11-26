@@ -115,7 +115,7 @@ def test_brier_score_requires_normalized_probabilities_and_one_hot_target():
     journal = PredictionJournal()
     journal.issue(prediction(s, value=[0.8, 0.2]))
     score = journal.score("p-1", target([1.0, 0.0]), s, evaluated_tick=3)
-    assert score.value == pytest.approx(0.02)
+    assert score.value == pytest.approx(0.04)
 
 
 def test_learning_signals_remain_separate():
