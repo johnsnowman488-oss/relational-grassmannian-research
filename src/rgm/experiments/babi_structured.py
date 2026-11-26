@@ -28,6 +28,20 @@ class StructuredEvent:
             raise ValueError("event roles and values must be non-empty")
         if len(names) != len(set(names)):
             raise ValueError("role names must be unique within an event")
+        required_roles = {
+            "MOVE": {"actor", "destination"},
+            "PICK_UP": {"actor", "object"},
+            "DROP": {"actor", "object"},
+            "GIVE": {"giver", "object", "recipient"},
+        }
+        if self.event_type not in required_roles:
+            raise ValueError(f"unsupported structured event type {self.event_type!r}")
+        actual_roles = set(names)
+        required = required_roles[self.event_type]
+        allowed = required | ({"location"} if self.event_type in {"PICK_UP", "DROP"} else set())
+        if not required.issubset(actual_roles) or not actual_roles.issubset(allowed):
+            raise ValueError(f"{self.event_type} event roles must be {sorted(required)}"
+                             + (" with optional location" if "location" in allowed else ""))
         if self.event_time < 0 or self.observed_at < self.event_time:
             raise ValueError("invalid event/observation ordering")
 
