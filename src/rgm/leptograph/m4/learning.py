@@ -279,11 +279,13 @@ class ErrorRouter:
         if signals.integrity_failures:
             return {}
         values = signals.as_dict()
-        return {
-            name: {channel.value: values[channel.value]
-                   for channel in route.allowed_channels if values[channel.value] != 0.0}
-            for name, route in sorted(self.routes.items())
-        }
+        routed = {}
+        for name, route in sorted(self.routes.items()):
+            permitted = {channel.value: values[channel.value]
+                         for channel in route.allowed_channels if values[channel.value] != 0.0}
+            if permitted:
+                routed[name] = permitted
+        return routed
 
 
 @dataclass(frozen=True)
@@ -679,6 +681,35 @@ class NaryEventRoleLearner:
         self._counter.restore(state)
 
 
+class TemporalCreditLearner:
+    """Error-weighted temporal parameter learner driven by event-resolved eligibility."""
+    def __init__(self, learning_rate: float = 0.01):
+        if not math.isfinite(learning_rate) or learning_rate <= 0:
+            raise ValueError("temporal learning rate must be positive and finite")
+        self.learning_rate = float(learning_rate)
+        self.weights: dict[str, float] = {}
+
+    def update(self, error: float, eligibility: Mapping[tuple[str, str, str], float]) -> None:
+        if not math.isfinite(error) or error < 0:
+            raise ValueError("temporal error must be finite and non-negative")
+        if error == 0:
+            return
+        for (event_id, feature_id, channel), trace in sorted(eligibility.items()):
+            key = json.dumps((event_id, feature_id, channel), separators=(",", ":"))
+            self.weights[key] = self.weights.get(key, 0.0) - self.learning_rate * error * float(trace)
+
+    def snapshot(self) -> dict:
+        return {"learning_rate": self.learning_rate, "weights": dict(sorted(self.weights.items()))}
+
+    def restore(self, state: Mapping) -> None:
+        if float(state["learning_rate"]) != self.learning_rate:
+            raise ValueError("temporal learner learning-rate mismatch")
+        weights = {str(k): float(v) for k, v in state["weights"].items()}
+        if not all(math.isfinite(v) for v in weights.values()):
+            raise ValueError("temporal learner checkpoint has non-finite weights")
+        self.weights = weights
+
+
 class TaskOutcomeLearner:
     """Small task-level calibration learner, updated only from task residuals."""
     def __init__(self) -> None:
@@ -721,6 +752,7 @@ class LearningRuntime:
         self.relations = SemanticRelationLearner()
         self.event_roles = NaryEventRoleLearner()
         self.task_outcomes = TaskOutcomeLearner()
+        self.temporal_credit = TemporalCreditLearner()
         self.eligibility = EligibilityLedger(decay=eligibility_decay, capacity=eligibility_capacity,
                                              config_fingerprint=eligibility_config_fingerprint)
         self.error_router = ErrorRouter([
@@ -768,7 +800,7 @@ class LearningRuntime:
         return tuple(issued)
 
     def _score_and_update(self, name: str, key: str, value: Any, source_id: str,
-                          observed_at: float, tick: int, channel: ErrorChannel) -> float | None:
+                          event_time: float, observed_at: float, tick: int) -> float | None:
         matches = [p for p in self.predictions._predictions.values()
                    if p.target_name == name and p.target_key == key
                    and p.status is PredictionStatus.ISSUED]
@@ -778,7 +810,7 @@ class LearningRuntime:
         schema = self.schemas[name]
         score = self.predictions.score(
             prediction.prediction_id,
-            TargetObservation(name, key, value, observed_at, observed_at, tick, source_id),
+            TargetObservation(name, key, value, event_time, observed_at, tick, source_id),
             schema, evaluated_tick=tick,
         )
         return score.value
@@ -787,18 +819,21 @@ class LearningRuntime:
         pattern = RelationPattern(record.relation_type.name, record.subject.entity_type,
                                   record.object.entity_type, record.context)
         key = f"relation@{tick}"
-        error = self._score_and_update("next_relation_pattern", key,
-                                       self.relations._encode(pattern), record.instance_id,
-                                       record.observed_at, tick, ErrorChannel.RELATIONAL)
         encoded = self.relations._encode(pattern)
-        self._observation_journal.append({"kind": "relation", "value": encoded,
-                                          "subject_type": record.subject.entity_type,
-                                          "context": record.context, "source_id": record.instance_id,
-                                          "observed_at": record.observed_at, "tick": tick})
+        error = self._score_and_update("next_relation_pattern", key, encoded,
+                                       record.instance_id, record.event_time,
+                                       record.observed_at, tick)
+        self._observation_journal.append({
+            "kind": "relation", "value": encoded, "target_name": "next_relation_pattern",
+            "target_key": key, "subject_type": record.subject.entity_type,
+            "context": record.context, "source_id": record.instance_id,
+            "event_time": record.event_time, "observed_at": record.observed_at, "tick": tick,
+        })
         if error is not None:
             self.last_signals = LearningSignals(relational=error)
-            self.error_router.route(self.last_signals)
-        self.relations.observe(record)
+            routed = self.error_router.route(self.last_signals)
+            if "semantic_relation_learner" in routed:
+                self.relations.observe(record)
         return error
 
     def observe_nary_event(self, event: Any, *, tick: int) -> float | None:
@@ -806,16 +841,19 @@ class LearningRuntime:
                                    tuple(sorted((p.role, p.entity_type) for p in event.participants)),
                                    event.context)
         key = f"event@{tick}"
-        error = self._score_and_update("next_event_role_pattern", key,
-                                       self.event_roles._encode(pattern), event.event_id,
-                                       event.observed_at, tick, ErrorChannel.ABSTRACTION)
-        self._observation_journal.append({"kind": "event_role", "value": self.event_roles._encode(pattern),
-                                          "context": event.context, "source_id": event.event_id,
-                                          "observed_at": event.observed_at, "tick": tick})
+        encoded = self.event_roles._encode(pattern)
+        error = self._score_and_update("next_event_role_pattern", key, encoded,
+                                       event.event_id, event.event_time, event.observed_at, tick)
+        self._observation_journal.append({
+            "kind": "event_role", "value": encoded, "target_name": "next_event_role_pattern",
+            "target_key": key, "context": event.context, "source_id": event.event_id,
+            "event_time": event.event_time, "observed_at": event.observed_at, "tick": tick,
+        })
         if error is not None:
             self.last_signals = LearningSignals(abstraction=error)
-            self.error_router.route(self.last_signals)
-        self.event_roles.observe(event)
+            routed = self.error_router.route(self.last_signals)
+            if "nary_event_role_learner" in routed:
+                self.event_roles.observe(event)
         return error
 
     def observe_eligibility(self, event: EligibilityEvent) -> None:
@@ -825,15 +863,23 @@ class LearningRuntime:
     def advance_temporal(self, tick: int) -> dict:
         self.eligibility.advance(tick)
         values = self.eligibility.values(prediction_cutoff_tick=tick)
-        self.last_signals = LearningSignals(temporal=0.0)
         return values
+
+    def observe_temporal_error(self, error: float, *, tick: int) -> None:
+        self._observation_journal.append({"kind": "temporal_error", "error": float(error), "tick": int(tick)})
+        values = self.eligibility.values(prediction_cutoff_tick=tick)
+        self.last_signals = LearningSignals(temporal=float(error))
+        routed = self.error_router.route(self.last_signals)
+        if "temporal_eligibility" in routed:
+            self.temporal_credit.update(float(error), values)
 
     def observe_task_error(self, task_key: str, error: float) -> None:
         self._observation_journal.append({"kind": "task", "task_key": task_key, "error": float(error)})
         if error > 0:
-            self.task_outcomes.observe_error(task_key, error)
             self.last_signals = LearningSignals(task=error)
-            self.error_router.route(self.last_signals)
+            routed = self.error_router.route(self.last_signals)
+            if "task_outcome_learner" in routed:
+                self.task_outcomes.observe_error(task_key, error)
 
     def snapshot(self) -> dict:
         return {
@@ -842,6 +888,7 @@ class LearningRuntime:
             "relations": self.relations.snapshot(),
             "event_roles": self.event_roles.snapshot(),
             "task_outcomes": self.task_outcomes.snapshot(),
+            "temporal_credit": self.temporal_credit.snapshot(),
             "eligibility": self.eligibility.snapshot(),
             "journal_count": len(self._observation_journal),
             "observation_journal": deepcopy(self._observation_journal),
@@ -867,6 +914,7 @@ class LearningRuntime:
         self.relations.restore(state["relations"])
         self.event_roles.restore(state["event_roles"])
         self.task_outcomes.restore(state["task_outcomes"])
+        self.temporal_credit.restore(state["temporal_credit"])
         self.eligibility.restore(state["eligibility"])
         self._prediction_sequence = int(state["prediction_sequence"])
         self._last_observed_at = float(state["last_observed_at"])
@@ -874,14 +922,25 @@ class LearningRuntime:
         # are deterministically applied to the restored incumbent learners.
         self._observation_journal = replay_journal
         for item in newer_journal:
-            if item["kind"] == "relation":
-                self.relations._counter.observe(
-                    self.relations._key(item["subject_type"], item["context"]), item["value"])
-            elif item["kind"] == "event_role":
-                self.event_roles._counter.observe(
-                    self.event_roles._key(item["context"]), item["value"])
+            if item["kind"] in ("relation", "event_role"):
+                error = self._score_and_update(
+                    item["target_name"], item["target_key"], item["value"],
+                    item["source_id"], item["event_time"], item["observed_at"], item["tick"],
+                )
+                if error is not None and error > 0:
+                    channel = ErrorChannel.RELATIONAL if item["kind"] == "relation" else ErrorChannel.ABSTRACTION
+                    self.last_signals = LearningSignals(**{channel.value: error})
+                    routed = self.error_router.route(self.last_signals)
+                    if item["kind"] == "relation" and "semantic_relation_learner" in routed:
+                        self.relations._counter.observe(
+                            self.relations._key(item["subject_type"], item["context"]), item["value"])
+                    if item["kind"] == "event_role" and "nary_event_role_learner" in routed:
+                        self.event_roles._counter.observe(
+                            self.event_roles._key(item["context"]), item["value"])
             elif item["kind"] == "task":
-                self.task_outcomes.observe_error(item["task_key"], item["error"])
+                self.observe_task_error(item["task_key"], item["error"])
+            elif item["kind"] == "temporal_error":
+                self.observe_temporal_error(item["error"], tick=int(item["tick"]))
             elif item["kind"] == "eligibility":
                 event = EligibilityEvent(**item["value"])
                 if event.observed_tick > self.eligibility._last_tick:
