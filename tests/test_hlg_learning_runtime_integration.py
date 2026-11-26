@@ -97,6 +97,7 @@ def test_hla_and_hlb_issue_and_score_semantic_predictions_in_live_cycle():
                   if architecture == "HLA" else {"relation_records": ((0, observed_relation),)})
         result = director.exchange(
             event_time=1.0, observed_at=1.0, event_features={0: [0.5, 0.25]},
+            prediction_context="home",
             nary_events=(observed_event,), **kwargs,
         )
         assert {p.target_name for p in result["predictions"]} == {
@@ -119,7 +120,7 @@ def test_semantic_relation_and_nary_role_errors_update_only_their_own_learners()
     relation_before = adapter.learning.relations.snapshot()
     roles_before = adapter.learning.event_roles.snapshot()
     director.exchange(
-        event_time=1.0, observed_at=1.0,
+        event_time=1.0, observed_at=1.0, prediction_context="home",
         relation_records=((0, relation("wrong-r", "visited")),),
         nary_events=(nary("wrong-e", event_type="moved",
                           recipient="destination", observed_at=1.0),),
@@ -143,7 +144,7 @@ def test_prediction_error_replay_reissues_incumbent_forecasts_after_rollback():
     learner = LearningRuntime()
     seed(learner)
     checkpoint = learner.snapshot()
-    learner.begin_tick(tick=0, observed_at=0.0, subject_type="person", context="home")
+    learner.begin_tick(tick=0, observed_at=0.0, context="home")
     learner.observe_relation(relation("new-r", "visited", observed_at=1.0), tick=1)
     learner.observe_nary_event(nary("new-e", event_type="moved", observed_at=1.0), tick=1)
     assert len(learner.predictions.scores) == 2
@@ -162,7 +163,7 @@ def test_error_channel_ablations_isolate_the_permitted_learner_updates():
     seed(no_relational)
 
     for index, learner in enumerate((all_on, no_relational)):
-        learner.begin_tick(tick=0, observed_at=0.0, subject_type="person", context="home")
+        learner.begin_tick(tick=0, observed_at=0.0, context="home")
         learner.observe_relation(relation(f"r-{index}", "visited", observed_at=1.0), tick=1)
     assert all_on.relations.snapshot() != no_relational.relations.snapshot()
 
@@ -191,6 +192,7 @@ def test_integrated_candidate_rollback_preserves_and_replays_all_observations():
 
     result = director.exchange(
         event_time=1.0, observed_at=1.0, event_features={0: [1.0, 0.0]},
+        prediction_context="home",
         relation_records=((0, relation("source-rel", "visited", observed_at=1.0)),),
         nary_events=(nary("source-event", event_type="moved", observed_at=1.0),),
         eligibility_events=(eligibility("credit-e"),),
@@ -220,7 +222,7 @@ def test_independent_promotion_binds_learning_state_and_rejects_stale_candidate(
     seed(adapter.learning)
     lifecycle = CompositeLifecycle(director)
     lifecycle.checkpoint()
-    director.exchange(event_time=1.0, observed_at=1.0,
+    director.exchange(event_time=1.0, observed_at=1.0, prediction_context="home",
                       relation_records=((0, relation("promotion-r", "located_at")),))
     record = {
         "validation_id": "independent-learning-validation",
