@@ -54,6 +54,7 @@ jobs:
         run: python scripts/annotate_babi_structured.py
 
       - name: Upload frozen source splits, annotations and updated manifest
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: babi-tasks-3-5-frozen-source
@@ -61,5 +62,6 @@ jobs:
             data/babi-v1.2/
             artifacts/babi-structured/
             docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json
-          if-no-files-found: error
+            docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_1.md
+          if-no-files-found: warn
           compression-level: 6
