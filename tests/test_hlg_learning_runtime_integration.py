@@ -262,3 +262,50 @@ def test_semantic_predictions_include_exact_entity_and_role_bindings():
     assert relation_pattern.subject_id == "person-1"
     assert relation_pattern.object_id == "place-1"
     assert ("recipient", "fred", "person") in role_pattern.roles
+
+
+def test_l0_feature_and_l2_context_predictions_are_issued_and_error_routed():
+    learner = LearningRuntime()
+    learner.fit_level0_predictor([[0.0, 0.0], [0.0, 2.0]], partition="fit")
+    learner.fit_context_transitions([("home", "home")], partition="fit")
+    issued = learner.begin_tick(tick=0, observed_at=0.0, context="home")
+    assert {p.level.value for p in issued} == {"L0_GROUNDING", "L2_CONTEXT"}
+    assert {p.target_name for p in issued} == {"next_l0_features", "next_context"}
+
+    learner.advance_temporal(1)
+    learner.observe_eligibility(eligibility("l0-credit"))
+    feature_error = learner.observe_level0_features(
+        [2.0, 1.0], event_time=1.0, observed_at=1.0, tick=1,
+    )
+    context_error = learner.observe_context_transition(
+        "home", "work", source_id="context-event", event_time=1.0,
+        observed_at=1.0, tick=1,
+    )
+    assert feature_error == pytest.approx(2.0)
+    assert context_error == 1.0
+    assert learner.level0.update_count == 1
+    assert learner.temporal_credit.snapshot()["weights"]
+    assert sum(sum(bucket.values()) for bucket in learner.context_transitions.snapshot().values()) == 2
+
+
+def test_l0_and_l2_predictions_are_regenerated_and_learned_after_candidate_rollback():
+    learner = LearningRuntime()
+    learner.fit_level0_predictor([[0.0, 0.0]], partition="fit")
+    learner.fit_context_transitions([("home", "home")], partition="fit")
+    checkpoint = learner.snapshot()
+
+    learner.begin_tick(tick=0, observed_at=0.0, context="home")
+    learner.advance_temporal(1)
+    learner.observe_eligibility(eligibility("rollback-credit"))
+    learner.observe_level0_features([1.0, 0.0], event_time=1.0,
+                                    observed_at=1.0, tick=1)
+    learner.observe_context_transition("home", "work", source_id="rollback-context",
+                                       event_time=1.0, observed_at=1.0, tick=1)
+    learner.restore(checkpoint, preserve_observations=True)
+
+    scored = {learner.predictions.get(s.prediction_id).target_name: s.value
+              for s in learner.predictions.scores}
+    assert scored["next_l0_features"] == pytest.approx(0.5)
+    assert scored["next_context"] == 0.0
+    assert learner.level0.update_count == 1
+    assert sum(sum(bucket.values()) for bucket in learner.context_transitions.snapshot().values()) == 2
