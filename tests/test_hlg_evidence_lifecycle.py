@@ -79,7 +79,8 @@ def test_summary_and_derived_evidence_recover_exact_source_witnesses():
     ).encode()).hexdigest()
     summary = EvidenceSummary("s1", 2, "compressed conclusion", ("d1",), derivation_digest, 4.0)
     store.append_summary(summary)
-    recovered = store.recover("s1", observation_cutoff=4.0)
+    restored = EvidenceStore.from_snapshot(store.snapshot())
+    recovered = restored.recover("s1", observation_cutoff=4.0)
     assert {item.event_id for item in recovered} == {"e1", "e2"}
     assert {item.role("recipient").entity_id for item in recovered} == {"office"}
 
