@@ -1,6 +1,6 @@
 {
   "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
-  "status": "en-10k fit/validation source frozen; en-10k test quarantined; independent en confirmatory source pending G0.5",
+  "status": "en-10k fit/validation frozen; official test quarantined; independent generated structured confirmatory challenge defined",
   "benchmark": {
     "dataset": "bAbI Question Answering 20 Tasks",
     "publisher_namespace": "facebook/babi_qa",
@@ -11,7 +11,7 @@
     "dataset_builder_script": "https://huggingface.co/datasets/facebook/babi_qa/blob/main/babi_qa.py",
     "canonical_archive": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
     "homepage": "https://research.fb.com/downloads/babi/",
-    "configuration": "en-10k",
+    "configuration": "en-10k fit/validation; independent generated structured confirmatory challenge",
     "archive_path_prefix": "tasks_1-20_v1-2/en-valid-10k/",
     "byte_freeze": {
       "status": "VERIFIED",
@@ -127,11 +127,13 @@
     "archive_object_commit": null,
     "archive_object_revision": "official v1.2 archive mirrored by S3; immutable SHA-256 pinned",
     "partition_policy": {
-      "source_splits": "Official en-10k train and test files. The official test split is byte-preserved and never repartitioned.",
-      "fit": "90% of complete source training story blocks, selected deterministically by SHA-256 ranking",
-      "validation": "10% of complete source training story blocks, selected by frozen seed HLG-BABI-T3-T5-VALIDATION-v1; derived, not upstream-provided",
-      "confirmatory": "Official test split only; accessed once after configuration freeze",
-      "leakage": "All lines, questions and supporting facts within one story remain in the same fit or validation partition."
+      "fit": "1800 complete en-10k training story blocks per task",
+      "warm_start": "1200 stories selected deterministically from fit",
+      "online_adaptation": "600 disjoint stories from fit",
+      "validation": "200 complete story blocks derived from official en-10k training source",
+      "confirmatory": "200 generated structured stories per task, 5 queries per story, fixed seeds 953900/953901; not an official bAbI test set",
+      "quarantined": "Official en-10k test files are preprocessing/debug-only and excluded from all campaign metrics",
+      "leakage": "Whole stories remain within one partition; confirmatory inputs contain no labels before G4."
     }
   },
   "selected_tasks": [
@@ -140,7 +142,7 @@
       "name": "Three Supporting Facts",
       "train": "data/babi-v1.2/qa3_train.txt",
       "validation": "data/babi-v1.2/qa3_valid.txt",
-      "test": "data/babi-v1.2/qa3_test.txt",
+      "test": "artifacts/babi-confirmatory/task3-confirmatory.inputs.jsonl",
       "reasoning_target": "temporal object-state reconstruction from a multi-event story",
       "oracle_event_schema": {
         "MOVE": {
@@ -176,14 +178,15 @@
         "temporal_order_validity",
         "abstention_rate"
       ],
-      "official_training_source": "data/babi-v1.2/qa3_train_source.txt"
+      "official_training_source": "data/babi-v1.2/qa3_train_source.txt",
+      "quarantined_en10k_test_debug_only": "data/babi-v1.2/qa3_test_debug_only.txt"
     },
     {
       "task_id": 5,
       "name": "Three Argument Relations",
       "train": "data/babi-v1.2/qa5_train.txt",
       "validation": "data/babi-v1.2/qa5_valid.txt",
-      "test": "data/babi-v1.2/qa5_test.txt",
+      "test": "artifacts/babi-confirmatory/task5-confirmatory.inputs.jsonl",
       "reasoning_target": "typed three-participant relation binding and role-conditioned retrieval",
       "oracle_event_schema": {
         "GIVE": {
@@ -217,7 +220,8 @@
         "cross_event_role_mixup_rate",
         "abstention_rate"
       ],
-      "official_training_source": "data/babi-v1.2/qa5_train_source.txt"
+      "official_training_source": "data/babi-v1.2/qa5_train_source.txt",
+      "quarantined_en10k_test_debug_only": "data/babi-v1.2/qa5_test_debug_only.txt"
     }
   ],
   "stages": [
@@ -361,8 +365,8 @@
     "annotation_protocol": "Structured event/query annotations must be frozen independently of model runs, preserve all story events and role bindings, be checked against source lines by an independent reviewer, and record annotation version and reviewer agreement. The official support indices and answer column are evaluation-only."
   },
   "learning_protocol": {
-    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.1",
-    "status": "FROZEN; independent en confirmatory source identity and zero-overlap verification are mandatory G0.5 gates",
+    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2",
+    "status": "FROZEN; G0/G1/G2 acceptance gates pending",
     "frozen_at": "2026-11-26",
     "implementation_parent": "research/h1-learning-runtime-integration",
     "data_identity": {
@@ -375,12 +379,21 @@
       "source_freeze_artifact_run": 45832843743,
       "source_freeze_artifact_id": 15123500490,
       "fit_validation_configuration": "en-10k",
-      "confirmatory_configuration": "en",
+      "confirmatory_configuration": "independent generated structured challenge",
       "confirmatory_source_files": [
         "qa3_three-supporting-facts_test.txt",
         "qa5_three-arg-relations_test.txt"
       ],
-      "quarantined_test_configuration": "en-10k"
+      "quarantined_test_configuration": "en-10k",
+      "warm_start_stories_per_task": 1200,
+      "online_adaptation_stories_per_task": 600,
+      "validation_stories_per_task": 200,
+      "confirmatory_generator": "src/rgm/experiments/babi_synthetic_confirmatory.py",
+      "confirmatory_seed_task3": 953900,
+      "confirmatory_seed_task5": 953901,
+      "confirmatory_stories_per_task": 200,
+      "confirmatory_queries_per_story": 5,
+      "confirmatory_total_queries_per_task": 1000
     },
     "partitions": {
       "fit": "1800 complete stories per task, deterministically derived from the official 2000-story training source",
@@ -423,21 +436,25 @@
         "HLA",
         "HLB"
       ],
-      "matched_conditions": [
-        "same structured event/query bundle",
-        "same fit story order per seed",
-        "same feature encoding and SOE configuration",
-        "same event/query cutoffs",
-        "same prediction horizons",
-        "same update schedule",
-        "same candidate/validation criteria"
+      "paired_seeds": [
+        953000,
+        953001,
+        953002,
+        953003,
+        953004,
+        953005,
+        953006,
+        953007,
+        953008,
+        953009
       ],
-      "fit_epochs": 1,
-      "updates": "Online, in source order: issue eligible forecasts from pre-event state, ingest the current source event, score only forecasts whose target is now observable, then route permitted learning updates. No validation or confirmatory updates.",
-      "story_isolation": "Queries are evaluated only against their own story. HLA receives the complete current-story caller-supplied evidence window; HLB retrieves from its canonical evidence store using story-scoped IDs and exact provenance. HLB must not use evidence from another story.",
-      "soe_native": "Freeze SOE decay/configuration, native kernels, cross-level gains, dt and feature dimensions; no online adaptation of the dynamical substrate.",
-      "capacity": "Use the same declared relation/evidence capacity of 16384 records per architecture; report HLB occupancy and HLA caller-window size separately.",
-      "model_state": "Fresh trusted checkpoint for each architecture/task/seed; no state carries across seeds or task IDs."
+      "warm_start": "fit_* APIs consume warm-start partition only; then process warm-start dynamics with learn=false",
+      "online_adaptation": "600 disjoint fit stories, source order, director.exchange(learn=true)",
+      "validation": "200 stories, director.exchange(learn=false), score-only, no learner/eligibility/task-calibrator updates",
+      "confirmatory": "generated inputs only before G4; score-only after candidate freeze",
+      "hla_evidence": "complete current-story caller-supplied evidence window",
+      "hlb_evidence": "single canonical persistent store, story-scoped retrieval, capacity 65536",
+      "soe_native": "freeze SOE configuration, native kernels, cross-level gains, dt and feature dimensions"
     },
     "evaluation": {
       "task3_primary": [
@@ -500,16 +517,22 @@
       "claim_boundary": "Structured-event reasoning only; no natural-language parsing, open-world reasoning, general semantic understanding or architecture-wide superiority claim."
     },
     "execution_gates": [
-      "G0: verify archive and all fit/validation/independent en confirmatory file hashes",
-      "G0.5: require zero normalized story-block overlap between en confirmatory and en-10k training/quarantined test sources",
-      "G1: source-indexed structured annotation and fit/validation audit; confirmatory inputs only, no labels",
-      "G2: full current-head CI, H1 adapter/evidence acceptance and compiled-native smoke",
-      "G3: fit/validation learning, ablations and candidate freeze",
-      "G4: unlock independent en confirmatory labels once",
+      "G0: verify official archive and en-10k fit/validation source hashes; quarantine official test",
+      "G0.5: verify fixed-seed generated challenge counts, novel vocabulary, input hashes and no labels emitted",
+      "G1: source-indexed fit/validation annotation, oracle audit and warm-start/online split freeze",
+      "G2: score-only acceptance, full CI, H1 evidence tests and compiled-native smoke",
+      "G3: ten-seed fit/online/validation campaigns and six ablations; freeze candidates",
+      "G4: one-time generated confirmatory challenge",
       "G5: publish artifacts and evidence ledger"
     ],
-    "supersedes": "HLG-BABI-T3-T5-LEARNING-v1.0",
-    "supersession_reason": "The en-10k test labels were inadvertently inspected during preprocessing debugging; no learning, candidate selection or campaign metric used them. They are quarantined and replaced by the separate official en test files."
+    "supersedes": "HLG-BABI-T3-T5-LEARNING-v1.1",
+    "supersession_reason": "The official en test files overlap the en-10k train/test story corpus (Task 3: 200/200 story blocks); both official test configurations are quarantined. Confirmatory evaluation uses an independent fixed-seed structured generator.",
+    "candidate_selection": {
+      "validation_only": true,
+      "rule": "Pass integrity gates; require 100% exact structured query accuracy; maximise L1 complete relation/event-role forecast accuracy; minimise L0 feature error; minimise abstention; stable candidate ID tie-break.",
+      "integrity_veto": "Any false exact witness, cross-story contamination, leakage violation, role mix-up on fully specified queries or provenance failure rejects candidate.",
+      "confirmatory": "Generated challenge is evaluated once after candidate fingerprints and validation decisions are frozen."
+    }
   },
-  "learning_protocol_ref": "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_1.md"
+  "learning_protocol_ref": "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_2.md"
 }
