@@ -100,7 +100,7 @@ jobs:
     name: Task ${{ matrix.task }} — ${{ matrix.architecture }}
     needs: [prepare-data, build-native]
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # Allow the full 10-seed x 6-condition matrix to finish; each completed\n    # condition is checkpointed for recovery if this ceiling is reached.\n    timeout-minutes: 360
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -151,9 +151,10 @@ jobs:
           GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
           PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
           GFE_ABERCONICS_COMMIT: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          PYTHONUNBUFFERED: "1"
         run: |
           mkdir -p artifacts/babi-campaign
-          python scripts/run_babi_learning_campaign.py \
+          python -u scripts/run_babi_learning_campaign.py \
             --task-id ${{ matrix.task }} \
             --architecture ${{ matrix.architecture }} \
             --output artifacts/babi-campaign/task${{ matrix.task }}-${{ matrix.architecture }}.json
