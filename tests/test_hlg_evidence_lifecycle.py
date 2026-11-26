@@ -118,3 +118,12 @@ def test_revision_is_append_only_and_requires_retained_parent():
     assert store.append(revised) == "STORED"
     assert store.get_event("e1") == original
     assert store.get_event("e2").revision_of == "e1"
+
+def test_journal_recovery_merges_without_deleting_newer_evidence():
+    old = EvidenceStore(capacity=4)
+    old.append(event("old"))
+    checkpoint = old.snapshot()
+    live = EvidenceStore(capacity=4)
+    live.append(event("new", event_time=2.0, observed_at=2.0))
+    live.merge_snapshot(checkpoint)
+    assert set(live.event_ids) == {"old", "new"}
