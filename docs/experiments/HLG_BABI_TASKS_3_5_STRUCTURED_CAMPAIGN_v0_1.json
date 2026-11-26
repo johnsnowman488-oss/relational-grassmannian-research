@@ -1,6 +1,6 @@
 {
   "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
-  "status": "official source bytes frozen; structured-event annotation freeze pending",
+  "status": "official en-10k source bytes and learning protocol v1.0 frozen; structured annotation bundle pending",
   "benchmark": {
     "dataset": "bAbI Question Answering 20 Tasks",
     "publisher_namespace": "facebook/babi_qa",
@@ -359,5 +359,147 @@
       "text_parser": "not part of structured-event campaign; text parsing is a later separately scored stage"
     },
     "annotation_protocol": "Structured event/query annotations must be frozen independently of model runs, preserve all story events and role bindings, be checked against source lines by an independent reviewer, and record annotation version and reviewer agreement. The official support indices and answer column are evaluation-only."
-  }
+  },
+  "learning_protocol": {
+    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.0",
+    "status": "FROZEN; execution gated on source-indexed structured annotation bundle and current-head CI",
+    "frozen_at": "2026-11-26",
+    "implementation_parent": "research/h1-learning-runtime-integration",
+    "data_identity": {
+      "dataset": "bAbI Question Answering 20 Tasks",
+      "version": "1.2.0",
+      "language": "English",
+      "configuration": "en-10k",
+      "archive_sha256": "84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c",
+      "archive_size_bytes": 11745123,
+      "source_freeze_artifact_run": 45832843743,
+      "source_freeze_artifact_id": 15123500490
+    },
+    "partitions": {
+      "fit": "1800 complete stories per task, deterministically derived from the official 2000-story training source",
+      "validation": "200 complete stories per task, disjoint from fit and derived with HLG-BABI-T3-T5-VALIDATION-v1",
+      "confirmatory": "200 official test stories per task; held sealed until protocol, code, candidate choice and validation report are frozen",
+      "split_unit": "whole story block; no story, event, query or support line may cross partitions"
+    },
+    "seeds": {
+      "values": [
+        953000,
+        953001,
+        953002,
+        953003,
+        953004,
+        953005,
+        953006,
+        953007,
+        953008,
+        953009
+      ],
+      "fit_order": "For each seed, deterministically permute complete fit stories using a documented SHA-256 ranking; preserve within-story source order",
+      "pairing": "Identical per-seed story permutations and event/query order for HLA and HLB",
+      "confirmatory_order": "Fixed source order; no seed-dependent reordering"
+    },
+    "input_contract": {
+      "mode": "typed structured events and queries; no natural-language parser in this campaign",
+      "story_scope": "Every event/query ID is story-scoped and preserves exact source-line provenance",
+      "no_leakage": [
+        "gold answer",
+        "official supporting line IDs",
+        "test labels",
+        "any annotation derived from gold support indices"
+      ],
+      "task3_query": "OBJECT_LOCATION_BEFORE_MOVE: object_id, destination_id, target_event_id independently identified from query semantics; answer is object location immediately before that exact MOVE",
+      "task5_query": "GIVE_ROLE: all bound roles and answer_role; answer roles are never included among bound roles; match all constraints within one GIVE event",
+      "labels": "Gold answers and support IDs are evaluator-only and become visible only after prediction; fit labels may update task-outcome calibration only after scoring"
+    },
+    "runtime": {
+      "architectures": [
+        "HLA",
+        "HLB"
+      ],
+      "matched_conditions": [
+        "same structured event/query bundle",
+        "same fit story order per seed",
+        "same feature encoding and SOE configuration",
+        "same event/query cutoffs",
+        "same prediction horizons",
+        "same update schedule",
+        "same candidate/validation criteria"
+      ],
+      "fit_epochs": 1,
+      "updates": "Online, in source order: issue eligible forecasts from pre-event state, ingest the current source event, score only forecasts whose target is now observable, then route permitted learning updates. No validation or confirmatory updates.",
+      "story_isolation": "Queries are evaluated only against their own story. HLA receives the complete current-story caller-supplied evidence window; HLB retrieves from its canonical evidence store using story-scoped IDs and exact provenance. HLB must not use evidence from another story.",
+      "soe_native": "Freeze SOE decay/configuration, native kernels, cross-level gains, dt and feature dimensions; no online adaptation of the dynamical substrate.",
+      "capacity": "Use the same declared relation/evidence capacity of 16384 records per architecture; report HLB occupancy and HLA caller-window size separately.",
+      "model_state": "Fresh trusted checkpoint for each architecture/task/seed; no state carries across seeds or task IDs."
+    },
+    "evaluation": {
+      "task3_primary": [
+        "exact_answer_accuracy",
+        "supporting_event_recall",
+        "temporal_order_validity",
+        "abstention_rate"
+      ],
+      "task5_primary": [
+        "exact_answer_accuracy",
+        "same_event_role_binding_accuracy",
+        "witness_recall",
+        "cross_event_role_mixup_rate",
+        "abstention_rate"
+      ],
+      "learning": [
+        "L0 feature forecast error by horizon",
+        "L1 event type and complete role-binding exact accuracy",
+        "L2 context-transition accuracy where target exists",
+        "per-channel prediction loss and update counts",
+        "calibration and coverage"
+      ],
+      "integrity": [
+        "false_witness_rate",
+        "missing_witness_abstention",
+        "provenance_verification_rate",
+        "cross-story contamination count",
+        "late-observation leakage count",
+        "prediction-to-observation cutoff violations"
+      ],
+      "efficiency": [
+        "event/query throughput",
+        "checkpoint size",
+        "HLB canonical store occupancy",
+        "prediction/eligibility journal size",
+        "runtime wall time; not a matched cost study"
+      ]
+    },
+    "ablations": [
+      "full_learning",
+      "no_temporal",
+      "no_relational",
+      "no_abstraction",
+      "no_task",
+      "no_learning"
+    ],
+    "baselines": [
+      "deterministic_task_reference_solver",
+      "direct_structured_retrieval"
+    ],
+    "selection": {
+      "validation_only": true,
+      "rule": "Select one candidate per architecture and task using validation exact-answer accuracy first, then integrity gates, then L1 role/event forecast accuracy; tie-break by lower abstention and then stable candidate ID.",
+      "integrity_veto": "Any false exact witness, cross-story contamination, leakage violation, role mix-up above zero on exact-query cases, or evidence/provenance integrity failure rejects the candidate regardless of accuracy.",
+      "confirmatory": "After candidate selection, freeze candidate fingerprints, protocol, data/annotation manifests, metrics and code commit. Run official test once. No retuning or promotion based on confirmatory outcomes."
+    },
+    "reporting": {
+      "paired_unit": "story, clustered within seed; HLA/HLB compared on matched story IDs and seed permutations",
+      "uncertainty": "Report per-seed scores, pooled micro and macro scores, paired story-level bootstrap 95% intervals, and exact denominators; do not treat repeated seeds on the same stories as independent confirmatory samples.",
+      "claim_boundary": "Structured-event reasoning only; no natural-language parsing, open-world reasoning, general semantic understanding or architecture-wide superiority claim."
+    },
+    "execution_gates": [
+      "G0: verify source archive and all eight frozen split-file hashes",
+      "G1: implement source-indexed structured annotation conversion for Task 3 and Task 5; freeze annotation manifest and independent audit",
+      "G2: run current-head full CI, H1 adapter/evidence tests and compiled-native smoke",
+      "G3: run train/validation learning and ablation campaigns; freeze candidates",
+      "G4: unlock official test once for confirmatory campaign",
+      "G5: publish artifact hashes and complete evidence ledger"
+    ]
+  },
+  "learning_protocol_ref": "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_0.md"
 }
