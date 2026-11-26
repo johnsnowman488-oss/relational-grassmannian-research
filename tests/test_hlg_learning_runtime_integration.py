@@ -309,3 +309,28 @@ def test_l0_and_l2_predictions_are_regenerated_and_learned_after_candidate_rollb
     assert scored["next_context"] == 0.0
     assert learner.level0.update_count == 1
     assert sum(sum(bucket.values()) for bucket in learner.context_transitions.snapshot().values()) == 2
+
+
+def test_director_runs_all_three_prediction_levels_before_observation_update():
+    _, adapter, director = system("HLB")
+    seed(adapter.learning)
+    adapter.learning.fit_level0_predictor([[0.0, 0.0]], partition="fit")
+    adapter.learning.fit_context_transitions([("home", "home")], partition="fit")
+    result = director.exchange(
+        event_time=1.0, observed_at=1.0,
+        event_features={0: [1.0, 0.0]},
+        prediction_context="home", observed_context="work",
+        relation_records=((0, relation("three-level-r", "visited")),),
+        nary_events=(nary("three-level-e", event_type="moved", recipient="bill"),),
+        eligibility_events=(eligibility("three-level-credit"),),
+    )
+    assert {p.level.value for p in result["predictions"]} == {
+        "L0_GROUNDING", "L1_RELATIONAL", "L2_CONTEXT"
+    }
+    assert len(result["predictions"]) == 4
+    assert len(adapter.learning.predictions.scores) == 4
+    assert result["learning_errors"] == {
+        "relational": 1.0, "abstraction": 1.0, "temporal": 0.5, "task": 0.0
+    }
+    assert adapter.learning.level0.update_count == 1
+    assert adapter.learning.temporal_credit.snapshot()["weights"]
