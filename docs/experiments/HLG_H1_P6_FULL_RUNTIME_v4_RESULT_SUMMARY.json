@@ -1,0 +1,22 @@
+{
+  "campaign_id": "HLG-H1-P6-FULL-RUNTIME-v4",
+  "workflow_run_id": 45725650801,
+  "artifact_id": 15073354015,
+  "artifact_zip_sha256": "babbdedf20ce5874ca98d714d27ad49bb83cf06f6d8b8aee5fcfa1e1fc009991",
+  "result_json_sha256": "d0ab65bb06d202d63695ce0b026aa27ec2faaf589bdd9c3991253f96507123da",
+  "architectures": {
+    "HLA": {
+      "max_resource_state_bytes": 854,
+      "max_trainable_parameters": 26,
+      "max_update_multiply_adds": 1272,
+      "max_query_multiply_adds": 741
+    },
+    "HLB": {
+      "max_resource_state_bytes": 854,
+      "max_trainable_parameters": 26,
+      "max_update_multiply_adds": 1272,
+      "max_query_multiply_adds": 741
+    }
+  },
+  "resource_accounting_note": "The campaign subtotal includes the integrated M3 numeric state and P6 SOE arrays, but omits the P6 state vector and fixed transition matrix. The companion resource audit adds those two arrays explicitly."
+}
