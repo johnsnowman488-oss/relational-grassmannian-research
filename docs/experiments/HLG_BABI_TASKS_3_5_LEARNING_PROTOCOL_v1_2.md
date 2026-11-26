@@ -1,6 +1,6 @@
-# bAbI Tasks 3 and 5 — HLA/HLB Learning Protocol v1.2.1
+# bAbI Tasks 3 and 5 — HLA/HLB Learning Protocol v1.2.2
 
-**Protocol ID:** HLG-BABI-T3-T5-LEARNING-v1.2.1  
+**Protocol ID:** HLG-BABI-T3-T5-LEARNING-v1.2.2  
 **Status:** FROZEN — 2026-11-26; execution gated on G0/G1/G2 acceptance  
 **Supersedes:** v1.1 before any model training, candidate selection or confirmatory evaluation  
 **Scope:** structured-event learning and retrieval; natural-language parsing is excluded.
@@ -9,7 +9,7 @@
 
 The official `en-10k` test labels were inadvertently inspected during preprocessing debugging. The separate official `en` test files were then checked and found to overlap the `en-10k` training/test story corpus exactly (Task 3: 200/200 story blocks). Neither official test configuration can serve as independent confirmation. Both are quarantined and excluded from all campaign metrics and candidate selection.
 
-Protocol v1.2.1 therefore uses:
+Protocol v1.2.2 therefore uses:
 - Official `en-10k` training source for fit and validation.
 - A deterministic, independently generated **bAbI-compatible structured challenge** for confirmatory evaluation.
 
@@ -49,13 +49,13 @@ The G1 bundle contains confirmatory inputs only. It emits no answers or supporti
 
 The official source-template compiler is a narrow deterministic benchmark adapter, not general NLP. It converts:
 - Task 3: MOVE, PICK_UP and DROP, including source variants such as `got ... there`, `took`, `picked up`, `left` and `discarded`.
-- Task 5: GIVE (source forms `gave` and `handed`) in active/passive forms; PASS (source form `passed`) is a separate n-ary event; MOVE/PICK_UP/DROP distractors remain represented.
+- Task 5: GIVE (source forms `gave`, `handed` and `passed`) in active/passive forms; MOVE/PICK_UP/DROP distractors remain represented.
 
 Model inputs contain story-scoped event/query IDs and exact source-line provenance. Fit/validation gold answers and official support IDs are isolated in separate evaluator label streams. Confirmatory generation emits input records only; label derivation is deferred to G4.
 
 Task 3 query anchoring is derived from the question destination and timeline: the target is a MOVE by the actor currently holding the queried object. Gold support indices are not used to select it.
 
-Task 5 queries contain bound roles and a distinct answer role. All bound roles must match within one GIVE event. PASS events are never eligible witnesses for GIVE_ROLE queries. The v1.2.1 correction follows the independent source audit: a later “passed” statement must not replace the official answer supported by an earlier “handed” statement.
+Task 5 queries contain bound roles and a distinct answer role. All bound roles must match within one GIVE event, regardless of the source surface verb. If the official gold answer/support is inconsistent with the deterministic structured oracle, quarantine that query explicitly rather than changing the event predicate or silently rewriting the source label.
 
 ## 5. Matched HLA/HLB learning schedule
 
