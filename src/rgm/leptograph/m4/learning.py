@@ -362,6 +362,13 @@ class EligibilityLedger:
                 state.last_tick = tick
         self._last_tick = tick
 
+    def reset(self, *, tick: int) -> None:
+        """Explicitly end an episode without silently evicting its eligibility."""
+        if isinstance(tick, bool) or tick < self._last_tick:
+            raise ValueError("eligibility reset tick cannot move backwards")
+        self._states = {}
+        self._last_tick = int(tick)
+
     def values(self, *, prediction_cutoff_tick: int) -> dict[tuple[str, str, str], float]:
         return {
             key: state.value for key, state in sorted(self._states.items())
@@ -964,7 +971,7 @@ class LearningRuntime:
         return (1.0 - score.value) if schema.metric == "accuracy" else score.value
 
     def observe_level0_features(self, features: Sequence[float], *, event_time: float,
-                                observed_at: float, tick: int) -> float | None:
+                                observed_at: float, tick: int, learn: bool = True) -> float | None:
         key = f"level0@{tick}"
         values = _finite_vector(features, name="observed level-0 features").tolist()
         error = self._score_and_update(
@@ -984,15 +991,15 @@ class LearningRuntime:
                 integrity_failures=self.last_signals.integrity_failures,
             )
             routed = self.error_router.route(self.last_signals)
-            if "temporal_feature_predictor" in routed:
+            if learn and "temporal_feature_predictor" in routed:
                 self.level0.update(values)
-            if "temporal_eligibility" in routed:
+            if learn and "temporal_eligibility" in routed:
                 self.temporal_credit.update(error, self.eligibility.values(prediction_cutoff_tick=tick))
         return error
 
     def observe_context_transition(self, current_context: str | None, next_context: str | None, *,
                                    source_id: str, event_time: float, observed_at: float,
-                                   tick: int) -> float | None:
+                                   tick: int, learn: bool = True) -> float | None:
         key = f"context@{tick}"
         error = self._score_and_update(
             "next_context", key, next_context, source_id, event_time, observed_at, tick,
@@ -1010,11 +1017,11 @@ class LearningRuntime:
                 integrity_failures=self.last_signals.integrity_failures,
             )
             routed = self.error_router.route(self.last_signals)
-            if "context_transition_learner" in routed:
+            if learn and "context_transition_learner" in routed:
                 self.context_transitions.observe(current_context, next_context)
         return error
 
-    def observe_relation(self, record: Any, *, tick: int) -> float | None:
+    def observe_relation(self, record: Any, *, tick: int, learn: bool = True) -> float | None:
         pattern = RelationPattern(record.relation_type.name, record.subject.entity_id,
                                   record.subject.entity_type, record.object.entity_id,
                                   record.object.entity_type, record.context)
@@ -1036,11 +1043,11 @@ class LearningRuntime:
                 integrity_failures=self.last_signals.integrity_failures,
             )
             routed = self.error_router.route(self.last_signals)
-            if "semantic_relation_learner" in routed:
+            if learn and "semantic_relation_learner" in routed:
                 self.relations.observe(record)
         return error
 
-    def observe_nary_event(self, event: Any, *, tick: int) -> float | None:
+    def observe_nary_event(self, event: Any, *, tick: int, learn: bool = True) -> float | None:
         pattern = EventRolePattern(event.event_type,
                                    tuple(sorted((p.role, p.entity_id, p.entity_type) for p in event.participants)),
                                    event.context)
@@ -1061,9 +1068,24 @@ class LearningRuntime:
                 integrity_failures=self.last_signals.integrity_failures,
             )
             routed = self.error_router.route(self.last_signals)
-            if "nary_event_role_learner" in routed:
+            if learn and "nary_event_role_learner" in routed:
                 self.event_roles.observe(event)
         return error
+
+    def reset_episode_eligibility(self, *, tick: int, observed_at: float) -> None:
+        """Reset transient temporal eligibility at an episode boundary.
+
+        The boundary is journaled so checkpoint continuation and replay reproduce
+        the same event-credit isolation while learned temporal weights persist.
+        """
+        if (isinstance(tick, bool) or tick < 0 or not math.isfinite(observed_at)
+            or observed_at < self._last_observed_at):
+            raise ValueError("episode boundary tick/time must be valid and monotone")
+        self.eligibility.reset(tick=tick)
+        self._observation_journal.append({
+            "kind": "episode_boundary", "tick": int(tick),
+            "observed_at": float(observed_at),
+        })
 
     def observe_eligibility(self, event: EligibilityEvent) -> None:
         self.eligibility.ingest(event)
@@ -1074,7 +1096,7 @@ class LearningRuntime:
         values = self.eligibility.values(prediction_cutoff_tick=tick)
         return values
 
-    def observe_temporal_error(self, error: float, *, tick: int) -> None:
+    def observe_temporal_error(self, error: float, *, tick: int, learn: bool = True) -> None:
         if not math.isfinite(error) or error < 0:
             raise ValueError("temporal error must be finite and non-negative")
         self._observation_journal.append({"kind": "temporal_error", "error": float(error), "tick": int(tick)})
@@ -1085,10 +1107,10 @@ class LearningRuntime:
             integrity_failures=self.last_signals.integrity_failures,
         )
         routed = self.error_router.route(self.last_signals)
-        if "temporal_eligibility" in routed:
+        if learn and "temporal_eligibility" in routed:
             self.temporal_credit.update(float(error), values)
 
-    def observe_task_error(self, task_key: str, error: float) -> None:
+    def observe_task_error(self, task_key: str, error: float, *, learn: bool = True) -> None:
         if not task_key or not math.isfinite(error) or error < 0:
             raise ValueError("task outcome requires a key and finite non-negative error")
         self._observation_journal.append({"kind": "task", "task_key": task_key, "error": float(error)})
@@ -1099,7 +1121,7 @@ class LearningRuntime:
                 integrity_failures=self.last_signals.integrity_failures,
             )
             routed = self.error_router.route(self.last_signals)
-            if "task_outcome_learner" in routed:
+            if learn and "task_outcome_learner" in routed:
                 self.task_outcomes.observe_error(task_key, error)
 
     def snapshot(self) -> dict:
@@ -1220,6 +1242,8 @@ class LearningRuntime:
                 routed = self.error_router.route(signals)
                 if "temporal_eligibility" in routed:
                     self.temporal_credit.update(float(item["error"]), values)
+            elif item["kind"] == "episode_boundary":
+                self.eligibility.reset(tick=int(item["tick"]))
             elif item["kind"] == "eligibility":
                 event = EligibilityEvent(**item["value"])
                 if event.observed_tick > self.eligibility._last_tick:

@@ -596,7 +596,8 @@ class HierarchicalRuntimeDirector:
                  observed_context: str | None = None,
                  eligibility_events: Sequence[EligibilityEvent] = (),
                  temporal_error: float | None = None,
-                 task_outcome: tuple[str, float] | None = None) -> dict:
+                 task_outcome: tuple[str, float] | None = None,
+                 learn: bool = True) -> dict:
         if not math.isfinite(event_time) or not math.isfinite(observed_at) or event_time < 0 or observed_at < event_time:
             raise ValueError("event_time and observed_at must be finite and observation cannot precede event")
         if observed_at < (self.event_log[-1]["observed_at"] if self.event_log else 0.0):
@@ -629,19 +630,21 @@ class HierarchicalRuntimeDirector:
                     status = self.adapter.observe_event(event)
                     if status.startswith("ABSTAIN"):
                         raise RuntimeError(f"HLB n-ary evidence storage abstained: {status}")
-            result = self.adapter.step(supplied)
-            for event in eligibility_events:
-                if event.observed_tick != next_tick:
-                    raise ValueError("eligibility observation tick must match the exchange tick")
-                self.adapter.learning.observe_eligibility(event)
+            result = self.adapter.step(supplied, advance_learning=learn)
+            if learn:
+                for event in eligibility_events:
+                    if event.observed_tick != next_tick:
+                        raise ValueError("eligibility observation tick must match the exchange tick")
+                    self.adapter.learning.observe_eligibility(event)
             if 0 in supplied:
                 self.adapter.learning.observe_level0_features(
                     supplied[0], event_time=event_time, observed_at=observed_at, tick=next_tick,
+                    learn=learn,
                 )
             for record in observed_relations:
-                self.adapter.learning.observe_relation(record, tick=next_tick)
+                self.adapter.learning.observe_relation(record, tick=next_tick, learn=learn)
             for event in nary_events:
-                self.adapter.learning.observe_nary_event(event, tick=next_tick)
+                self.adapter.learning.observe_nary_event(event, tick=next_tick, learn=learn)
             target_context = observed_context
             if target_context is None:
                 if observed_relations:
@@ -656,11 +659,12 @@ class HierarchicalRuntimeDirector:
                 self.adapter.learning.observe_context_transition(
                     prediction_context, target_context, source_id=source_id,
                     event_time=target_event_time, observed_at=observed_at, tick=next_tick,
+                    learn=learn,
                 )
             if temporal_error is not None:
-                self.adapter.learning.observe_temporal_error(float(temporal_error), tick=next_tick)
+                self.adapter.learning.observe_temporal_error(float(temporal_error), tick=next_tick, learn=learn)
             if task_outcome is not None:
-                self.adapter.learning.observe_task_error(str(task_outcome[0]), float(task_outcome[1]))
+                self.adapter.learning.observe_task_error(str(task_outcome[0]), float(task_outcome[1]), learn=learn)
         except Exception:
             self.adapter.restore(before)
             raise

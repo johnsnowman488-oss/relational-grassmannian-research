@@ -1,6 +1,6 @@
 {
   "protocol_id": "HLG-BABI-T3-T5-STRUCTURED-v0.1",
-  "status": "official source bytes frozen; structured-event annotation freeze pending",
+  "status": "en-10k fit/validation source pinned; official test quarantined; synthetic structured confirmatory challenge v1.2 frozen",
   "benchmark": {
     "dataset": "bAbI Question Answering 20 Tasks",
     "publisher_namespace": "facebook/babi_qa",
@@ -11,7 +11,7 @@
     "dataset_builder_script": "https://huggingface.co/datasets/facebook/babi_qa/blob/main/babi_qa.py",
     "canonical_archive": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
     "homepage": "https://research.fb.com/downloads/babi/",
-    "configuration": "en-10k",
+    "configuration": "en-10k fit/validation; independent generated structured confirmatory challenge",
     "archive_path_prefix": "tasks_1-20_v1-2/en-valid-10k/",
     "byte_freeze": {
       "status": "VERIFIED",
@@ -127,11 +127,13 @@
     "archive_object_commit": null,
     "archive_object_revision": "official v1.2 archive mirrored by S3; immutable SHA-256 pinned",
     "partition_policy": {
-      "source_splits": "Official en-10k train and test files. The official test split is byte-preserved and never repartitioned.",
-      "fit": "90% of complete source training story blocks, selected deterministically by SHA-256 ranking",
-      "validation": "10% of complete source training story blocks, selected by frozen seed HLG-BABI-T3-T5-VALIDATION-v1; derived, not upstream-provided",
-      "confirmatory": "Official test split only; accessed once after configuration freeze",
-      "leakage": "All lines, questions and supporting facts within one story remain in the same fit or validation partition."
+      "fit": "1800 complete en-10k training story blocks per task",
+      "warm_start": "1200 whole stories selected deterministically by SHA-256 story-ID ranking",
+      "online_adaptation": "600 disjoint whole stories remaining after warm-start selection",
+      "validation": "200 complete whole-story blocks derived from en-10k training source",
+      "confirmatory": "200 generated structured stories per task, 5 queries/story, fixed seeds 953900/953901; not an official bAbI test set",
+      "quarantined": "Official en-10k test files retained as preprocessing/debug-only provenance and excluded from all campaign metrics",
+      "leakage": "Whole stories remain in one partition; generated confirmatory bundle contains no gold labels before G4."
     }
   },
   "selected_tasks": [
@@ -140,7 +142,7 @@
       "name": "Three Supporting Facts",
       "train": "data/babi-v1.2/qa3_train.txt",
       "validation": "data/babi-v1.2/qa3_valid.txt",
-      "test": "data/babi-v1.2/qa3_test.txt",
+      "test": "artifacts/babi-confirmatory/task3-confirmatory.inputs.jsonl",
       "reasoning_target": "temporal object-state reconstruction from a multi-event story",
       "oracle_event_schema": {
         "MOVE": {
@@ -176,14 +178,15 @@
         "temporal_order_validity",
         "abstention_rate"
       ],
-      "official_training_source": "data/babi-v1.2/qa3_train_source.txt"
+      "official_training_source": "data/babi-v1.2/qa3_train_source.txt",
+      "quarantined_en10k_test_debug_only": "data/babi-v1.2/qa3_test_debug_only.txt"
     },
     {
       "task_id": 5,
       "name": "Three Argument Relations",
       "train": "data/babi-v1.2/qa5_train.txt",
       "validation": "data/babi-v1.2/qa5_valid.txt",
-      "test": "data/babi-v1.2/qa5_test.txt",
+      "test": "artifacts/babi-confirmatory/task5-confirmatory.inputs.jsonl",
       "reasoning_target": "typed three-participant relation binding and role-conditioned retrieval",
       "oracle_event_schema": {
         "GIVE": {
@@ -217,7 +220,8 @@
         "cross_event_role_mixup_rate",
         "abstention_rate"
       ],
-      "official_training_source": "data/babi-v1.2/qa5_train_source.txt"
+      "official_training_source": "data/babi-v1.2/qa5_train_source.txt",
+      "quarantined_en10k_test_debug_only": "data/babi-v1.2/qa5_test_debug_only.txt"
     }
   ],
   "stages": [
@@ -359,5 +363,270 @@
       "text_parser": "not part of structured-event campaign; text parsing is a later separately scored stage"
     },
     "annotation_protocol": "Structured event/query annotations must be frozen independently of model runs, preserve all story events and role bindings, be checked against source lines by an independent reviewer, and record annotation version and reviewer agreement. The official support indices and answer column are evaluation-only."
-  }
+  },
+  "learning_protocol": {
+    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+    "status": "FROZEN; G0/G1/G2 acceptance gates pending",
+    "frozen_at": "2026-11-26",
+    "implementation_parent": "research/h1-learning-runtime-integration",
+    "data_identity": {
+      "dataset": "bAbI Question Answering 20 Tasks",
+      "version": "1.2.0",
+      "language": "English",
+      "configuration": "en-10k",
+      "archive_sha256": "84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c",
+      "archive_size_bytes": 11745123,
+      "source_freeze_artifact_run": 45832843743,
+      "source_freeze_artifact_id": 15123500490,
+      "fit_validation_configuration": "en-10k",
+      "confirmatory_configuration": "independent generated structured challenge",
+      "quarantined_test_configuration": "en-10k",
+      "warm_start_stories_per_task": 1200,
+      "online_adaptation_stories_per_task": 600,
+      "validation_stories_per_task": 200,
+      "confirmatory_generator": "src/rgm/experiments/babi_synthetic_confirmatory.py",
+      "confirmatory_seed_task3": 953900,
+      "confirmatory_seed_task5": 953901,
+      "confirmatory_stories_per_task": 200,
+      "confirmatory_queries_per_story": 5,
+      "confirmatory_total_queries_per_task": 1000,
+      "hlb_evidence_capacity": 65536,
+      "confirmatory_source": "independent structured generator; no labels emitted before G4"
+    },
+    "partitions": {
+      "fit": "1800 complete stories per task, deterministically derived from the official 2000-story training source",
+      "validation": "200 complete stories per task, disjoint from fit and derived with HLG-BABI-T3-T5-VALIDATION-v1",
+      "confirmatory": "200 official test stories per task; held sealed until protocol, code, candidate choice and validation report are frozen",
+      "split_unit": "whole story block; no story, event, query or support line may cross partitions"
+    },
+    "seeds": {
+      "values": [
+        953000,
+        953001,
+        953002,
+        953003,
+        953004,
+        953005,
+        953006,
+        953007,
+        953008,
+        953009
+      ],
+      "fit_order": "For each seed, deterministically permute complete fit stories using a documented SHA-256 ranking; preserve within-story source order",
+      "pairing": "Identical per-seed story permutations and event/query order for HLA and HLB",
+      "confirmatory_order": "Fixed source order; no seed-dependent reordering"
+    },
+    "input_contract": {
+      "mode": "typed structured events and queries; no natural-language parser in this campaign",
+      "story_scope": "Every event/query ID is story-scoped and preserves exact source-line provenance",
+      "no_leakage": [
+        "gold answer",
+        "official supporting line IDs",
+        "test labels",
+        "any annotation derived from gold support indices"
+      ],
+      "task3_query": "OBJECT_LOCATION_BEFORE_MOVE: object_id, destination_id, target_event_id independently identified from query semantics; answer is object location immediately before that exact MOVE",
+      "task5_query": "GIVE_ROLE: all bound roles and answer_role; answer roles are never included among bound roles; match all constraints within one GIVE event",
+      "labels": "Gold answers and support IDs are evaluator-only and become visible only after prediction; fit labels may update task-outcome calibration only after scoring"
+    },
+    "runtime": {
+      "architectures": [
+        "HLA",
+        "HLB"
+      ],
+      "paired_seeds": [
+        953000,
+        953001,
+        953002,
+        953003,
+        953004,
+        953005,
+        953006,
+        953007,
+        953008,
+        953009
+      ],
+      "warm_start": "fit_* APIs consume warm-start partition only; then process warm-start dynamics with learn=false",
+      "online_adaptation": "600 disjoint fit stories, source order, director.exchange(learn=true)",
+      "validation": "200 stories, director.exchange(learn=false), score-only, no learner/eligibility/task-calibrator updates",
+      "confirmatory": "generated inputs only before G4; score-only after candidate freeze",
+      "hla_evidence": "complete current-story caller-supplied evidence window",
+      "hlb_evidence": "single canonical persistent store, story-scoped retrieval, capacity 65536",
+      "soe_native": "freeze SOE configuration, native kernels, cross-level gains, dt and feature dimensions",
+      "native_runtime_repository": "johnsnowman488-oss/aberconics-framework",
+      "native_runtime_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
+      "native_runtime_factory": "gfe_ctypes.create_persistent_hierarchy_runtime",
+      "native_runtime_semantics": "one actual persistent C++ hierarchy handle per adapter; all-level feedback injected simultaneously; one native step per director exchange",
+      "soe_dt": 0.01,
+      "soe_feature_dimensions": [
+        2,
+        3,
+        4
+      ],
+      "soe_decay_rates": [
+        [
+          0.1,
+          0.4
+        ],
+        [
+          0.2,
+          0.7
+        ],
+        [
+          0.05,
+          0.3
+        ]
+      ],
+      "native_kernel_gamma": "reverse of each SOE decay-rate vector",
+      "native_kernel_weights": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ]
+      ],
+      "soe_to_credit": "pre-step SOE trace row L2 norm per level/channel; six eligibility features per source event",
+      "eligibility_decay": 0.9,
+      "eligibility_capacity": 131072,
+      "hlb_evidence_capacity": 65536,
+      "episode_policy": "At each story boundary reset SOE banks and native state to baseline while preserving persistent native handle and cumulative step count; journal and reset transient eligibility; retain learned parameters, prediction journal and HLB canonical evidence; story-scoped query retrieval.",
+      "event_type_feature_codes": {
+        "MOVE": 0,
+        "PICK_UP": 0.3333333333333333,
+        "DROP": 0.6666666666666666,
+        "GIVE": 1
+      },
+      "feature_embedding": {
+        "dimension": 4,
+        "levels": {
+          "L0": "[event_type_code, role_count/3, 0, 0]",
+          "L1": "[role_count/3, unique_entity_count/3, context_code, 0]",
+          "L2": "[task_id/5, timeline_index/timeline_length, context_code, query_flag]"
+        },
+        "reason": "Pinned H0 native chain requires equal native state dimensions on adjacent bottom-up edges; common four-coordinate SOE feature vectors preserve all prior semantic coordinates with zero padding.",
+        "soe_banks": [
+          {
+            "feature_dim": 4,
+            "decay_rates": [
+              0.1,
+              0.4
+            ]
+          },
+          {
+            "feature_dim": 4,
+            "decay_rates": [
+              0.2,
+              0.7
+            ]
+          },
+          {
+            "feature_dim": 4,
+            "decay_rates": [
+              0.05,
+              0.3
+            ]
+          }
+        ]
+      }
+    },
+    "evaluation": {
+      "task3_primary": [
+        "exact_answer_accuracy",
+        "supporting_event_recall",
+        "temporal_order_validity",
+        "abstention_rate"
+      ],
+      "task5_primary": [
+        "exact_answer_accuracy",
+        "same_event_role_binding_accuracy",
+        "witness_recall",
+        "cross_event_role_mixup_rate",
+        "abstention_rate"
+      ],
+      "learning": [
+        "L0 feature forecast error by horizon",
+        "L1 event type and complete role-binding exact accuracy",
+        "L2 context-transition accuracy where target exists",
+        "per-channel prediction loss and update counts",
+        "calibration and coverage"
+      ],
+      "integrity": [
+        "false_witness_rate",
+        "missing_witness_abstention",
+        "provenance_verification_rate",
+        "cross-story contamination count",
+        "late-observation leakage count",
+        "prediction-to-observation cutoff violations"
+      ],
+      "efficiency": [
+        "event/query throughput",
+        "checkpoint size",
+        "HLB canonical store occupancy",
+        "prediction/eligibility journal size",
+        "runtime wall time; not a matched cost study"
+      ]
+    },
+    "ablations": [
+      "full_learning",
+      "no_temporal",
+      "no_relational",
+      "no_abstraction",
+      "no_task",
+      "no_learning"
+    ],
+    "baselines": [
+      "deterministic_task_reference_solver",
+      "direct_structured_retrieval"
+    ],
+    "selection": {
+      "validation_only": true,
+      "rule": "Select one candidate per architecture and task using validation exact-answer accuracy first, then integrity gates, then L1 role/event forecast accuracy; tie-break by lower abstention and then stable candidate ID.",
+      "integrity_veto": "Any false exact witness, cross-story contamination, leakage violation, role mix-up above zero on exact-query cases, or evidence/provenance integrity failure rejects the candidate regardless of accuracy.",
+      "confirmatory": "After candidate selection, freeze candidate fingerprints, protocol, data/annotation manifests, metrics and code commit. Run official test once. No retuning or promotion based on confirmatory outcomes."
+    },
+    "reporting": {
+      "paired_unit": "story, clustered within seed; HLA/HLB compared on matched story IDs and seed permutations",
+      "uncertainty": "Report per-seed scores, pooled micro and macro scores, paired story-level bootstrap 95% intervals, and exact denominators; do not treat repeated seeds on the same stories as independent confirmatory samples.",
+      "claim_boundary": "Structured-event reasoning only; no natural-language parsing, open-world reasoning, general semantic understanding or architecture-wide superiority claim."
+    },
+    "execution_gates": [
+      "G0: verify official archive and en-10k fit/validation source hashes; quarantine official test",
+      "G0.5: verify fixed-seed generated challenge counts, novel vocabulary, input hashes and no labels emitted",
+      "G1: source-indexed fit/validation annotation, oracle audit and warm-start/online split freeze",
+      "G2: score-only acceptance, full CI, H1 evidence tests and compiled-native smoke",
+      "G3: ten-seed fit/online/validation campaigns and six ablations; freeze candidates",
+      "G4: one-time generated confirmatory challenge",
+      "G5: publish artifacts and evidence ledger"
+    ],
+    "supersedes": "HLG-BABI-T3-T5-LEARNING-v1.1",
+    "supersession_reason": "The official en test files overlap the en-10k train/test story corpus (Task 3: 200/200 story blocks); both official test configurations are quarantined. Confirmatory evaluation uses an independent fixed-seed structured generator.",
+    "candidate_selection": {
+      "validation_only": true,
+      "rule": "Pass integrity gates; require 100% exact structured query accuracy; maximise L1 complete relation/event-role forecast accuracy; minimise L0 feature error; minimise abstention; stable candidate ID tie-break.",
+      "integrity_veto": "Any false exact witness, cross-story contamination, leakage violation, role mix-up on fully specified queries or provenance failure rejects candidate.",
+      "confirmatory": "Generated challenge is evaluated once after candidate fingerprints and validation decisions are frozen."
+    },
+    "task5_predicates": {
+      "give_statement_forms": [
+        "gave",
+        "handed",
+        "passed"
+      ],
+      "event_type": "GIVE(giver, object, recipient)",
+      "query_semantics": "All three source surface forms map to the same n-ary GIVE event; role bindings must match within one event."
+    },
+    "source_label_policy": {
+      "inconsistent_gold_oracle_query": "preserve source input and gold label; mark audit_status=quarantined; record exact query/support/oracle provenance; exclude from task-error updates and evaluation denominators",
+      "missing_support_witness": "hard annotation failure",
+      "max_quarantine_fraction_per_task": 0.005
+    }
+  },
+  "learning_protocol_ref": "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_2.md"
 }
