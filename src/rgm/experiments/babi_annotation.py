@@ -208,7 +208,7 @@ def write_annotation_bundle(source_root: Path, output_root: Path) -> dict[str, A
         for split, filename in (
             ("fit", f"{prefix}_train.txt"),
             ("validation", f"{prefix}_valid.txt"),
-            ("confirmatory", f"{prefix}_test.txt"),
+            ("confirmatory", f"{prefix}_confirmatory_source.txt"),
         ):
             source = source_root / filename
             stories = parse_source_file(source, task_id=task_id, split=split)
