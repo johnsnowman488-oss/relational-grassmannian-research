@@ -25,8 +25,9 @@ def test_task3_three_supporting_fact_temporal_object_state_fixture():
 
 def test_task3_late_observation_does_not_leak_into_earlier_cutoff():
     story = [
-        ev("1", "MOVE", {"actor": "john", "destination": "office"}, 1),
-        ev("2", "MOVE", {"actor": "john", "destination": "kitchen"}, 2, observed=5),
+        ev("1", "PICK_UP", {"actor": "john", "object": "apple"}, 1),
+        ev("2", "MOVE", {"actor": "john", "destination": "office"}, 2),
+        ev("3", "MOVE", {"actor": "john", "destination": "kitchen"}, 3, observed=5),
     ]
     assert task3_object_location_before_move(
         story, object_id="apple", actor_id="john",
