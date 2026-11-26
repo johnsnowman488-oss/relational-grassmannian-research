@@ -738,6 +738,7 @@ class LearningRuntime:
                    context: str | None = None) -> tuple[Prediction, ...]:
         if tick < 0 or not math.isfinite(observed_at) or observed_at < self._last_observed_at:
             raise ValueError("learning tick/time must be monotone")
+        self._last_observed_at = observed_at
         issued = []
         if subject_type:
             pattern = self.relations.predict(subject_type, context)
@@ -843,6 +844,7 @@ class LearningRuntime:
             "task_outcomes": self.task_outcomes.snapshot(),
             "eligibility": self.eligibility.snapshot(),
             "journal_count": len(self._observation_journal),
+            "observation_journal": copy.deepcopy(self._observation_journal),
             "prediction_sequence": self._prediction_sequence,
             "last_observed_at": self._last_observed_at,
             "last_signals": self.last_signals.as_dict(),
@@ -853,10 +855,14 @@ class LearningRuntime:
             raise ValueError("learning runtime checkpoint schema mismatch")
         local_journal = list(self._observation_journal)
         trusted_count = int(state["journal_count"])
-        if trusted_count < 0 or trusted_count > len(local_journal):
-            # A checkpoint may have been created by another process; it must
-            # carry its own source-label journal to be restorable.
-            raise ValueError("learning checkpoint journal watermark is unavailable")
+        checkpoint_journal = copy.deepcopy(list(state.get("observation_journal", ())))
+        if trusted_count < 0 or trusted_count != len(checkpoint_journal):
+            raise ValueError("learning checkpoint journal watermark is inconsistent")
+        if len(local_journal) >= trusted_count:
+            newer_journal = local_journal[trusted_count:]
+        else:
+            newer_journal = []
+        replay_journal = checkpoint_journal + newer_journal
         self.predictions.restore(state["predictions"])
         self.relations.restore(state["relations"])
         self.event_roles.restore(state["event_roles"])
@@ -866,8 +872,8 @@ class LearningRuntime:
         self._last_observed_at = float(state["last_observed_at"])
         # New labels received during candidate execution survive rollback and
         # are deterministically applied to the restored incumbent learners.
-        self._observation_journal = local_journal
-        for item in local_journal[trusted_count:]:
+        self._observation_journal = replay_journal
+        for item in newer_journal:
             if item["kind"] == "relation":
                 self.relations._counter.observe(
                     self.relations._key(item["subject_type"], item["context"]), item["value"])
