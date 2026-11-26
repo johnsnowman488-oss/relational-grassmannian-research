@@ -114,11 +114,11 @@
         }
       },
       "freeze_artifact": {
-        "workflow_run_id": 45832021951,
-        "workflow_run_url": "https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45832021951",
-        "artifact_id": 15121144491,
+        "workflow_run_id": 45832843743,
+        "workflow_run_url": "https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45832843743",
+        "artifact_id": 15123500490,
         "artifact_name": "babi-tasks-3-5-frozen-source",
-        "note": "Artifact contains the eight selected source/derived split files and this verified manifest; archive and per-file SHA-256 values were checked by the workflow."
+        "note": "Verified artifact generated after the structured input schema was added; contains the eight frozen source/derived split files and updated manifest."
       }
     },
     "acquisition_url": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
