@@ -161,9 +161,9 @@ def test_error_channel_ablations_isolate_the_permitted_learner_updates():
     seed(all_on)
     seed(no_relational)
 
-    for learner in (all_on, no_relational):
+    for index, learner in enumerate((all_on, no_relational)):
         learner.begin_tick(tick=0, observed_at=0.0, subject_type="person", context="home")
-        learner.observe_relation(relation(f"r-{id(learner)}", "visited", observed_at=1.0), tick=1)
+        learner.observe_relation(relation(f"r-{index}", "visited", observed_at=1.0), tick=1)
     assert all_on.relations.snapshot() != no_relational.relations.snapshot()
 
     all_on.observe_eligibility(eligibility("temporal-on"))
