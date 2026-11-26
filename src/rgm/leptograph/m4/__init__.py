@@ -10,6 +10,13 @@ from .soe_bridge import (
     make_native_level_spec,
 )
 from .p6_runtime import P6RuntimeCoupler
+from .learning import (
+    ContextTransitionLearner, ErrorChannel, EligibilityEvent, EligibilityLedger,
+    EventRolePattern, LearningRuntime, LearningSignals, Level0FeaturePredictor,
+    NaryEventRoleLearner,
+    RelationPattern, SemanticRelationLearner, TargetObservation,
+    TargetSchema, TemporalCreditLearner,
+)
 from .evidence import DerivedEvidence, EvidenceStore, EvidenceSummary, NaryEvent, Participant
 from .hierarchical import (
     AbstractPrediction,
@@ -36,4 +43,9 @@ __all__ = [
     "HierarchicalEvaluationRunner", "HierarchicalRuntimeDirector",
     "LinearReadout", "ReadoutExample", "P6RuntimeCoupler",
     "DerivedEvidence", "EvidenceStore", "EvidenceSummary", "NaryEvent", "Participant",
+    "ContextTransitionLearner", "ErrorChannel", "EligibilityEvent", "EligibilityLedger",
+    "EventRolePattern", "LearningRuntime", "LearningSignals", "Level0FeaturePredictor",
+    "NaryEventRoleLearner",
+    "RelationPattern", "SemanticRelationLearner", "TargetObservation",
+    "TargetSchema", "TemporalCreditLearner",
 ]
