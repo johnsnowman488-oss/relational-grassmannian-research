@@ -81,7 +81,10 @@ def test_summary_and_derived_evidence_recover_exact_source_witnesses():
     store.append_summary(summary)
     restored = EvidenceStore.from_snapshot(store.snapshot())
     recovered = restored.recover("s1", observation_cutoff=4.0)
+    chain = restored.recover_chain("s1", observation_cutoff=4.0)
     assert {item.event_id for item in recovered} == {"e1", "e2"}
+    assert [item.summary_id for item in chain["summaries"]] == ["s1"]
+    assert [item.derivation_id for item in chain["derivations"]] == ["d1"]
     assert {item.role("recipient").entity_id for item in recovered} == {"office"}
 
 
