@@ -92,7 +92,7 @@ def normalized_story_digests(payload: bytes) -> list[str]:
         line = raw.strip()
         if not line:
             continue
-        parts = line.split(b"\\t")
+        parts = line.split(b"\t")
         if len(parts) < 1:
             continue
         prefix, sentence = parts[0].split(None, 1)
@@ -104,7 +104,7 @@ def normalized_story_digests(payload: bytes) -> list[str]:
         current.append(normalized.decode("utf-8").casefold())
     if current:
         stories.append(current)
-    return [digest("\\n".join(story).encode("utf-8")) for story in stories]
+    return [digest("\n".join(story).encode("utf-8")) for story in stories]
 
 
 def inventory(payload: bytes) -> dict:
@@ -235,7 +235,7 @@ def main() -> int:
         "selected_file_sha256": {key: row["sha256"] for key, row in file_records.items()},
         "derived_validation_partitions": partition_records,
     })
-    manifest["status"] = "official en-10k source bytes verified; deterministic story-level validation derived"
+    manifest["status"] = "official en-10k fit/validation and independent en confirmatory source bytes verified; en-10k test quarantined"
     benchmark["configuration"] = "en-10k fit/validation; independent en confirmatory"
     benchmark["canonical_archive"] = ARCHIVE_URL
     benchmark["archive_object_commit"] = None
