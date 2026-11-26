@@ -71,12 +71,8 @@ def test_summary_and_derived_evidence_recover_exact_source_witnesses():
     )
     store.append_derivation(derivation)
     import json
-    digest = hashlib.sha256(json.dumps(
-        [first.canonical(), second.canonical()], sort_keys=True,
-        separators=(",", ":"), ensure_ascii=False, allow_nan=False
-    ).encode()).hexdigest()
-    summary = EvidenceSummary("s1", 2, "compressed conclusion", ("d1",), digest, 4.0)
-    # Summary digest is over the direct derivation reference, not its expansion.
+    # Summary digest commits to its direct derivation reference. Recovery then
+    # resolves that derivation to the exact original event records.
     derivation_digest = hashlib.sha256(json.dumps(
         [derivation.__dict__], sort_keys=True, separators=(",", ":"),
         ensure_ascii=False, allow_nan=False
