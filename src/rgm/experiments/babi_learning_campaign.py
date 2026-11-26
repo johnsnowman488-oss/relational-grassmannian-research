@@ -19,9 +19,8 @@ from rgm.experiments.babi_structured import (
     StructuredEvent, StructuredQuery, StructuredStory,
     task3_object_location_before_move, task5_answer_role,
 )
-from rgm.leptograph.m4.evidence import (
-    Entity, NaryEvent, Participant, RelationInstance, RelationType,
-)
+from rgm.leptograph.m4.evidence import NaryEvent, Participant
+from rgm.leptograph.m4.composition import Entity, RelationInstance, RelationType
 from rgm.leptograph.m4.hierarchical import (
     HierarchicalRuntimeDirector, create_hla_adapter, create_hlb_adapter,
 )
