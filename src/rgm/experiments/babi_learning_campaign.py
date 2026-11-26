@@ -5,6 +5,7 @@ metrics are reported separately; query accuracy is not claimed as learned QA.
 """
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, Callable
@@ -371,9 +372,27 @@ def _query_answer(task_id: int, events: list[StructuredEvent], query: Structured
     return values[0] if len(values) == 1 else None
 
 
+def _reset_episode(adapter, baseline_native_checkpoint: dict[str, Any], gfe_module) -> None:
+    """Reset transient SOE/native/eligibility state while retaining learned models and HLB evidence."""
+    for memory in adapter.bridge.memories:
+        memory.reset()
+    runtime = adapter.bridge.runtime
+    checkpoint = deepcopy(baseline_native_checkpoint)
+    checkpoint["step_count"] = runtime.step_count
+    checkpoint.pop("payload_sha256", None)
+    checkpoint["payload_sha256"] = hashlib.sha256(
+        gfe_module._canonical_json(checkpoint).encode("utf-8")
+    ).hexdigest()
+    runtime.restore(checkpoint)
+    adapter.learning.reset_episode_eligibility(
+        tick=adapter.ticks,
+        observed_at=adapter.learning._last_observed_at,
+    )
+
+
 def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                    phase: str, learn: bool, source_name: str,
-                   soe_fingerprint: str, global_clock: int) -> tuple[dict[str, Any], int]:
+                   soe_fingerprint: str, global_clock: int, baseline_native_checkpoint: dict[str, Any], gfe_module) -> tuple[dict[str, Any], int]:
     score_start = len(adapter.learning.predictions.scores)
     totals = {
         "queries": 0, "correct": 0, "abstained": 0,
@@ -382,6 +401,7 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
         "evidence_capacity_misses": 0, "false_witnesses": 0,
     }
     for story, story_labels in stories:
+        _reset_episode(adapter, baseline_native_checkpoint, gfe_module)
         offset = global_clock + 1
         seen_events: list[StructuredEvent] = []
         source_payloads: dict[str, bytes] = {}
@@ -535,6 +555,7 @@ def _fit_and_process(
         architecture, gfe_module, native_library, CHANNELS[variant]
     )
     director = HierarchicalRuntimeDirector(adapter)
+    baseline_native_checkpoint = adapter.bridge.runtime.checkpoint()
     warm_order = _ordered(warm_start, seed)
     online_order = _ordered(online, seed)
     validation_order = _ordered(validation, seed)
@@ -545,13 +566,13 @@ def _fit_and_process(
     warm_metrics, global_clock = _process_phase(
         adapter, director, architecture, task_id, warm_order,
         "warm_start_dynamics", False, "babi-v1.2-en10k-fit",
-        soe_fingerprint, global_clock,
+        soe_fingerprint, global_clock, baseline_native_checkpoint, gfe_module,
     )
     model_before_online = _model_state(adapter.learning)
     online_metrics, global_clock = _process_phase(
         adapter, director, architecture, task_id, online_order,
         "online_adaptation", True, "babi-v1.2-en10k-fit",
-        soe_fingerprint, global_clock,
+        soe_fingerprint, global_clock, baseline_native_checkpoint, gfe_module,
     )
     model_after_online = _model_state(adapter.learning)
     candidate_fingerprint = model_fingerprint(adapter.learning)
@@ -563,7 +584,7 @@ def _fit_and_process(
     validation_metrics, global_clock = _process_phase(
         adapter, director, architecture, task_id, validation_order,
         "validation", False, "babi-v1.2-en10k-validation",
-        soe_fingerprint, global_clock,
+        soe_fingerprint, global_clock, baseline_native_checkpoint, gfe_module,
     )
     fingerprint_after_validation = model_fingerprint(adapter.learning)
     if fingerprint_after_validation != candidate_fingerprint:
