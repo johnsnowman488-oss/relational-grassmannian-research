@@ -629,20 +629,24 @@ class CompositeLifecycle:
         self._rollback_point: dict | None = None
         self.version = 0
 
-    def _capture_checkpoint(self) -> dict:
+    def _capture_checkpoint(self, validation_record: Mapping | None = None) -> dict:
         runtime = self.director.adapter.bridge.runtime
         if not hasattr(runtime, "checkpoint"):
             raise TypeError("persistent native runtime must expose checkpoint()")
         state = {"schema_version": H1_SCHEMA_VERSION,
                  "director": self.director.snapshot(),
                  "native": runtime.checkpoint(),
-                 "version": self.version}
+                 "version": self.version,
+                 "validation_record": copy.deepcopy(dict(validation_record)) if validation_record is not None else None}
         state["fingerprint"] = _fingerprint({
-            "director": state["director"], "native": state["native"], "version": state["version"]
+            "director": state["director"], "native": state["native"],
+            "version": state["version"], "validation_record": state["validation_record"]
         })
         return state
 
     def checkpoint(self) -> dict:
+        if self._trusted is not None:
+            raise RuntimeError("initial trusted checkpoint already exists; use validated promotion")
         state = self._capture_checkpoint()
         self._trusted = copy.deepcopy(state)
         self._rollback_point = None
@@ -652,7 +656,8 @@ class CompositeLifecycle:
         if state.get("schema_version") != H1_SCHEMA_VERSION:
             raise ValueError("composite checkpoint schema mismatch")
         expected = _fingerprint({"director": state["director"], "native": state["native"],
-                                 "version": int(state["version"])})
+                                 "version": int(state["version"]),
+                                 "validation_record": state.get("validation_record")})
         if state.get("fingerprint") != expected:
             raise ValueError("composite checkpoint fingerprint mismatch")
         self.director.validate_snapshot(state["director"])
@@ -712,7 +717,7 @@ class CompositeLifecycle:
         previous_version = self.version
         self.version += 1
         try:
-            promoted = self._capture_checkpoint()
+            promoted = self._capture_checkpoint(validation_record=validation_record)
         except Exception:
             self.version = previous_version
             raise
