@@ -5,7 +5,7 @@ import hashlib
 import pytest
 
 from rgm.memory import SOEMemory
-from rgm.leptograph.m4.evidence import EvidenceStore, NaryEvent, Participant
+from rgm.leptograph.m4.evidence import NaryEvent, Participant
 from rgm.leptograph.m4.hierarchical import (
     CompositeLifecycle, HLBAdapter, HierarchicalRuntimeDirector,
 )
@@ -70,10 +70,10 @@ def evidence(event_id, *, event_time, observed_at, value="fred"):
 
 def test_integrated_failed_validation_never_promotes_and_rollback_keeps_new_evidence():
     runtime, director, lifecycle = make_system()
-    evidence_store = EvidenceStore(capacity=4)
+    evidence_store = director.adapter.evidence
     initial = lifecycle.checkpoint()
     director.exchange(event_time=1.0, observed_at=1.0, event_features={0: [1.0, 0.0]})
-    evidence_store.append(evidence("during-candidate", event_time=1.0, observed_at=1.0))
+    director.adapter.observe_event(evidence("during-candidate", event_time=1.0, observed_at=1.0))
 
     # A failed independent validation is a hard promotion rejection.
     validation_passed = False
@@ -90,17 +90,17 @@ def test_integrated_failed_validation_never_promotes_and_rollback_keeps_new_evid
 
 def test_integrated_promotion_then_rollback_preserves_intervening_and_late_evidence():
     runtime, director, lifecycle = make_system()
-    evidence_store = EvidenceStore(capacity=8)
+    evidence_store = director.adapter.evidence
     lifecycle.checkpoint()
 
     director.exchange(event_time=1.0, observed_at=1.0, event_features={0: [0.5, 0.25]})
-    evidence_store.append(evidence("candidate-observation", event_time=1.0, observed_at=1.0))
+    director.adapter.observe_event(evidence("candidate-observation", event_time=1.0, observed_at=1.0))
     assert lifecycle.promote() == 1
 
     # This observation arrives while the promoted candidate is active. Its
     # event time is earlier than arrival time, but the source journal is append-only.
     director.exchange(event_time=1.5, observed_at=2.0, event_features={0: [0.0, 1.0]})
-    evidence_store.append(evidence("late-observation", event_time=1.5, observed_at=2.0))
+    director.adapter.observe_event(evidence("late-observation", event_time=1.5, observed_at=2.0))
     before_rollback_ids = evidence_store.event_ids
 
     lifecycle.rollback()
