@@ -139,9 +139,10 @@ def test_composite_checkpoint_restore_and_rollback_restore_native_and_python_sta
                       event_features={0: [1.0, 0.0]})
     assert runtime.state["step_count"] == 1
     lifecycle.rollback()
-    assert runtime.state["step_count"] == 0
-    assert director.event_tick == 0
-    assert all(np.count_nonzero(memory.channels) == 0 for memory in bridge.memories)
+    # The candidate's observed input is replayed through the restored incumbent.
+    assert runtime.state["step_count"] == 1
+    assert director.event_tick == 1
+    assert all(np.count_nonzero(memory.channels) > 0 for memory in bridge.memories[:1])
     damaged = copy.deepcopy(trusted)
     damaged["director"]["event_tick"] = 99
     with pytest.raises(ValueError):
@@ -240,8 +241,9 @@ def test_lifecycle_rollback_after_promotion_restores_previous_trusted_version():
                       event_features={0: [0.0, 1.0]})
     assert runtime.state["step_count"] == 2
     lifecycle.rollback()
-    assert runtime.state["step_count"] == 0
-    assert director.event_tick == 0
+    # Both observations survive rollback and are replayed through the prior model.
+    assert runtime.state["step_count"] == 2
+    assert director.event_tick == 2
     assert lifecycle.version == 0
 
 
