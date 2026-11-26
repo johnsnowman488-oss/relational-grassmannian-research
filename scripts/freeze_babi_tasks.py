@@ -57,6 +57,8 @@ def inventory(payload: bytes) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--inspect-candidates", action="store_true",
+                        help="inventory candidate archive bytes without accepting or freezing them")
     parser.add_argument("--output", type=Path, default=Path("data/babi-v1.2"))
     parser.add_argument(
         "--manifest", type=Path,
@@ -79,6 +81,32 @@ def main() -> int:
             archive = candidate
             acquisition_url = url
             break
+        if args.inspect_candidates:
+            try:
+                inspected = {}
+                with tarfile.open(fileobj=BytesIO(candidate), mode="r:gz") as probe:
+                    for member in probe.getmembers():
+                        if member.name not in set(FILES.values()):
+                            continue
+                        if not member.isfile() or member.issym() or member.islnk():
+                            raise ValueError(f"unsafe/non-regular member: {member.name}")
+                        stream = probe.extractfile(member)
+                        if stream is None:
+                            raise ValueError(f"cannot read member: {member.name}")
+                        inspected[member.name] = inventory(stream.read())
+                print(json.dumps({
+                    "inspection_only": True,
+                    "accepted": False,
+                    "url": url,
+                    "archive_size_bytes": len(candidate),
+                    "archive_sha256": candidate_digest,
+                    "selected_members": inspected,
+                    "missing_members": sorted(set(FILES.values()) - set(inspected)),
+                }, indent=2))
+                return 0
+            except (tarfile.TarError, OSError, ValueError) as exc:
+                acquisition_errors.append(f"{url}: inspection failed: {exc}")
+                continue
         acquisition_errors.append(
             f"{url}: digest mismatch size={len(candidate)} sha256={candidate_digest}"
         )
