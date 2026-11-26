@@ -502,6 +502,38 @@
         "PICK_UP": 0.3333333333333333,
         "DROP": 0.6666666666666666,
         "GIVE": 1
+      },
+      "feature_embedding": {
+        "dimension": 4,
+        "levels": {
+          "L0": "[event_type_code, role_count/3, 0, 0]",
+          "L1": "[role_count/3, unique_entity_count/3, context_code, 0]",
+          "L2": "[task_id/5, timeline_index/timeline_length, context_code, query_flag]"
+        },
+        "reason": "Pinned H0 native chain requires equal native state dimensions on adjacent bottom-up edges; common four-coordinate SOE feature vectors preserve all prior semantic coordinates with zero padding.",
+        "soe_banks": [
+          {
+            "feature_dim": 4,
+            "decay_rates": [
+              0.1,
+              0.4
+            ]
+          },
+          {
+            "feature_dim": 4,
+            "decay_rates": [
+              0.2,
+              0.7
+            ]
+          },
+          {
+            "feature_dim": 4,
+            "decay_rates": [
+              0.05,
+              0.3
+            ]
+          }
+        ]
       }
     },
     "evaluation": {
