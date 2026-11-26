@@ -364,7 +364,7 @@ The corrected native smoke harness and current repository state were exercised o
 
 - Added `.github/workflows/h1-babi-structured-freeze.yml` for manual acquisition and structured smoke.
 - Added a branch-scoped `babi-source-freeze` job to the existing repository CI workflow. It downloads the pinned v1.2 archive, verifies its SHA-256 and size, extracts official Task 3/5 en-10k train/test files, creates deterministic whole-story fit/validation partitions, records hashes and row/story counts in the manifest, runs the structured-event/evidence tests, and uploads the frozen data plus updated manifest as an artifact.
-- The archive itself has not yet been acquired in a completed workflow run. The workflow must pass before the six file-level hashes can be treated as frozen. No official bAbI benchmark score is claimed.
+- Successful source-freeze workflow: run `45832021951` (commit `7ec12f63c18ffd57285c493f958dfcaa6812e238`), artifact `15121144491` (`babi-tasks-3-5-frozen-source`). It verified the archive hash/size, extracted the official Task 3/5 en-10k source train/test files, derived deterministic 90/10 whole-story fit/validation partitions, verified all eight selected file hashes, ran the structured-event/evidence tests, and uploaded the data plus updated manifest. Each task contains 2,000 source training stories and 200 official test stories; the derived partitions contain 1,800 fit and 200 validation stories. The verified per-file hashes and line/story counts are now committed in the campaign manifest. No official bAbI benchmark score is claimed.
 
 
 ### CI diagnosis and source-freeze correction — 2026-11-26
@@ -374,3 +374,12 @@ The corrected native smoke harness and current repository state were exercised o
 - The S3 archive is the v1.2 archive referenced by the official Hugging Face dataset builder, and its exact bytes were observed in CI: 11,745,123 bytes, SHA-256 `84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c`. It contains the official English `en-10k` Task 3/5 train and test files.
 - Revised the freeze protocol to pin that archive identity, preserve the official test split, and derive a deterministic 10% validation split by complete story blocks from the official training data. The derived split is explicitly labelled as derived, not an upstream official split. This avoids question-level/story-level leakage and keeps the confirmatory test bytes untouched.
 - Added deterministic split tests and wired them into the source-freeze workflow. Latest source-freeze run is pending; no claim of successful acquisition or frozen per-file hashes until that run completes.
+
+
+### Verified bAbI source freeze — 2026-11-26
+
+- Official v1.2 archive identity verified in CI: 11,745,123 bytes; SHA-256 `84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c`.
+- The successful acquisition workflow uploaded artifact `babi-tasks-3-5-frozen-source` (run `45832021951`, artifact ID `15121144491`). The archive bundle contains eight selected text files plus the updated campaign manifest.
+- Both Task 3 and Task 5 have 2,000 official source training stories and 200 official test stories. The frozen deterministic split assigns 1,800 complete stories to fit and 200 complete stories to validation for each task. No story or its supporting lines/questions is divided across partitions.
+- All eight file SHA-256 values, byte counts, line counts and story counts were rechecked against the downloaded workflow artifact and committed in `docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json`.
+- This completes source-byte freezing and structured-adapter smoke acceptance only. It does not establish model performance. Next: freeze the structured-event conversion contract and task-specific oracle/witness validation, then run matched HLA/HLB on train/validation. Keep official test inaccessible until configuration and validation are frozen.
