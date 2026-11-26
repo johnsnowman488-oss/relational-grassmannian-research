@@ -376,6 +376,7 @@ class HLBAdapter:
         # Source-event journal is append-only and intentionally outside model rollback.
         self.evidence = EvidenceStore(capacity=capacity)
         self._source_relation_journal: dict[str, tuple[int, RelationInstance]] = {}
+        self.source_relation_capacity = int(capacity)
         self.feature_dims = tuple(memory.feature_dim for memory in bridge.memories)
         self.readouts = (
             LinearReadout(bridge.layouts[0].native_state_dim, self.feature_dims[1], ridge),
@@ -414,12 +415,15 @@ class HLBAdapter:
         prior = self._source_relation_journal.get(record.instance_id)
         if prior is not None and prior != (level, record):
             raise ValueError("source relation ID collision")
+        if prior is None and len(self._source_relation_journal) >= self.source_relation_capacity:
+            return "ABSTAIN_SOURCE_JOURNAL_CAPACITY"
         self._source_relation_journal[record.instance_id] = (level, record)
         return self.store.insert(level, record)
 
     def source_relation_checkpoint(self) -> dict:
         return {
             "schema": "hlg-source-relations-v1",
+            "capacity": self.source_relation_capacity,
             "records": [
                 {"level": level, "record": _record_to_dict(record)}
                 for _, (level, record) in sorted(self._source_relation_journal.items())
@@ -430,6 +434,8 @@ class HLBAdapter:
         if state.get("schema") != "hlg-source-relations-v1":
             raise ValueError("unsupported source relation journal schema")
         candidate = dict(self._source_relation_journal)
+        if int(state.get("capacity", self.source_relation_capacity)) != self.source_relation_capacity:
+            raise ValueError("source relation journal capacity mismatch")
         for item in state.get("records", ()):
             record = _record_from_dict(item["record"])
             value = (int(item["level"]), record)
@@ -437,6 +443,8 @@ class HLBAdapter:
             if prior is not None and prior != value:
                 raise ValueError("source relation journal ID collision")
             candidate[record.instance_id] = value
+        if len(candidate) > self.source_relation_capacity:
+            raise ValueError("source relation journal capacity exceeded")
         self._source_relation_journal = candidate
         for relation_id, (level, record) in sorted(candidate.items()):
             if relation_id not in self.store._records:
@@ -556,8 +564,8 @@ class HierarchicalRuntimeDirector:
             if isinstance(self.adapter, HLBAdapter):
                 for level, record in relation_records:
                     statuses.append(self.adapter.observe_source(level, record))
-                    if statuses[-1] == "ABSTAIN_CAPACITY":
-                        raise RuntimeError("HLB relation capacity exhausted; exchange abstained")
+                    if statuses[-1].startswith("ABSTAIN"):
+                        raise RuntimeError(f"HLB source relation storage abstained: {statuses[-1]}")
             result = self.adapter.step(event_features)
         except Exception:
             self.adapter.restore(before)
