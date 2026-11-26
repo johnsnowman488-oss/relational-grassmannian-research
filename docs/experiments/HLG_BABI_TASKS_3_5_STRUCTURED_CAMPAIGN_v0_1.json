@@ -14,14 +14,15 @@
     "configuration": "en-valid-10k",
     "archive_path_prefix": "tasks_1-20_v1-2/en-valid-10k/",
     "byte_freeze": {
-      "status": "EXPECTED_HASH_PINNED_LOCAL_VERIFICATION_PENDING",
+      "status": "EXPECTED_HASH_PINNED_ARCHIVAL_MIRROR_VERIFICATION_PENDING",
       "archive_sha256": "0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898",
       "archive_size_bytes": 15719851,
       "selected_file_sha256": {},
-      "rule": "The expected archive digest and byte size are pinned from the facebook/babi_qa dataset repository's Git LFS object record. Before official scoring, acquire the archive, verify its local SHA-256 and size against these values, then hash the six extracted split files and commit those digests. Do not substitute generated task data or an unverified mirror.",
+      "rule": "Acquire the archive from the pinned Hugging Face archival PR revision, verify local SHA-256 and size against the upstream Git LFS object record, then hash the six extracted split files and commit those digests. The historical original archive URL is retained as source provenance. Do not substitute generated task data or any mirror with a different digest.",
       "acquisition_utility": "scripts/freeze_babi_tasks.py"
     },
-    "acquisition_url": "https://huggingface.co/datasets/facebook/babi_qa/resolve/main/data/tasks_1-20_v1-2.tar.gz"
+    "acquisition_url": "https://huggingface.co/datasets/facebook/babi_qa/resolve/refs%2Fpr%2F5/data/tasks_1-20_v1-2.tar.gz",
+    "archive_mirror_note": "The Hugging Face Staff-hosted LFS object is present in dataset PR refs/pr/5 (the main dataset builder still points at the historical archive host). The expected LFS SHA-256 and byte size are pinned; the archive bytes must match exactly before use."
   },
   "selected_tasks": [
     {
