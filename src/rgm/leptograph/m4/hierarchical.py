@@ -474,6 +474,9 @@ class HLBAdapter:
     def recover_evidence(self, evidence_id: str, *, observation_cutoff: float):
         return self.evidence.recover(evidence_id, observation_cutoff=observation_cutoff)
 
+    def recover_evidence_chain(self, evidence_id: str, *, observation_cutoff: float) -> dict:
+        return self.evidence.recover_chain(evidence_id, observation_cutoff=observation_cutoff)
+
     def verify_event_provenance(self, event_id: str, payload_loader: Callable[[str], bytes]) -> bool:
         return self.evidence.verify_provenance(event_id, payload_loader)
 
