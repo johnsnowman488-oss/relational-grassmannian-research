@@ -73,3 +73,33 @@ def test_hlb_query_recovery_flattens_source_event_tuple():
         Adapter(), "HLB", "task5/fit/story000001", 2, [event]
     )
     assert recovered == [event]
+
+
+def test_campaign_checkpoint_is_atomic_and_marks_partial_vs_complete(tmp_path):
+    import json
+    from rgm.experiments.babi_learning_campaign import (
+        CHANNELS, _write_campaign_checkpoint,
+    )
+
+    output_path = tmp_path / "task3-HLA.json"
+    partial = [{"seed": 1, "variant": "full_learning"}]
+    snapshot = _write_campaign_checkpoint(
+        output_path, task_id=3, architecture="HLA",
+        seeds=[1, 2], results=partial,
+        expected_run_count=2 * len(CHANNELS), complete=False,
+    )
+    assert snapshot["status"] == "in_progress"
+    assert snapshot["complete"] is False
+    assert snapshot["completed_run_count"] == 1
+    assert snapshot["expected_run_count"] == 2 * len(CHANNELS)
+    assert json.loads(output_path.read_text()) == snapshot
+    assert not (tmp_path / "task3-HLA.json.tmp").exists()
+
+    completed = _write_campaign_checkpoint(
+        output_path, task_id=3, architecture="HLA",
+        seeds=[1, 2], results=partial * (2 * len(CHANNELS)),
+        expected_run_count=2 * len(CHANNELS), complete=True,
+    )
+    assert completed["status"] == "completed"
+    assert completed["complete"] is True
+    assert completed["completed_run_count"] == completed["expected_run_count"]
