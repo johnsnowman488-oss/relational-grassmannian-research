@@ -1,6 +1,6 @@
 # H1 implementation ledger — five hierarchical workstreams
 
-**Status:** compiled C++ HLA/HLB smoke, checkpoint continuation and trusted rollback passed; independent partitions frozen; matched validation and confirmatory campaigns passed; full P6 v4 finite-horizon coupled adaptive-stability campaign passed for both architectures within the frozen claim boundary.
+**Status:** H1 execution gates closed for the frozen scope: compiled C++ HLA/HLB smoke, checkpoint continuation and trusted rollback passed; independent partitions frozen; matched validation and confirmatory campaigns passed; full P6 v4 finite-horizon coupled adaptive-stability campaign and resource audit passed. Architecture-level evidence review completed; HLA and HLB retained as workload-conditional alternatives, with no universal winner selected.
 **Base:** `research/h0-shared-hierarchy-contract-soe-bridge`
 **Branch:** `research/h1-hla-hlb-five-workstreams`
 **H0 contract:** 0.1.0
@@ -230,3 +230,32 @@ The v4 acceptance is complete. Closed by the separate P6 controller resource aud
 - The campaign subtotal already included **224 bytes** of P6 SOE arrays; these were not double-counted.
 - Parameter count **26**, update upper bound **1,272**, and query upper bound **741** remain within their respective caps.
 - All seven audit checks passed. Scope still excludes Python object/container overhead and native-runtime process memory; this is not a whole-process RAM measurement.
+
+
+## H1 architecture-level evidence review — 2026-11-26
+
+**Review:** `docs/experiments/HLG_H1_ARCHITECTURE_EVIDENCE_REVIEW_v1.md`  
+**Commit introducing review:** `bfbea77739546038198cb1f889a78fe6dc38b318`
+
+The P6 execution milestone is **CLOSED** for the frozen v4 implementation and operating envelope, with the separate resource-accounting audit complete. No further P6 execution is required to close H1.
+
+### Evidence-based architecture disposition
+
+- **HLA and HLB both pass** the shared compiled-runtime, checkpoint/continuation, matched task, and P6 finite-horizon execution gates.
+- **HLB's supported differentiator:** 100% versus 0% in the frozen G2 no-replay outage condition. The result is explained by its canonical retained relation store; with evidence replay, both are 100%.
+- **No other general advantage is established:** G1, late-arrival handling, G3 negatives and multiple-witness preservation match on the tested cases. P6/native numerical trajectories are identical.
+- **HLB-specific integrity:** protected witness preservation, explicit capacity abstention, and removal of candidate-only records on rollback passed 20/20 P6 seeds.
+- **HLA's role:** no-store reference architecture; exact claims remain grounded in caller-supplied evidence and the shared witness validator.
+- **Decision:** keep both. HLB is the persistence-capable candidate; HLA is the no-store baseline. Primary architecture selection is deferred pending measured storage/latency/retention/outage trade-offs.
+
+### Research-policy boundaries
+
+- No universal HLB superiority, semantic intelligence, open-world discovery, arbitrary-depth composition, out-of-vocabulary transfer, or Grassmannian-specific advantage is claimed.
+- P6 remains finite-horizon evidence only; no global stability, ISS, or arbitrary-switching theorem is claimed.
+- The 902-byte audit is the declared numeric P6+M3 state scope. It excludes Python object/container overhead and native-runtime process memory, and does not measure HLB's complete relation-store footprint.
+- Synthetic generated worlds and synthetic linear readout calibration do not establish real-world semantic generalization.
+- Failed P6 v1/v2 attempts remain preserved; same-seed reruns remain reproducibility checks, not independent samples.
+
+### Next phase
+
+The next research phase is an architecture cost and workload-envelope comparison—not another broad P6 campaign. Freeze its protocol before execution. Measure HLA and HLB under matched store occupancy, record age/expiry, outage/replay, write rate, context fragmentation, branching, witness multiplicity, retrieval latency, checkpoint/restore cost, and component-separated memory accounting. Test readout generalization separately on noisy held-out relational tasks. Do not select a primary architecture until these workload-conditional trade-offs are measured.
