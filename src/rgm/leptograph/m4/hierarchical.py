@@ -375,6 +375,7 @@ class HLBAdapter:
         self.store = CanonicalRelationStore(capacity)
         # Source-event journal is append-only and intentionally outside model rollback.
         self.evidence = EvidenceStore(capacity=capacity)
+        self._source_relation_journal: dict[str, tuple[int, RelationInstance]] = {}
         self.feature_dims = tuple(memory.feature_dim for memory in bridge.memories)
         self.readouts = (
             LinearReadout(bridge.layouts[0].native_state_dim, self.feature_dims[1], ridge),
@@ -403,7 +404,40 @@ class HLBAdapter:
                                   self.readouts[level - 1].fingerprint)
 
     def observe(self, level: int, record: RelationInstance) -> str:
+        """Insert a candidate/transient relation; composite rollback may remove it."""
         return self.store.insert(level, record)
+
+    def observe_source(self, level: int, record: RelationInstance) -> str:
+        """Append an observed relation to the durable journal before indexing it."""
+        if level not in (0, 1, 2) or not isinstance(record, RelationInstance):
+            raise ValueError("source relation requires level 0, 1 or 2 and a typed record")
+        prior = self._source_relation_journal.get(record.instance_id)
+        if prior is not None and prior != (level, record):
+            raise ValueError("source relation ID collision")
+        self._source_relation_journal[record.instance_id] = (level, record)
+        return self.store.insert(level, record)
+
+    def source_relation_checkpoint(self) -> dict:
+        return {
+            "schema": "hlg-source-relations-v1",
+            "records": [
+                {"level": level, "record": _record_to_dict(record)}
+                for _, (level, record) in sorted(self._source_relation_journal.items())
+            ],
+        }
+
+    def restore_source_relation_checkpoint(self, state: Mapping) -> None:
+        if state.get("schema") != "hlg-source-relations-v1":
+            raise ValueError("unsupported source relation journal schema")
+        candidate = dict(self._source_relation_journal)
+        for item in state.get("records", ()):
+            record = _record_from_dict(item["record"])
+            value = (int(item["level"]), record)
+            prior = candidate.get(record.instance_id)
+            if prior is not None and prior != value:
+                raise ValueError("source relation journal ID collision")
+            candidate[record.instance_id] = value
+        self._source_relation_journal = candidate
 
     def observe_event(self, event: NaryEvent) -> str:
         """Append source-grounded n-ary evidence outside candidate rollback state."""
@@ -451,6 +485,7 @@ class HLBAdapter:
                 "ticks": self.ticks, "abstentions": self.abstentions,
                 "store": self.store.snapshot(),
                 "evidence_watermark": list(self.evidence.event_ids),
+                "source_relation_watermark": sorted(self._source_relation_journal),
                 "soe_banks": _memory_snapshots(self.bridge),
                 "readouts": [readout.snapshot() for readout in self.readouts]}
 
@@ -466,6 +501,11 @@ class HLBAdapter:
             event_id not in self.evidence.event_ids for event_id in watermark
         ):
             raise ValueError("HLB checkpoint references unavailable source evidence")
+        relation_watermark = tuple(state.get("source_relation_watermark", ()))
+        if len(relation_watermark) != len(set(relation_watermark)) or any(
+            relation_id not in self._source_relation_journal for relation_id in relation_watermark
+        ):
+            raise ValueError("HLB checkpoint references unavailable source relations")
         _validate_memory_snapshots(self.bridge, state.get("soe_banks", ()))
         if len(state.get("readouts", ())) != 2:
             raise ValueError("HLB snapshot must contain both upper readouts")
@@ -475,7 +515,14 @@ class HLBAdapter:
 
     def restore(self, state: Mapping) -> None:
         self.validate_snapshot(state)
-        self.store.restore(state["store"])
+        restored_store = CanonicalRelationStore()
+        restored_store.restore(state["store"])
+        # Reconcile every durable source relation received after the checkpoint.
+        # Candidate/transient relations remain rollback-scoped and are not replayed.
+        for relation_id, (level, record) in sorted(self._source_relation_journal.items()):
+            if relation_id not in restored_store._records:
+                restored_store.insert(level, record)
+        self.store = restored_store
         _restore_memories(self.bridge, state["soe_banks"])
         for readout, candidate in zip(self.readouts, state["readouts"]):
             readout.restore(candidate)
@@ -505,7 +552,7 @@ class HierarchicalRuntimeDirector:
         try:
             if isinstance(self.adapter, HLBAdapter):
                 for level, record in relation_records:
-                    statuses.append(self.adapter.observe(level, record))
+                    statuses.append(self.adapter.observe_source(level, record))
                     if statuses[-1] == "ABSTAIN_CAPACITY":
                         raise RuntimeError("HLB relation capacity exhausted; exchange abstained")
             result = self.adapter.step(event_features)
