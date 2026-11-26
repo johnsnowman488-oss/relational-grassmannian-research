@@ -20,6 +20,7 @@ from rgm.leptograph.m4.composition import (
     CompositionWitness, compose_paths,
 )
 from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge, make_h0_chain_spec
+from rgm.leptograph.m4.evidence import EvidenceStore, NaryEvent
 
 
 H1_SCHEMA_VERSION = "0.1.0"
@@ -372,6 +373,8 @@ class HLBAdapter:
                  ridge: float = 1e-6):
         self.bridge = bridge
         self.store = CanonicalRelationStore(capacity)
+        # Source-event journal is append-only and intentionally outside model rollback.
+        self.evidence = EvidenceStore(capacity=capacity)
         self.feature_dims = tuple(memory.feature_dim for memory in bridge.memories)
         self.readouts = (
             LinearReadout(bridge.layouts[0].native_state_dim, self.feature_dims[1], ridge),
@@ -402,6 +405,24 @@ class HLBAdapter:
     def observe(self, level: int, record: RelationInstance) -> str:
         return self.store.insert(level, record)
 
+    def observe_event(self, event: NaryEvent) -> str:
+        """Append source-grounded n-ary evidence outside candidate rollback state."""
+        return self.evidence.append(event)
+
+    def recover_evidence(self, evidence_id: str, *, observation_cutoff: float):
+        return self.evidence.recover(evidence_id, observation_cutoff=observation_cutoff)
+
+    def verify_event_provenance(self, event_id: str, payload_loader: Callable[[str], bytes]) -> bool:
+        return self.evidence.verify_provenance(event_id, payload_loader)
+
+    def evidence_checkpoint(self) -> dict:
+        """Serialize the durable source journal separately from model checkpoints."""
+        return self.evidence.snapshot()
+
+    def restore_evidence_checkpoint(self, state: Mapping) -> None:
+        """Restore a journal during explicit storage recovery, never model rollback."""
+        self.evidence = EvidenceStore.from_snapshot(state)
+
     def query(self, start: Entity, relation_path: Sequence[RelationType], *,
               context: str | None, query_time: float, observation_cutoff: float,
               max_event_gap: float | None = None) -> tuple[CompositionWitness, ...]:
@@ -429,6 +450,7 @@ class HLBAdapter:
         return {"schema_version": H1_SCHEMA_VERSION, "architecture": self.architecture,
                 "ticks": self.ticks, "abstentions": self.abstentions,
                 "store": self.store.snapshot(),
+                "evidence_watermark": list(self.evidence.event_ids),
                 "soe_banks": _memory_snapshots(self.bridge),
                 "readouts": [readout.snapshot() for readout in self.readouts]}
 
