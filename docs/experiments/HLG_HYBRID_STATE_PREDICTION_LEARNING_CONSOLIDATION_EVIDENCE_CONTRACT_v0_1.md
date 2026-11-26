@@ -210,7 +210,7 @@ Validation must be independent of the candidate's fitting data and fixed before 
 - checkpoint serialization and exact restore;
 - declared memory/compute limits.
 
-Promotion is atomic across the parameter families and runtime components that must be mutually consistent. The trusted version, validation record and candidate fingerprint are retained. Validation data must not be recycled as confirmatory evidence. The runtime promotion API now requires a receipt declaring a passed independent validation partition, protocol/criteria/data-manifest fingerprints, measured metrics and the exact active candidate fingerprint; missing, failed or stale receipts are rejected. The initial trusted checkpoint cannot be reset through the checkpoint API to bypass validation.
+Promotion is atomic across the parameter families and runtime components that must be mutually consistent. The trusted version, validation record and candidate fingerprint are retained. Validation data must not be recycled as confirmatory evidence. The runtime promotion API now requires a receipt declaring a passed independent validation partition, protocol/criteria/data-manifest fingerprints, measured metrics and the exact active candidate fingerprint (including source-evidence watermarks); missing, failed or stale receipts are rejected. Any new source evidence after validation invalidates the receipt and requires revalidation. The initial trusted checkpoint cannot be reset through the checkpoint API to bypass validation.
 
 ### 4.3 Consolidation policy
 
