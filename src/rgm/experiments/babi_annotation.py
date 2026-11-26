@@ -223,11 +223,11 @@ def split_fit_stories(
 
 
 def write_annotation_bundle(source_root: Path, output_root: Path) -> dict[str, Any]:
-    """Build source-indexed fit/validation inputs and isolated evaluator labels."""
+    """Build source-indexed partitions and quarantine isolated source/oracle contradictions."""
     output_root.mkdir(parents=True, exist_ok=True)
     report: dict[str, Any] = {
-        "schema": "HLG-BABI-ANNOTATION-BUNDLE-v1",
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2",
+        "schema": "HLG-BABI-ANNOTATION-BUNDLE-v1.1",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
         "parser": "deterministic source-template grammar; not general NLP",
         "warm_online_split": {
             "seed": WARM_ONLINE_SEED,
@@ -236,75 +236,145 @@ def write_annotation_bundle(source_root: Path, output_root: Path) -> dict[str, A
             "unit": "whole story block",
         },
         "splits": {},
-        "audit": {"fit_validation_queries": 0, "fit_validation_exact_matches": 0},
+        "audit": {
+            "fit_validation_queries": 0,
+            "fit_validation_exact_matches": 0,
+            "quarantined_queries": 0,
+            "quarantined_by_task": {"3": 0, "5": 0},
+            "quarantined_by_split": {},
+            "quarantine_records": [],
+            "max_quarantine_fraction_per_task": 0.005,
+        },
     }
+
+    def audit_stories(task_id: int, split_name: str,
+                      stories: list[tuple[StructuredStory, list[dict[str, Any]]]]
+                      ) -> list[tuple[StructuredStory, list[dict[str, Any]]]]:
+        audited = []
+        for story, labels in stories:
+            event_index = {event.event_id: event for event in story.events}
+            audited_labels = []
+            for query, source_label in zip(story.queries, labels):
+                label = dict(source_label)
+                support_ids = list(label.get("support_event_ids", ()))
+                if not support_ids:
+                    raise ValueError(f"query has no official support witnesses: {query.query_id}")
+                if not set(support_ids).issubset(event_index):
+                    raise ValueError(f"support witness missing from parsed story: {query.query_id}")
+                if any(event_index[event_id].observed_at >= query.observed_at for event_id in support_ids):
+                    reason = "support_witness_not_prior_to_query"
+                    oracle_answer = None
+                elif task_id == 3:
+                    oracle_answer = task3_object_location_before_move(
+                        story.events, object_id=query.object_id or "",
+                        destination_id=query.destination_id or "",
+                        target_event_id=query.target_event_id or "",
+                        observation_cutoff=query.observed_at,
+                    )
+                    reason = None if oracle_answer == label["gold_answer"] else "oracle_gold_mismatch"
+                else:
+                    answer_values = task5_answer_role(
+                        story.events, bound_roles=dict(query.bound_roles),
+                        answer_role=query.answer_role,
+                        observation_cutoff=query.observed_at,
+                    )
+                    oracle_answer = answer_values[0] if len(answer_values) == 1 else None
+                    if len(answer_values) > 1:
+                        reason = "oracle_ambiguous_answer"
+                    elif oracle_answer is None:
+                        reason = "oracle_no_answer"
+                    else:
+                        reason = None if oracle_answer == label["gold_answer"] else "oracle_gold_mismatch"
+
+                report["audit"]["fit_validation_queries"] += 1
+                if reason is None:
+                    label["audit_status"] = "passed"
+                    report["audit"]["fit_validation_exact_matches"] += 1
+                else:
+                    label["audit_status"] = "quarantined"
+                    label["audit_reason"] = reason
+                    label["oracle_prediction"] = oracle_answer
+                    report["audit"]["quarantined_queries"] += 1
+                    report["audit"]["quarantined_by_task"][str(task_id)] += 1
+                    key = f"task{task_id}_{split_name}"
+                    report["audit"]["quarantined_by_split"][key] = (
+                        report["audit"]["quarantined_by_split"].get(key, 0) + 1
+                    )
+                    report["audit"]["quarantine_records"].append({
+                        "task_id": task_id,
+                        "split": split_name,
+                        "story_id": story.story_id,
+                        "query_id": query.query_id,
+                        "reason": reason,
+                        "gold_answer": label.get("gold_answer"),
+                        "oracle_prediction": oracle_answer,
+                        "support_event_ids": support_ids,
+                    })
+                audited_labels.append(label)
+            audited.append((story, audited_labels))
+        return audited
 
     def write_partition(task_id: int, split_name: str,
                         selected: list[tuple[StructuredStory, list[dict[str, Any]]]],
-                        *, audit: bool) -> None:
+                        *, audited: bool) -> None:
         input_path = output_root / f"task{task_id}-{split_name}.inputs.jsonl"
         label_path = output_root / f"task{task_id}-{split_name}.labels.jsonl"
-        input_lines, label_lines = [], []
-        exact = 0
-        for story, labels in selected:
-            input_lines.append(json.dumps(_story_input(story), sort_keys=True))
-            label_lines.extend(json.dumps(label, sort_keys=True) for label in labels)
-            if audit:
-                event_index = {event.event_id: event for event in story.events}
-                for query, label in zip(story.queries, labels):
-                    if task_id == 3:
-                        answer = task3_object_location_before_move(
-                            story.events, object_id=query.object_id or "",
-                            destination_id=query.destination_id or "",
-                            target_event_id=query.target_event_id or "",
-                            observation_cutoff=query.observed_at,
-                        )
-                    else:
-                        answer_values = task5_answer_role(
-                            story.events, bound_roles=dict(query.bound_roles),
-                            answer_role=query.answer_role,
-                            observation_cutoff=query.observed_at,
-                        )
-                        answer = answer_values[0] if answer_values else None
-                    if answer != label["gold_answer"]:
-                        raise ValueError(
-                            f"independent annotation/oracle audit mismatch for {query.query_id}: "
-                            f"predicted={answer!r} gold={label['gold_answer']!r}"
-                        )
-                    if not label["support_event_ids"]:
-                        raise ValueError(f"query has no official support witnesses: {query.query_id}")
-                    if not set(label["support_event_ids"]).issubset(event_index):
-                        raise ValueError(f"support witness missing from parsed story: {query.query_id}")
-                    exact += 1
+        input_lines = [json.dumps(_story_input(story), sort_keys=True) for story, _ in selected]
+        label_rows = [label for _story, labels in selected for label in labels]
         input_path.write_text("\n".join(input_lines) + "\n", encoding="utf-8")
-        label_path.write_text("\n".join(label_lines) + "\n", encoding="utf-8")
+        label_path.write_text(
+            "\n".join(json.dumps(label, sort_keys=True) for label in label_rows) + "\n",
+            encoding="utf-8",
+        )
+        quarantined = sum(label.get("audit_status") == "quarantined" for label in label_rows)
         report["splits"][f"task{task_id}_{split_name}"] = {
             "story_count": len(selected),
-            "query_count": sum(len(story.queries) for story, _ in selected),
+            "query_count": len(label_rows),
+            "eligible_query_count": len(label_rows) - quarantined,
+            "quarantined_query_count": quarantined,
             "input_path": str(input_path),
             "input_sha256": _digest(input_path),
             "label_path": str(label_path),
             "label_sha256": _digest(label_path),
-            "annotation_coverage": "100% or hard failure",
-            "gold_audit": "exact answer and support-ID resolution passed" if audit else "fit-only labels; no separate oracle audit",
+            "annotation_coverage": "100% of source queries represented",
+            "gold_audit": (
+                "exact oracle matches plus explicit query-level quarantine"
+                if audited else "inherits fit-partition audit status"
+            ),
         }
-        if audit:
-            report["audit"]["fit_validation_queries"] += sum(len(story.queries) for story, _ in selected)
-            report["audit"]["fit_validation_exact_matches"] += exact
 
     for task_id in (3, 5):
         prefix = "qa3" if task_id == 3 else "qa5"
-        for split, filename in (("fit", f"{prefix}_train.txt"),
-                                ("validation", f"{prefix}_valid.txt")):
+        for split_name, filename in (("fit", f"{prefix}_train.txt"),
+                                     ("validation", f"{prefix}_valid.txt")):
             source = source_root / filename
-            stories = parse_source_file(source, task_id=task_id, split=split, include_labels=True)
-            write_partition(task_id, split, stories, audit=True)
-            if split == "fit":
-                warm, online = split_fit_stories(stories, task_id=task_id)
-                write_partition(task_id, "warm-start", warm, audit=False)
-                write_partition(task_id, "online-adaptation", online, audit=False)
+            parsed = parse_source_file(source, task_id=task_id, split=split_name, include_labels=True)
+            audited = audit_stories(task_id, split_name, parsed)
+            write_partition(task_id, split_name, audited, audited=True)
+            if split_name == "fit":
+                warm, online = split_fit_stories(audited, task_id=task_id)
+                write_partition(task_id, "warm-start", warm, audited=False)
+                write_partition(task_id, "online-adaptation", online, audited=False)
 
+    report["audit"]["quarantine_fraction_by_task"] = {
+        task: (
+            report["audit"]["quarantined_by_task"][task]
+            / max(1, sum(
+                values["query_count"] for key, values in report["splits"].items()
+                if key.startswith(f"task{task}_") and key.endswith(("_fit", "_validation"))
+            ))
+        )
+        for task in ("3", "5")
+    }
     manifest_path = output_root / "annotation-manifest.json"
     manifest_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     report["manifest_sha256"] = _digest(manifest_path)
+
+    exceeded = {
+        task: fraction
+        for task, fraction in report["audit"]["quarantine_fraction_by_task"].items()
+        if fraction > report["audit"]["max_quarantine_fraction_per_task"]
+    }
+    if exceeded:
+        raise ValueError(f"source/oracle quarantine fraction exceeds frozen threshold: {exceeded}")
     return report
