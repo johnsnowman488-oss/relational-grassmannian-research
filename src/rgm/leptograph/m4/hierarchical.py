@@ -21,6 +21,7 @@ from rgm.leptograph.m4.composition import (
 )
 from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge, make_h0_chain_spec
 from rgm.leptograph.m4.evidence import EvidenceStore, NaryEvent
+from rgm.leptograph.m4.learning import LearningRuntime, EligibilityEvent
 
 
 H1_SCHEMA_VERSION = "0.1.0"
@@ -199,13 +200,15 @@ class HLAAdapter:
         )
         self.ticks = 0
         self.abstentions = 0
+        self.learning = LearningRuntime()
 
     def fit_upper_readouts(self, level1: Sequence[ReadoutExample],
                            level2: Sequence[ReadoutExample]) -> dict:
         return {"level1": self.readouts[0].fit(level1),
                 "level2": self.readouts[1].fit(level2)}
 
-    def step(self, event_features: Mapping[int, Sequence[float]] | None = None) -> dict:
+    def step(self, event_features: Mapping[int, Sequence[float]] | None = None, *,
+             advance_learning: bool = True) -> dict:
         supplied = {} if event_features is None else dict(event_features)
         # Every readout observes the same pre-step SOE snapshot. This avoids
         # sequential partial updates and keeps H0's one-tick synchronisation
@@ -218,6 +221,8 @@ class HLAAdapter:
             supplied[2] = self.readouts[1].predict(trace1).tolist()
         result = self.bridge.step(supplied)
         self.ticks += 1
+        if advance_learning:
+            self.learning.advance_temporal(self.ticks)
         return {"architecture": self.architecture, "tick": self.ticks, **result}
 
     def query_readout(self, level: int, lower_level_trace: Sequence[float]) -> np.ndarray:
@@ -261,7 +266,8 @@ class HLAAdapter:
         return {"schema_version": H1_SCHEMA_VERSION, "architecture": self.architecture,
                 "ticks": self.ticks, "abstentions": self.abstentions,
                 "soe_banks": _memory_snapshots(self.bridge),
-                "readouts": [r.snapshot() for r in self.readouts]}
+                "readouts": [r.snapshot() for r in self.readouts],
+                "learning": self.learning.snapshot()}
 
     def validate_snapshot(self, state: Mapping) -> None:
         if state.get("schema_version") != H1_SCHEMA_VERSION or state.get("architecture") != self.architecture:
@@ -272,6 +278,8 @@ class HLAAdapter:
         for readout, candidate in zip(self.readouts, state["readouts"]):
             probe = LinearReadout(readout.input_dim, readout.output_dim, readout.ridge)
             probe.restore(candidate)
+        probe_learning = LearningRuntime()
+        probe_learning.restore(state["learning"])
 
     def restore(self, state: Mapping) -> None:
         self.validate_snapshot(state)
@@ -279,6 +287,7 @@ class HLAAdapter:
         for readout, candidate in zip(self.readouts, state["readouts"]):
             readout.restore(candidate)
         self.ticks, self.abstentions = int(state["ticks"]), int(state["abstentions"])
+        self.learning.restore(state["learning"])
 
 
 class CanonicalRelationStore:
@@ -384,6 +393,7 @@ class HLBAdapter:
         )
         self.ticks = 0
         self.abstentions = 0
+        self.learning = LearningRuntime()
 
     def fit_upper_readouts(self, level1: Sequence[ReadoutExample],
                            level2: Sequence[ReadoutExample]) -> dict:
@@ -499,7 +509,8 @@ class HLBAdapter:
             self.abstentions += 1
         return witnesses
 
-    def step(self, event_features: Mapping[int, Sequence[float]] | None = None) -> dict:
+    def step(self, event_features: Mapping[int, Sequence[float]] | None = None, *,
+             advance_learning: bool = True) -> dict:
         supplied = {} if event_features is None else dict(event_features)
         if self.readouts[0].fitted and 1 not in supplied:
             trace0 = self.bridge.memories[0].snapshot().reshape(-1)
@@ -509,6 +520,8 @@ class HLBAdapter:
             supplied[2] = self.readouts[1].predict(trace1).tolist()
         result = self.bridge.step(supplied)
         self.ticks += 1
+        if advance_learning:
+            self.learning.advance_temporal(self.ticks)
         return {"architecture": self.architecture, "tick": self.ticks, **result}
 
     def snapshot(self) -> dict:
@@ -518,7 +531,8 @@ class HLBAdapter:
                 "evidence_watermark": list(self.evidence.event_ids),
                 "source_relation_watermark": sorted(self._source_relation_journal),
                 "soe_banks": _memory_snapshots(self.bridge),
-                "readouts": [readout.snapshot() for readout in self.readouts]}
+                "readouts": [readout.snapshot() for readout in self.readouts],
+                "learning": self.learning.snapshot()}
 
     def validate_snapshot(self, state: Mapping) -> None:
         if state.get("schema_version") != H1_SCHEMA_VERSION or state.get("architecture") != self.architecture:
@@ -543,6 +557,8 @@ class HLBAdapter:
         for readout, candidate in zip(self.readouts, state["readouts"]):
             probe_readout = LinearReadout(readout.input_dim, readout.output_dim, readout.ridge)
             probe_readout.restore(candidate)
+        probe_learning = LearningRuntime()
+        probe_learning.restore(state["learning"])
 
     def restore(self, state: Mapping) -> None:
         self.validate_snapshot(state)
@@ -558,6 +574,7 @@ class HLBAdapter:
         for readout, candidate in zip(self.readouts, state["readouts"]):
             readout.restore(candidate)
         self.ticks, self.abstentions = int(state["ticks"]), int(state["abstentions"])
+        self.learning.restore(state["learning"])
 
 
 class HierarchicalRuntimeDirector:
