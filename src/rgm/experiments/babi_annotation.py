@@ -38,14 +38,23 @@ def _event(task_id: int, story_id: str, line_no: int, sentence: str) -> Structur
             return StructuredEvent(event_id, kind, tuple(roles.items()), line_no, line_no, source_ref)
     if task_id == 5:
         give_patterns = (
-            r"(?P<giver>[A-Za-z]+)\s+(?:gave|handed|passed)\s+the\s+(?P<object>.+?)\s+to\s+(?P<recipient>[A-Za-z]+)\.?",
-            r"(?P<recipient>[A-Za-z]+)\s+was\s+(?:given|handed|passed)\s+the\s+(?P<object>.+?)\s+by\s+(?P<giver>[A-Za-z]+)\.?",
+            r"(?P<giver>[A-Za-z]+)\s+(?:gave|handed)\s+the\s+(?P<object>.+?)\s+to\s+(?P<recipient>[A-Za-z]+)\.?",
+            r"(?P<recipient>[A-Za-z]+)\s+was\s+(?:given|handed)\s+the\s+(?P<object>.+?)\s+by\s+(?P<giver>[A-Za-z]+)\.?",
         )
         for pattern in give_patterns:
             match = re.fullmatch(pattern, sentence.strip(), flags=re.IGNORECASE)
             if match:
                 roles = {key: _entity(value) for key, value in match.groupdict().items()}
                 return StructuredEvent(event_id, "GIVE", tuple(roles.items()), line_no, line_no, source_ref)
+        pass_patterns = (
+            r"(?P<sender>[A-Za-z]+)\s+passed\s+the\s+(?P<object>.+?)\s+to\s+(?P<recipient>[A-Za-z]+)\.?",
+            r"(?P<recipient>[A-Za-z]+)\s+was\s+passed\s+the\s+(?P<object>.+?)\s+by\s+(?P<sender>[A-Za-z]+)\.?",
+        )
+        for pattern in pass_patterns:
+            match = re.fullmatch(pattern, sentence.strip(), flags=re.IGNORECASE)
+            if match:
+                roles = {key: _entity(value) for key, value in match.groupdict().items()}
+                return StructuredEvent(event_id, "PASS", tuple(roles.items()), line_no, line_no, source_ref)
     raise ValueError(f"unrecognised Task {task_id} source statement at {source_ref}: {sentence!r}")
 def _task3_query(story_id: str, line_no: int, question: str,
                  prior_events: list[StructuredEvent]) -> StructuredQuery:
