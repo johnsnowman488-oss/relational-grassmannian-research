@@ -383,3 +383,12 @@ The corrected native smoke harness and current repository state were exercised o
 - Both Task 3 and Task 5 have 2,000 official source training stories and 200 official test stories. The frozen deterministic split assigns 1,800 complete stories to fit and 200 complete stories to validation for each task. No story or its supporting lines/questions is divided across partitions.
 - All eight file SHA-256 values, byte counts, line counts and story counts were rechecked against the downloaded workflow artifact and committed in `docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json`.
 - This completes source-byte freezing and structured-adapter smoke acceptance only. It does not establish model performance. Next: freeze the structured-event conversion contract and task-specific oracle/witness validation, then run matched HLA/HLB on train/validation. Keep official test inaccessible until configuration and validation are frozen.
+
+### Structured bAbI input contract refinement — 2026-11-26
+
+- Added typed `StructuredQuery` and `StructuredStory` input records. These contain query semantics, story-scoped IDs and provenance, but deliberately have no fields for gold answers or official supporting-fact IDs.
+- Enforced event role schemas: MOVE(actor,destination), PICK_UP(actor,object[,location]), DROP(actor,object[,location]), and GIVE(giver,object,recipient). GIVE is now a strict same-event three-role record.
+- Task 3 reference retrieval is anchored to one exact target MOVE event, disambiguating repeated visits to the same destination. The target anchor must be independently annotated from query semantics; it must not be copied from the official support-index column.
+- Task 5 reference retrieval now selects the most recent observed GIVE event matching all supplied bound roles. Roles are never assembled across separate events.
+- The campaign manifest now separates model inputs from evaluation-only labels. Official answers and supporting line IDs may be used for post-prediction answer/witness scoring only; they are excluded from HLA/HLB input records.
+- The official raw/derived source files are frozen, but the full structured-event annotation bundle is not yet created or frozen. Stage B remains pending. Do not begin the matched HLA/HLB benchmark campaign until those annotations, source-line mappings, and independent checks are frozen.
