@@ -711,10 +711,14 @@ class CompositeLifecycle:
             raise ValueError("promotion requires independent validation partition evidence")
         if validation_record["candidate_fingerprint"] != self.candidate_fingerprint():
             raise ValueError("validation record does not match the active candidate fingerprint")
-        for key in ("validation_id", "protocol_fingerprint", "criteria_fingerprint",
-                    "data_manifest_fingerprint"):
-            if not isinstance(validation_record[key], str) or not validation_record[key]:
-                raise ValueError(f"validation record requires non-empty {key}")
+        if not isinstance(validation_record["validation_id"], str) or not validation_record["validation_id"]:
+            raise ValueError("validation record requires non-empty validation_id")
+        for key in ("protocol_fingerprint", "criteria_fingerprint", "data_manifest_fingerprint"):
+            value = validation_record[key]
+            if not isinstance(value, str) or len(value) != 64 or any(
+                char not in "0123456789abcdef" for char in value
+            ):
+                raise ValueError(f"validation record requires a SHA-256 {key}")
         if not isinstance(validation_record["metrics"], Mapping) or not validation_record["metrics"]:
             raise ValueError("validation record must include measured metrics")
         previous_trusted = copy.deepcopy(self._trusted)
