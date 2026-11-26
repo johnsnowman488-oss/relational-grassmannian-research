@@ -5,7 +5,6 @@ metrics are reported separately; query accuracy is not claimed as learned QA.
 """
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, Callable
@@ -55,61 +54,6 @@ ENTITY_TYPES = {
     "actor": "person", "giver": "person", "recipient": "person",
     "object": "object", "destination": "location",
 }
-
-
-class CtypesPersistentRuntime:
-    """Stateful Python adapter issuing exactly one compiled C++ chain step per tick."""
-
-    def __init__(self, gfe_module, native_library, levels, edges):
-        self.gfe = gfe_module
-        self.library = native_library
-        self.levels = deepcopy(levels)
-        self.edges = deepcopy(edges)
-        self.level_states = [
-            {"u": list(level["u"]), "chi": list(level["chi"]), "t": float(level["t"])}
-            for level in self.levels
-        ]
-        self.step_count = 0
-        self.last_diagnostics: dict[str, Any] = {}
-
-    def get_state(self) -> dict[str, Any]:
-        return {"level_states": deepcopy(self.level_states)}
-
-    def restore(self, state: dict[str, Any]) -> None:
-        self.level_states = deepcopy(state["level_states"])
-        for level, current in zip(self.levels, self.level_states):
-            level["u"], level["chi"], level["t"] = (
-                list(current["u"]), list(current["chi"]), float(current["t"])
-            )
-
-    def step(self, feedback_by_level: dict[int, list[float]]) -> dict[str, Any]:
-        states = []
-        for index, current in enumerate(self.level_states):
-            u = list(feedback_by_level.get(index, current["u"]))
-            chi, t = list(current["chi"]), float(current["t"])
-            self.levels[index]["u"] = u
-            self.levels[index]["chi"] = chi
-            self.levels[index]["t"] = t
-            states.append({"u": u, "chi": chi, "t": t})
-        zero_forcing = [0.0] * len(states[0]["u"])
-        result = self.gfe.step_hierarchical_chain_spec(
-            self.library, self.levels, self.edges,
-            level_states=states, external_forcing=zero_forcing, forcing_level=0,
-        )
-        self.level_states = deepcopy(result["level_states"])
-        for level, current in zip(self.levels, self.level_states):
-            level["u"], level["chi"], level["t"] = (
-                list(current["u"]), list(current["chi"]), float(current["t"])
-            )
-        self.step_count += 1
-        self.last_diagnostics = {
-            key: result[key] for key in ("spectral_units", "active_kernels")
-            if key in result
-        }
-        return result
-
-    def close(self) -> None:
-        return None
 
 
 def _jsonable(value: Any) -> Any:
@@ -563,8 +507,7 @@ def _make_adapter(architecture: str, gfe_module, native_library,
     soe_fingerprint = _digest_json({
         "dt": SOE_DT, "banks": SOE_BANK_CONFIG, "kernels": kernels,
     })
-    def runtime_factory(lib, levels, edges):
-        return CtypesPersistentRuntime(gfe_module, lib, levels, edges)
+    runtime_factory = gfe_module.create_persistent_hierarchy_runtime
     if architecture == "HLA":
         adapter = create_hla_adapter(
             native_library, memories, kernels, dt=SOE_DT, runtime_factory=runtime_factory,
@@ -701,6 +644,8 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
     confirmatory = _load_stories(
         confirmatory_root / f"task{task_id}-confirmatory.inputs.jsonl"
     )
+    native_path = Path(gfe_module.__file__).resolve().parent.parent / "c++ core" / "build-shared" / "libgfe_core.so"
+    campaign_manifest_path = Path("docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json")
     source_manifest = {
         "annotation_manifest_sha256": hashlib.sha256(
             (annotation_root / "annotation-manifest.json").read_bytes()
@@ -708,6 +653,11 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         "confirmatory_manifest_sha256": hashlib.sha256(
             (confirmatory_root / "confirmatory-input-manifest.json").read_bytes()
         ).hexdigest(),
+        "campaign_manifest_sha256": hashlib.sha256(campaign_manifest_path.read_bytes()).hexdigest()
+            if campaign_manifest_path.exists() else None,
+        "native_runtime_commit": __import__("os").environ.get("GFE_ABERCONICS_COMMIT"),
+        "native_library_sha256": hashlib.sha256(native_path.read_bytes()).hexdigest()
+            if native_path.exists() else None,
     }
     results = []
     for seed in seeds:
