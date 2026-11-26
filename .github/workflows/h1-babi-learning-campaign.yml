@@ -100,7 +100,9 @@ jobs:
     name: Task ${{ matrix.task }} — ${{ matrix.architecture }}
     needs: [prepare-data, build-native]
     runs-on: ubuntu-latest
-    # Allow the full 10-seed x 6-condition matrix to finish; each completed\n    # condition is checkpointed for recovery if this ceiling is reached.\n    timeout-minutes: 360
+    # Allow the full 10-seed x 6-condition matrix to finish; each completed
+    # condition is checkpointed for recovery if this ceiling is reached.
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       max-parallel: 4
