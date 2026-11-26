@@ -69,6 +69,8 @@ For each architecture/task/seed:
 4. **Validation:** process all 200 validation stories in score-only mode. Predictions are evaluated, but no learner, temporal eligibility or task calibrator is updated.
 5. **Confirmatory:** after candidate fingerprints and validation decisions are frozen, process the generated challenge in score-only mode. No confirmatory observation updates candidate parameters.
 
+Each bAbI story is an independent temporal episode. At every story boundary, reset all SOE banks and restore the persistent native hierarchy to its zero-state baseline while preserving the native handle and cumulative native step count. Reset transient eligibility at the same adapter tick through the journalled `LearningRuntime.reset_episode_eligibility` operation. Learned predictors, temporal-credit parameters, prediction history and HLB's append-only canonical evidence store persist across stories; query retrieval remains story-scoped. The episode-boundary marker must participate in deterministic checkpoint replay.
+
 The director's explicit `learn=False` path must still issue and score predictions, advance native/SOE state and retain HLB source evidence, while suppressing learner updates and temporal eligibility advancement. The acceptance suite must verify this invariant.
 
 Use ten paired seeds `953000–953009`. The same SHA-256-ranked story order is used for HLA and HLB and for all ablations within each seed. Within-story source order is preserved. Fresh trusted state is created for every architecture/task/seed.
