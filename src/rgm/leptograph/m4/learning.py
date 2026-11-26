@@ -210,6 +210,33 @@ class PredictionJournal:
     def scores(self) -> tuple[PredictionScore, ...]:
         return tuple(self._scores[k] for k in sorted(self._scores))
 
+    def snapshot(self) -> dict:
+        return {
+            "predictions": [
+                {**p.__dict__, "level": p.level.value, "status": p.status.value}
+                for _, p in sorted(self._predictions.items())
+            ],
+            "scores": [s.__dict__ for _, s in sorted(self._scores.items())],
+        }
+
+    def restore(self, state: Mapping) -> None:
+        predictions = {}
+        for item in state.get("predictions", ()):
+            row = dict(item)
+            row["level"] = Level(row["level"])
+            row["status"] = PredictionStatus(row["status"])
+            p = Prediction(**row)
+            if p.prediction_id in predictions:
+                raise ValueError("duplicate prediction in checkpoint")
+            predictions[p.prediction_id] = p
+        scores = {}
+        for item in state.get("scores", ()):
+            score = PredictionScore(**item)
+            if score.prediction_id not in predictions or score.prediction_id in scores:
+                raise ValueError("invalid prediction score checkpoint")
+            scores[score.prediction_id] = score
+        self._predictions, self._scores = predictions, scores
+
 
 @dataclass(frozen=True)
 class LearningSignals:
@@ -525,3 +552,336 @@ class ConsolidationGate:
         # validation must be rerun against the restored process and journal.
         self.receipt = None
         self.history = deepcopy(list(snapshot.get("history", [])))
+
+
+@dataclass(frozen=True)
+class RelationPattern:
+    relation_type: str
+    subject_type: str
+    object_type: str
+    context: str | None
+
+    def __post_init__(self) -> None:
+        if not all((self.relation_type, self.subject_type, self.object_type)):
+            raise ValueError("relation pattern requires a typed relation signature")
+
+
+@dataclass(frozen=True)
+class EventRolePattern:
+    event_type: str
+    roles: tuple[tuple[str, str], ...]
+    context: str | None
+
+    def __post_init__(self) -> None:
+        if not self.event_type or len(self.roles) < 2:
+            raise ValueError("event-role pattern requires an event type and at least two roles")
+        names = [name for name, _ in self.roles]
+        if len(names) != len(set(names)) or any(not a or not b for a, b in self.roles):
+            raise ValueError("event-role pattern roles must be unique and typed")
+
+
+class _PatternCounter:
+    """Deterministic empirical learner for typed semantic patterns."""
+    def __init__(self) -> None:
+        self.counts: dict[str, dict[str, int]] = {}
+
+    def observe(self, key: str, pattern: str) -> None:
+        bucket = self.counts.setdefault(key, {})
+        bucket[pattern] = bucket.get(pattern, 0) + 1
+
+    def predict(self, key: str) -> str | None:
+        bucket = self.counts.get(key, {})
+        if not bucket:
+            return None
+        # Deterministic tie-break is lexical, never dependent on hash iteration.
+        return min(bucket, key=lambda p: (-bucket[p], p))
+
+    def snapshot(self) -> dict:
+        return {key: dict(sorted(values.items())) for key, values in sorted(self.counts.items())}
+
+    def restore(self, state: Mapping) -> None:
+        candidate = {}
+        for key, values in state.items():
+            if not isinstance(key, str) or not isinstance(values, Mapping):
+                raise ValueError("invalid pattern learner checkpoint")
+            clean = {str(p): int(n) for p, n in values.items()}
+            if any(n < 1 for n in clean.values()):
+                raise ValueError("pattern counts must be positive")
+            candidate[key] = clean
+        self.counts = candidate
+
+
+class SemanticRelationLearner:
+    """Predicts typed relation existence/signature, not numeric feature vectors."""
+    def __init__(self) -> None:
+        self._counter = _PatternCounter()
+
+    @staticmethod
+    def _key(subject_type: str, context: str | None) -> str:
+        return fingerprint({"subject_type": subject_type, "context": context})
+
+    @staticmethod
+    def _encode(pattern: RelationPattern) -> str:
+        return json.dumps(pattern.__dict__, sort_keys=True, separators=(",", ":"))
+
+    @staticmethod
+    def _decode(value: str) -> RelationPattern:
+        return RelationPattern(**json.loads(value))
+
+    def observe(self, record: Any) -> None:
+        pattern = RelationPattern(record.relation_type.name, record.subject.entity_type,
+                                  record.object.entity_type, record.context)
+        self._counter.observe(self._key(record.subject.entity_type, record.context), self._encode(pattern))
+
+    def predict(self, subject_type: str, context: str | None = None) -> RelationPattern | None:
+        value = self._counter.predict(self._key(subject_type, context))
+        return None if value is None else self._decode(value)
+
+    def snapshot(self) -> dict:
+        return self._counter.snapshot()
+
+    def restore(self, state: Mapping) -> None:
+        self._counter.restore(state)
+
+
+class NaryEventRoleLearner:
+    """Predicts event type and the complete typed role schema as one object."""
+    def __init__(self) -> None:
+        self._counter = _PatternCounter()
+
+    @staticmethod
+    def _key(context: str | None) -> str:
+        return fingerprint({"context": context})
+
+    @staticmethod
+    def _encode(pattern: EventRolePattern) -> str:
+        return json.dumps(pattern.__dict__, sort_keys=True, separators=(",", ":"))
+
+    @staticmethod
+    def _decode(value: str) -> EventRolePattern:
+        row = json.loads(value)
+        row["roles"] = tuple(tuple(x) for x in row["roles"])
+        return EventRolePattern(**row)
+
+    def observe(self, event: Any) -> None:
+        roles = tuple(sorted((p.role, p.entity_type) for p in event.participants))
+        pattern = EventRolePattern(event.event_type, roles, event.context)
+        self._counter.observe(self._key(event.context), self._encode(pattern))
+
+    def predict(self, context: str | None = None) -> EventRolePattern | None:
+        value = self._counter.predict(self._key(context))
+        return None if value is None else self._decode(value)
+
+    def snapshot(self) -> dict:
+        return self._counter.snapshot()
+
+    def restore(self, state: Mapping) -> None:
+        self._counter.restore(state)
+
+
+class TaskOutcomeLearner:
+    """Small task-level calibration learner, updated only from task residuals."""
+    def __init__(self) -> None:
+        self.outcomes: dict[str, list[int]] = {}
+
+    def observe_error(self, task_key: str, error: float) -> None:
+        if not task_key or not math.isfinite(error) or error < 0:
+            raise ValueError("task outcome requires a key and finite non-negative error")
+        self.outcomes.setdefault(task_key, []).append(int(error > 0.0))
+
+    def error_rate(self, task_key: str) -> float | None:
+        values = self.outcomes.get(task_key)
+        return None if not values else float(sum(values) / len(values))
+
+    def snapshot(self) -> dict:
+        return {k: list(v) for k, v in sorted(self.outcomes.items())}
+
+    def restore(self, state: Mapping) -> None:
+        candidate = {str(k): [int(v) for v in values] for k, values in state.items()}
+        if any(v not in (0, 1) for values in candidate.values() for v in values):
+            raise ValueError("task outcome checkpoint must contain binary errors")
+        self.outcomes = candidate
+
+
+class LearningRuntime:
+    """Shared HLA/HLB prediction and learning cycle.
+
+    The model checkpoint is rollback-scoped. The compact observation journal is
+    append-only: restoring a candidate checkpoint restores the incumbent model,
+    then deterministically replays labels received after that checkpoint into
+    the incumbent learners. It stores typed learning labels, not HLA witnesses.
+    """
+    def __init__(self, *, eligibility_decay: float = 0.9, eligibility_capacity: int = 4096,
+                 eligibility_config_fingerprint: str = "h1-soe-eligibility-v1"):
+        self.schemas = {
+            "next_relation_pattern": TargetSchema("next_relation_pattern", Level.L1, "relation", 1, "exact_match"),
+            "next_event_role_pattern": TargetSchema("next_event_role_pattern", Level.L1, "relation", 1, "exact_match"),
+        }
+        self.predictions = PredictionJournal()
+        self.relations = SemanticRelationLearner()
+        self.event_roles = NaryEventRoleLearner()
+        self.task_outcomes = TaskOutcomeLearner()
+        self.eligibility = EligibilityLedger(decay=eligibility_decay, capacity=eligibility_capacity,
+                                             config_fingerprint=eligibility_config_fingerprint)
+        self.error_router = ErrorRouter([
+            ParameterRoute("temporal_eligibility", frozenset({ErrorChannel.TEMPORAL})),
+            ParameterRoute("semantic_relation_learner", frozenset({ErrorChannel.RELATIONAL})),
+            ParameterRoute("nary_event_role_learner", frozenset({ErrorChannel.ABSTRACTION})),
+            ParameterRoute("task_outcome_learner", frozenset({ErrorChannel.TASK})),
+        ])
+        self._observation_journal: list[dict] = []
+        self._prediction_sequence = 0
+        self._last_observed_at = 0.0
+        self.last_signals = LearningSignals()
+
+    def begin_tick(self, *, tick: int, observed_at: float, subject_type: str | None = None,
+                   context: str | None = None) -> tuple[Prediction, ...]:
+        if tick < 0 or not math.isfinite(observed_at) or observed_at < self._last_observed_at:
+            raise ValueError("learning tick/time must be monotone")
+        issued = []
+        if subject_type:
+            pattern = self.relations.predict(subject_type, context)
+            if pattern is not None:
+                self._prediction_sequence += 1
+                schema = self.schemas["next_relation_pattern"]
+                prediction = Prediction(
+                    f"lrn-rel-{self._prediction_sequence}", Level.L1, schema.name,
+                    f"relation@{tick + 1}", tick, observed_at, schema.horizon_ticks,
+                    observed_at, self.relations._encode(pattern), fingerprint(self.relations.snapshot()),
+                    fingerprint(schema.__dict__),
+                )
+                self.predictions.issue(prediction)
+                issued.append(prediction)
+        role_pattern = self.event_roles.predict(context)
+        if role_pattern is not None:
+            self._prediction_sequence += 1
+            schema = self.schemas["next_event_role_pattern"]
+            prediction = Prediction(
+                f"lrn-role-{self._prediction_sequence}", Level.L1, schema.name,
+                f"event@{tick + 1}", tick, observed_at, schema.horizon_ticks,
+                observed_at, self.event_roles._encode(role_pattern), fingerprint(self.event_roles.snapshot()),
+                fingerprint(schema.__dict__),
+            )
+            self.predictions.issue(prediction)
+            issued.append(prediction)
+        return tuple(issued)
+
+    def _score_and_update(self, name: str, key: str, value: Any, source_id: str,
+                          observed_at: float, tick: int, channel: ErrorChannel) -> float | None:
+        matches = [p for p in self.predictions._predictions.values()
+                   if p.target_name == name and p.target_key == key
+                   and p.status is PredictionStatus.ISSUED]
+        if not matches:
+            return None
+        prediction = max(matches, key=lambda p: p.issued_tick)
+        schema = self.schemas[name]
+        score = self.predictions.score(
+            prediction.prediction_id,
+            TargetObservation(name, key, value, observed_at, observed_at, tick, source_id),
+            schema, evaluated_tick=tick,
+        )
+        return score.value
+
+    def observe_relation(self, record: Any, *, tick: int) -> float | None:
+        pattern = RelationPattern(record.relation_type.name, record.subject.entity_type,
+                                  record.object.entity_type, record.context)
+        key = f"relation@{tick}"
+        error = self._score_and_update("next_relation_pattern", key,
+                                       self.relations._encode(pattern), record.instance_id,
+                                       record.observed_at, tick, ErrorChannel.RELATIONAL)
+        encoded = self.relations._encode(pattern)
+        self._observation_journal.append({"kind": "relation", "value": encoded,
+                                          "subject_type": record.subject.entity_type,
+                                          "context": record.context, "source_id": record.instance_id,
+                                          "observed_at": record.observed_at, "tick": tick})
+        if error is not None:
+            self.last_signals = LearningSignals(relational=error)
+            self.error_router.route(self.last_signals)
+        self.relations.observe(record)
+        return error
+
+    def observe_nary_event(self, event: Any, *, tick: int) -> float | None:
+        pattern = EventRolePattern(event.event_type,
+                                   tuple(sorted((p.role, p.entity_type) for p in event.participants)),
+                                   event.context)
+        key = f"event@{tick}"
+        error = self._score_and_update("next_event_role_pattern", key,
+                                       self.event_roles._encode(pattern), event.event_id,
+                                       event.observed_at, tick, ErrorChannel.ABSTRACTION)
+        self._observation_journal.append({"kind": "event_role", "value": self.event_roles._encode(pattern),
+                                          "context": event.context, "source_id": event.event_id,
+                                          "observed_at": event.observed_at, "tick": tick})
+        if error is not None:
+            self.last_signals = LearningSignals(abstraction=error)
+            self.error_router.route(self.last_signals)
+        self.event_roles.observe(event)
+        return error
+
+    def observe_eligibility(self, event: EligibilityEvent) -> None:
+        self._observation_journal.append({"kind": "eligibility", "value": event.__dict__})
+        self.eligibility.ingest(event)
+
+    def advance_temporal(self, tick: int) -> dict:
+        self.eligibility.advance(tick)
+        values = self.eligibility.values(prediction_cutoff_tick=tick)
+        self.last_signals = LearningSignals(temporal=0.0)
+        return values
+
+    def observe_task_error(self, task_key: str, error: float) -> None:
+        self._observation_journal.append({"kind": "task", "task_key": task_key, "error": float(error)})
+        if error > 0:
+            self.task_outcomes.observe_error(task_key, error)
+            self.last_signals = LearningSignals(task=error)
+            self.error_router.route(self.last_signals)
+
+    def snapshot(self) -> dict:
+        return {
+            "schema": "h1-learning-runtime-v1",
+            "predictions": self.predictions.snapshot(),
+            "relations": self.relations.snapshot(),
+            "event_roles": self.event_roles.snapshot(),
+            "task_outcomes": self.task_outcomes.snapshot(),
+            "eligibility": self.eligibility.snapshot(),
+            "journal_count": len(self._observation_journal),
+            "prediction_sequence": self._prediction_sequence,
+            "last_observed_at": self._last_observed_at,
+            "last_signals": self.last_signals.as_dict(),
+        }
+
+    def restore(self, state: Mapping) -> None:
+        if state.get("schema") != "h1-learning-runtime-v1":
+            raise ValueError("learning runtime checkpoint schema mismatch")
+        local_journal = list(self._observation_journal)
+        trusted_count = int(state["journal_count"])
+        if trusted_count < 0 or trusted_count > len(local_journal):
+            # A checkpoint may have been created by another process; it must
+            # carry its own source-label journal to be restorable.
+            raise ValueError("learning checkpoint journal watermark is unavailable")
+        self.predictions.restore(state["predictions"])
+        self.relations.restore(state["relations"])
+        self.event_roles.restore(state["event_roles"])
+        self.task_outcomes.restore(state["task_outcomes"])
+        self.eligibility.restore(state["eligibility"])
+        self._prediction_sequence = int(state["prediction_sequence"])
+        self._last_observed_at = float(state["last_observed_at"])
+        # New labels received during candidate execution survive rollback and
+        # are deterministically applied to the restored incumbent learners.
+        self._observation_journal = local_journal
+        for item in local_journal[trusted_count:]:
+            if item["kind"] == "relation":
+                self.relations._counter.observe(
+                    self.relations._key(item["subject_type"], item["context"]), item["value"])
+            elif item["kind"] == "event_role":
+                self.event_roles._counter.observe(
+                    self.event_roles._key(item["context"]), item["value"])
+            elif item["kind"] == "task":
+                self.task_outcomes.observe_error(item["task_key"], item["error"])
+            elif item["kind"] == "eligibility":
+                event = EligibilityEvent(**item["value"])
+                if event.observed_tick > self.eligibility._last_tick:
+                    self.eligibility.advance(event.observed_tick)
+                if (event.event_id, event.feature_id, event.channel) not in self.eligibility._states:
+                    self.eligibility.ingest(event)
+        self._last_observed_at = max(
+            [self._last_observed_at] + [float(x.get("observed_at", 0.0)) for x in local_journal[trusted_count:]]
+        )
