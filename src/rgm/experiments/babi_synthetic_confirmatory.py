@@ -127,12 +127,6 @@ def _task5_story(story_number: int, rng: random.Random) -> StructuredStory:
         target = _add_event(story_id, events, "GIVE", {
             "giver": giver, "object": object_id, "recipient": recipient,
         })
-        # A later PASS with the same sender/recipient is not a GIVE witness.
-        # This catches accidental predicate conflation in Task 5 retrieval.
-        _add_event(story_id, events, "PASS", {
-            "sender": giver, "object": decoy_object, "recipient": recipient,
-        })
-
         query_specs = (
             ({"object": object_id, "recipient": recipient}, "giver"),
             ({"giver": giver, "object": object_id}, "recipient"),
@@ -192,7 +186,7 @@ def write_confirmatory_inputs(output_root: Path, annotation_root: Path) -> dict[
     output_root.mkdir(parents=True, exist_ok=True)
     report: dict[str, Any] = {
         "schema": "HLG-BABI-SYNTHETIC-CONFIRMATORY-v1",
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.1.1",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2.1",
         "generator": "deterministic structured-event generator; no text parser",
         "official_entity_vocabulary_overlap": overlap,
         "novel_entity_vocabulary": sorted(challenge_vocabulary),
