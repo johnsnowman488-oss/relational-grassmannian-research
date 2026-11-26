@@ -239,3 +239,26 @@ def test_independent_promotion_binds_learning_state_and_rejects_stale_candidate(
                       relation_records=((0, relation("after-promotion-r", "visited", observed_at=2.0)),))
     with pytest.raises(ValueError, match="fingerprint"):
         lifecycle.promote(record)
+
+
+def test_forecast_context_is_not_inferred_from_the_current_target_observation():
+    _, adapter, director = system("HLB")
+    seed(adapter.learning)
+    observed = relation("no-leak-r", "located_at", observed_at=1.0)
+    result = director.exchange(
+        event_time=1.0, observed_at=1.0,
+        relation_records=((0, observed),),
+        nary_events=(nary("no-leak-e", observed_at=1.0),),
+    )
+    assert result["predictions"] == ()
+    assert adapter.learning.predictions.scores == ()
+
+
+def test_semantic_predictions_include_exact_entity_and_role_bindings():
+    learner = LearningRuntime()
+    seed(learner)
+    relation_pattern = learner.relations.predict("home")
+    role_pattern = learner.event_roles.predict("home")
+    assert relation_pattern.subject_id == "person-1"
+    assert relation_pattern.object_id == "place-1"
+    assert ("recipient", "fred", "person") in role_pattern.roles
