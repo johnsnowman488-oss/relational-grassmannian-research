@@ -212,3 +212,12 @@ def test_source_relation_storage_recovery_merges_monotonically_and_reindexes():
     assert {r.instance_id for r in director.adapter.store.records(cutoff=3.0)} == {
         "source-1", "source-2"
     }
+
+def test_stale_validation_receipt_cannot_promote_a_changed_candidate():
+    runtime, director, lifecycle = make_system()
+    lifecycle.checkpoint()
+    receipt = validation_record(lifecycle)
+    director.exchange(event_time=1.0, observed_at=1.0, event_features={0: [1.0, 0.0]})
+    with pytest.raises(ValueError, match="fingerprint"):
+        lifecycle.promote(receipt)
+    assert lifecycle.version == 0
