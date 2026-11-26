@@ -49,6 +49,7 @@ jobs:
       - name: Run structured-event and evidence lifecycle tests
         run: |
           python -m pytest -q \
+            tests/test_babi_freeze.py \
             tests/test_babi_structured.py \
             tests/test_hlg_evidence_lifecycle.py \
             tests/test_hlg_integrated_contract_acceptance.py
