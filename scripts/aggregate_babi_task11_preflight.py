@@ -84,6 +84,13 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
         if no_learning["evaluation"].get("forecast_coverage") != 0.0:
             violations.append(f"{architecture}: no-learning control unexpectedly produced covered answers")
 
+    native_library_hashes = {
+        row.get("native_library_sha256") for row in reports.values()
+    }
+    if len(native_library_hashes) != 1 or None in native_library_hashes:
+        violations.append("preflight units do not share one recorded native-library SHA-256")
+    native_library_sha256 = next(iter(native_library_hashes)) if len(native_library_hashes) == 1 else None
+
     max_unit_seconds = max(float(row["elapsed_seconds"]) for row in reports.values())
     estimated_total_cpu_hours = sum(float(row["elapsed_seconds"]) for row in reports.values()) / 3600.0 * 30.0
     estimated_wall_hours_at_four_workers = estimated_total_cpu_hours / 4.0
@@ -93,6 +100,7 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
         "task_id": 11,
         "reserved_seed": 953099,
         "native_commit": "4bbcaa132131733372c17a68895a329a030c84d0",
+        "native_library_sha256": native_library_sha256,
         "soe_feature_dims": [3, 3, 3],
         "soe_dt": 0.01,
         "top_down_gain": 1.0,
