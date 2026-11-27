@@ -1,0 +1,86 @@
+{
+  "schema": "HLG-BABI-EXPANSION-SOURCE-FREEZE-PIN-v1.0",
+  "phase": "Q",
+  "status": "PINNED_PENDING_EXTERNAL_ACQUISITION_AND_MEMBER_AUDIT",
+  "branch": "research/babi-task-expansion-v1",
+  "dataset": {
+    "name": "The 20-Task bAbI Question-Answering Dataset",
+    "release": "1.2.0",
+    "language": "English",
+    "configuration": "en-10k",
+    "license": "CC BY 3.0 Unported",
+    "license_evidence": "tasks_1-20_v1-2/LICENSE.txt in independent mirror and facebook/babi_qa loader metadata",
+    "paper": "https://arxiv.org/abs/1502.05698"
+  },
+  "archive": {
+    "filename": "tasks_1-20_v1-2.tar.gz",
+    "url": "https://huggingface.co/datasets/facebook/babi_qa/resolve/main/data/tasks_1-20_v1-2.tar.gz?download=true",
+    "sha256": "0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898",
+    "size_bytes": 15719851,
+    "lfs_oid": "sha256:0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898",
+    "mirror_repository": "facebook/babi_qa",
+    "publisher_hosted": false
+  },
+  "independent_member_mirror": {
+    "repository": "raviraju/NLP_QA_Project",
+    "commit": "0051751275841561267b1c6f5d9116b985521df1",
+    "purpose": "Independent exact-byte member cross-check using Git blob object IDs"
+  },
+  "selected_members": [
+    {
+      "task_id": 11,
+      "name": "Basic Coreference",
+      "train": "tasks_1-20_v1-2/en-10k/qa11_basic-coreference_train.txt",
+      "test": "tasks_1-20_v1-2/en-10k/qa11_basic-coreference_test.txt",
+      "train_size_bytes": 1046139,
+      "train_git_blob_sha1": "ff530d4de05dc753a0fe9d9638aa761ed855b81e",
+      "test_size_bytes": 104800,
+      "test_git_blob_sha1": "c9feb150855483c587c5a825211fc306d4cfebe3"
+    },
+    {
+      "task_id": 14,
+      "name": "Time Reasoning",
+      "train": "tasks_1-20_v1-2/en-10k/qa14_time-reasoning_train.txt",
+      "test": "tasks_1-20_v1-2/en-10k/qa14_time-reasoning_test.txt",
+      "train_size_bytes": 1506583,
+      "train_git_blob_sha1": "35350c2fbfcc081218731cf3929f3e56c169360c",
+      "test_size_bytes": 151420,
+      "test_git_blob_sha1": "c0c88cd92b690d6c533c3e532cb8a9e38ae8f1bf"
+    },
+    {
+      "task_id": 19,
+      "name": "Path Finding",
+      "train": "tasks_1-20_v1-2/en-10k/qa19_path-finding_train.txt",
+      "test": "tasks_1-20_v1-2/en-10k/qa19_path-finding_test.txt",
+      "train_size_bytes": 2475046,
+      "train_git_blob_sha1": "c9ec29b500eaf11f977d24c38aa0504f09f00cbf",
+      "test_size_bytes": 247449,
+      "test_git_blob_sha1": "fe316702f1bd930bf17257fac3513ec3ceac628c"
+    }
+  ],
+  "format_contract": {
+    "encoding": "UTF-8",
+    "record": "ID text",
+    "question": "ID question<TAB>answer<TAB>supporting-fact IDs",
+    "story_boundary": "ID resets to 1",
+    "line_numbering": "consecutive story-local record IDs",
+    "support_scope": "prior statement lines in the same story",
+    "official_validation_split": false,
+    "validation_derivation": "task-specific deterministic whole-story split from training source",
+    "test_policy": "sealed/quarantined from fit, adaptation, validation and candidate selection"
+  },
+  "phase_transition": {
+    "phase_q_complete_when": [
+      "archive byte length and SHA-256 match pinned LFS object",
+      "all six members present exactly once",
+      "all six members match independent commit-pinned Git blob identities and byte sizes",
+      "all six members parse as UTF-8 numbered bAbI records",
+      "all support references resolve to prior statements in the same story",
+      "Task 19 answer sequence audit passes",
+      "offline acceptance tests pass",
+      "source-audit.json reports all acceptance flags true"
+    ],
+    "phase_b_authorized_after_phase_q": true,
+    "learning_campaign_authorized": false
+  }
+}
