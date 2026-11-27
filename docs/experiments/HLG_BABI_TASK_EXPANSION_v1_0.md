@@ -246,3 +246,67 @@ These are implementation facts from the PR diff, not accepted gate results.
 9. Keep `execution_authorized=false` until every required gate is accepted and explicit authorization is given.
 
 **Current decision:** PR #55 is useful and contains substantial gate-closing work, but no outstanding gate is considered passed by its latest CI. The first immediate repair is a malformed test fixture; the Task 11 confirmatory identifiability and runtime-feature mismatch are the most important design-level blockers to resolve before accepting the generated challenge.
+
+
+## 13. PR #55 preflight acceptance update — 2026-11-27
+
+**Accepted implementation head:** `02538ee794ddd9df67297d4256b752ebf2c01894`  
+**PR:** [#55 — Implement leakage-safe bAbI expansion execution preflight](https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/55), still open and not merged at the time of this ledger update.
+
+### CI acceptance
+
+All three requested workflows now pass on the implementation head:
+
+- Phase B independent adapter validation: run `46066166585` — success.
+- Runtime and prediction-contract acceptance: run `46066166586` — success.
+- Controlled execution preflight run #61: `46066166623` — success, including the native build, source/partition/baseline/confirmatory preparation, all four shard jobs and final aggregate.
+
+The full repository test suite passes on Python 3.10 and 3.12. The integrated runtime/prediction-contract matrix passes on both versions, including the frozen Task 3/5 regression protection. The earlier fixture failure was repaired using actual physical newlines and explicit two-story assertions; the parser was not relaxed. The native bridge now reads the pinned `PersistentHierarchyRuntime.step_count` property rather than looking for a nonexistent key in `get_state()`.
+
+### Source, partitions and baselines
+
+The source acquisition/audit job passed. bAbI v1.2.0, en-10k, CC BY 3.0 members were freshly downloaded from immutable repository commit `0051751275841561267b1c6f5d9116b985521df1`; each member passed byte-length/Git-blob identity checks and SHA-256 recording. No archive-byte identity is claimed. All three tasks have 10,000 training queries and 1,000 official-test queries; official test files were parsed label-free and no official test labels or queries entered the experiment.
+
+The prepared 90/10 train-derived whole-story partitions and nested 80/20 warm-start/online partitions passed their frozen count and ID-hash checks:
+
+| Task | Fit stories / queries | Validation stories / queries | Warm-start stories | Online stories | Official test stories |
+|---|---:|---:|---:|---:|---:|
+| 11 | 1,800 / 9,000 | 200 / 1,000 | 1,440 | 360 | 200 |
+| 14 | 1,800 / 9,000 | 200 / 1,000 | 1,440 | 360 | 200 |
+| 19 | 9,000 / 9,000 | 1,000 / 1,000 | 7,200 | 1,800 | 1,000 |
+
+All partitions are whole-story, disjoint and deterministic. The manifest records separate story-ID and query-ID SHA-256 values for each phase. The frozen 360 run-unit protocol remains 3 tasks × 2 architectures × 6 conditions × 10 seeds, with 90 unit keys per worker.
+
+Independent baseline validation covered 1,000 validation queries per task:
+
+- **Task 11:** nearest-compatible-antecedent answer exact match 1.000; recency-only 0.704. Direct antecedent/coreference-edge metrics on the official validation split are **NOT AVAILABLE**, because the raw bAbI Task 11 evaluator labels do not provide gold antecedent edges. Do not infer L1 coreference quality from location-answer accuracy or score weak labels against themselves.
+- **Task 14:** lexical temporal-cue baseline answer and temporal-relation exact match 1.000; source-order-only temporal-relation exact match 0.420 (target F1 approximately 0.525).
+- **Task 19:** breadth-first-search answer, directed-edge/path target F1 and ordered-path exact match 1.000; direct-edge-only abstains on the multi-edge paths and scores 0.000.
+
+Target-level metrics are now explicit in the scorecard. The Task 11 limitation is retained as unavailable on official validation rather than filled with an unreviewed proxy.
+
+### Task 11 confirmatory input and supervision repair
+
+Generated-confirmatory protocol v1.1 supersedes the non-identifiable v1.0 challenge. It uses 3 fixed seeds (971101–971103), 128 stories per seed per task, 384 stories per task, 1,152 overall. The Task 11 generated schema carries an explicit synthetic grammatical-gender cue through the same typed event consumed by runtime ingestion. Each story has two distinct model-visible gender anchors, so each generated pronoun has exactly one compatible prior name anchor. Antecedent IDs, binding edges and L0/L1/L2 labels remain evaluator-only. This is a controlled synthetic task schema, **not** a claim that raw bAbI contains a structured gender field.
+
+The Task 11 runtime still does not ingest a coreference edge as an observation. The new weak-supervision derivation emits a pseudo-binding only when exactly one compatible prior named entity exists; otherwise it abstains. The target bundle carries L0 mention binding, L1 coreference edge and L2 entity state. The forecast/scoring test issues these targets before the query cutoff and scores them only after reveal with evaluator provenance. This establishes target materialization and evaluator isolation, but **does not yet demonstrate the Task 11 target losses updating HLA/HLB learner components**. The Task 11 learning-update integration gate remains open.
+
+Confirmatory generation and verification passed: each task has 384 input rows and 384 separate evaluator-label rows, with exact query-ID parity, file hashes, deterministic repeat verification and no official-test access. Task 11 generated input SHA-256 is `edc957cad4d1274d968611584c8288b53fb23332eaefe34c934ec153a7195276`; its evaluator-label file SHA-256 is `174bddeb44c629ef15c876da8108868fffb92587da0fde526db68e4d3132df65`. The internal confirmatory manifest fingerprint is `e5e6c0c981573c5e42ef4b5b449d8962365aa326a2b63068d39c1f18d02c6c1f`. These generated outputs are not official bAbI test evidence and must not be used for candidate selection.
+
+### Four-worker preflight and resource decision
+
+Run #61 accepted all 360/360 keys, 90 per shard, and 3,600,000 symbolic query presentations / 7,200,000 baseline prediction presentations. Retry integrity was exact: zero duplicate, missing, wrong-shard or mixed-manifest keys. All four workers preserved 45 completed keys through an injected failure and completed the remaining 45 on retry. There were zero HLA/HLB learning updates and zero official-test queries.
+
+The native no-learning sample passed on pinned Aberconics commit `2539df6bda7ef3c9dd7c707abe26eff8bdbb59de`: 192 story-runs, 1,692 event/native steps, zero parameter changes and zero labels loaded. The aggregate resource evidence reports 220.768 summed worker-seconds, 66.649 seconds maximum for one worker, 99.586 MiB maximum worker RSS, 1.326 MiB maximum Python allocation peak and 2.126 MiB shard artifact storage. Native no-learning sample peak RSS was 173.450 MiB and Python allocation peak 48.344 MiB. Task/architecture-specific native story/event rates and no-learning projections are stored in `HLG_BABI_EXPANSION_RESOURCE_BUDGET_v1_0.md`.
+
+**Resource gate remains PARTIAL_NO_LEARNING_ONLY.** The symbolic workload and native no-learning ingestion do not measure learner parameter-update compute, trainable-state growth, checkpoint overhead or consolidation/rollback cost. A separately authorized bounded learning microbenchmark or reviewed learner-cost model remains required. No campaign or microbenchmark is authorized by this preflight pass.
+
+### Current gate decision and next work
+
+- Task 11 raw-observation/evaluator separation, Tasks 14/19 boundary audits, source freeze, deterministic partitions, reviewed baseline execution, confirmatory v1.1 validation and the four-worker retry/aggregate preflight: **PASS**, subject to the Task 11 official-label limitation above.
+- Task 11 target forecast/scoring contract: **PASS at the isolated contract/test level**; actual HLA/HLB parameter-update routing from L0/L1/L2 Task 11 supervision: **OPEN**.
+- Resource qualification for the full learner campaign: **OPEN — PARTIAL_NO_LEARNING_ONLY**.
+- Full 360-unit learning campaign: **FROZEN_NOT_AUTHORIZED**; explicit authorization is still required.
+- Frozen Task 3/5 pilot branch and artifacts: **PARKED_UNTOUCHED**.
+
+The next technical gate is to specify and test the task-target learning update routing (including confidence/abstention handling, provenance and rollback replay) and then obtain an explicitly authorized bounded learner-cost measurement. Do not convert the accepted non-learning preflight into a claim of learned capability or resource readiness.
