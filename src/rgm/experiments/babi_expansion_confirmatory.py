@@ -434,11 +434,11 @@ def generate_task11_confirmatory(output_root: Path) -> dict:
     input_path = output_root / "task11-confirmatory-inputs.jsonl"
     label_path = output_root / "task11-confirmatory-evaluator-labels.jsonl"
     input_path.write_text(
-        "".join(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\\n" for row in inputs),
+        "".join(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n" for row in inputs),
         encoding="utf-8",
     )
     label_path.write_text(
-        "".join(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\\n" for row in labels),
+        "".join(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n" for row in labels),
         encoding="utf-8",
     )
     input_ids = [row["query"]["query_id"] for row in inputs]
@@ -471,17 +471,17 @@ def generate_task11_confirmatory(output_root: Path) -> dict:
         "files": {
             "inputs": {
                 "path": input_path.name, "rows": len(inputs), "sha256": _sha(input_path),
-                "query_ids_sha256": sha256("\\n".join(input_ids).encode()).hexdigest(),
+                "query_ids_sha256": sha256("\n".join(input_ids).encode()).hexdigest(),
             },
             "evaluator_labels": {
                 "path": label_path.name, "rows": len(labels), "sha256": _sha(label_path),
-                "query_ids_sha256": sha256("\\n".join(label_ids).encode()).hexdigest(),
+                "query_ids_sha256": sha256("\n".join(label_ids).encode()).hexdigest(),
             },
         },
     }
     manifest["manifest_sha256"] = sha256(_canonical(manifest)).hexdigest()
     manifest_path = output_root / "task11-confirmatory-manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n",
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n",
                              encoding="utf-8")
     manifest["manifest_file_sha256"] = _sha(manifest_path)
     return manifest
