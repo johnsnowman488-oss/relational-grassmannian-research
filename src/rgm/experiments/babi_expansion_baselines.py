@@ -78,26 +78,27 @@ def direct_edge_only_task19(story: ExpansionStory, query: ExpansionQuery) -> Pre
     """Return a direction only when one observed edge directly connects endpoints."""
     if story.task_id != 19 or query.task_id != 19:
         raise ValueError("Task 19 baseline received another task's input")
-    candidates: list[tuple[str, str, str, str]] = []
+    candidates: list[tuple[str, str, str, str, str]] = []
     for e in story.events:
         if not isinstance(e, Task19SpatialEdge) or e.observed_at >= query.observed_at:
             continue
         if e.start == query.start_location and e.end == query.end_location:
             candidates.append((_DIRECTION_CODE[e.direction], e.event_id,
-                               query.start_location or "", query.end_location or ""))
+                               query.start_location or "", query.end_location or "", e.direction))
         elif e.end == query.start_location and e.start == query.end_location:
             candidates.append((_DIRECTION_CODE[_INVERSE[e.direction]], e.event_id,
-                               query.start_location or "", query.end_location or ""))
-    sequences = {direction for direction, _, _, _ in candidates}
+                               query.start_location or "", query.end_location or "", _INVERSE[e.direction]))
+    sequences = {direction for direction, _, _, _, _ in candidates}
     if not candidates:
         return Prediction(None, (), True, "no_direct_observed_edge")
     if len(sequences) != 1:
         return Prediction(None, (), True, "conflicting_direct_edges")
     direction = next(iter(sequences))
-    witness = min(event_id for code, event_id, _, _ in candidates if code == direction)
+    witness = min(event_id for code, event_id, _, _, _ in candidates if code == direction)
+    path_direction = next(row[4] for row in candidates if row[0] == direction and row[1] == witness)
     return Prediction(direction, (witness,), False,
                       spatial_path_edges=((query.start_location or "", query.end_location or "",
-                                           direction, witness),))
+                                           path_direction, witness),))
 
 def breadth_first_search_task19(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
     """Shortest observed-edge BFS; ambiguous shortest direction sequences abstain."""
