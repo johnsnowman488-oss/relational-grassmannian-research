@@ -252,7 +252,7 @@ jobs:
               --seeds 953000
           else
             python scripts/select_babi_learning_candidates.py \
-              --input-dir artifacts/pilot/artifacts/babi-campaign \
+              --input-dir artifacts/pilot \
               --output artifacts/selection/selected-candidates.json \
               --seeds 953000 953001 953002 953003 953004 953005 953006 953007 953008 953009
           fi
