@@ -9,10 +9,7 @@ def _fixture(tmp_path):
     task_ids = [f"task11/train/story{i:06d}" for i in range(128)]
     manifest = {
         "manifest_sha256": "a" * 64,
-        "tasks": {"11": {"phases": {
-            "warm_start": {"story_ids": task_ids[:102]},
-            "online_adaptation": {"story_ids": task_ids[102:]},
-        }}},
+        "partitions": {"fit_story_ids": task_ids},
     }
     (tmp_path / "manifest.json").write_text(json.dumps(manifest))
     plan = {"manifest_path": "manifest.json"}
