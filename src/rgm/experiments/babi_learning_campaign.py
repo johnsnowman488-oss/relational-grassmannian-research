@@ -12,6 +12,7 @@ from typing import Any, Callable
 import hashlib
 import json
 import math
+import time
 
 import numpy as np
 
@@ -278,15 +279,11 @@ def _query_events(adapter, architecture: str, story_id: str,
     if architecture == "HLA":
         return [event for event in caller_events if event.observed_at <= cutoff]
     recovered = []
-    for evidence_id in adapter.evidence.event_ids:
-        if not evidence_id.startswith(story_id + ":"):
-            continue
-        # Evidence recovery resolves a reference to one or more exact source
-        # events. Even a direct source reference is returned as a singleton
-        # tuple, so consume the documented collection rather than treating it
-        # as a single NaryEvent.
+    # caller_events is already scoped to this story. Recover exact source
+    # witnesses without scanning/rebuilding the global evidence-ID tuple.
+    for caller_event in caller_events:
         source_events = adapter.recover_evidence(
-            evidence_id, observation_cutoff=float(cutoff)
+            caller_event.event_id, observation_cutoff=float(cutoff)
         )
         for event in source_events:
             recovered.append(_from_nary(event))
@@ -404,7 +401,8 @@ def _reset_episode(adapter, baseline_native_checkpoint: dict[str, Any], gfe_modu
 
 def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                    phase: str, learn: bool, source_name: str,
-                   soe_fingerprint: str, global_clock: int, baseline_native_checkpoint: dict[str, Any], gfe_module) -> tuple[dict[str, Any], int]:
+                   soe_fingerprint: str, global_clock: int, baseline_native_checkpoint: dict[str, Any], gfe_module,
+                   progress_callback: Callable[[dict[str, Any]], None] | None = None) -> tuple[dict[str, Any], int]:
     score_start = len(adapter.learning.predictions.scores)
     totals = {
         "queries": 0, "eligible_queries": 0, "quarantined_queries": 0,
@@ -413,7 +411,7 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
         "provenance_checked": 0, "provenance_failures": 0,
         "evidence_capacity_misses": 0, "false_witnesses": 0,
     }
-    for story, story_labels in stories:
+    for story_index, (story, story_labels) in enumerate(stories, start=1):
         _reset_episode(adapter, baseline_native_checkpoint, gfe_module)
         offset = global_clock + 1
         seen_events: list[StructuredEvent] = []
@@ -449,7 +447,7 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                 else:
                     kwargs["learning_relations"] = relations
                 result = director.exchange(**kwargs)
-                if architecture == "HLB" and event.event_id not in adapter.evidence.event_ids:
+                if architecture == "HLB" and not adapter.evidence.has_event(event.event_id):
                     totals["evidence_capacity_misses"] += 1
                 seen_events.append(global_event)
                 current_context = _event_context(event)
@@ -511,6 +509,16 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
             [int(event.observed_at) for event in story.events]
             + [int(query.observed_at) for query in story.queries] + [0]
         ) + 1
+        if progress_callback is not None:
+            progress_callback({
+                "phase": phase,
+                "stories_completed": story_index,
+                "stories_expected": len(stories),
+                "queries_completed": totals["queries"],
+                "eligible_queries_completed": totals["eligible_queries"],
+                "native_steps": adapter.bridge.runtime.step_count,
+                "adapter_ticks": adapter.ticks,
+            })
 
     predictions = _score_prediction_delta(adapter, score_start)
     query_count = totals["eligible_queries"]
@@ -572,6 +580,7 @@ def _fit_and_process(
     task_id: int, architecture: str, variant: str, seed: int,
     warm_start, online, validation, confirmatory,
     gfe_module, native_library, source_manifest: dict[str, Any],
+    progress_callback: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     adapter, soe_fingerprint = _make_adapter(
         architecture, gfe_module, native_library, CHANNELS[variant]
@@ -589,12 +598,14 @@ def _fit_and_process(
         adapter, director, architecture, task_id, warm_order,
         "warm_start_dynamics", False, "babi-v1.2-en10k-fit",
         soe_fingerprint, global_clock, baseline_native_checkpoint, gfe_module,
+        progress_callback=progress_callback,
     )
     model_before_online = _model_state(adapter.learning)
     online_metrics, global_clock = _process_phase(
         adapter, director, architecture, task_id, online_order,
         "online_adaptation", True, "babi-v1.2-en10k-fit",
         soe_fingerprint, global_clock, baseline_native_checkpoint, gfe_module,
+        progress_callback=progress_callback,
     )
     model_after_online = _model_state(adapter.learning)
     candidate_fingerprint = model_fingerprint(adapter.learning)
@@ -607,6 +618,7 @@ def _fit_and_process(
         adapter, director, architecture, task_id, validation_order,
         "validation", False, "babi-v1.2-en10k-validation",
         soe_fingerprint, global_clock, baseline_native_checkpoint, gfe_module,
+        progress_callback=progress_callback,
     )
     fingerprint_after_validation = model_fingerprint(adapter.learning)
     if fingerprint_after_validation != candidate_fingerprint:
@@ -626,6 +638,7 @@ def _fit_and_process(
             adapter, director, architecture, task_id, confirmatory_order,
             "generated_confirmatory", False, "babi-synthetic-confirmatory-v1.2",
             soe_fingerprint, global_clock, baseline_native_checkpoint, gfe_module,
+            progress_callback=progress_callback,
         )
         fingerprint_after_confirmatory = model_fingerprint(adapter.learning)
         if fingerprint_after_confirmatory != candidate_fingerprint:
@@ -670,7 +683,7 @@ def _fit_and_process(
 
 def _write_campaign_checkpoint(
     output_path: Path, *, task_id: int, architecture: str,
-    seeds: list[int], results: list[dict[str, Any]],
+    seeds: list[int], variants: list[str], results: list[dict[str, Any]],
     expected_run_count: int, complete: bool,
 ) -> dict[str, Any]:
     """Atomically persist an evidence snapshot after each completed run."""
@@ -679,7 +692,7 @@ def _write_campaign_checkpoint(
         "task_id": task_id,
         "architecture": architecture,
         "seeds": seeds,
-        "variants": list(CHANNELS),
+        "variants": list(variants),
         "status": "completed" if complete else "in_progress",
         "complete": complete,
         "expected_run_count": expected_run_count,
@@ -696,10 +709,20 @@ def _write_campaign_checkpoint(
     return output
 
 
+def _write_progress_checkpoint(output_path: Path, payload: dict[str, Any]) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = output_path.with_name(output_path.name + ".tmp")
+    temporary_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+    )
+    temporary_path.replace(output_path)
+
+
 def run_campaign(task_id: int, architecture: str, data_root: Path,
                  annotation_root: Path, confirmatory_root: Path,
                  output_path: Path, seeds: list[int],
-                 gfe_module, native_library) -> dict[str, Any]:
+                 gfe_module, native_library,
+                 variants: list[str] | None = None) -> dict[str, Any]:
     warm = _load_stories(
         annotation_root / f"task{task_id}-warm-start.inputs.jsonl",
         annotation_root / f"task{task_id}-warm-start.labels.jsonl",
@@ -730,35 +753,92 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         "native_library_sha256": hashlib.sha256(native_path.read_bytes()).hexdigest()
             if native_path.exists() else None,
     }
-    expected_run_count = len(seeds) * len(CHANNELS)
+    variants = list(CHANNELS) if variants is None else list(variants)
+    if not variants or len(variants) != len(set(variants)) or any(v not in CHANNELS for v in variants):
+        raise ValueError("variants must be a non-empty unique subset of the frozen ablation conditions")
+    if not seeds or len(seeds) != len(set(seeds)):
+        raise ValueError("seeds must be non-empty and unique")
+    expected_run_count = len(seeds) * len(variants)
     results: list[dict[str, Any]] = []
+    progress_path = output_path.with_name(output_path.stem + ".progress.json")
+    campaign_started = time.monotonic()
     _write_campaign_checkpoint(
         output_path, task_id=task_id, architecture=architecture,
-        seeds=seeds, results=results,
+        seeds=seeds, variants=variants, results=results,
         expected_run_count=expected_run_count, complete=False,
     )
+
+    def report_progress(seed: int, variant: str, seed_index: int,
+                        variant_index: int, details: dict[str, Any]) -> None:
+        stories_done = int(details["stories_completed"])
+        stories_expected = int(details["stories_expected"])
+        if stories_done != stories_expected and stories_done % 25 != 0:
+            return
+        payload = {
+            "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+            "status": "in_progress", "task_id": task_id,
+            "architecture": architecture, "seed": seed, "variant": variant,
+            "seed_index": seed_index, "seed_count": len(seeds),
+            "variant_index": variant_index, "variant_count": len(variants),
+            "completed_run_count": len(results),
+            "expected_run_count": expected_run_count,
+            **details,
+            "elapsed_seconds": round(time.monotonic() - campaign_started, 3),
+        }
+        _write_progress_checkpoint(progress_path, payload)
+        print(
+            f"[campaign-progress] task={task_id} architecture={architecture} "
+            f"seed={seed} ({seed_index}/{len(seeds)}) "
+            f"variant={variant} ({variant_index}/{len(variants)}) "
+            f"phase={details['phase']} stories={stories_done}/{stories_expected} "
+            f"queries={details['queries_completed']} native_steps={details['native_steps']} "
+            f"elapsed={payload['elapsed_seconds']:.1f}s",
+            flush=True,
+        )
+
     for seed_index, seed in enumerate(seeds, start=1):
-        for variant_index, variant in enumerate(CHANNELS, start=1):
+        for variant_index, variant in enumerate(variants, start=1):
+            _write_progress_checkpoint(progress_path, {
+                "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+                "status": "starting_run", "task_id": task_id,
+                "architecture": architecture, "seed": seed, "variant": variant,
+                "seed_index": seed_index, "seed_count": len(seeds),
+                "variant_index": variant_index, "variant_count": len(variants),
+                "completed_run_count": len(results),
+                "expected_run_count": expected_run_count,
+                "elapsed_seconds": round(time.monotonic() - campaign_started, 3),
+            })
             result = _fit_and_process(
                 task_id, architecture, variant, seed,
                 warm, online, validation, confirmatory,
                 gfe_module, native_library, source_manifest,
+                progress_callback=lambda details, seed=seed, variant=variant,
+                    seed_index=seed_index, variant_index=variant_index:
+                    report_progress(seed, variant, seed_index, variant_index, details),
             )
             results.append(result)
             _write_campaign_checkpoint(
                 output_path, task_id=task_id, architecture=architecture,
-                seeds=seeds, results=results,
+                seeds=seeds, variants=variants, results=results,
                 expected_run_count=expected_run_count, complete=False,
             )
             print(
                 f"[campaign-progress] task={task_id} architecture={architecture} "
                 f"seed={seed} ({seed_index}/{len(seeds)}) "
-                f"variant={variant} ({variant_index}/{len(CHANNELS)}) "
+                f"variant={variant} ({variant_index}/{len(variants)}) "
                 f"completed={len(results)}/{expected_run_count}",
                 flush=True,
             )
-    return _write_campaign_checkpoint(
+    completed = _write_campaign_checkpoint(
         output_path, task_id=task_id, architecture=architecture,
-        seeds=seeds, results=results,
+        seeds=seeds, variants=variants, results=results,
         expected_run_count=expected_run_count, complete=True,
     )
+    _write_progress_checkpoint(progress_path, {
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+        "status": "completed", "task_id": task_id,
+        "architecture": architecture, "completed_run_count": len(results),
+        "expected_run_count": expected_run_count,
+        "elapsed_seconds": round(time.monotonic() - campaign_started, 3),
+    })
+    return completed
