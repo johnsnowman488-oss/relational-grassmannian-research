@@ -17,7 +17,7 @@ def test_expansion_is_preparation_only_and_preserves_frozen_tasks():
     assert data["status"] == "PREPARATION_ONLY_NOT_EXECUTABLE"
     assert data["scope"]["frozen_tasks"] == [3, 5]
     assert data["scope"]["execution_authorized"] is False
-    assert data["scope"]["first_wave_parallel_case_studies"] == [11, 14, 19] if "first_wave_parallel_case_studies" in data["scope"] else True
+    assert data["campaign"]["first_wave_parallel_case_studies"] == [11, 14, 19]
 
 
 def test_task_sequence_and_roles_are_explicit_and_unique():
