@@ -133,6 +133,6 @@ def test_task11_forecasts_are_issued_before_official_answer_scoring():
     assert prediction.answer == "office"
     scored = forecasts.score_query(
         query(), GoldLabel("q1", "office", (1,), "validation#9"),
-        evaluated_tick=9, observed_at=9.0,
+        evaluated_tick=8, observed_at=9.0,
     )
     assert scored["task11.answer.location_answer"]["value"] == 1.0
