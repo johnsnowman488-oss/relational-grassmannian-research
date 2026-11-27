@@ -1,6 +1,6 @@
 # HLG bAbI Expansion Learning Campaign — Frozen Protocol v1.0
 
-**Status:** <badge>FROZEN — NOT AUTHORIZED</badge>  
+**Status:** FROZEN — NOT AUTHORIZED  
 **Tasks:** 11 (coreference), 14 (temporal reasoning), 19 (path finding)  
 **Architectures:** HLA and HLB  
 **Run units:** 360 matched units  
