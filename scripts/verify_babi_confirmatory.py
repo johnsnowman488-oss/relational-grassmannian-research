@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -20,6 +21,7 @@ def main() -> int:
 
     selection = json.loads(args.selection_file.read_text(encoding="utf-8"))
     selected = selection["selected_candidates"]
+    selection_sha256 = hashlib.sha256(args.selection_file.read_bytes()).hexdigest()
     files = sorted(
         args.input_dir / f"task{task}-{architecture}.json"
         for task in (3, 5) for architecture in ("HLA", "HLB")
@@ -70,6 +72,11 @@ def main() -> int:
                 f"{key}: evidence integrity or capacity gate failed")
         require(result["runtime"]["one_native_step_per_tick"] is True,
                 f"{key}: native step invariant failed")
+        require(result["source_manifest"].get("selection_manifest_sha256") == selection_sha256,
+                f"{key}: selection lock hash mismatch")
+        for field, value in selection.get("source_provenance", {}).items():
+            require(result["source_manifest"].get(field) == value,
+                    f"{key}: source provenance changed after candidate selection ({field})")
         results[key] = result
 
     require(set(results) == {(task, arch) for task in (3, 5) for arch in ("HLA", "HLB")},
