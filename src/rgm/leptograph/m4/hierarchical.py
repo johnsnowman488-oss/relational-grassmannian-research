@@ -181,14 +181,17 @@ class LinearReadout:
 
 
 def create_hla_adapter(native_library, memories, kernels, *, dt: float,
-                       runtime_factory: Callable, ridge: float = 1e-6) -> "HLAAdapter":
+                       runtime_factory: Callable, ridge: float = 1e-6,
+                       top_down_gain: float = 1.0) -> "HLAAdapter":
     """Create one persistent native handle and bind it to HLA.
 
     runtime_factory is the production ABI factory, such as
     gfe_ctypes.create_persistent_hierarchy_runtime from Aberconics.
     Dependency injection keeps this package independent of a checkout path.
     """
-    levels, edges = make_h0_chain_spec(memories, kernels, dt=dt)
+    levels, edges = make_h0_chain_spec(
+        memories, kernels, dt=dt, top_down_gain=top_down_gain,
+    )
     runtime = runtime_factory(native_library, levels, edges)
     try:
         bridge = SOEHierarchyBridge(runtime, memories, dt=dt)
@@ -202,9 +205,11 @@ def create_hla_adapter(native_library, memories, kernels, *, dt: float,
 
 def create_hlb_adapter(native_library, memories, kernels, *, dt: float,
                        runtime_factory: Callable, capacity: int = 8192,
-                       ridge: float = 1e-6) -> "HLBAdapter":
+                       ridge: float = 1e-6, top_down_gain: float = 1.0) -> "HLBAdapter":
     """Create one persistent native handle and bind it to HLB."""
-    levels, edges = make_h0_chain_spec(memories, kernels, dt=dt)
+    levels, edges = make_h0_chain_spec(
+        memories, kernels, dt=dt, top_down_gain=top_down_gain,
+    )
     runtime = runtime_factory(native_library, levels, edges)
     try:
         return HLBAdapter(SOEHierarchyBridge(runtime, memories, dt=dt), capacity=capacity, ridge=ridge)
