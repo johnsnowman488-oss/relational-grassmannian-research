@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: task11-full-scale-preflight-\${{ github.run_id }}
+  group: task11-full-scale-preflight-${{ github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -96,7 +96,7 @@ jobs:
           retention-days: 365
 
   full-scale-preflight:
-    name: Task 11 \${{ matrix.architecture }} \${{ matrix.condition }} full-scale preflight
+    name: Task 11 ${{ matrix.architecture }} ${{ matrix.condition }} full-scale preflight
     needs: [prepare-task11, build-native]
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -138,9 +138,9 @@ jobs:
           test "$(git -C vendor/aberconics-framework rev-parse HEAD)" = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
       - name: Run complete 1,800-fit / 200-read-only-validation unit
         env:
-          GFE_CORE_LIB: \${{ github.workspace }}/native/libgfe_core.so
+          GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
           GFE_ABERCONICS_COMMIT: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
-          PYTHONPATH: \${{ github.workspace }}/src:\${{ github.workspace }}/vendor/aberconics-framework/code/python
+          PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
           PYTHONUNBUFFERED: "1"
         run: |
           python scripts/run_babi_task11_campaign_unit.py \
@@ -149,17 +149,17 @@ jobs:
             --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json \
             --native-library native/libgfe_core.so \
             --python-abi-path vendor/aberconics-framework/code/python \
-            --architecture \${{ matrix.architecture }} \
-            --condition \${{ matrix.condition }} \
+            --architecture ${{ matrix.architecture }} \
+            --condition ${{ matrix.condition }} \
             --seed 953099 \
             --run-kind preflight \
-            --output artifacts/task11-preflight/\${{ matrix.architecture }}-\${{ matrix.condition }}
+            --output artifacts/task11-preflight/${{ matrix.architecture }}-${{ matrix.condition }}
       - name: Upload immutable full-scale preflight evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: babi-task11-preflight-\${{ matrix.architecture }}-\${{ matrix.condition }}
-          path: artifacts/task11-preflight/\${{ matrix.architecture }}-\${{ matrix.condition }}/
+          name: babi-task11-preflight-${{ matrix.architecture }}-${{ matrix.condition }}
+          path: artifacts/task11-preflight/${{ matrix.architecture }}-${{ matrix.condition }}/
           if-no-files-found: warn
           retention-days: 365
 
