@@ -335,6 +335,10 @@ def run_shard(plan_path: Path, shard_id: int, output_root: Path,
                         and existing.get("run_unit_key") == key):
                     completed.append(key)
                     skipped.append(key)
+                    query_presentations += int(existing["query_presentations"])
+                    baseline_predictions += int(existing["baseline_prediction_presentations"])
+                    story_presentations += int(existing["story_presentations"])
+                    event_presentations += int(existing["event_presentations"])
                     continue
                 raise ValueError(f"existing result for {key} is not a reusable immutable success")
             if inject_failure_key == key and not (failures_dir / f"{key}.failure.json").exists():
