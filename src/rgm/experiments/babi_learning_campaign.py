@@ -386,6 +386,16 @@ def _score_prediction_delta(adapter, start_index: int) -> dict[str, Any]:
             "accuracy": (row["correct"] / row["count"]
                          if row["metric"] in {"exact_match", "accuracy"} and row["count"] else None),
         }
+    metric_by_target = {
+        "next_l0_features": "mse",
+        "next_relation_pattern": "exact_match",
+        "next_event_role_pattern": "exact_match",
+        "next_context": "accuracy",
+    }
+    for name, metric in metric_by_target.items():
+        output.setdefault(name, {
+            "metric": metric, "count": 0, "mean_value": None, "accuracy": None,
+        })
     return output
 
 
@@ -405,8 +415,20 @@ def _query_answer(task_id: int, events: list[StructuredEvent], query: Structured
     return values[0] if len(values) == 1 else None
 
 
+def _withdraw_open_predictions(adapter) -> int:
+    """Close forecasts with no target before an episode/phase boundary."""
+    withdrawn = 0
+    journal = adapter.learning.predictions
+    for prediction in list(journal._predictions.values()):
+        if prediction.status.value == "ISSUED" and adapter.ticks > prediction.issued_tick:
+            journal.withdraw(prediction.prediction_id, current_tick=adapter.ticks)
+            withdrawn += 1
+    return withdrawn
+
+
 def _reset_episode(adapter, baseline_native_checkpoint: dict[str, Any], gfe_module) -> None:
     """Reset transient SOE/native/eligibility state while retaining learned models and HLB evidence."""
+    _withdraw_open_predictions(adapter)
     for memory in adapter.bridge.memories:
         memory.reset()
     runtime = adapter.bridge.runtime
@@ -428,6 +450,14 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                    soe_fingerprint: str, global_clock: int, baseline_native_checkpoint: dict[str, Any], gfe_module,
                    progress_callback: Callable[[dict[str, Any]], None] | None = None) -> tuple[dict[str, Any], int]:
     score_start = len(adapter.learning.predictions.scores)
+    prediction_ids_before = set(adapter.learning.predictions._predictions)
+    expected_scoreable_targets = {
+        "next_l0_features": 0, "next_relation_pattern": 0,
+        "next_event_role_pattern": 0, "next_context": 0,
+    }
+    previous_global_observed = (
+        float(director.event_log[-1]["observed_at"]) if director.event_log else 0.0
+    )
     totals = {
         "queries": 0, "eligible_queries": 0, "quarantined_queries": 0,
         "correct": 0, "abstained": 0,
@@ -445,6 +475,15 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
         timeline = _timeline(story)
         for index, (_local_time, kind, item) in enumerate(timeline, start=1):
             global_time = offset + int(item.observed_at)
+            scoreable = global_time > previous_global_observed
+            if scoreable:
+                expected_scoreable_targets["next_l0_features"] += 1
+                expected_scoreable_targets["next_context"] += 1
+                if kind == 0:
+                    if _make_relations(item, "target-preflight"):
+                        expected_scoreable_targets["next_relation_pattern"] += 1
+                    expected_scoreable_targets["next_event_role_pattern"] += 1
+            previous_global_observed = global_time
             if kind == 0:
                 event = item
                 global_event = replace(
@@ -522,12 +561,19 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                     task_error = 0.0 if answer == gold else 1.0
                     task_outcome = (f"task{task_id}", task_error)
                 query_features = _features(task_id, query, current_context, index, len(timeline))
-                director.exchange(
+                exchange_result = director.exchange(
                     event_time=float(global_time), observed_at=float(global_time),
                     event_features=query_features, prediction_context=current_context,
                     observed_context="query",
                     task_outcome=task_outcome, learn=learn,
                 )
+                if task_outcome is not None:
+                    totals.setdefault("task_prediction_brier_sum", 0.0)
+                    totals.setdefault("task_prediction_count", 0)
+                    totals["task_prediction_brier_sum"] += float(
+                        exchange_result["learning_errors"]["task"]
+                    )
+                    totals["task_prediction_count"] += 1
                 current_context = "query"
         global_clock = offset + max(
             [int(event.observed_at) for event in story.events]
@@ -544,7 +590,39 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                 "adapter_ticks": adapter.ticks,
             })
 
+    _withdraw_open_predictions(adapter)
     predictions = _score_prediction_delta(adapter, score_start)
+    phase_predictions = [
+        prediction for prediction_id, prediction in adapter.learning.predictions._predictions.items()
+        if prediction_id not in prediction_ids_before
+    ]
+    lifecycle = {}
+    for target_name in (
+        "next_l0_features", "next_relation_pattern",
+        "next_event_role_pattern", "next_context",
+    ):
+        counts = {"issued": 0, "scored": 0, "withdrawn": 0, "expired": 0, "still_issued": 0}
+        for prediction in phase_predictions:
+            if prediction.target_name != target_name:
+                continue
+            counts["issued"] += 1
+            status = prediction.status.value
+            if status == "SCORED":
+                counts["scored"] += 1
+            elif status == "WITHDRAWN":
+                counts["withdrawn"] += 1
+            elif status == "EXPIRED":
+                counts["expired"] += 1
+            elif status == "ISSUED":
+                counts["still_issued"] += 1
+        lifecycle[target_name] = {
+            **counts,
+            "expected_scoreable_targets": expected_scoreable_targets[target_name],
+            "score_coverage": (
+                counts["scored"] / expected_scoreable_targets[target_name]
+                if expected_scoreable_targets[target_name] else None
+            ),
+        }
     query_count = totals["eligible_queries"]
     support_total = totals["support_total"]
     metrics = {
@@ -564,6 +642,22 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
             if totals["provenance_checked"] else 0.0
         ),
         "prediction_metrics": predictions,
+        "prediction_lifecycle": lifecycle,
+        "expected_scoreable_prediction_targets": expected_scoreable_targets,
+        "prediction_target_coverage_complete": all(
+            lifecycle[name]["scored"] == expected_scoreable_targets[name]
+            for name in expected_scoreable_targets
+        ),
+        "task_outcome_prediction": {
+            "target": "probability of deterministic task-solver error",
+            "metric": "brier",
+            "count": int(totals.get("task_prediction_count", 0)),
+            "mean_brier_score": (
+                float(totals["task_prediction_brier_sum"] / totals["task_prediction_count"])
+                if totals.get("task_prediction_count", 0) else None
+            ),
+            "updates_enabled": learn,
+        },
     }
     return metrics, global_clock
 
@@ -649,7 +743,8 @@ def _fit_and_process(
         raise RuntimeError("score-only validation mutated candidate learner parameters")
 
     accepted = (
-        validation_metrics["query_accuracy"] == 1.0
+        validation_metrics["prediction_target_coverage_complete"]
+        and validation_metrics["query_accuracy"] == 1.0
         and validation_metrics["support_witness_recall"] == 1.0
         and validation_metrics["provenance_failures"] == 0
         and validation_metrics["evidence_capacity_misses"] == 0
@@ -674,7 +769,7 @@ def _fit_and_process(
         status = prediction.status.value
         prediction_status_counts[status] = prediction_status_counts.get(status, 0) + 1
     output = {
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.3.0",
         "task_id": task_id,
         "architecture": architecture,
         "variant": variant,
