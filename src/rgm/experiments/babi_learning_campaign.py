@@ -426,6 +426,23 @@ def _withdraw_open_predictions(adapter) -> int:
     return withdrawn
 
 
+def _withdraw_query_only_predictions(adapter) -> int:
+    """Immediately close event-only forecasts issued by a query exchange."""
+    withdrawn = 0
+    journal = adapter.learning.predictions
+    for prediction in list(journal._predictions.values()):
+        if (
+            prediction.status.value == "ISSUED"
+            and prediction.issued_tick == adapter.ticks
+            and prediction.target_name in {
+                "next_relation_pattern", "next_event_role_pattern"
+            }
+        ):
+            journal.withdraw(prediction.prediction_id, current_tick=adapter.ticks)
+            withdrawn += 1
+    return withdrawn
+
+
 def _reset_episode(adapter, baseline_native_checkpoint: dict[str, Any], gfe_module) -> None:
     """Reset transient SOE/native/eligibility state while retaining learned models and HLB evidence."""
     _withdraw_open_predictions(adapter)
@@ -571,17 +588,7 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                 # Relation and n-ary event-role targets are defined only for
                 # source-event exchanges. Close query-exchange forecasts now,
                 # rather than leaving them open until a later event or boundary.
-                for prediction in list(adapter.learning.predictions._predictions.values()):
-                    if (
-                        prediction.status.value == "ISSUED"
-                        and prediction.issued_tick == adapter.ticks
-                        and prediction.target_name in {
-                            "next_relation_pattern", "next_event_role_pattern"
-                        }
-                    ):
-                        adapter.learning.predictions.withdraw(
-                            prediction.prediction_id, current_tick=adapter.ticks
-                        )
+                _withdraw_query_only_predictions(adapter)
                 if task_outcome is not None:
                     totals.setdefault("task_prediction_brier_sum", 0.0)
                     totals.setdefault("task_prediction_count", 0)
