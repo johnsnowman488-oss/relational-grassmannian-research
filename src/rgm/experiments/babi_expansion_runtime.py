@@ -412,20 +412,34 @@ class BabiExpansionRuntime:
                     )
             if isinstance(event, Task14TemporalEvent):
                 temporal_history.append(event)
-            result = self.director.exchange(
-                event_time=nary.event_time, observed_at=nary.observed_at,
-                event_features=features,
-                relation_records=tuple((1, relation) for relation in relations)
-                    if isinstance(self.adapter, HLBAdapter) else (),
-                learning_relations=learning_relations,
-                nary_events=(nary,),
-                learning_nary_events=learning_nary_events,
-                prediction_context=prediction_context,
-                observed_context=observed_context,
-                suppress_context_learning=suppress_context_learning,
-                eligibility_events=eligibility_events,
-                learn=self.learning_enabled,
-            )
+            try:
+                result = self.director.exchange(
+                    event_time=nary.event_time, observed_at=nary.observed_at,
+                    event_features=features,
+                    relation_records=tuple((1, relation) for relation in relations)
+                        if isinstance(self.adapter, HLBAdapter) else (),
+                    learning_relations=learning_relations,
+                    nary_events=(nary,),
+                    learning_nary_events=learning_nary_events,
+                    prediction_context=prediction_context,
+                    observed_context=observed_context,
+                    suppress_context_learning=suppress_context_learning,
+                    eligibility_events=eligibility_events,
+                    learn=self.learning_enabled,
+                )
+            except Exception as exc:
+                try:
+                    native_state = self.adapter.bridge.runtime.get_state()
+                    native_weights = [row.get("w", []) for row in native_state.get("active_kernels", [])]
+                except Exception:
+                    native_weights = []
+                raise RuntimeError(
+                    f"Task {story.task_id} story {story.story_id} event {event.event_id} "
+                    f"at observation {event.observed_at} failed during hierarchical exchange; "
+                    f"feature_dims={self.adapter.feature_dims}, "
+                    f"feature_sums={[float(sum(values)) for values in features]}, "
+                    f"native_active_kernel_weights={native_weights}"
+                ) from exc
             if story.task_id == 11 and isinstance(event, Task11MentionEvent) and binding is not None:
                 # HLB has a typed L2 transition model in its canonical relation
                 # store. These are derived learner targets, not source evidence:
