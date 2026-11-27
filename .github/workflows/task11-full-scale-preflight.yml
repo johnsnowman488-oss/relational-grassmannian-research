@@ -116,11 +116,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: johnsnowman488-oss/aberconics-framework
-          ref: ddf424b0ab8eb23329cd51256a919beeae2ee288
+          ref: 48228f8c326c0e8546855eb898d374453d705b77
           path: vendor/aberconics-framework
       - name: Verify pinned source commit
         working-directory: vendor/aberconics-framework
-        run: test "$(git rev-parse HEAD)" = "ddf424b0ab8eb23329cd51256a919beeae2ee288"
+        run: test "$(git rev-parse HEAD)" = "48228f8c326c0e8546855eb898d374453d705b77"
       - name: Configure and build native shared library
         run: |
           cmake -S "vendor/aberconics-framework/code/c++ core" \
@@ -158,7 +158,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: johnsnowman488-oss/aberconics-framework
-          ref: ddf424b0ab8eb23329cd51256a919beeae2ee288
+          ref: 48228f8c326c0e8546855eb898d374453d705b77
           path: vendor/aberconics-framework
       - uses: actions/setup-python@v5
         with:
@@ -181,11 +181,11 @@ jobs:
       - name: Verify source and native pins
         run: |
           sha256sum -c native/libgfe_core.sha256
-          test "$(git -C vendor/aberconics-framework rev-parse HEAD)" = "ddf424b0ab8eb23329cd51256a919beeae2ee288"
+          test "$(git -C vendor/aberconics-framework rev-parse HEAD)" = "48228f8c326c0e8546855eb898d374453d705b77"
       - name: Run complete 1,800-fit / 200-read-only-validation unit
         env:
           GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
-          GFE_ABERCONICS_COMMIT: ddf424b0ab8eb23329cd51256a919beeae2ee288
+          GFE_ABERCONICS_COMMIT: 48228f8c326c0e8546855eb898d374453d705b77
           PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
           PYTHONUNBUFFERED: "1"
         run: |
@@ -262,7 +262,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: johnsnowman488-oss/aberconics-framework
-          ref: ddf424b0ab8eb23329cd51256a919beeae2ee288
+          ref: 48228f8c326c0e8546855eb898d374453d705b77
           path: vendor/aberconics-framework
       - uses: actions/setup-python@v5
         with:
@@ -285,11 +285,11 @@ jobs:
       - name: Verify source and native pins
         run: |
           sha256sum -c native/libgfe_core.sha256
-          test "$(git -C vendor/aberconics-framework rev-parse HEAD)" = "ddf424b0ab8eb23329cd51256a919beeae2ee288"
+          test "$(git -C vendor/aberconics-framework rev-parse HEAD)" = "48228f8c326c0e8546855eb898d374453d705b77"
       - name: Execute frozen Task 11 campaign unit
         env:
           GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
-          GFE_ABERCONICS_COMMIT: ddf424b0ab8eb23329cd51256a919beeae2ee288
+          GFE_ABERCONICS_COMMIT: 48228f8c326c0e8546855eb898d374453d705b77
           PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
           PYTHONUNBUFFERED: "1"
         run: |
