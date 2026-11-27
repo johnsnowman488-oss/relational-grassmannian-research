@@ -247,7 +247,7 @@ jobs:
           mkdir -p artifacts/selection
           if [[ "$GITHUB_REF_NAME" == "research/h1-babi-execution-recovery-v1" || "$GITHUB_REF_NAME" == "research/h1-babi-prediction-contract-v1" ]]; then
             python scripts/select_babi_learning_candidates.py \
-              --input-dir artifacts/pilot/artifacts/babi-campaign \
+              --input-dir artifacts/pilot \
               --output artifacts/selection/selected-candidates.json \
               --seeds 953000
           else
