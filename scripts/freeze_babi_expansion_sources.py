@@ -180,7 +180,7 @@ def audit_member(payload: bytes, *, task_id: int, member_name: str) -> dict:
             ):
                 raise SourceAuditError(
                     f"{member_name}:{physical_line}: Task 19 answer is not an "
-                    "ordered cardinal-direction sequence"
+                    f"ordered cardinal-direction sequence: {answer!r}"
                 )
 
         question_count += 1
