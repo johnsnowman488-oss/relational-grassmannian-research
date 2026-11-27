@@ -92,8 +92,12 @@ def main() -> int:
 
     expected_seeds = list(args.seeds)
     _require(len(expected_seeds) == len(set(expected_seeds)), "seed list contains duplicates")
-    files = sorted(args.input_dir.glob("task[35]-*.json"))
-    _require(len(files) == 4, f"expected four worker artifacts, found {len(files)}")
+    files = sorted(
+        args.input_dir / f"task{task}-{architecture}.json"
+        for task in TASKS for architecture in ARCHITECTURES
+    )
+    _require(all(path.is_file() for path in files),
+             "one or more of the four worker result JSON files is missing")
 
     worker_data: dict[tuple[int, str], dict] = {}
     for path in files:
