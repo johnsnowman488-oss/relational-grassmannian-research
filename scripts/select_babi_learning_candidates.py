@@ -177,6 +177,11 @@ def main() -> int:
                 phase = result["phases"][phase_name]
                 _require(phase["prediction_target_coverage_complete"] is True,
                          f"{key} {phase_name}: prediction target coverage incomplete")
+                _require(
+                    phase["prediction_lifecycle"]["next_relation_pattern"]["withdrawn"] >= phase["queries"]
+                    and phase["prediction_lifecycle"]["next_event_role_pattern"]["withdrawn"] >= phase["queries"],
+                    f"{key} {phase_name}: query-only event forecasts were not immediately withdrawn"
+                )
                 _require(phase["prediction_lifecycle"] and all(
                     phase["prediction_lifecycle"][target]["still_issued"] == 0
                     for target in TARGETS
