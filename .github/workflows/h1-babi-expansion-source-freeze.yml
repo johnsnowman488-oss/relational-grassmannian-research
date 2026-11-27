@@ -1,0 +1,48 @@
+name: bAbI expansion Phase Q source freeze
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - research/babi-task-expansion-v1
+    paths:
+      - "scripts/freeze_babi_expansion_sources.py"
+      - "tests/test_babi_expansion_source_freeze.py"
+      - "docs/experiments/HLG_BABI_TASK_EXPANSION_SOURCE_FREEZE_v1_0.md"
+      - "docs/experiments/HLG_BABI_TASK_EXPANSION_SOURCE_FREEZE_v1_0.json"
+      - ".github/workflows/h1-babi-expansion-source-freeze.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-freeze:
+    name: Acquire, byte-verify and audit Tasks 11, 14 and 19
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout expansion branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test runner
+        run: python -m pip install --upgrade pytest
+
+      - name: Run offline source-audit acceptance tests
+        run: python -m pytest -q tests/test_babi_expansion_source_freeze.py
+
+      - name: Acquire fresh v1.2 archive and audit selected source members
+        run: python scripts/freeze_babi_expansion_sources.py --output data/babi-v1.2-expansion
+
+      - name: Upload immutable source copy and generated audit manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-expansion-phase-q-source-freeze
+          path: data/babi-v1.2-expansion/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 90
