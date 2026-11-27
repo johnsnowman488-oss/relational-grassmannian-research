@@ -558,7 +558,8 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                                 source_payloads.get(original.source_locator, b"")
                             ).hexdigest() != original.payload_digest:
                                 totals["provenance_failures"] += 1
-                    task_error = 0.0 if answer == gold else 1.0
+                    # An abstention is a task failure even when the oracle label is null.
+                    task_error = 0.0 if answer is not None and answer == gold else 1.0
                     task_outcome = (f"task{task_id}", task_error)
                 query_features = _features(task_id, query, current_context, index, len(timeline))
                 exchange_result = director.exchange(
@@ -875,15 +876,32 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         )
     native_library_sha256 = hashlib.sha256(native_path.read_bytes()).hexdigest()
     campaign_manifest_path = Path("docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_2.json")
+    protocol_document_path = Path("docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_3.md")
+    input_paths = {
+        "warm_start_inputs": annotation_root / f"task{task_id}-warm-start.inputs.jsonl",
+        "warm_start_labels": annotation_root / f"task{task_id}-warm-start.labels.jsonl",
+        "online_adaptation_inputs": annotation_root / f"task{task_id}-online-adaptation.inputs.jsonl",
+        "online_adaptation_labels": annotation_root / f"task{task_id}-online-adaptation.labels.jsonl",
+        "validation_inputs": annotation_root / f"task{task_id}-validation.inputs.jsonl",
+        "validation_labels": annotation_root / f"task{task_id}-validation.labels.jsonl",
+        "confirmatory_inputs": confirmatory_root / f"task{task_id}-confirmatory.inputs.jsonl",
+    }
     source_manifest = {
+        "implementation_commit": os.environ.get("GITHUB_SHA"),
         "annotation_manifest_sha256": hashlib.sha256(
             (annotation_root / "annotation-manifest.json").read_bytes()
         ).hexdigest(),
         "confirmatory_manifest_sha256": hashlib.sha256(
             (confirmatory_root / "confirmatory-input-manifest.json").read_bytes()
         ).hexdigest(),
+        "task_input_sha256": {
+            name: hashlib.sha256(path.read_bytes()).hexdigest()
+            for name, path in input_paths.items()
+        },
         "campaign_manifest_sha256": hashlib.sha256(campaign_manifest_path.read_bytes()).hexdigest()
             if campaign_manifest_path.exists() else None,
+        "protocol_document_sha256": hashlib.sha256(protocol_document_path.read_bytes()).hexdigest()
+            if protocol_document_path.exists() else None,
         "native_runtime_commit": os.environ.get("GFE_ABERCONICS_COMMIT"),
         "native_library_path": str(native_path),
         "native_library_sha256": native_library_sha256,
