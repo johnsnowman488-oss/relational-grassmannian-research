@@ -1069,12 +1069,12 @@ class LearningRuntime:
 
     def _score_and_update(self, name: str, key: str, value: Any, source_id: str,
                           event_time: float, observed_at: float, tick: int) -> float | None:
-        matches = [p for p in self.predictions._predictions.values()
-                   if p.target_name == name and p.target_key == key
-                   and p.status is PredictionStatus.ISSUED]
-        if not matches:
+        prediction_id = self.predictions._active_by_target.get((name, key))
+        if prediction_id is None:
             return None
-        prediction = max(matches, key=lambda p: p.issued_tick)
+        prediction = self.predictions.get(prediction_id)
+        if prediction.status is not PredictionStatus.ISSUED:
+            return None
         schema = self.schemas[name]
         score = self.predictions.score(
             prediction.prediction_id,
