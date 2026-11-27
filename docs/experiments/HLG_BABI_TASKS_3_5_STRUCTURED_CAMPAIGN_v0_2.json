@@ -120,7 +120,8 @@
     ],
     "task_channel_target": "prequential probability of deterministic task-solver error; Brier loss; abstentions count as errors",
     "score_only_rollback_replay": "journal learn flag is preserved; replay cannot mutate model state for learn=false observations",
-    "query_exchange_event_forecast_policy": "same-tick withdraw_inapplicable for next_relation_pattern and next_event_role_pattern"
+    "query_exchange_event_forecast_policy": "same-tick withdraw_inapplicable for next_relation_pattern and next_event_role_pattern",
+    "workflow_concurrency": "unique github.run_id group; four matrix workers max-parallel=4; avoids replacement of pending branch-scoped runs"
   },
   "acceptance": {
     "require_prediction_target_coverage": 1,
@@ -141,7 +142,7 @@
     "scripts/run_babi_learning_campaign.py": "6c396f54a05277da80b4426b933d96fe91537548",
     "scripts/select_babi_learning_candidates.py": "65f5a4e03412a0550a0cbebe5cab9ccbc3b49a9f",
     "scripts/verify_babi_confirmatory.py": "bb91cacb5dd2a6160000b20dd57acff7375d078f",
-    ".github/workflows/h1-babi-learning-campaign.yml": "41e08070205f9c6593282d950dd4129f798f804a",
+    ".github/workflows/h1-babi-learning-campaign.yml": "697a5605838a929420e6b2ed41511f159aa9dce7",
     "tests/test_babi_learning_campaign.py": "2659bdd9923462b2898e78328de0366aab63616a",
     "tests/test_hlg_learning_runtime_integration.py": "7581905c1a938f9f9606ef913aa3b2ad87843940",
     "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_3.md": "dacf628ee8b9bd851b83a3567bacd3a554022b24"
