@@ -812,7 +812,7 @@ def _write_campaign_checkpoint(
 ) -> dict[str, Any]:
     """Atomically persist an evidence snapshot after each completed run."""
     output = {
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.3.0",
         "task_id": task_id,
         "architecture": architecture,
         "seeds": seeds,
@@ -874,7 +874,7 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
             f"{native_path}"
         )
     native_library_sha256 = hashlib.sha256(native_path.read_bytes()).hexdigest()
-    campaign_manifest_path = Path("docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json")
+    campaign_manifest_path = Path("docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_2.json")
     source_manifest = {
         "annotation_manifest_sha256": hashlib.sha256(
             (annotation_root / "annotation-manifest.json").read_bytes()
@@ -931,7 +931,7 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         if stories_done not in {1, stories_expected} and stories_done % 25 != 0:
             return
         payload = {
-            "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+            "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.3.0",
             "status": "in_progress", "task_id": task_id,
             "architecture": architecture, "seed": seed, "variant": variant,
             "seed_index": seed_index, "seed_count": len(seeds),
@@ -955,7 +955,7 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
     for seed_index, seed in enumerate(seeds, start=1):
         for variant_index, variant in enumerate(variants, start=1):
             _write_progress_checkpoint(progress_path, {
-                "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+                "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.3.0",
                 "status": "starting_run", "task_id": task_id,
                 "architecture": architecture, "seed": seed, "variant": variant,
                 "seed_index": seed_index, "seed_count": len(seeds),
@@ -991,7 +991,7 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         expected_run_count=expected_run_count, complete=True,
     )
     _write_progress_checkpoint(progress_path, {
-        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+        "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.3.0",
         "status": "completed", "task_id": task_id,
         "architecture": architecture, "completed_run_count": len(results),
         "expected_run_count": expected_run_count,
