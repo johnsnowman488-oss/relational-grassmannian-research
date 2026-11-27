@@ -1,6 +1,6 @@
 {
   "schema": "HLG-BABI-TASK-EXPANSION-v1.0",
-  "status": "PREPARATION_ONLY_NOT_EXECUTABLE",
+  "status": "PHASE_B_ADAPTERS_IMPLEMENTED_PENDING_SOURCE_WIDE_AUDIT",
   "parent_commit": "58a13629d1ac7257a3e0627dacb35c3624217236",
   "scope": {
     "frozen_tasks": [
@@ -20,14 +20,23 @@
       4
     ],
     "execution_authorized": false,
-    "note": "Separate task suite. Does not alter Task 3/5 source, partitions, protocol, runner, workflows, outputs or acceptance gates."
+    "note": "Task 11/14/19 have independent source parsers, input-only evidence adapters and deterministic reference oracles under source-wide CI audit. No learning campaign is authorized. Task 3/5 remain isolated and unchanged.",
+    "phase_b_adapters_implemented": true
   },
   "source": {
     "dataset": "Facebook bAbI v1.2.0 English en-10k",
-    "archive_url": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
-    "archive_sha256": "84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c",
+    "archive_tarball": "tasks_1-20_v1-2.tar.gz",
+    "archive_tarball_status": "not acquired; selected experiment members are frozen individually",
+    "selected_member_source": {
+      "repository": "raviraju/NLP_QA_Project",
+      "commit": "0051751275841561267b1c6f5d9116b985521df1",
+      "verification": "member byte size and Git blob SHA-1 pinned; SHA-256 recorded in Phase Q source freeze manifest",
+      "members_manifest": "docs/experiments/HLG_BABI_TASK_EXPANSION_SOURCE_FREEZE_v1_0.json"
+    },
     "source_format": "UTF-8 numbered story lines; story reset at line number 1; question lines contain tab-separated question, answer, and supporting-fact line numbers.",
-    "split_policy": "Derive task-specific fit and validation partitions from each official training file at whole-story granularity; retain official test bytes quarantined until parser, split and label-isolation audits pass. Do not reuse Task 3/5's story counts or hashes."
+    "official_validation_configuration": "en-valid-10k is a distinct release configuration; its task files were not present in the pinned external mirror commit used for the six-member freeze.",
+    "project_validation_policy": "Derive deterministic 90/10 fit/validation partitions from each task's en-10k training stories at whole-story granularity. Keep official en-10k test bytes quarantined and parse them label-free.",
+    "split_policy": "Task-specific deterministic hash ranking; preserve source story order within each partition; no story may cross partitions."
   },
   "shared_contract": {
     "input_label_separation": true,
@@ -146,12 +155,12 @@
         "qa19_path-finding_train.txt",
         "qa19_path-finding_test.txt"
       ],
-      "input_shape": "Numbered statements encode directed relative-position facts between locations (e.g. one location is north/south/east/west of another). Questions request a route between two locations; answer is a sequence of cardinal-direction tokens in tab field 2, with supporting relation-line numbers in tab field 3.",
-      "answer_shape": "Whitespace-separated cardinal direction sequence (north/south/east/west) in tab field 2; supporting relation line numbers in tab field 3. Preserve token order exactly.",
+      "input_shape": "Numbered statements encode relative-position facts in the form 'The X is north/south/east/west of the Y.' Questions request a route between two locations; answer is an ordered comma-separated sequence of one-letter direction codes in tab field 2.",
+      "answer_shape": "Comma-separated cardinal-direction codes (n/s/e/w) in tab field 2, mapped to north/south/east/west; preserve token order exactly. Supporting relation-line numbers are in tab field 3.",
       "evidence": {
         "L0": "Observed directed edge features, endpoint identities, orientation and source order.",
-        "L1": "Typed directed spatial relations and composable inverse/continuation edges; every edge retains its source witness.",
-        "L2": "Path context and composed route state; preserve ordered edge sequence and intermediate nodes, not merely endpoint reachability."
+        "L1": "Typed directed spatial edges with explicit inverse orientation and source witnesses; composition retains ordered intermediate edges.",
+        "L2": "Ordered route/path state with intermediate nodes and witness chain; endpoint reachability alone is insufficient."
       },
       "prediction_targets": [
         "next_spatial_edge",
@@ -344,6 +353,23 @@
     },
     "candidate_selection": "task-specific validation only; no pooled cross-task ranking",
     "confirmatory": "separate per-task fixed-seed generated challenge after task-specific candidate freeze",
-    "execution_gate": "No campaign execution until official archive members/hashes, parser coverage, annotation isolation, split counts, baseline outputs and task-specific acceptance thresholds are independently audited."
+    "execution_gate": "No campaign execution until Phase B source-wide parser/oracle acceptance, exact input-label isolation, whole-story partition integrity, test quarantine, task-specific baseline outputs, thresholds and runtime workload review are independently audited."
+  },
+  "implementation": {
+    "adapter_module": "src/rgm/experiments/babi_expansion_adapters.py",
+    "source_audit_script": "scripts/audit_babi_expansion.py",
+    "test_module": "tests/test_babi_expansion_adapters.py",
+    "validation_workflow": ".github/workflows/h1-babi-expansion-adapter-validation.yml",
+    "implemented_tasks": [
+      11,
+      14,
+      19
+    ],
+    "input_label_separation": "ExpansionStory/ExpansionQuery contain no gold answers or support IDs; GoldLabel is a separate evaluator-only stream.",
+    "task11": "Singular she/he coreference uses explicit entity mentions, a constrained source-name gender prior and nearest compatible antecedent. Unresolved pronouns fail closed.",
+    "task14": "Temporal event time (yesterday/morning/afternoon/evening plus source order) is distinct from observed_at; before-location oracle chooses the previous location before the requested destination event.",
+    "task19": "Relative-position statements create directed edges plus explicit inverses; BFS composes ordered direction codes; ambiguous shortest direction sequences abstain.",
+    "partitioning": "Deterministic 90/10 whole-story split from en-10k train; test is parsed with include_labels=False and never emitted as learner input.",
+    "status": "Implementation is prepared; full-source CI audit must pass before any learning campaign."
   }
 }
