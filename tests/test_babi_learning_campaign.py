@@ -86,12 +86,12 @@ def test_hlb_capacity_preflight_counts_event_and_relation_projections():
     from rgm.experiments.babi_structured import StructuredStory
 
     move = StructuredEvent(
-        "capacity:move", "MOVE",
+        "capacity:story:move", "MOVE",
         (("actor", "amara"), ("destination", "garden")),
         1, 1, "synthetic://capacity/move",
     )
     give = StructuredEvent(
-        "capacity:give", "GIVE",
+        "capacity:story:give", "GIVE",
         (("giver", "amara"), ("recipient", "belen"), ("object", "book")),
         2, 2, "synthetic://capacity/give",
     )
