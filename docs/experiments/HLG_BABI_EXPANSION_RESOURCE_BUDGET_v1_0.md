@@ -107,3 +107,23 @@ Per task/architecture, mean episode update times ranged from 18.4–22.4 ms (Tas
 ### Workflow correction
 
 The workflow now exposes `workflow_dispatch` with a required boolean `enable_learning_cost_microbenchmark` defaulting to `false`. The learning-cost jobs run only when that boolean is explicitly set to `true` on a manual dispatch **and** the preceding no-learning aggregate succeeds. PR/push-triggered runs skip the learning-cost jobs. No further benchmark should be launched without explicit user authorization. The 360-unit learning campaign remains separately frozen and unauthorized.
+
+
+## Task 11-only persistent learner qualification — superseding execution scope
+
+**Scope decision (2026-11-27):** Task 11 is the only active expansion task. Tasks 14 and 19 are locked and excluded from this qualification. The earlier three-task fresh-adapter diagnostics (#97/#98) remain quarantined and are not reused.
+
+The replacement qualification runs four shards. Each shard processes 32 whole Task 11 fit stories through one persistent HLA adapter and one persistent HLB adapter. Across the four shards this yields 128 sequential story updates per architecture. The same learner, H1 director, evidence store and native runtime persist within each shard. Weak supervision remains story-local, so a pronoun in a new story cannot bind to an entity observed in a previous story.
+
+The sample records, after each story:
+- native event/update time and event throughput;
+- full director/adapter and native-runtime checkpoint size;
+- snapshot and restore latency, plus equality of the restored state fingerprint;
+- observation-journal, temporal-credit and eligibility growth;
+- worker peak RSS, Python allocation peak and retained evidence size.
+
+The Task 11 source freeze and plan contain only Task 11 members and partitions. Validation labels, official-test inputs/queries and generated-confirmatory labels are excluded. Tasks 14/19 are not parsed or run. Task 3/5 remain untouched.
+
+**Acceptance rule:** all four shards must provide exactly 32 unique fit stories for both HLA and HLB; each architecture must show persistent learner changes; checkpoint recovery fingerprints must match after every story; source event/native tick counts must agree; and all label-isolation counters must remain zero. The aggregate reports measured costs and limitations without claiming learning effectiveness.
+
+A passing aggregate closes the bounded Task 11 resource-qualification gate for proceeding to the Task 11-only campaign. It is not a guarantee of full-campaign wall-clock or memory usage; the campaign itself retains per-run timeouts, artifact retention, retries, and worker-level memory monitoring.
