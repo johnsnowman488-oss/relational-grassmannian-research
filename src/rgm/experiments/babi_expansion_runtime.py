@@ -365,8 +365,8 @@ class ExpansionForecasts:
         """Score L0/L1/L2 only after forecasts; this does not ingest labels as evidence."""
         if self.contract.task_id != 11 or supervision.query_id != query.query_id:
             raise ValueError("Task 11 supervision cannot be scored against this forecast")
-        if observed_at <= float(query.observed_at) or evaluated_tick <= query.observed_at:
-            raise ValueError("Task 11 supervision must be observed strictly after the query cutoff")
+        if observed_at < float(query.observed_at) or evaluated_tick < query.observed_at:
+            raise ValueError("Task 11 supervision cannot be observed before its query target")
         targets = {
             "L0": supervision.l0_mention_binding,
             "L1": supervision.l1_coreference_edge,
