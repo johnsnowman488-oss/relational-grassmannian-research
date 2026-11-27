@@ -17,6 +17,7 @@ def test_expansion_is_preparation_only_and_preserves_frozen_tasks():
     assert data["status"] in {
         "PHASE_B_ADAPTERS_SOURCE_WIDE_AUDIT_PASS",
         "PHASE_C_RUNTIME_CONTRACT_PASS_CAMPAIGN_PROTOCOL_FROZEN",
+        "PHASE_C_ACCEPTED_PREFLIGHT_IN_PROGRESS_NOT_AUTHORIZED",
     }
     assert data["scope"]["phase_b_adapters_implemented"] is True
     assert data["scope"]["frozen_tasks"] == [3, 5]
