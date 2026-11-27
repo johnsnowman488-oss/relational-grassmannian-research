@@ -10,7 +10,7 @@ from rgm.experiments.babi_expansion_runtime import (
 )
 from rgm.leptograph.m4.hierarchical import HLAAdapter, HLBAdapter
 from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge
-from rgm.leptograph.m4.learning import Level
+from rgm.leptograph.m4.learning import EligibilityEvent, LearningRuntime, Level
 from rgm.memory import SOEMemory
 
 
@@ -318,3 +318,33 @@ def test_task11_learning_only_targets_respect_explicit_non_learning_mode():
         after = _task11_parameter_state(adapter)
         assert len(outputs) == 4
         assert before == after
+
+
+def test_task11_soe_eligibility_filter_survives_checkpoint_replay():
+    learning = LearningRuntime(eligibility_config_fingerprint="h1-soe-eligibility-v1")
+    for level in ("L0", "L1", "L2"):
+        learning.observe_eligibility(EligibilityEvent(
+            event_id=f"mention-{level}",
+            feature_id=f"task11:{level.lower()}:binding",
+            channel=f"task11:{level}",
+            event_time=1.0,
+            observed_at=1.0,
+            observed_tick=0,
+            magnitude=1.0,
+            config_fingerprint="h1-soe-eligibility-v1",
+        ))
+    trusted = learning.snapshot()
+    learning.observe_temporal_error(
+        0.75, tick=0, eligibility_channels=("task11:L1",),
+    )
+    assert learning.temporal_credit.weights
+    assert {__import__("json").loads(key)[2]
+            for key in learning.temporal_credit.weights} == {"task11:L1"}
+
+    # A candidate rollback restores trusted parameters and replays the
+    # post-checkpoint temporal error using its persisted eligibility filter.
+    learning.restore(trusted, preserve_observations=True)
+    replayed = learning.temporal_credit.weights
+    assert replayed
+    assert {__import__("json").loads(key)[2] for key in replayed} == {"task11:L1"}
+    assert {__import__("json").loads(key)[0] for key in replayed} == {"mention-L1"}
