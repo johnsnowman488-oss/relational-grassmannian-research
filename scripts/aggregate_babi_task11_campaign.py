@@ -80,7 +80,7 @@ def _story_stats(run_rows, run_dirs):
             # Accept escaped-newline JSONL fixtures while keeping real campaign
             # artifacts on the canonical newline-delimited representation.
             prediction_rows = [
-                json.loads(line) for line in raw.replace("\\\\n", "\\n").splitlines()
+                json.loads(line) for line in raw.replace("\\n", "\n").splitlines()
                 if line.strip()
             ]
         story_by_query = {item["query_id"]: item["story_id"] for item in prediction_rows}
