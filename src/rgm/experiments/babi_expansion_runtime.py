@@ -198,10 +198,14 @@ class BabiExpansionRuntime:
     relations using its existing durable stores. HLA uses this bridge's external
     evidence journal for exact witness recovery without retaining relation paths.
     """
-    def __init__(self, adapter: HLAAdapter | HLBAdapter, *, capacity: int = 100000):
+    def __init__(self, adapter: HLAAdapter | HLBAdapter, *, capacity: int = 100000,
+                 learning_enabled: bool = True):
         if not isinstance(adapter, (HLAAdapter, HLBAdapter)):
             raise TypeError("adapter must be an existing HLAAdapter or HLBAdapter")
+        if not isinstance(learning_enabled, bool):
+            raise TypeError("learning_enabled must be a boolean")
         self.adapter = adapter
+        self.learning_enabled = learning_enabled
         self.director = HierarchicalRuntimeDirector(adapter)
         admission_capacity = min(capacity, adapter.evidence.capacity) if isinstance(adapter, HLBAdapter) else capacity
         self._admission = EvidenceStore(admission_capacity)
@@ -245,6 +249,7 @@ class BabiExpansionRuntime:
                 nary_events=(nary,),
                 prediction_context=f"task{story.task_id}:pre:{event.event_id}",
                 observed_context=f"task{story.task_id}:{type(event).__name__}",
+                learn=self.learning_enabled,
             )
             outputs.append({"event_id": nary.event_id, "status": status,
                             "abstained": False, "runtime": result})
