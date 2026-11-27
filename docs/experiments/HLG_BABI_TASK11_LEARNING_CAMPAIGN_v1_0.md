@@ -55,7 +55,7 @@ The previously accepted resource qualification covered four independent 32-story
 
 Therefore the campaign has a separate reserved-seed preflight (seed 953099, excluded from the 10 campaign seeds). It runs the complete 1,800-story fit path and 200-story read-only validation for HLA and HLB under full-learning and no-learning conditions: four run units total.
 
-The full HLB relation store is configured at 262,144 records and the event-resolved eligibility ledger at 131,072 records; these are explicit capacity settings, not estimates. The preflight must measure peak RSS, Python allocation, update time, full checkpoint size and restore time, artifact size, and retry behavior. Hard ceilings are:
+The campaign reuses the exact three-level SOE feature dimensions (3, 3, 3), fixed time step (0.01), and native kernel configuration from the accepted Task 11 persistent-resource qualification. The full HLB relation store is configured at 262,144 records and the event-resolved eligibility ledger at 131,072 records; these are explicit capacity settings, not estimates. The preflight must measure peak RSS, Python allocation, update time, full checkpoint size and restore time, artifact size, and retry behavior. Hard ceilings are:
 
 | Measure | Maximum |
 |---|---:|
