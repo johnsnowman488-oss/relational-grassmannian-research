@@ -58,7 +58,7 @@
         "qa11_basic-coreference_train.txt",
         "qa11_basic-coreference_test.txt"
       ],
-      "input_shape": "Numbered story statements plus location/state questions. Statements include singular antecedent mentions and pronominal references (e.g. he/she/it/they as permitted by source variants); question asks for an entity's current location/state. Question line: <line_no> <question>\\t<answer>\\t<support_line_numbers>.",
+      "input_shape": "Numbered story statements plus location/state questions. Statements include singular antecedent mentions and pronominal references (e.g. he/she/it in source variants); question asks for an entity's current location/state. Question line: <line_no> <question>\\t<answer>\\t<support_line_numbers>.",
       "answer_shape": "Single entity/location token or phrase as tab field 2; support line numbers as whitespace-separated integers in tab field 3.",
       "evidence": {
         "L0": "Observed sentence/event features, mention surface form, grammatical number/person, source time and current-state feature vector.",
