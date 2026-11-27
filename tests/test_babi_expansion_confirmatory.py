@@ -90,8 +90,8 @@ def test_task11_l0_l1_l2_supervision_is_scored_only_after_forecast(tmp_path):
 
     forecasts = ExpansionForecasts(11)
     forecasts.issue_query_forecasts(
-        query, issued_tick=query.observed_at - 2,
-        issued_at=float(query.observed_at - 2),
+        query, issued_tick=query.observed_at - 1,
+        issued_at=float(query.observed_at - 1),
         evidence_cutoff=float(query.observed_at - 1),
         l0_value=bundle.l0_mention_binding,
         l1_value=bundle.l1_coreference_edge,
@@ -100,8 +100,8 @@ def test_task11_l0_l1_l2_supervision_is_scored_only_after_forecast(tmp_path):
         model_fingerprint="test-model",
     )
     scored = forecasts.score_task11_supervision(
-        query, bundle, evaluated_tick=query.observed_at + 1,
-        observed_at=float(query.observed_at + 1),
+        query, bundle, evaluated_tick=query.observed_at,
+        observed_at=float(query.observed_at),
     )
     assert set(scored) == {"L0", "L1", "L2"}
     assert all(row["target_source_id"] == label_row["source_ref"]
