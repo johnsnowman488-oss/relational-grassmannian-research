@@ -18,6 +18,7 @@ CONDITIONS = (
     "no_abstraction", "no_task", "no_learning",
 )
 SEEDS = tuple(range(953100, 953110))
+RESERVED_PREFLIGHT_SEED = 953099
 WORKERS = 4
 WARM_FRACTION = 0.80
 FIT_VALIDATION_SEED = "HLG-BABI-EXPANSION-TRAIN-VALID-v1"
@@ -109,7 +110,7 @@ def build_manifest(source_root: Path, protocol_path: Path, output_root: Path) ->
         raise AssertionError("Task 11 fit/validation partition overlap or omission")
 
     seed_partitions = {}
-    for seed in SEEDS:
+    for seed in (*SEEDS, RESERVED_PREFLIGHT_SEED):
         warm, online = seeded_warm_online_split(fit, seed)
         warm_ids, online_ids = {s.story_id for s in warm}, {s.story_id for s in online}
         if warm_ids & online_ids or warm_ids | online_ids != fit_ids:
