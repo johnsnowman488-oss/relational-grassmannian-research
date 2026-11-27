@@ -320,6 +320,9 @@ def run_shard(plan_path: Path, shard_id: int, output_root: Path,
         )
 
     started = time.perf_counter()
+    prior_resource_path = output_root / "partial-resource-usage.json"
+    prior_resource = (json.loads(prior_resource_path.read_text(encoding="utf-8"))
+                      if prior_resource_path.is_file() else {})
     tracemalloc.start()
     completed: list[str] = []
     skipped: list[str] = []
@@ -412,9 +415,12 @@ def run_shard(plan_path: Path, shard_id: int, output_root: Path,
                 "completed_unit_keys": completed,
                 "skipped_unit_keys": skipped,
             })
-        elapsed = time.perf_counter() - started
+        elapsed = time.perf_counter() - started + float(prior_resource.get("elapsed_seconds", 0.0))
         _, trace_peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
+        trace_peak = max(trace_peak, int(prior_resource.get("tracemalloc_peak_bytes", 0)))
+        query_presentations += 0
+        baseline_predictions += 0
         unit_files = [p for p in units_dir.glob("*.json")]
         artifact_bytes = sum(p.stat().st_size for p in output_root.rglob("*") if p.is_file())
         usage = {
@@ -430,6 +436,8 @@ def run_shard(plan_path: Path, shard_id: int, output_root: Path,
             "event_records_per_second": event_presentations / elapsed if elapsed else 0.0,
             "peak_rss_mb": _resource_peak_rss_mb(),
             "tracemalloc_peak_mb": trace_peak / (1024.0 * 1024.0),
+            "tracemalloc_peak_bytes": trace_peak,
+            "retry_elapsed_seconds_included": float(prior_resource.get("elapsed_seconds", 0.0)),
             "unit_artifact_count": len(unit_files),
             "artifact_storage_bytes": artifact_bytes,
             "learning_updates": 0,
@@ -447,13 +455,27 @@ def run_shard(plan_path: Path, shard_id: int, output_root: Path,
             "failed_unit_keys": [],
             "unit_count": len(completed),
             "resource_file": "resource-usage.json",
+            "recovered_failure_diagnostic": "failure-diagnostic.json" if (output_root / "failure-diagnostic.json").is_file() else None,
         }
         _atomic_json(status_path, status)
         return status
     except Exception as exc:
+        trace_peak = 0
         if tracemalloc.is_tracing():
             _, trace_peak = tracemalloc.get_traced_memory()
             tracemalloc.stop()
+        partial_elapsed = time.perf_counter() - started
+        trace_peak = max(trace_peak, int(prior_resource.get("tracemalloc_peak_bytes", 0)))
+        _atomic_json(prior_resource_path, {
+            "schema": "HLG-BABI-EXPANSION-PREFLIGHT-PARTIAL-RESOURCE-v1",
+            "shard": shard_id,
+            "manifest_sha256": manifest_sha,
+            "elapsed_seconds": float(prior_resource.get("elapsed_seconds", 0.0)) + partial_elapsed,
+            "query_presentations_completed_before_failure": query_presentations,
+            "baseline_prediction_presentations_completed_before_failure": baseline_predictions,
+            "peak_rss_mb": max(_resource_peak_rss_mb(), float(prior_resource.get("peak_rss_mb", 0.0))),
+            "tracemalloc_peak_bytes": trace_peak,
+        })
         _atomic_json(output_root / "failure-diagnostic.json", {
             "schema": "HLG-BABI-EXPANSION-PREFLIGHT-FAILURE-v1",
             "shard": shard_id, "manifest_sha256": manifest_sha,
