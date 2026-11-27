@@ -70,14 +70,15 @@
     "one_native_step_per_adapter_tick": true
   },
   "implementation_blob_sha256": {
-    "src/rgm/leptograph/m4/learning.py": "a7632504bedd815a9351ba1036da7fce335643e6",
-    "src/rgm/leptograph/m4/hierarchical.py": "9bac681c2d72c2902a19e01347e3785141ea9263",
-    "src/rgm/experiments/babi_learning_campaign.py": "353aaf89ac1dc3eabf1b515e803ed23d0e0bbddd",
+    "src/rgm/leptograph/m4/learning.py": "97fbc4ee37f782d08725494266fdda4e95e8b1a4",
+    "src/rgm/experiments/babi_learning_campaign.py": "0a8e8a9f5d359829fd8e056cb767e42130696b3a",
     "scripts/run_babi_learning_campaign.py": "6c396f54a05277da80b4426b933d96fe91537548",
-    "scripts/select_babi_learning_candidates.py": "d4fc486e177fe6a4ec6fee6a92f42556e14e422b",
-    "scripts/verify_babi_confirmatory.py": "3de772f89041d76300a2b6b4c7fcbba76c9ff5fc",
-    ".github/workflows/h1-babi-learning-campaign.yml": "0ab87349417010ff4c51cfb06c2cbdaacef2b554",
-    ".github/workflows/ci.yml": "12cd8a57d4fe5ff72167e661a7f7cbbaaadc661a"
+    "scripts/select_babi_learning_candidates.py": "eecacccf28bc4e1328062fecd927ed63576bd24c",
+    "scripts/verify_babi_confirmatory.py": "bb91cacb5dd2a6160000b20dd57acff7375d078f",
+    ".github/workflows/h1-babi-learning-campaign.yml": "1a00016bac121ce82d7d53dcabbb620f1b3c7255",
+    "tests/test_babi_learning_campaign.py": "2659bdd9923462b2898e78328de0366aab63616a",
+    "tests/test_hlg_learning_runtime_integration.py": "7581905c1a938f9f9606ef913aa3b2ad87843940",
+    "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_3.md": "dacf628ee8b9bd851b83a3567bacd3a554022b24"
   },
   "matched_campaign": {
     "seeds": [
@@ -111,7 +112,26 @@
     "confirmatory_policy": "one-time generated challenge after validation-only candidate freeze",
     "selection_policy": "Validation-only selection of one paired seed per task from full_learning results; ablations remain controls. Rank by mean HLA/HLB L1 relation/event-role accuracy, then lower L0 MSE, lower task-query abstention, then lower seed.",
     "confirmatory_evaluations": 4,
-    "confirmatory_scope": "Exactly one confirmatory evaluation for each selected task/architecture pair, after candidate fingerprint freeze and reconstruction"
+    "confirmatory_scope": "Exactly one confirmatory evaluation for each selected task/architecture pair, after candidate fingerprint freeze and reconstruction",
+    "seed_count": 10,
+    "seed_range": [
+      953000,
+      953009
+    ],
+    "worker_count": 4,
+    "conditions_per_seed": 6,
+    "total_seed_condition_outputs": 240,
+    "acceptance_pilot_seed": 953000,
+    "acceptance_pilot_seeds": 1,
+    "validation_metric_targets": [
+      "next_l0_features",
+      "next_relation_pattern",
+      "next_event_role_pattern",
+      "next_context"
+    ],
+    "task_channel_target": "prequential probability of deterministic task-solver error; Brier loss; abstentions count as errors",
+    "score_only_rollback_replay": "journal learn flag is preserved; replay cannot mutate model state for learn=false observations",
+    "query_exchange_event_forecast_policy": "same-tick withdraw_inapplicable for next_relation_pattern and next_event_role_pattern"
   },
   "acceptance": {
     "require_prediction_target_coverage": 1,
@@ -123,5 +143,6 @@
     "require_zero_hlb_capacity_misses": true,
     "require_validation_only_candidate_selection": true,
     "require_exactly_four_confirmatory_evaluations": true
-  }
+  },
+  "protocol_document_sha256": "dacf628ee8b9bd851b83a3567bacd3a554022b24"
 }
