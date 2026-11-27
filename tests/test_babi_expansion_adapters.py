@@ -143,7 +143,7 @@ def test_task19_ambiguous_shortest_paths_abstain(tmp_path):
 
 
 def test_task_adapters_reject_cross_task_inputs(tmp_path):
-    path = write(tmp_path, "task11.txt", "1 Mary went to the kitchen.\n2 Where is Mary? \\tkitchen\\t1\\n")
+    path = write(tmp_path, "task11.txt", "1 Mary went to the kitchen.\n2 Where is Mary? \tkitchen\t1\n")
     stories, _ = parse_expansion_source(path, task_id=11, split="train")
     with pytest.raises(ValueError, match="another task"):
         predict_task14(stories[0], stories[0].queries[0])
