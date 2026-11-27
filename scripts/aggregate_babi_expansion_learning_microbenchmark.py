@@ -23,9 +23,7 @@ def aggregate(plan_path: Path, shard_dirs: list[Path], output_path: Path) -> dic
     manifest_sha = manifest["manifest_sha256"]
     if len(shard_dirs) != 4:
         raise ValueError("Task 11 resource aggregation requires exactly four shards")
-    task = manifest["tasks"]["11"]
-    fit_ids = (set(task["phases"]["warm_start"]["story_ids"])
-               | set(task["phases"]["online_adaptation"]["story_ids"]))
+    fit_ids = set(manifest["partitions"]["fit_story_ids"])
     by_arch = defaultdict(list)
     per_shard = []
     all_rows = []
