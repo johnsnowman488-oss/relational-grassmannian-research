@@ -196,6 +196,10 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
         ]
         if len(pred_rows) != 1000 or len({p["query_id"] for p in pred_rows}) != 1000:
             raise ValueError(f"{key}: prediction journal incomplete or duplicated")
+        if {p["query_id"] for p in pred_rows} != {
+            q["query_id"] for q in row["evaluation"]["per_query"]
+        }:
+            raise ValueError(f"{key}: prediction journal and evaluator query IDs differ")
         run_config = _load(root / "per-run-config.json")
         if run_config.get("native_commit") != manifest["native_commit"]:
             raise ValueError(f"{key}: native runtime commit differs from manifest")
@@ -210,6 +214,14 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
             raise ValueError(f"{key}: answer model snapshot identity or label boundary invalid")
         if model_snapshot.get("top_down_gain") != manifest["top_down_gain"]:
             raise ValueError(f"{key}: model snapshot top-down gain differs from manifest")
+        if model_snapshot.get("manifest_sha256") != manifest["manifest_sha256"]:
+            raise ValueError(f"{key}: model snapshot manifest identity mismatch")
+        if model_snapshot.get("protocol_sha256") != manifest["protocol_sha256"]:
+            raise ValueError(f"{key}: model snapshot protocol identity mismatch")
+        if model_snapshot.get("source_sha256") != manifest["source"]["sha256"]:
+            raise ValueError(f"{key}: model snapshot source identity mismatch")
+        if model_snapshot.get("fit_model_fingerprint") != row.get("fit_model_fingerprint"):
+            raise ValueError(f"{key}: model snapshot fit fingerprint differs from metrics")
         by_key[key] = row
         row_dir_pairs.append((row, root))
 
