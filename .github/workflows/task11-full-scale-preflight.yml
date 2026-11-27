@@ -20,8 +20,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: task11-full-scale-preflight-${{ github.run_id }}
-  cancel-in-progress: false
+  group: task11-full-scale-preflight-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   prepare-task11:
