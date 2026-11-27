@@ -100,7 +100,24 @@ def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
         context_key = (
             f"task11:entity:{query.entity}:from:{previous_key}"
         )
-        model_context = adapter.learning.context_transitions.predict(context_key)
+        if getattr(adapter, "architecture", None) == "HLB":
+            # HLB predicts through its typed, rollback-scoped model relation
+            # store. These records are learned transitions, not durable source
+            # evidence. The model store is fit-only during validation.
+            matches = [
+                record for record in adapter.store.records(cutoff=1e300, levels=(1,))
+                if record.relation_type.name == "task11_location_transition"
+                and record.subject.entity_id == f"{query.entity}|{previous_key}"
+            ]
+            predicted_locations = {record.object.entity_id for record in matches}
+            if len(predicted_locations) == 1:
+                model_context = f"location:{next(iter(predicted_locations))}"
+            elif len(predicted_locations) > 1:
+                model_context = "__AMBIGUOUS__"
+            else:
+                model_context = None
+        else:
+            model_context = adapter.learning.context_transitions.predict(context_key)
         observed_context = f"location:{event.location}"
         if not isinstance(model_context, str) or not model_context.startswith("location:"):
             return Task11AnswerDecision(
