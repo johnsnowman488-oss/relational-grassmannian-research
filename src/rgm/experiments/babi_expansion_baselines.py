@@ -152,6 +152,64 @@ BASELINES: dict[int, tuple[tuple[str, Callable], ...]] = {
 }
 
 
+def predict_task11_supervision(story: ExpansionStory, query: ExpansionQuery) -> dict:
+    """Predict Task 11 L0/L1/L2 targets from observed inputs only.
+
+    This function deliberately accepts no GoldLabel or evaluator bundle. The
+    caller issues these forecasts before opening the separately sealed targets.
+    """
+    prediction = predict_task11(story, query)
+    if prediction.abstained:
+        raise RuntimeError(f"Task 11 target forecast abstained: {prediction.reason}")
+    event_by_id = {event.event_id: event for event in story.events}
+    if not prediction.witness_event_ids:
+        raise RuntimeError("Task 11 target forecast has no recoverable mention witness")
+    target_event_id = prediction.witness_event_ids[-1]
+    target_event = event_by_id.get(target_event_id)
+    if not isinstance(target_event, Task11MentionEvent):
+        raise RuntimeError("Task 11 target witness is not a source mention event")
+
+    antecedent_by_mention = {
+        mention_event_id: antecedent_event_id
+        for mention_event_id, antecedent_event_id in prediction.antecedent_edges
+    }
+    if target_event.is_pronoun:
+        antecedent_id = antecedent_by_mention.get(target_event_id)
+        antecedent = event_by_id.get(antecedent_id or "")
+        if not isinstance(antecedent, Task11MentionEvent) or antecedent.is_pronoun:
+            raise RuntimeError("Task 11 target pronoun has no predicted name anchor")
+        entity_id = antecedent.surface_mention.casefold()
+        l1 = {
+            "mention_event_id": target_event_id,
+            "antecedent_event_id": antecedent_id,
+            "entity_id": entity_id,
+            "relation": "corefers_with",
+        }
+    else:
+        entity_id = target_event.surface_mention.casefold()
+        l1 = {
+            "mention_event_id": target_event_id,
+            "antecedent_event_id": None,
+            "entity_id": entity_id,
+            "relation": "self_anchor",
+        }
+    if entity_id != query.entity:
+        raise RuntimeError("Task 11 predicted target mention does not resolve to queried entity")
+    return {
+        "l0_mention_binding": {
+            "mention_event_id": target_event_id,
+            "entity_id": entity_id,
+        },
+        "l1_coreference_edge": l1,
+        "l2_entity_state": {
+            "entity_id": query.entity,
+            "location": prediction.answer,
+            "witness_event_ids": list(prediction.witness_event_ids),
+        },
+        "answer": prediction.answer,
+    }
+
+
 def _prf(predicted: set, gold: set) -> dict[str, float | int]:
     true_positive = len(predicted & gold)
     precision = true_positive / len(predicted) if predicted else (1.0 if not gold else 0.0)
