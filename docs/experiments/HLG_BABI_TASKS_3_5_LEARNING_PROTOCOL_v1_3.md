@@ -97,17 +97,13 @@ Score-only warm-start dynamics, validation and confirmatory processing must issu
 
 The task channel predicts **task-solver error probability**, not the answer.
 
-For each task key (Task 3 or Task 5), let the observed online binary outcome be (y_t=1) when the deterministic structured solver's committed answer is wrong and (y_t=0) when it is correct. Before observing the current outcome, predict:
+For each task key (Task 3 or Task 5), let the observed online binary outcome be y_t = 1 when the deterministic structured solver's committed answer is wrong (including an abstention), and y_t = 0 when it is correct. Before observing the current outcome, predict the Laplace-smoothed error probability:
 
-[
-p_t = rac{1+sum_{i<t} y_i}{2+n_{t-1}}
-]
+`p_t = (1 + sum of prior y_i) / (2 + number of prior outcomes)`
 
-This is the Laplace-smoothed empirical error probability, with an initial prior of 0.5. Score the forecast with Brier loss:
+This has an initial prior of 0.5. Score the forecast with Brier loss:
 
-[
-L_t=(p_t-y_t)^2
-]
+`L_t = (p_t - y_t)^2`
 
 After the answer is committed and the outcome is known, append the binary outcome to the task-outcome learner if and only if the task channel is enabled and the phase permits learning. Correct outcomes ((y_t=0)) must be recorded; otherwise the task learner would remain inert on an all-correct solver workload. Warm-start dynamics, validation and confirmatory phases calculate/report the score but do not update the learner.
 
