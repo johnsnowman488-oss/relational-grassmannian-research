@@ -269,6 +269,96 @@ def test_independent_promotion_binds_learning_state_and_rejects_stale_candidate(
         lifecycle.promote(record)
 
 
+
+
+def test_prediction_scoring_uses_index_not_full_prediction_scan():
+    _, learner, _ = system("HLA")
+    seed(learner)
+
+    class NoValuesDict(dict):
+        def values(self):
+            raise AssertionError("prediction hot path scanned full prediction history")
+
+    learner.predictions._predictions = NoValuesDict(learner.predictions._predictions)
+    learner.begin_tick(tick=0, observed_at=0.0, context="home")
+    learner.observe_relation(relation("indexed-rel", "visited", observed_at=1.0), tick=1)
+    learner.observe_nary_event(
+        nary("indexed-event", event_type="moved", observed_at=1.0), tick=1
+    )
+    assert len(learner.predictions.scores) == 2
+
+
+def test_incremental_learning_transaction_rolls_back_only_touched_state():
+    learner = LearningRuntime()
+    learner.task_outcomes.observe_error("existing-task", 0.0)
+    existing_key = '["prior-event","prior-feature","slow"]'
+    learner.temporal_credit.weights[existing_key] = -0.25
+    prior_journal_count = len(learner._observation_journal)
+
+    checkpoint = learner.transaction_checkpoint()
+    learner.temporal_credit.update(0.5, {
+        ("prior-event", "prior-feature", "slow"): 0.5,
+        ("new-event", "new-feature", "fast"): 1.0,
+    })
+    learner.task_outcomes.observe_error("existing-task", 1.0)
+    learner.task_outcomes.observe_error("new-task", 1.0)
+    learner._observation_journal.append({"kind": "test-only", "value": 1})
+
+    learner.rollback_transaction(checkpoint)
+
+    assert learner.temporal_credit.weights == {existing_key: -0.25}
+    assert learner.task_outcomes.outcomes == {"existing-task": [0]}
+    assert len(learner._observation_journal) == prior_journal_count
+    assert learner.predictions._transaction_log is None
+    assert learner.temporal_credit._transaction_log is None
+    assert learner.task_outcomes._transaction_log is None
+
+
+def test_failed_exchange_rolls_back_model_but_preserves_hlb_source_journals(monkeypatch):
+    runtime, adapter, director = system("HLB")
+    seed(adapter.learning)
+    before_learning = adapter.learning.snapshot()
+    before_runtime = runtime.get_state()
+    before_ticks = adapter.ticks
+    before_journal_count = len(director._observation_journal)
+
+    original_observe_task_error = adapter.learning.observe_task_error
+
+    def fail_after_task_observation(task_key, error, *, learn=True):
+        original_observe_task_error(task_key, error, learn=learn)
+        raise RuntimeError("injected post-learning failure")
+
+    monkeypatch.setattr(
+        adapter.learning, "observe_task_error", fail_after_task_observation
+    )
+
+    observed_relation = relation("persisted-source-relation", "visited")
+    observed_event = nary("persisted-source-event", event_type="moved")
+    with pytest.raises(RuntimeError, match="injected post-learning failure"):
+        director.exchange(
+            event_time=1.0, observed_at=1.0,
+            event_features={0: [0.25, 0.75]},
+            prediction_context="home", observed_context="work",
+            relation_records=((0, observed_relation),),
+            nary_events=(observed_event,),
+            eligibility_events=(eligibility("exchange-credit"),),
+            temporal_error=0.5,
+            task_outcome=("injected-failure-task", 1.0),
+        )
+
+    assert runtime.get_state() == before_runtime
+    assert adapter.ticks == before_ticks
+    assert director.event_tick == 0
+    assert len(director._observation_journal) == before_journal_count
+    assert adapter.learning.snapshot() == before_learning
+    # Source evidence intentionally survives candidate rollback.
+    assert adapter.evidence.event_ids == ("persisted-source-event",)
+    assert adapter.store.count == 1
+    assert adapter.recover_evidence(
+        "persisted-source-event", observation_cutoff=2.0
+    ) == (observed_event,)
+
+
 def test_forecast_context_is_not_inferred_from_the_current_target_observation():
     _, adapter, director = system("HLB")
     seed(adapter.learning)
