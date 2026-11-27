@@ -55,14 +55,14 @@ def make_adapter(kind):
 
 def test_task_event_mapping_preserves_nary_roles_and_provenance():
     story = ExpansionStory("task11/fit/story000001", 11, (
-        Task11MentionEvent("e1", "mary", "Mary", False, "e1", "kitchen", 1, "train#1"),
-        Task11MentionEvent("e2", "mary", "she", True, "e1", "hallway", 2, "train#2"),
+        Task11MentionEvent("e1", "Mary", False, "kitchen", 1, "train#1"),
+        Task11MentionEvent("e2", "she", True, "hallway", 2, "train#2"),
     ), ())
     mapped = to_nary_event(story, story.events[1])
-    assert mapped.event_type == "COREFERS_TO"
-    assert mapped.role("entity").entity_id == "mary"
-    assert mapped.role("antecedent").entity_id == "e1"
+    assert mapped.event_type == "ENTITY_LOCATION_MENTION"
+    assert mapped.role("mention").entity_id == "she"
     assert mapped.role("location").entity_id == "hallway"
+    assert mapped.role("antecedent") is None
     assert mapped.provenance == "babi-v1.2-task-11"
     assert mapped.source_locator == "train#2"
     assert len(mapped.payload_digest) == 64
@@ -80,16 +80,12 @@ def test_task14_event_time_is_not_observation_time():
 
 
 
-def test_task11_coreference_is_materialized_as_a_typed_l1_edge():
+def test_task11_coreference_is_not_fabricated_during_ingestion():
     story = ExpansionStory("task11/fit/story000001", 11, (
-        Task11MentionEvent("m1", "mary", "Mary", False, "m1", "kitchen", 1, "train#1"),
-        Task11MentionEvent("m2", "mary", "she", True, "m1", "hallway", 2, "train#2"),
+        Task11MentionEvent("m1", "Mary", False, "kitchen", 1, "train#1"),
+        Task11MentionEvent("m2", "she", True, "hallway", 2, "train#2"),
     ), ())
-    edge, = to_task_relations(story, story.events[1])
-    assert edge.relation_type.name == "corefers_to"
-    assert edge.subject.entity_id == "m2"
-    assert edge.object.entity_id == "m1"
-    assert edge.provenance == "train#2"
+    assert to_task_relations(story, story.events[1]) == ()
 
 
 def test_task14_temporal_precedence_is_materialized_with_both_witnesses():
@@ -180,10 +176,10 @@ def test_hla_hlb_runtime_ingestion_uses_same_task_contract_and_recovers_witnesse
 
 def test_runtime_is_story_scoped_and_cannot_leak_across_story_boundaries():
     first = ExpansionStory("task11/fit/story000001", 11, (
-        Task11MentionEvent("e1", "mary", "Mary", False, "e1", "kitchen", 1, "train#1"),
+        Task11MentionEvent("e1", "Mary", False, "kitchen", 1, "train#1"),
     ), ())
     second = ExpansionStory("task11/fit/story000002", 11, (
-        Task11MentionEvent("e2", "mary", "Mary", False, "e2", "garden", 1, "train#2"),
+        Task11MentionEvent("e2", "Mary", False, "garden", 1, "train#2"),
     ), ())
     runtime = BabiExpansionRuntime(make_adapter("HLA"))
     runtime.ingest_story(first)
