@@ -215,3 +215,96 @@ def test_expansion_runtime_explicit_non_learning_mode_keeps_learner_parameters_f
     assert runtime.learning_enabled is False
     assert adapter.ticks == 2
     assert before == after
+
+
+def _task11_learning_story(story_id="task11/fit/learning-only"):
+    return ExpansionStory(story_id, 11, (
+        Task11MentionEvent("m1", "Mary", False, "kitchen", 1, "train#1", "female"),
+        Task11MentionEvent("m2", "John", False, "garden", 2, "train#2", "male"),
+        Task11MentionEvent("m3", "she", True, "office", 3, "train#3", "female"),
+        Task11MentionEvent("m4", "he", True, "hallway", 4, "train#4", "male"),
+    ), ())
+
+
+def _task11_parameter_state(adapter):
+    return {
+        "relations": adapter.learning.relations.snapshot(),
+        "event_roles": adapter.learning.event_roles.snapshot(),
+        "contexts": adapter.learning.context_transitions.snapshot(),
+    }
+
+
+def test_task11_l0_l1_l2_weak_targets_update_learners_but_never_source_evidence():
+    story = _task11_learning_story()
+    for kind in ("HLA", "HLB"):
+        adapter = make_adapter(kind)
+        runtime = BabiExpansionRuntime(adapter, learning_enabled=True)
+        before = _task11_parameter_state(adapter)
+        outputs = runtime.ingest_story(story)
+        after = _task11_parameter_state(adapter)
+
+        assert len(outputs) == 4
+        assert all(not item["abstained"] for item in outputs)
+        assert before["event_roles"] != after["event_roles"]
+        assert before["relations"] != after["relations"]
+        assert before["contexts"] != after["contexts"]
+
+        # The derived binding/edge targets are routed only into LearningRuntime.
+        # Evidence recovery returns source-grounded mention events without any
+        # inferred entity or antecedent participant.
+        for event_id in ("m1", "m2", "m3", "m4"):
+            raw_event, = runtime.recover_witness(event_id, observation_cutoff=4.0)
+            assert raw_event.event_id == event_id
+            assert not any(
+                participant.role in {"entity", "antecedent_event"}
+                for participant in raw_event.participants
+            )
+        if kind == "HLB":
+            assert adapter.store.count == 0
+
+        journal = adapter.learning._observation_journal
+        role_rows = [row for row in journal if row["kind"] == "event_role"]
+        relation_rows = [row for row in journal if row["kind"] == "relation"]
+        context_rows = [row for row in journal if row["kind"] == "context"]
+        assert len(role_rows) == 4
+        assert len(relation_rows) == 2
+        assert len(context_rows) == 4
+        assert all(row["source_id"].endswith(":task11-learning-target")
+                   for row in role_rows)
+        assert all(row.get("source_provenance", "").startswith("train#")
+                   for row in relation_rows)
+        assert all(row["current_context"].startswith("task11:entity:")
+                   for row in context_rows)
+
+
+def test_task11_ambiguous_pronoun_is_evidence_only_and_gets_no_learning_target():
+    story = ExpansionStory("task11/fit/ambiguous-training-only", 11, (
+        Task11MentionEvent("m1", "Mary", False, "kitchen", 1, "train#1", "female"),
+        Task11MentionEvent("m2", "Sandra", False, "garden", 2, "train#2", "female"),
+        Task11MentionEvent("m3", "she", True, "office", 3, "train#3", "female"),
+    ), ())
+    adapter = make_adapter("HLB")
+    runtime = BabiExpansionRuntime(adapter, learning_enabled=True)
+    outputs = runtime.ingest_story(story)
+    assert len(outputs) == 3
+    assert all(not row["abstained"] for row in outputs)
+    journal = adapter.learning._observation_journal
+    assert len([row for row in journal if row["kind"] == "event_role"]) == 2
+    assert len([row for row in journal if row["kind"] == "relation"]) == 0
+    assert len([row for row in journal if row["kind"] == "context"]) == 2
+    assert adapter.store.count == 0
+    raw_pronoun, = runtime.recover_witness("m3", observation_cutoff=3.0)
+    assert raw_pronoun.role("mention").entity_id == "she"
+    assert not any(p.role in {"entity", "antecedent_event"} for p in raw_pronoun.participants)
+
+
+def test_task11_learning_only_targets_respect_explicit_non_learning_mode():
+    story = _task11_learning_story("task11/fit/no-learning")
+    for kind in ("HLA", "HLB"):
+        adapter = make_adapter(kind)
+        runtime = BabiExpansionRuntime(adapter, learning_enabled=False)
+        before = _task11_parameter_state(adapter)
+        outputs = runtime.ingest_story(story)
+        after = _task11_parameter_state(adapter)
+        assert len(outputs) == 4
+        assert before == after
