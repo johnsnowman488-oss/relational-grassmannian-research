@@ -53,8 +53,8 @@ def test_task11_resolves_singular_pronoun_and_keeps_gold_separate(tmp_path):
 def test_task11_parser_preserves_pronoun_without_inventing_cross_story_binding(tmp_path):
     path = write(
         tmp_path, "task11_two_stories.txt",
-        "1 Mary went to the kitchen.\\n"
-        "1 After that she went to the office.\\n"
+        "1 Mary went to the kitchen.\n"
+        "1 After that she went to the office.\n"
     )
     stories, labels = parse_expansion_source(path, task_id=11, split="train")
     assert labels == []
