@@ -1203,6 +1203,7 @@ class LearningRuntime:
             "kind": "level0", "value": values, "target_name": "next_l0_features",
             "target_key": key, "source_id": f"level0-source-{tick}",
             "event_time": event_time, "observed_at": observed_at, "tick": tick,
+            "learn": bool(learn),
             "issue_context": deepcopy(self._last_issue_context),
         })
         if error is not None and error > 0:
@@ -1229,6 +1230,7 @@ class LearningRuntime:
             "kind": "context", "value": next_context, "target_name": "next_context",
             "target_key": key, "current_context": current_context, "source_id": source_id,
             "event_time": event_time, "observed_at": observed_at, "tick": tick,
+            "learn": bool(learn),
             "issue_context": deepcopy(self._last_issue_context),
         })
         if error is not None and error > 0:
@@ -1320,7 +1322,10 @@ class LearningRuntime:
     def observe_temporal_error(self, error: float, *, tick: int, learn: bool = True) -> None:
         if not math.isfinite(error) or error < 0:
             raise ValueError("temporal error must be finite and non-negative")
-        self._observation_journal.append({"kind": "temporal_error", "error": float(error), "tick": int(tick)})
+        self._observation_journal.append({
+            "kind": "temporal_error", "error": float(error), "tick": int(tick),
+            "learn": bool(learn),
+        })
         values = self.eligibility.values(prediction_cutoff_tick=tick)
         self.last_signals = LearningSignals(
             temporal=float(error), relational=self.last_signals.relational,
@@ -1346,6 +1351,7 @@ class LearningRuntime:
         self._observation_journal.append({
             "kind": "task", "task_key": task_key, "target_error": target,
             "predicted_error_probability": predicted, "brier_error": brier_error,
+            "learn": bool(learn),
         })
         self.last_signals = LearningSignals(
             temporal=self.last_signals.temporal, relational=self.last_signals.relational,
@@ -1474,7 +1480,7 @@ class LearningRuntime:
                     item["target_name"], item["target_key"], item["value"],
                     item["source_id"], item["event_time"], item["observed_at"], item["tick"],
                 )
-                if error is not None and error > 0:
+                if error is not None and error > 0 and item.get("learn", True):
                     channel = (ErrorChannel.TEMPORAL if item["kind"] == "level0" else
                                ErrorChannel.RELATIONAL if item["kind"] == "relation" else
                                ErrorChannel.ABSTRACTION)
@@ -1502,7 +1508,7 @@ class LearningRuntime:
             elif item["kind"] == "task":
                 # v1.3 journals the forecast and binary target separately so
                 # rollback replay can reconstruct the same prequential update.
-                if "target_error" in item:
+                if "target_error" in item and item.get("learn", True):
                     target_error = float(item["target_error"])
                     current = self.last_signals.as_dict()
                     self.last_signals = LearningSignals(
@@ -1514,7 +1520,7 @@ class LearningRuntime:
                     routed = self.error_router.route(self.last_signals)
                     if "task_outcome_learner" in routed:
                         self.task_outcomes.observe_error(item["task_key"], target_error)
-                elif item.get("error", 0.0) > 0:
+                elif item.get("learn", True) and item.get("error", 0.0) > 0:
                     # Backward-compatible replay of pre-v1.3 journal records.
                     self.task_outcomes.observe_error(item["task_key"], item["error"])
             elif item["kind"] == "temporal_error":
@@ -1528,7 +1534,7 @@ class LearningRuntime:
                 )
                 self.last_signals = signals
                 routed = self.error_router.route(signals)
-                if "temporal_eligibility" in routed:
+                if item.get("learn", True) and "temporal_eligibility" in routed:
                     self.temporal_credit.update(float(item["error"]), values)
             elif item["kind"] == "episode_boundary":
                 self.eligibility.reset(tick=int(item["tick"]))
