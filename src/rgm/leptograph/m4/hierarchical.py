@@ -711,10 +711,21 @@ class HierarchicalRuntimeDirector:
                     supplied[0], event_time=event_time, observed_at=observed_at, tick=next_tick,
                     learn=learn,
                 )
+            temporal_credit_updates: list[tuple[float, tuple[str, ...]]] = []
             for record in observed_relations:
-                self.adapter.learning.observe_relation(record, tick=next_tick, learn=learn)
+                error = self.adapter.learning.observe_relation(
+                    record, tick=next_tick, learn=learn,
+                )
+                if (error is not None
+                        and record.instance_id.endswith(":task11-coreference-target")):
+                    temporal_credit_updates.append((error, ("task11:L1",)))
             for event in role_target_events:
-                self.adapter.learning.observe_nary_event(event, tick=next_tick, learn=learn)
+                error = self.adapter.learning.observe_nary_event(
+                    event, tick=next_tick, learn=learn,
+                )
+                if (error is not None
+                        and event.event_id.endswith(":task11-learning-target")):
+                    temporal_credit_updates.append((error, ("task11:L0",)))
             if not suppress_context_learning:
                 target_context = observed_context
                 if target_context is None:
@@ -727,11 +738,19 @@ class HierarchicalRuntimeDirector:
                                  nary_events[0].event_id if nary_events else f"context-source-{next_tick}")
                     target_event_time = (observed_relations[0].event_time if observed_relations else
                                          nary_events[0].event_time if nary_events else event_time)
-                    self.adapter.learning.observe_context_transition(
+                    error = self.adapter.learning.observe_context_transition(
                         prediction_context, target_context, source_id=source_id,
                         event_time=target_event_time, observed_at=observed_at, tick=next_tick,
                         learn=learn,
                     )
+                    if (error is not None and prediction_context is not None
+                            and prediction_context.startswith("task11:entity:")):
+                        temporal_credit_updates.append((error, ("task11:L2",)))
+            for error, channels in temporal_credit_updates:
+                self.adapter.learning.observe_temporal_error(
+                    error, tick=next_tick, learn=learn,
+                    eligibility_channels=channels,
+                )
             if temporal_error is not None:
                 self.adapter.learning.observe_temporal_error(float(temporal_error), tick=next_tick, learn=learn)
             if task_outcome is not None:
