@@ -49,15 +49,17 @@ def test_task11_resolves_singular_pronoun_and_keeps_gold_separate(tmp_path):
     assert unlabeled == stories
 
 
-def test_task11_does_not_bind_pronoun_across_story_boundary(tmp_path):
+def test_task11_parser_preserves_pronoun_without_inventing_cross_story_binding(tmp_path):
     path = write(
         tmp_path, "task11_bad.txt",
-        "1 Mary went to the kitchen.\n"
-        "1 After that she went to the office.\n"
+        "1 Mary went to the kitchen.\\n"
+        "1 After that she went to the office.\\n"
     )
-    with pytest.raises(ValueError, match="unresolved singular pronoun"):
-        parse_expansion_source(path, task_id=11, split="train")
-
+    stories, labels = parse_expansion_source(path, task_id=11, split="train")
+    assert labels == []
+    assert stories[0].events[0].surface_mention == "mary"
+    assert stories[0].events[1].surface_mention == "she"
+    assert stories[0].events[1].is_pronoun is True
 
 def test_task14_uses_event_time_not_source_line_order(tmp_path):
     path = write(
