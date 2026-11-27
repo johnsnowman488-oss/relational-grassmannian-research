@@ -53,6 +53,18 @@ jobs:
             scripts/aggregate_babi_task11_campaign.py \
             scripts/generate_babi_task11_confirmatory.py \
             scripts/evaluate_babi_task11_confirmatory.py
+      - name: Verify accepted non-oracle baseline record is present and frozen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          record = Path("docs/experiments/HLG_BABI_TASK11_NONORACLE_BASELINE_VALIDATION_v1_0.md").read_text()
+          assert "**Status:** ACCEPTED — baseline validation only" in record
+          assert "GitHub Actions 46078354046" in record
+          assert "490255b5d2cdaae3aa247f3ef3e458f0f0163b37dbc76d94e00d903b488c9004" in record
+          assert "Nearest-compatible antecedent" in record
+          assert "1.000 (1,000/1,000)" in record
+          assert "NOT INDEPENDENTLY EVALUABLE" in record
+          PY
       - name: Run complete repository test suite
         run: python -m pytest -q
 
