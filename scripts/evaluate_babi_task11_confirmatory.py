@@ -33,7 +33,8 @@ def _read_jsonl(path: Path):
 
 
 def _load_candidate_model(root: Path, run_key: str, architecture: str):
-    snapshot_path = root / f"babi-task11-campaign-{run_key}" / "model-snapshot.json"
+    artifact_name = "babi-task11-campaign-" + run_key.removeprefix("task11-")
+    snapshot_path = root / artifact_name / "model-snapshot.json"
     snapshot = _load(snapshot_path)
     if snapshot.get("run_key") != run_key or snapshot.get("architecture") != architecture:
         raise ValueError("selected candidate model snapshot identity mismatch")
