@@ -66,6 +66,7 @@ def test_task19_direct_edge_and_bfs_have_distinct_coverage(tmp_path):
     assert bfs_metrics["answer_exact_match"] == 1.0
     assert bfs_metrics["target_metrics"]["f1"] == 1.0
     assert bfs_metrics["target_metrics"]["ordered_path_exact_match"] == 1.0
+    assert bfs_metrics["target_metrics"]["target_exact_match"] == 1.0
 
 
 def test_predictors_receive_no_evaluator_fields(tmp_path):
