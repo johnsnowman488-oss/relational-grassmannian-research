@@ -250,7 +250,7 @@
     "kernel": "Reuse the exact H0 kernel configuration from the accepted Task 11 persistent-resource qualification: gamma=reverse(SOEMemory.decay_rates), w=0.25 per channel, linear_decay=0.05 per state coordinate, forcing_bias=0.",
     "hlb_model_relation_capacity": 262144,
     "eligibility_capacity": 131072,
-    "top_down_gain": 0.001,
-    "top_down_gain_rationale": "The 32-story resource qualification used gain 1.0, but the full-scale Task 11 fit-only preflight exposed non-finite spectral Mcap around story 50 as unbounded SOE state drove exponential top-down modulation into underflow/overflow. A fixed 0.001 gain keeps the modulation finite while retaining the same monotonic coupling; it is frozen before validation and all campaign units."
+    "top_down_gain": 1e-8,
+    "top_down_gain_rationale": "The 32-story resource qualification used gain 1.0. Full-scale no-learning preflight with gain 0.001 failed at story 530: the native hierarchy computes exp(±gain × mean-absolute source state), and accumulated state drove the exponent beyond the finite range, producing zero/non-finite kernel weights. Gain 1e-8 limits modulation to a near-base, finite regime at the observed state scale. This is a numerical-stability setting fixed before validation, not a validation-selected predictive hyperparameter. It must still pass the full 1,800-fit/200-validation preflight."
   }
 }
