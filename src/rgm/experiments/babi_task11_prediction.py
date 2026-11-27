@@ -78,7 +78,12 @@ def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
     # An ambiguous/unresolved pronoun after the last unambiguous mention could
     # refer to this entity. Do not answer from a stale earlier location merely
     # because the conservative weak resolver correctly withheld that pronoun.
-    entity_gender = _NAME_GENDER.get(query.entity.casefold())
+    entity_gender = next((
+        event.grammatical_gender for event in visible
+        if not event.is_pronoun
+        and event.surface_mention.casefold() == query.entity.casefold()
+        and event.grammatical_gender is not None
+    ), _NAME_GENDER.get(query.entity.casefold()))
     if entity_gender is not None:
         last_grounded_time = max(event.observed_at for event in grounded)
         event_by_id = {event.event_id: event for event in visible}
