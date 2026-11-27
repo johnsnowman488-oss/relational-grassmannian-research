@@ -31,8 +31,16 @@ on:
       - "docs/experiments/HLG_BABI_EXPANSION_*.json"
       - "docs/experiments/HLG_BABI_EXPANSION_*.md"
       - ".github/workflows/h1-babi-expansion-preflight.yml"
+  workflow_dispatch:
+    inputs:
+      enable_learning_cost_microbenchmark:
+        description: "Explicitly authorize the bounded learning-enabled HLA/HLB resource microbenchmark"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
+  actions: write
   contents: read
 
 concurrency:
@@ -40,6 +48,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # One-time containment for run 46071085170, whose original workflow
+  # accidentally attached a learning-enabled job to the automatic PR path.
+  cancel-unapproved-learning-microbenchmark:
+    name: Cancel inadvertently auto-started learning-cost run
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Cancel incident run unless it has already completed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID=46071085170
+          STATUS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq .status)"
+          if [[ "${STATUS}" == "queued" || "${STATUS}" == "in_progress" ]]; then
+            gh api --silent --method POST "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/cancel"
+            echo "Requested cancellation of unapproved learning-cost run ${RUN_ID}."
+          else
+            echo "Incident run ${RUN_ID} already has status ${STATUS}; no cancellation needed."
+          fi
+
   contract-tests:
     name: Full repository tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -316,7 +347,10 @@ jobs:
   bounded-learning-cost-microbenchmark:
     name: Shard ${{ matrix.shard }} bounded learning-cost microbenchmark
     needs: [aggregate-preflight]
-    if: needs.aggregate-preflight.result == 'success'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.enable_learning_cost_microbenchmark == true &&
+      needs.aggregate-preflight.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
