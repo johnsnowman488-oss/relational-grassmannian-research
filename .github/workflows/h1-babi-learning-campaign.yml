@@ -12,6 +12,8 @@ on:
       - "src/rgm/experiments/babi_annotation.py"
       - "src/rgm/experiments/babi_synthetic_confirmatory.py"
       - "scripts/run_babi_learning_campaign.py"
+      - "scripts/select_babi_learning_candidates.py"
+      - "scripts/verify_babi_confirmatory.py"
       - "scripts/annotate_babi_structured.py"
       - "scripts/generate_babi_confirmatory.py"
       - "src/rgm/leptograph/m4/evidence.py"
@@ -29,6 +31,8 @@ on:
       - "src/rgm/experiments/babi_annotation.py"
       - "src/rgm/experiments/babi_synthetic_confirmatory.py"
       - "scripts/run_babi_learning_campaign.py"
+      - "scripts/select_babi_learning_candidates.py"
+      - "scripts/verify_babi_confirmatory.py"
       - "scripts/annotate_babi_structured.py"
       - "scripts/generate_babi_confirmatory.py"
       - "src/rgm/leptograph/m4/evidence.py"
@@ -140,8 +144,8 @@ jobs:
     name: Task ${{ matrix.task }} — ${{ matrix.architecture }}
     needs: [prepare-data, build-native, contract-tests]
     runs-on: ubuntu-latest
-    # The recovery-branch baseline pilot is capped at 90 minutes. The
-    # full matched campaign retains a six-hour ceiling, with incremental
+    # Recovery and prediction-contract branches run one-seed acceptance pilots.
+    # The full matched campaign retains a six-hour ceiling, with incremental
     # story/phase progress and completed-condition evidence uploads.
     timeout-minutes: ${{ contains(fromJSON('["research/h1-babi-execution-recovery-v1","research/h1-babi-prediction-contract-v1"]'), github.ref_name) && 90 || 360 }}
     strategy:
@@ -221,3 +225,136 @@ jobs:
           path: artifacts/babi-campaign/
           if-no-files-found: warn
           compression-level: 6
+
+  candidate-selection:
+    name: Validate all ablations and freeze full-learning candidates
+    needs: [matched-campaigns]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download all four matched worker artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: babi-task*-*-campaign
+          path: artifacts/pilot
+          merge-multiple: true
+      - name: Verify evidence parity, ablation manipulations and select candidates from validation only
+        run: |
+          mkdir -p artifacts/selection
+          if [[ "$GITHUB_REF_NAME" == "research/h1-babi-execution-recovery-v1" || "$GITHUB_REF_NAME" == "research/h1-babi-prediction-contract-v1" ]]; then
+            python scripts/select_babi_learning_candidates.py \
+              --input-dir artifacts/pilot/artifacts/babi-campaign \
+              --output artifacts/selection/selected-candidates.json \
+              --seeds 953000
+          else
+            python scripts/select_babi_learning_candidates.py \
+              --input-dir artifacts/pilot/artifacts/babi-campaign \
+              --output artifacts/selection/selected-candidates.json \
+              --seeds 953000 953001 953002 953003 953004 953005 953006 953007 953008 953009
+          fi
+      - name: Upload validation-only candidate selection lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-selected-candidates
+          path: artifacts/selection/selected-candidates.json
+          if-no-files-found: error
+
+  confirmatory-campaigns:
+    name: One-time confirmatory — Task ${{ matrix.task }} ${{ matrix.architecture }}
+    needs: [candidate-selection, prepare-data, build-native]
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - { task: 3, architecture: HLA }
+          - { task: 3, architecture: HLB }
+          - { task: 5, architecture: HLA }
+          - { task: 5, architecture: HLB }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout pinned Aberconics Python ABI
+        uses: actions/checkout@v4
+        with:
+          repository: johnsnowman488-oss/aberconics-framework
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          path: vendor/aberconics-framework
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download frozen inputs, native runtime and selection lock
+        uses: actions/download-artifact@v4
+        with:
+          name: babi-learning-inputs
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: babi-pinned-native-runtime
+          path: native
+      - uses: actions/download-artifact@v4
+        with:
+          name: babi-selected-candidates
+          path: artifacts/selection
+      - name: Verify native runtime and selected candidate lock
+        run: |
+          sha256sum -c native/libgfe_core.sha256
+          test -s artifacts/selection/selected-candidates.json
+      - name: Reconstruct and evaluate the selected full-learning candidate once
+        env:
+          GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
+          PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
+          GFE_ABERCONICS_COMMIT: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          PYTHONUNBUFFERED: "1"
+        run: |
+          mkdir -p artifacts/babi-confirmatory-results
+          python -u scripts/run_babi_learning_campaign.py \
+            --task-id ${{ matrix.task }} \
+            --architecture ${{ matrix.architecture }} \
+            --phase confirmatory \
+            --selection-file artifacts/selection/selected-candidates.json \
+            --output artifacts/babi-confirmatory-results/task${{ matrix.task }}-${{ matrix.architecture }}.json
+      - name: Upload one-time confirmatory result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-task${{ matrix.task }}-${{ matrix.architecture }}-confirmatory
+          path: artifacts/babi-confirmatory-results/
+          if-no-files-found: warn
+          compression-level: 6
+
+  verify-confirmatory:
+    name: Verify one-time confirmatory lock and parity
+    needs: [confirmatory-campaigns, candidate-selection]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download selected candidate lock and four confirmatory outputs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: babi-task*-*-confirmatory
+          path: artifacts/confirmatory
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: babi-selected-candidates
+          path: artifacts/selection
+      - name: Verify exactly one confirmatory evaluation per task and architecture
+        run: |
+          python scripts/verify_babi_confirmatory.py \
+            --input-dir artifacts/confirmatory/artifacts/babi-confirmatory-results \
+            --selection-file artifacts/selection/selected-candidates.json
