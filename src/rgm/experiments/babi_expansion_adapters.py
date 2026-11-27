@@ -29,6 +29,16 @@ class Task11MentionEvent:
 
 
 @dataclass(frozen=True)
+class Task11WeakBindingTarget:
+    """Weak, lexicon-gated training target kept outside observed event evidence."""
+    mention_event_id: str
+    antecedent_event_id: str
+    entity_id: str
+    source_ref: str
+    rule_id: str = "task11.unique-gender-anchor.v1"
+
+
+@dataclass(frozen=True)
 class Task14TemporalEvent:
     event_id: str
     actor: str
@@ -263,6 +273,56 @@ def task11_confirmatory_input_to_story(record: dict) -> ExpansionStory:
     if query.observed_at <= previous_tick:
         raise ValueError("Task 11 confirmatory query must follow all observations")
     return ExpansionStory(story_id, 11, tuple(events), (query,))
+
+
+def derive_task11_weak_binding_targets(story: ExpansionStory) -> dict:
+    """Derive only unambiguous, prior-only weak coreference targets.
+
+    This is a separate supervision stream, not a parser annotation and never
+    materializes a coreference relation in the observed evidence store. A pronoun
+    is labelled only when exactly one distinct named entity of matching gender
+    has been observed earlier. Ambiguous or unsupported cases are quarantined.
+    """
+    if story.task_id != 11:
+        raise ValueError("Task 11 weak supervision received another task's story")
+    history: dict[str, list[tuple[str, str]]] = {}
+    targets: list[Task11WeakBindingTarget] = []
+    abstentions: list[dict] = []
+    for event in story.events:
+        if not isinstance(event, Task11MentionEvent):
+            raise TypeError("Task 11 story contains a non-Task-11 event")
+        mention = event.surface_mention.casefold()
+        if not event.is_pronoun:
+            gender = event.grammatical_gender or _NAME_GENDER.get(mention)
+            if gender in {"female", "male"}:
+                history.setdefault(gender, []).append((mention, event.event_id))
+            continue
+        gender = event.grammatical_gender or _PRONOUN_GENDER.get(mention)
+        candidates = history.get(gender, []) if gender else []
+        entities = {entity for entity, _ in candidates}
+        if len(entities) != 1:
+            abstentions.append({
+                "mention_event_id": event.event_id,
+                "source_ref": event.source_ref,
+                "reason": "no_compatible_anchor" if not entities else "ambiguous_gender_candidates",
+                "candidate_entity_count": len(entities),
+            })
+            continue
+        entity = next(iter(entities))
+        antecedent_event_id = next(event_id for candidate, event_id in reversed(candidates)
+                                   if candidate == entity)
+        targets.append(Task11WeakBindingTarget(
+            event.event_id, antecedent_event_id, entity, event.source_ref,
+        ))
+    return {
+        "schema": "HLG-BABI-TASK11-WEAK-SUPERVISION-v1",
+        "story_id": story.story_id,
+        "rule_id": "task11.unique-gender-anchor.v1",
+        "targets": tuple(targets),
+        "abstentions": tuple(abstentions),
+        "not_gold_labels": True,
+        "evidence_mutations": 0,
+    }
 
 
 def parse_task14(path: Path, *, split: str, include_labels: bool = True):
