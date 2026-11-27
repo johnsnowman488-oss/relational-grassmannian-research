@@ -390,8 +390,8 @@ class BabiExpansionRuntime:
         Story-local weak supervision is derived independently for each story;
         learner parameters, SOE eligibility/credit, native state and evidence
         stores persist across the sequence. Since bAbI line numbers restart at
-        each story, observed_at is mapped to a monotonically increasing
-        sequence clock while source_ref and event_time remain unchanged.
+        each story, the runtime event/observation clock is mapped to a monotonic
+        sequence clock. Event IDs and source references preserve original lines.
         """
         stories = tuple(stories)
         if not stories:
