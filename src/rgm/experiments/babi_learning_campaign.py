@@ -713,7 +713,7 @@ def _write_progress_checkpoint(output_path: Path, payload: dict[str, Any]) -> No
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = output_path.with_name(output_path.name + ".tmp")
     temporary_path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\\n", encoding="utf-8"
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     temporary_path.replace(output_path)
 
