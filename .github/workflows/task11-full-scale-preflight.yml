@@ -26,7 +26,7 @@ permissions:
 
 concurrency:
   group: task11-full-scale-preflight-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   contract-tests:
