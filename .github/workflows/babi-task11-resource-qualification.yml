@@ -1,0 +1,234 @@
+name: bAbI Task 11 persistent learner resource qualification
+
+on:
+  push:
+    branches:
+      - "research/babi-expansion-preflight-v1"
+    paths:
+      - "src/rgm/experiments/babi_expansion_*.py"
+      - "src/rgm/leptograph/m4/*.py"
+      - "scripts/freeze_babi_expansion_sources.py"
+      - "scripts/prepare_babi_task11_resource_plan.py"
+      - "scripts/run_babi_expansion_learning_microbenchmark.py"
+      - "scripts/aggregate_babi_expansion_learning_microbenchmark.py"
+      - "tests/test_babi_expansion_*.py"
+      - "docs/experiments/HLG_BABI_EXPANSION_TASK11_SUPERVISION_v1_0.md"
+      - "docs/experiments/HLG_BABI_EXPANSION_RESOURCE_BUDGET_v1_0.md"
+      - ".github/workflows/babi-task11-resource-qualification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: babi-task11-resource-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  contract-tests:
+    name: Repository contract tests (Python 3.12)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run repository tests
+        run: python -m pytest -q
+
+  prepare-task11:
+    name: Freeze Task 11 source and whole-story sample plan
+    needs: [contract-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Acquire and verify Task 11 members only
+        run: |
+          python scripts/freeze_babi_expansion_sources.py \
+            --tasks 11 \
+            --output data/babi-v1.2-expansion
+      - name: Build Task 11-only fit/validation and resource manifest
+        run: |
+          python scripts/prepare_babi_task11_resource_plan.py \
+            --source-root data/babi-v1.2-expansion \
+            --output-root artifacts/task11-resource-plan
+      - name: Upload immutable Task 11 source and plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-task11-resource-inputs
+          path: |
+            data/babi-v1.2-expansion/qa11_basic-coreference_train.txt
+            data/babi-v1.2-expansion/qa11_basic-coreference_test.txt
+            data/babi-v1.2-expansion/source-audit.json
+            artifacts/task11-resource-plan/
+          if-no-files-found: error
+          retention-days: 90
+
+  build-native:
+    name: Build pinned Aberconics native runtime
+    needs: [contract-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout pinned Aberconics C++ source and Python ABI
+        uses: actions/checkout@v4
+        with:
+          repository: johnsnowman488-oss/aberconics-framework
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          path: vendor/aberconics-framework
+      - name: Verify pinned source commit
+        working-directory: vendor/aberconics-framework
+        run: test "$(git rev-parse HEAD)" = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
+      - name: Configure and build native shared library
+        run: |
+          cmake -S "vendor/aberconics-framework/code/c++ core" \
+            -B "vendor/aberconics-framework/code/c++ core/build-shared" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
+            -DGFE_BUILD_TESTS=OFF -DGFE_BUILD_APPS=OFF
+          cmake --build "vendor/aberconics-framework/code/c++ core/build-shared" --parallel 2
+      - name: Verify and upload pinned native library
+        run: |
+          mkdir -p native
+          cp "vendor/aberconics-framework/code/c++ core/build-shared/libgfe_core.so" native/libgfe_core.so
+          test -s native/libgfe_core.so
+          sha256sum native/libgfe_core.so | tee native/libgfe_core.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: babi-task11-pinned-native-runtime
+          path: native/
+          if-no-files-found: error
+          retention-days: 90
+
+  persistent-resource-shards:
+    name: Task 11 persistent resource shard ${{ matrix.shard }}
+    needs: [prepare-task11, build-native]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout pinned Aberconics Python ABI
+        uses: actions/checkout@v4
+        with:
+          repository: johnsnowman488-oss/aberconics-framework
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          path: vendor/aberconics-framework
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download Task 11-only source and plan
+        uses: actions/download-artifact@v4
+        with:
+          name: babi-task11-resource-inputs
+          path: .
+      - name: Download pinned native runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: babi-task11-pinned-native-runtime
+          path: native
+      - name: Verify native runtime and ABI pin
+        run: |
+          test -s native/libgfe_core.so
+          sha256sum -c native/libgfe_core.sha256
+          test "$(git -C vendor/aberconics-framework rev-parse HEAD)" = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
+      - name: Measure persistent HLA/HLB learning across 32 successive Task 11 fit stories
+        env:
+          GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
+          GFE_ABERCONICS_COMMIT: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python scripts/run_babi_expansion_learning_microbenchmark.py \
+            --source-root data/babi-v1.2-expansion \
+            --output-root artifacts/task11-resource/shard-${{ matrix.shard }} \
+            --shard ${{ matrix.shard }} \
+            --python-abi-path vendor/aberconics-framework/code/python \
+            --plan artifacts/task11-resource-plan/task11-resource-plan.json
+          python - "artifacts/task11-resource/shard-${{ matrix.shard }}/task11-persistent-resource-shard-${{ matrix.shard }}.json" <<'PY'
+          import json, pathlib, sys
+          report = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          assert report["status"] == "PASS"
+          assert report["task_id"] == 11
+          assert report["story_count"] == 64
+          assert report["stories_per_architecture"] == 32
+          assert report["persistent_learner_per_architecture"] is True
+          assert report["labels_loaded"] == 0
+          assert report["official_test_queries"] == 0
+          assert report["confirmatory_labels_loaded"] == 0
+          assert all(row["state_sha256_after"] == row["state_sha256_after_restore"] for row in report["story_runs"])
+          PY
+      - name: Upload shard evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-task11-resource-shard-${{ matrix.shard }}
+          path: artifacts/task11-resource/shard-${{ matrix.shard }}/
+          if-no-files-found: warn
+          retention-days: 365
+
+  aggregate-resource:
+    name: Accept Task 11 persistent resource qualification
+    needs: [prepare-task11, persistent-resource-shards]
+    if: always() && needs.prepare-task11.result == 'success' && needs.persistent-resource-shards.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install research dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Download Task 11 resource plan
+        uses: actions/download-artifact@v4
+        with:
+          name: babi-task11-resource-inputs
+          path: .
+      - name: Download all four resource shards
+        uses: actions/download-artifact@v4
+        with:
+          pattern: babi-task11-resource-shard-*
+          path: artifacts/task11-resource-shards
+      - name: Verify persistent state growth, checkpoint recovery and label isolation
+        run: |
+          python scripts/aggregate_babi_expansion_learning_microbenchmark.py \
+            --plan artifacts/task11-resource-plan/task11-resource-plan.json \
+            --shard-dirs \
+              artifacts/task11-resource-shards/babi-task11-resource-shard-0 \
+              artifacts/task11-resource-shards/babi-task11-resource-shard-1 \
+              artifacts/task11-resource-shards/babi-task11-resource-shard-2 \
+              artifacts/task11-resource-shards/babi-task11-resource-shard-3 \
+            --output artifacts/task11-resource/task11-resource-aggregate.json
+      - name: Upload accepted Task 11 resource evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-task11-resource-acceptance
+          path: artifacts/task11-resource/
+          if-no-files-found: warn
+          retention-days: 365
