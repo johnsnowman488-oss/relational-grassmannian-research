@@ -203,8 +203,6 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
         run_config = _load(root / "per-run-config.json")
         if run_config.get("manifest_shard") != unit["shard"]:
             raise ValueError(f"{key}: per-run config shard differs from manifest")
-        if model_snapshot.get("manifest_shard") != unit["shard"]:
-            raise ValueError(f"{key}: model snapshot shard differs from manifest")
         if run_config.get("native_commit") != manifest["native_commit"]:
             raise ValueError(f"{key}: native runtime commit differs from manifest")
         if run_config.get("soe_feature_dims") != manifest["soe_feature_dims"]:
@@ -214,6 +212,8 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
         if run_config.get("top_down_gain") != manifest["top_down_gain"]:
             raise ValueError(f"{key}: top-down gain differs from manifest")
         model_snapshot = _load(root / "model-snapshot.json")
+        if model_snapshot.get("manifest_shard") != unit["shard"]:
+            raise ValueError(f"{key}: model snapshot shard differs from manifest")
         if model_snapshot.get("run_key") != key or model_snapshot.get("evaluator_labels_included") is not False:
             raise ValueError(f"{key}: answer model snapshot identity or label boundary invalid")
         if model_snapshot.get("top_down_gain") != manifest["top_down_gain"]:
