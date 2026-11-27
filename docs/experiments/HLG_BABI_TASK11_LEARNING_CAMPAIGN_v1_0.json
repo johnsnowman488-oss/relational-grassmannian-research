@@ -235,7 +235,7 @@
       "Full-scale reserved-seed resource preflight passes and its measured budget is archived.",
       "No Task 14/19 or frozen Task 3/5 source or campaign work is included."
     ],
-    "freeze_boundary": "Protocol freeze and campaign execution authorization are distinct. The workflow runs the full repository/Task 11 contract suite first, then the full-scale reserved-seed preflight. The 120-unit campaign units run only if both pass. The generated confirmatory challenge is produced only after validation-only candidate selection; its evaluator labels are opened only after all selected candidate predictions are frozen.",
+    "freeze_boundary": "Protocol freeze and campaign execution authorization are distinct. The workflow runs the full repository/Task 11 contract suite first, then the full-scale reserved-seed preflight. The campaign starts only if both pass; campaign-unit authorization remains false until the preflight acceptance job succeeds. The generated confirmatory challenge is produced only after validation-only candidate selection; its evaluator labels are opened only after all selected candidate predictions are frozen.",
     "campaign_units_authorized": false,
     "launch_allowed_meaning": "The gated workflow may execute contract tests and the reserved-seed full-scale preflight. This does not authorize any of the 120 campaign units; campaign_units_authorized remains false until the preflight acceptance job succeeds."
   },
