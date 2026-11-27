@@ -31,7 +31,13 @@ from rgm.leptograph.m4.learning import (
 from rgm.memory.soe import SOEMemory
 
 
-HLB_CAPACITY = 65536
+# HLB keeps all source evidence and source relations across all four phases
+# of one seed-condition. The frozen Task 3 input alone contains 154,786 events
+# across warm-start, online, validation and confirmatory partitions. Task 5
+# contributes 73,971 projected relation records because GIVE has two roles.
+# 262,144 leaves headroom; run_campaign also checks exact input requirements
+# before starting so later dataset growth cannot silently exhaust this journal.
+HLB_CAPACITY = 262144
 ELIGIBILITY_CAPACITY = 131072
 SOE_DT = 0.01
 # The pinned H0 native chain requires equal native state dimensions across
@@ -95,6 +101,23 @@ def _model_state(learning: LearningRuntime) -> dict[str, Any]:
 
 def model_fingerprint(learning: LearningRuntime) -> str:
     return _digest_json(_model_state(learning))
+
+
+def _capacity_requirements(*story_phases) -> dict[str, int]:
+    """Count the persistent HLB source records required by the complete campaign."""
+    event_count = 0
+    relation_count = 0
+    for phase in story_phases:
+        for story, _labels in phase:
+            event_count += len(story.events)
+            relation_count += sum(
+                len(_make_relations(event, "capacity-preflight"))
+                for event in story.events
+            )
+    return {
+        "source_event_count": event_count,
+        "source_relation_count": relation_count,
+    }
 
 
 def _load_stories(input_path: Path, labels_path: Path | None = None) -> list[tuple[StructuredStory, dict[str, dict[str, Any]]]]:
@@ -757,6 +780,27 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         "native_runtime_commit": __import__("os").environ.get("GFE_ABERCONICS_COMMIT"),
         "native_library_sha256": hashlib.sha256(native_path.read_bytes()).hexdigest()
             if native_path.exists() else None,
+    }
+    capacity_requirements = _capacity_requirements(warm, online, validation, confirmatory)
+    if architecture == "HLB":
+        required_capacity = max(
+            capacity_requirements["source_event_count"],
+            capacity_requirements["source_relation_count"],
+        )
+        if required_capacity > HLB_CAPACITY:
+            raise RuntimeError(
+                "HLB capacity preflight failed before execution: "
+                f"requires {capacity_requirements['source_event_count']} source events and "
+                f"{capacity_requirements['source_relation_count']} source relations, "
+                f"configured capacity is {HLB_CAPACITY}"
+            )
+    source_manifest["campaign_capacity"] = {
+        **capacity_requirements,
+        "configured_hlb_capacity": HLB_CAPACITY,
+        "preflight_passed": architecture != "HLB" or max(
+            capacity_requirements["source_event_count"],
+            capacity_requirements["source_relation_count"],
+        ) <= HLB_CAPACITY,
     }
     variants = list(CHANNELS) if variants is None else list(variants)
     if not variants or len(variants) != len(set(variants)) or any(v not in CHANNELS for v in variants):
