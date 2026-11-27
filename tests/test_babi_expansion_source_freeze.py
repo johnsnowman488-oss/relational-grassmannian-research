@@ -13,11 +13,11 @@ SPEC.loader.exec_module(MODULE)
 
 def test_task19_audit_keeps_ordered_direction_answer_and_local_supports():
     source = (
-        "1 The garden is north of the kitchen.\\n"
-        "2 The office is east of the garden.\\n"
-        "3 What is the path from the kitchen to the office?\\tnorth east\\t1 2\\n"
-        "1 Mary moved to the hallway.\\n"
-        "2 Where is Mary?\\thallway\\t1\\n"
+        "1 The garden is north of the kitchen.\n"
+        "2 The office is east of the garden.\n"
+        "3 What is the path from the kitchen to the office?\tnorth east\t1 2\n"
+        "1 The kitchen is south of the garden.\n"
+        "2 What is the path back?\tsouth\t1\n"
     ).encode()
     audit = MODULE.audit_member(
         source, task_id=19, member_name="qa19_path-finding_train.txt"
@@ -31,9 +31,9 @@ def test_task19_audit_keeps_ordered_direction_answer_and_local_supports():
 
 def test_support_reference_cannot_point_to_future_or_question_line():
     source = (
-        "1 Mary moved to the bathroom.\\n"
-        "2 Where is Mary?\\tbathroom\\t3\\n"
-        "3 John went to the hallway.\\n"
+        "1 Mary moved to the bathroom.\n"
+        "2 Where is Mary?\tbathroom\t3\n"
+        "3 John went to the hallway.\n"
     ).encode()
     with pytest.raises(MODULE.SourceAuditError, match="support IDs"):
         MODULE.audit_member(
@@ -43,11 +43,11 @@ def test_support_reference_cannot_point_to_future_or_question_line():
 
 def test_support_reference_cannot_cross_story_boundary():
     source = (
-        "1 Mary moved to the bathroom.\\n"
-        "2 Where is Mary?\\tbathroom\\t1\\n"
-        "1 John went to the hallway.\\n"
-        "2 Where is John?\\thallway\\t1\\n"
-        "3 Where is Mary?\\tbathroom\\t1\\n"
+        "1 Mary moved to the bathroom.\n"
+        "2 Where is Mary?\tbathroom\t1\n"
+        "1 John went to the hallway.\n"
+        "2 Where is John?\thallway\t3\n"
+        "3 Where is Mary?\tbathroom\t1\n"
     ).encode()
     audit = MODULE.audit_member(
         source, task_id=11, member_name="qa11_basic-coreference_train.txt"
@@ -58,8 +58,8 @@ def test_support_reference_cannot_cross_story_boundary():
 
 def test_task19_rejects_destination_only_or_non_direction_answers():
     source = (
-        "1 The garden is north of the kitchen.\\n"
-        "2 What is the path?\\tgarden\\t1\\n"
+        "1 The garden is north of the kitchen.\n"
+        "2 What is the path?\tgarden\t1\n"
     ).encode()
     with pytest.raises(MODULE.SourceAuditError, match="ordered cardinal-direction"):
         MODULE.audit_member(
@@ -69,8 +69,8 @@ def test_task19_rejects_destination_only_or_non_direction_answers():
 
 def test_line_numbers_must_be_contiguous_and_story_scoped():
     source = (
-        "1 Mary moved to the bathroom.\\n"
-        "3 Where is Mary?\\tbathroom\\t1\\n"
+        "1 Mary moved to the bathroom.\n"
+        "3 Where is Mary?\tbathroom\t1\n"
     ).encode()
     with pytest.raises(MODULE.SourceAuditError, match="expected story-local line"):
         MODULE.audit_member(
@@ -79,5 +79,5 @@ def test_line_numbers_must_be_contiguous_and_story_scoped():
 
 
 def test_git_blob_crosscheck_uses_git_object_header():
-    payload = b"bAbI source\\n"
-    assert MODULE.git_blob_sha1(payload) == "553b5fd764f7087f9ea68a5b7df50be90031aa05"
+    payload = b"bAbI source\n"
+    assert MODULE.git_blob_sha1(payload) == "3d84619b180f58ebd0f11845637315bbe4463d0c"
