@@ -292,6 +292,8 @@ def evaluate_baselines(
                     "The official bAbI Task 11 answer labels do not annotate antecedent edges; "
                     "coreference-edge metrics require a separately reviewed target-label stream."
                 )
+            if task_id == 14 and target_scored_queries:
+                target_metric["temporal_relation_exact_match"] = target_exact_queries / target_scored_queries
             if task_id == 19 and path_scored_queries:
                 target_metric["ordered_path_exact_match"] = path_exact_queries / path_scored_queries
 
