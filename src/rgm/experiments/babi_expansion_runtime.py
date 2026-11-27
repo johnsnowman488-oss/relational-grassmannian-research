@@ -82,7 +82,7 @@ def to_nary_event(story: ExpansionStory, event: Any) -> NaryEvent:
             Participant("destination", event.destination, "location"),
             Participant("temporal_anchor", event.temporal_anchor, "time_anchor"),
         )
-        event_time = float(event.event_time[0])
+        event_time = float(event.event_time[0]) / 1000.0
         observed_at = float(event.observed_at)
         locator = event.source_ref
         payload = {"event_id": event.event_id, "actor": event.actor,
