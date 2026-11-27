@@ -13,6 +13,9 @@ on:
       - "scripts/run_babi_learning_campaign.py"
       - "scripts/annotate_babi_structured.py"
       - "scripts/generate_babi_confirmatory.py"
+      - "src/rgm/leptograph/m4/evidence.py"
+      - "src/rgm/leptograph/m4/hierarchical.py"
+      - "src/rgm/leptograph/m4/learning.py"
       - ".github/workflows/h1-babi-learning-campaign.yml"
   pull_request:
     branches: ["research/h1-learning-runtime-integration"]
@@ -23,6 +26,9 @@ on:
       - "scripts/run_babi_learning_campaign.py"
       - "scripts/annotate_babi_structured.py"
       - "scripts/generate_babi_confirmatory.py"
+      - "src/rgm/leptograph/m4/evidence.py"
+      - "src/rgm/leptograph/m4/hierarchical.py"
+      - "src/rgm/leptograph/m4/learning.py"
       - ".github/workflows/h1-babi-learning-campaign.yml"
 
 # Serialize campaign runs for this head branch, but never cancel an in-flight run.
@@ -102,9 +108,10 @@ jobs:
     name: Task ${{ matrix.task }} — ${{ matrix.architecture }}
     needs: [prepare-data, build-native]
     runs-on: ubuntu-latest
-    # Allow the full 10-seed x 6-condition matrix to finish; each completed
-    # condition is checkpointed for recovery if this ceiling is reached.
-    timeout-minutes: 360
+    # The recovery-branch baseline pilot is capped at 90 minutes. The
+    # full matched campaign retains a six-hour ceiling, with incremental
+    # story/phase progress and completed-condition evidence uploads.
+    timeout-minutes: ${{ github.ref_name == 'research/h1-babi-execution-recovery-v1' && 90 || 360 }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -150,7 +157,7 @@ jobs:
           sha256sum -c native/libgfe_core.sha256
           test -s artifacts/babi-structured/annotation-manifest.json
           test -s artifacts/babi-confirmatory/confirmatory-input-manifest.json
-      - name: Run ten-seed matched campaign and six ablations
+      - name: Run selected matched campaign seed-condition set
         env:
           GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
           PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
