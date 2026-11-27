@@ -142,3 +142,51 @@ The protocol is frozen in `HLG_BABI_EXPANSION_LEARNING_CAMPAIGN_v1_0.json` and i
 - Official test labels remain sealed. Task 3/5 remains frozen and isolated.
 
 **Important:** this freezes the protocol only. No learning run, validation campaign or confirmatory campaign is authorized or launched. Remaining launch gates are baseline implementation, nested warm-start/online partitioning, four-shard failure/retry/evidence preflight, measured resource budgets, generated-confirmatory protocol and explicit authorization.
+
+
+## 11. Current preflight work and execution boundary — 2026-11-27
+
+This section supersedes earlier "remaining Phase B" wording where it conflicts with the later Phase C acceptance record. Historical sections are retained as the development sequence, not as the current status.
+
+**Current workstream:** continue only on `research/babi-task-expansion-v1`. The frozen Task 3/5 campaign is parked and must remain untouched. No Task 11/14/19 learning campaign has been launched or authorized.
+
+### Accepted foundation (do not re-open without a concrete defect)
+
+- Phase B source-wide adapter acceptance passed: Tasks 11, 14 and 19; 10,000/10,000 deterministic oracle matches per task, zero quarantines, whole-story 90/10 fit/validation partitions, and official test data parsed label-free.
+- Phase C runtime/prediction-contract integration passed. PR #53 merged at `0e4da940644033b784fc65a4ef2b4ab64b66f7ba`; recorded CI matrix passed on Python 3.10 and 3.12, including expansion runtime/protocol, integrated evidence lifecycle and frozen Task 3/5 regression tests.
+- The first-wave protocol remains frozen: Tasks 11/14/19 × HLA/HLB × six conditions × ten seeds (953100–953109), 360 run units, four shards of 90, and 3.6 million fit-plus-validation query presentations. Protocol freeze is not execution authorization.
+
+### Preflight implementation progress
+
+The latest recorded implementation work has advanced beyond the original Phase C "remaining gates" list:
+
+1. **Task 11 leakage boundary:** implementation work separates raw mention observations from inferred antecedent/entity bindings. Equivalent leakage-boundary audit is required for Tasks 14 and 19; do not treat Task 11 completion as closing all three audits.
+2. **Independent baselines:** reviewed non-oracle baseline predictors are being added as an independent suite. Existing symbolic adapter/oracle predictors and source-audit predictors must not be counted as the full reviewed baseline suite.
+3. **Nested partitions and deterministic workload:** deterministic partition/shard machinery is being added so warm-start and online adaptation are nested and whole-story safe, with deterministic unit assignment and reproducible aggregation.
+4. **Four-worker preflight:** CI matrix/wiring and dry-run evidence are still required. A manifest describing four shards is not proof that four workers execute, retry, preserve evidence and aggregate correctly.
+5. **Resource preflight:** runtime, throughput, peak memory and storage must be measured on representative workloads and compared with declared budgets. Estimates alone do not pass this gate.
+6. **Confirmatory protocol:** a separate generated-challenge manifest has been versioned with fixed seeds, story counts and SHA-256 provenance. Its generator, label separation, reproducibility and challenge validity still require CI verification before it can be treated as accepted.
+
+The latest recorded work note says the confirmatory manifest uses three fixed seeds and 384 stories per task. This is a preflight specification under verification; it does not replace or silently alter the frozen ten-seed learning protocol. Record exact manifest path, hash, CI run and generated outputs when verified.
+
+### Remaining gates before campaign authorization
+
+- Finish and test the Task 11 raw-mention/inferred-binding separation; audit equivalent boundaries for Tasks 14 and 19.
+- Complete and independently evaluate the reviewed non-oracle baseline suite on the exact task-specific partitions.
+- Prove nested warm-start/online partitions are disjoint at whole-story granularity and preserve all frozen hashes.
+- Pass a real four-worker dry run covering shard assignment, retries, failure recovery, evidence completeness, idempotence and deterministic aggregation.
+- Complete measured resource preflight for runtime, throughput, peak memory and storage.
+- Verify and freeze the separate generated-confirmatory challenge: specification, generator, fixed seeds, story counts, input/label separation and hashes.
+- Run all CI and preflight acceptance checks successfully, inspect their artifacts, and record the exact commit/run IDs and artifact hashes.
+- Obtain explicit user authorization before any learning or confirmatory campaign is launched.
+
+**No-go rule:** any failed, missing, cancelled, incomplete or unverified gate keeps `execution_authorized=false`. Do not launch the 360-unit campaign merely because adapter/runtime CI passes or because the protocol and manifests exist.
+
+### Research interpretation guardrails
+
+- Adapter oracle agreement validates deterministic parsing/semantics for the source grammar; it is not evidence of learned capability.
+- Runtime contract tests validate integration and lifecycle behavior; they do not demonstrate generalisation.
+- Baseline comparisons must be non-oracle and independently evaluated. Oracle upper bounds must remain clearly labelled and excluded from competitive baseline claims.
+- Report task-specific results separately; do not pool Tasks 11, 14 and 19 into a score that conceals a failed capability.
+- Preserve official test labels as evaluator-only and keep generated-confirmatory evidence separate from official test evidence.
+- Do not modify the frozen Task 3/5 branch, protocol, artifacts or thresholds as part of this workstream.
