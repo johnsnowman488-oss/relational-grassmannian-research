@@ -376,7 +376,7 @@ def test_task11_persistent_sequence_retains_learning_state_without_cross_story_b
 
         # The second story's pronoun cannot inherit the first story's Mary
         # binding; it remains source evidence but receives no weak target.
-        raw, = runtime.recover_witness("p2-m1", observation_cutoff=3.0)
+        raw, = runtime.recover_witness("p2-m1", observation_cutoff=4.0)
         assert raw.role("mention").entity_id == "she"
         assert not any(p.role in {"entity", "antecedent_event"} for p in raw.participants)
         if kind == "HLB":
