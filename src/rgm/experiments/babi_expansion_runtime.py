@@ -27,6 +27,16 @@ from rgm.leptograph.m4.learning import (
 
 
 @dataclass(frozen=True)
+class Task11SupervisionBundle:
+    """Evaluator/training target bundle; never accepted by evidence ingestion."""
+    query_id: str
+    l0_mention_binding: dict[str, Any]
+    l1_coreference_edge: dict[str, Any]
+    l2_entity_state: dict[str, Any]
+    source_ref: str
+
+
+@dataclass(frozen=True)
 class TaskTargetContract:
     task_id: int
     l0: TargetSchema
@@ -69,12 +79,14 @@ def to_nary_event(story: ExpansionStory, event: Any) -> NaryEvent:
             Participant("mention", event.surface_mention,
                         "pronoun" if event.is_pronoun else "name"),
             Participant("location", event.location, "location"),
-        )
+        ) + ((Participant("grammatical_gender", event.grammatical_gender, "attribute"),)
+             if event.grammatical_gender is not None else ())
         event_time = float(event.observed_at)
         observed_at = float(event.observed_at)
         locator = event.source_ref
         payload = {"event_id": event.event_id, "mention": event.surface_mention,
-                   "pronoun": event.is_pronoun, "location": event.location}
+                   "pronoun": event.is_pronoun, "location": event.location,
+                   "grammatical_gender": event.grammatical_gender}
     elif story.task_id == 14 and isinstance(event, Task14TemporalEvent):
         event_type = "TEMPORAL_LOCATION_EVENT"
         participants = (
@@ -259,6 +271,33 @@ class BabiExpansionRuntime:
         return self.evidence.recover(event_id, observation_cutoff=observation_cutoff)
 
 
+def task11_supervision_from_evaluator_label(
+    query: ExpansionQuery, evaluator_label: Mapping[str, Any],
+) -> Task11SupervisionBundle:
+    """Materialize task targets from a sealed label, outside runtime ingestion.
+
+    Task 11 source bAbI labels do not contain gold antecedent edges. The generated
+    confirmatory stream supplies explicit L0/L1/L2 targets, but remains sealed
+    from the runtime until forecasts have been issued.
+    """
+    if query.task_id != 11 or evaluator_label.get("query_id") != query.query_id:
+        raise ValueError("Task 11 supervision query/label identity mismatch")
+    target = evaluator_label.get("task11_supervision")
+    required = {"l0_mention_binding", "l1_coreference_edge", "l2_entity_state"}
+    if not isinstance(target, dict) or set(target) != required:
+        raise ValueError("Task 11 evaluator label has an incomplete target-supervision bundle")
+    l0, l1, l2 = (target["l0_mention_binding"], target["l1_coreference_edge"],
+                  target["l2_entity_state"])
+    if not all(isinstance(row, dict) for row in (l0, l1, l2)):
+        raise ValueError("Task 11 supervision targets must be structured objects")
+    if l0.get("entity_id") != query.entity or l2.get("entity_id") != query.entity:
+        raise ValueError("Task 11 supervision target entity does not match query")
+    source_ref = str(evaluator_label.get("source_ref", ""))
+    if not source_ref:
+        raise ValueError("Task 11 supervision source provenance is required")
+    return Task11SupervisionBundle(query.query_id, l0, l1, l2, source_ref)
+
+
 class ExpansionForecasts:
     """Evaluator-separated task-specific prediction lifecycle over the H1 journal."""
     def __init__(self, task_id: int):
@@ -318,6 +357,29 @@ class ExpansionForecasts:
                 prediction_id, target, schema, evaluated_tick=evaluated_tick,
             ).__dict__
         return scored
+
+    def score_task11_supervision(
+        self, query: ExpansionQuery, supervision: Task11SupervisionBundle, *,
+        evaluated_tick: int, observed_at: float,
+    ) -> dict[str, Any]:
+        """Score L0/L1/L2 only after forecasts; this does not ingest labels as evidence."""
+        if self.contract.task_id != 11 or supervision.query_id != query.query_id:
+            raise ValueError("Task 11 supervision cannot be scored against this forecast")
+        if observed_at <= float(query.observed_at) or evaluated_tick <= query.observed_at:
+            raise ValueError("Task 11 supervision must be observed strictly after the query cutoff")
+        targets = {
+            "L0": supervision.l0_mention_binding,
+            "L1": supervision.l1_coreference_edge,
+            "L2": supervision.l2_entity_state,
+        }
+        return {
+            level: self.score_level_target(
+                query, level, value=value, source_id=supervision.source_ref,
+                event_time=float(query.observed_at), observed_at=observed_at,
+                observed_tick=evaluated_tick,
+            )
+            for level, value in targets.items()
+        }
 
     def score_level_target(self, query: ExpansionQuery, level: str, *,
                            value: Any, source_id: str, event_time: float,
