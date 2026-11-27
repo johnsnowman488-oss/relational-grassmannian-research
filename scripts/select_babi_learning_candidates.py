@@ -138,6 +138,11 @@ def main() -> int:
                      f"{key}: confirmatory evaluation occurred before candidate selection")
             _require(result.get("candidate_accepted_on_validation") is True,
                      f"{key}: validation acceptance gates failed")
+            _require(result.get("warm_start_score_only_fingerprint_stable") is True,
+                     f"{key}: score-only warm-start dynamics mutated fitted learner parameters")
+            _require(result.get("warm_start_fingerprint_before_score_only")
+                     == result.get("warm_start_fingerprint_after_score_only"),
+                     f"{key}: warm-start fingerprint mismatch")
             _require(result.get("candidate_fingerprint_after_validation") == result.get("candidate_fingerprint"),
                      f"{key}: score-only validation mutated candidate fingerprint")
             _require(result["source_manifest"].get("implementation_commit"),
@@ -156,6 +161,11 @@ def main() -> int:
                 _require(capacity["configured_hlb_capacity"] == 262144
                          and capacity["preflight_passed"] is True,
                          f"{key}: HLB capacity preflight failed")
+                _require(result["runtime"]["hlb_evidence_count"]
+                         == result["source_manifest"]["campaign_capacity"]["source_event_count"]
+                         and result["runtime"]["hlb_relation_count"]
+                         == result["source_manifest"]["campaign_capacity"]["source_relation_count"],
+                         f"{key}: HLB evidence totals do not match the frozen input workload")
                 _require(result["runtime"]["hlb_evidence_count"] <= 262144
                          and result["runtime"]["hlb_relation_count"] <= 262144,
                          f"{key}: HLB capacity exceeded")
@@ -186,6 +196,14 @@ def main() -> int:
                          f"candidate fingerprint parity failed: task {task} seed {seed} {variant}")
                 _require(hla["online_learner_state_changed"] == hlb["online_learner_state_changed"],
                          f"learner update parity failed: task {task} seed {seed} {variant}")
+                for field in (
+                    "task_input_sha256", "annotation_manifest_sha256",
+                    "confirmatory_manifest_sha256", "campaign_manifest_sha256",
+                    "protocol_document_sha256", "native_runtime_commit",
+                    "native_library_sha256",
+                ):
+                    _require(hla["source_manifest"].get(field) == hlb["source_manifest"].get(field),
+                             f"source provenance parity failed: task {task} seed {seed} {variant} {field}")
                 for phase_name in ("warm_start_dynamics", "online_adaptation", "validation"):
                     _phase_parity(hla["phases"][phase_name], hlb["phases"][phase_name],
                                   f"task{task}/{seed}/{variant}/{phase_name}")
