@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Acquire and audit bAbI v1.2.0 en-10k members for Tasks 11, 14 and 19.
 
-The experiment consumes six selected source members, not the complete archive.
+The experiment consumes only the explicitly selected source members, not the complete archive.
 This downloader obtains a fresh, commit-pinned external copy of those exact
 members from an independent GitHub mirror and verifies each against its Git
 blob identity before auditing. It is independent of the frozen Task 3/5 path.
@@ -313,7 +313,7 @@ def freeze(output: Path, task_ids: tuple[int, ...] | None = None) -> dict:
             "archive_note": (
                 "The Hugging Face dataset repository's documented tarball LFS "
                 "pointer returned HTTP 404 at the attempted resolve endpoint. "
-                "Instead, the six selected source members were downloaded "
+                "Instead, the selected source members were downloaded "
                 "individually from an immutable external Git commit and verified "
                 "against that commit's Git blob identities. No archive-byte "
                 "verification is claimed."
