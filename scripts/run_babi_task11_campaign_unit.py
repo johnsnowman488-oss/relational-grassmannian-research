@@ -232,6 +232,26 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
 
         fit_model_state = _learning_state(adapter)
         fit_model_fingerprint = _digest(fit_model_state)
+        # Freeze the architecture-specific answer model before any validation
+        # story is ingested. This is the only model snapshot eligible for the
+        # later, once-only confirmatory phase.
+        model_snapshot = {
+            "schema": "HLG-BABI-TASK11-ANSWER-MODEL-SNAPSHOT-v1",
+            "run_key": run_key,
+            "architecture": architecture,
+            "condition": condition,
+            "seed": seed,
+            "fit_model_fingerprint": fit_model_fingerprint,
+            "context_transitions": adapter.learning.context_transitions.snapshot(),
+            "hlb_model_relations": (
+                adapter.store.snapshot() if architecture == "HLB" else None
+            ),
+            "source_sha256": manifest["source"]["sha256"],
+            "manifest_sha256": manifest["manifest_sha256"],
+            "protocol_sha256": manifest["protocol_sha256"],
+            "evaluator_labels_included": False,
+        }
+        _write_json(output_root / "model-snapshot.json", model_snapshot)
         runtime.learning_enabled = False
         validation_started = time.perf_counter()
         decisions = {}
