@@ -13,7 +13,8 @@ import json
 
 from rgm.experiments.babi_expansion_adapters import (
     ExpansionStory, ExpansionQuery, GoldLabel, Task11MentionEvent,
-    Task14TemporalEvent, Task19SpatialEdge,
+    Task11TrainingBinding, Task14TemporalEvent, Task19SpatialEdge,
+    derive_task11_training_bindings,
 )
 from rgm.leptograph.m4.evidence import EvidenceStore, NaryEvent, Participant
 from rgm.leptograph.m4.composition import Entity, RelationInstance, RelationType
@@ -67,6 +68,61 @@ def target_contract(task_id: int) -> TaskTargetContract:
 def _canonical_digest(value: Mapping[str, Any]) -> str:
     payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _task11_learning_event(
+    source_event: NaryEvent, binding: Task11TrainingBinding, *, context: str,
+) -> NaryEvent:
+    """Build a derived target for the learner journal, never for source evidence."""
+    participants = source_event.participants + (
+        Participant("entity", binding.entity_id, "entity"),
+        Participant("antecedent_event", binding.antecedent_event_id, "mention_event"),
+    )
+    payload = {
+        "source_event_id": source_event.event_id,
+        "mention_event_id": binding.mention_event_id,
+        "antecedent_event_id": binding.antecedent_event_id,
+        "entity_id": binding.entity_id,
+        "source_ref": binding.source_ref,
+        "target_kind": binding.target_kind,
+        "rule_id": binding.rule_id,
+        "gold": binding.is_gold,
+    }
+    return NaryEvent(
+        event_id=f"{source_event.event_id}:task11-learning-target",
+        event_type="TASK11_MENTION_BINDING_TARGET",
+        participants=participants,
+        event_time=source_event.event_time,
+        observed_at=source_event.observed_at,
+        provenance=f"derived-learning-target:{binding.rule_id}",
+        source_locator=binding.source_ref,
+        payload_digest=_canonical_digest(payload),
+        context=context,
+    )
+
+
+def _task11_learning_relation(
+    source_event: NaryEvent,
+    binding: Task11TrainingBinding,
+    antecedent_source_ref: str,
+    *,
+    context: str,
+) -> RelationInstance:
+    """Build a typed L1 target for the learner only; never add it to HLB relation storage."""
+    return RelationInstance(
+        instance_id=f"{source_event.event_id}:task11-coreference-target",
+        relation_type=RelationType(
+            "corefers_with", "mention_event", "mention_event",
+        ),
+        subject=Entity(source_event.event_id, "mention_event"),
+        object=Entity(binding.antecedent_event_id, "mention_event"),
+        event_time=source_event.event_time,
+        observed_at=source_event.observed_at,
+        context=context,
+        provenance=(
+            f"{binding.source_ref}|{antecedent_source_ref}|{binding.rule_id}"
+        ),
+    )
 
 
 def to_nary_event(story: ExpansionStory, event: Any) -> NaryEvent:
@@ -231,6 +287,15 @@ class BabiExpansionRuntime:
         self._story_id, self._task_id = story.story_id, story.task_id
         outputs = []
         temporal_history: list[Task14TemporalEvent] = []
+        task11_bindings_by_id = {}
+        task11_events_by_id = {}
+        if story.task_id == 11:
+            binding_report = derive_task11_training_bindings(story)
+            task11_bindings_by_id = {
+                binding.mention_event_id: binding
+                for binding in binding_report["targets"]
+            }
+            task11_events_by_id = {event.event_id: event for event in story.events}
         for event in story.events:
             nary = to_nary_event(story, event)
             status = self._admission.append(nary)
@@ -250,6 +315,37 @@ class BabiExpansionRuntime:
                 story, event, prior_temporal_events=tuple(temporal_history),
             )
             learning_relations = (relations[0],) if relations else ()
+            learning_nary_events = None
+            suppress_context_learning = False
+            prediction_context = f"task{story.task_id}:pre:{event.event_id}"
+            observed_context = f"task{story.task_id}:{type(event).__name__}"
+            if story.task_id == 11 and isinstance(event, Task11MentionEvent):
+                binding = task11_bindings_by_id.get(event.event_id)
+                if binding is None:
+                    # Preserve the source event, but an ambiguous/unresolved
+                    # pronoun contributes no invented L0/L1/L2 learning target.
+                    learning_nary_events = ()
+                    learning_relations = ()
+                    prediction_context = f"task11:unresolved:{event.event_id}"
+                    observed_context = None
+                    suppress_context_learning = True
+                else:
+                    entity_context = f"task11:entity:{binding.entity_id}"
+                    learning_nary_events = (
+                        _task11_learning_event(nary, binding, context=entity_context),
+                    )
+                    if binding.target_kind == "weak_coreference":
+                        antecedent = task11_events_by_id[binding.antecedent_event_id]
+                        learning_relations = (
+                            _task11_learning_relation(
+                                nary, binding, antecedent.source_ref,
+                                context=entity_context,
+                            ),
+                        )
+                    else:
+                        learning_relations = ()
+                    prediction_context = entity_context
+                    observed_context = f"location:{event.location}"
             if isinstance(event, Task14TemporalEvent):
                 temporal_history.append(event)
             result = self.director.exchange(
@@ -259,8 +355,10 @@ class BabiExpansionRuntime:
                     if isinstance(self.adapter, HLBAdapter) else (),
                 learning_relations=learning_relations,
                 nary_events=(nary,),
-                prediction_context=f"task{story.task_id}:pre:{event.event_id}",
-                observed_context=f"task{story.task_id}:{type(event).__name__}",
+                learning_nary_events=learning_nary_events,
+                prediction_context=prediction_context,
+                observed_context=observed_context,
+                suppress_context_learning=suppress_context_learning,
                 learn=self.learning_enabled,
             )
             outputs.append({"event_id": nary.event_id, "status": status,
