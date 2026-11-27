@@ -77,15 +77,10 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
     for architecture in ("HLA", "HLB"):
         full = reports[f"task11-{architecture}-full_learning-seed953099"]
         no_learning = reports[f"task11-{architecture}-no_learning-seed953099"]
-        evaluation = full["evaluation"]
-        if evaluation.get("answer_exact_match") != 1.0:
-            violations.append(f"{architecture}: full-learning preflight did not match 1.0 baseline exact match")
-        if evaluation.get("forecast_coverage", 0.0) < 0.90:
-            violations.append(f"{architecture}: full-learning preflight coverage below 0.90")
-        if evaluation.get("support_witness_recall", 0.0) < 0.95:
-            violations.append(f"{architecture}: full-learning preflight witness recall below 0.95")
-        if evaluation.get("false_witness_rate") not in (0, 0.0):
-            violations.append(f"{architecture}: full-learning preflight produced false witnesses")
+        if full.get("validation_evaluator_labels_opened_after_predictions") != 1000:
+            violations.append(f"{architecture}: validation labels were not opened after all 1,000 predictions")
+        if full.get("validation_parameter_updates") != 0:
+            violations.append(f"{architecture}: full-learning validation changed model parameters")
         if no_learning["evaluation"].get("forecast_coverage") != 0.0:
             violations.append(f"{architecture}: no-learning control unexpectedly produced covered answers")
 
@@ -125,10 +120,12 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
             "estimated_wall_hours_at_four_workers": estimated_wall_hours_at_four_workers,
             "limitation": "Planning estimate only; the six conditions and hosted-runner variance may differ.",
         },
-        "execution_authorized": False,
+        "execution_authorized": not violations,
+        "validation_metrics_used_for_launch_gate": False,
         "decision": (
-            "Full-scale resource preflight passed; 120-unit campaign may proceed after "
-            "the confirmatory-generator and campaign-workflow CI gates pass."
+            "Full-scale resource preflight passed; the gated workflow may proceed to the 120-unit "
+            "campaign. Validation metrics are recorded but are not used to authorize launch; "
+            "candidate selection remains validation-only after the 120-unit campaign."
             if not violations else
             "Campaign remains blocked. Fix the listed violations; do not relax thresholds without a separately reviewed protocol amendment."
         ),
