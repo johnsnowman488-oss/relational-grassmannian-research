@@ -17,7 +17,7 @@ def test_task19_audit_keeps_ordered_direction_answer_and_local_supports():
         "2 The office is east of the garden.\n"
         "3 What is the path from the kitchen to the office?\tn,e\t1 2\n"
         "1 The kitchen is south of the garden.\n"
-        "2 What is the path back?\tsouth\t1\n"
+        "2 What is the path back?\ts\t1\n"
     ).encode()
     audit = MODULE.audit_member(
         source, task_id=19, member_name="qa19_path-finding_train.txt"
