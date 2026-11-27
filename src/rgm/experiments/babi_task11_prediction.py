@@ -30,12 +30,12 @@ class Task11AnswerDecision:
 
 def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
                                       query: ExpansionQuery) -> Task11AnswerDecision:
-    """Answer only when learned L2 context agrees with current grounded state.
+    """Replay a story-local entity transition chain through the learned L2 model.
 
-    The model's context-transition learner must predict a location for the
-    queried entity. The current story must independently contain a prior-only,
-    unambiguous weak-binding chain for that entity and a matching source event.
-    Otherwise the predictor abstains. It never accepts or reads a GoldLabel.
+    Each observed mention must be predicted by the learned transition keyed by
+    the entity and its preceding location state. The observed location confirms
+    that transition; a missing or conflicting model transition causes abstention.
+    The resolver is prior-only and conservative, and no GoldLabel is accepted.
     """
     if story.task_id != 11 or query.task_id != 11:
         raise ValueError("Task 11 predictor received another task's input")
@@ -55,39 +55,45 @@ def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
             None, model_fingerprint, (),
         )
 
-    context_key = f"task11:entity:{query.entity}"
-    model_context = adapter.learning.context_transitions.predict(context_key)
-    if not isinstance(model_context, str) or not model_context.startswith("location:"):
-        return Task11AnswerDecision(
-            Prediction(None, (), True, "learned_context_unavailable"),
-            model_context, model_fingerprint, (),
-        )
-
     bindings = derive_task11_training_bindings(story)
     binding_by_event = {row.mention_event_id: row for row in bindings["targets"]}
-    grounded = []
-    for event in visible:
-        binding = binding_by_event.get(event.event_id)
-        if binding is not None and binding.entity_id == query.entity:
-            grounded.append(event)
+    grounded = [
+        event for event in visible
+        if (binding := binding_by_event.get(event.event_id)) is not None
+        and binding.entity_id == query.entity
+    ]
     if not grounded:
         return Task11AnswerDecision(
             Prediction(None, (), True, "entity_has_no_unambiguous_story_binding"),
-            model_context, model_fingerprint, (),
+            None, model_fingerprint, (),
         )
 
-    latest = max(grounded, key=lambda event: event.observed_at)
-    observed_context = f"location:{latest.location}"
-    if model_context != observed_context:
-        return Task11AnswerDecision(
-            Prediction(None, (), True, "learned_context_conflicts_with_story_evidence"),
-            model_context, model_fingerprint, tuple(event.event_id for event in grounded),
+    previous_location = None
+    model_context = None
+    witnesses = []
+    for event in grounded:
+        previous_key = previous_location if previous_location is not None else "__START__"
+        context_key = (
+            f"task11:entity:{query.entity}:from:{previous_key}"
         )
+        model_context = adapter.learning.context_transitions.predict(context_key)
+        observed_context = f"location:{event.location}"
+        if not isinstance(model_context, str) or not model_context.startswith("location:"):
+            return Task11AnswerDecision(
+                Prediction(None, (), True, "learned_transition_unavailable"),
+                model_context, model_fingerprint, tuple(witnesses),
+            )
+        if model_context != observed_context:
+            return Task11AnswerDecision(
+                Prediction(None, (), True, "learned_transition_conflicts_with_story_evidence"),
+                model_context, model_fingerprint, tuple(witnesses),
+            )
+        previous_location = event.location
+        witnesses.append(event.event_id)
 
-    witnesses = tuple(event.event_id for event in grounded)
     return Task11AnswerDecision(
-        Prediction(latest.location, witnesses, False),
-        model_context, model_fingerprint, tuple(event.event_id for event in grounded),
+        Prediction(previous_location, tuple(witnesses), False),
+        model_context, model_fingerprint, tuple(witnesses),
     )
 
 
