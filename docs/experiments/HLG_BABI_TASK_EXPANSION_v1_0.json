@@ -367,7 +367,7 @@
     },
     "candidate_selection": "task-specific validation only; no pooled cross-task ranking",
     "confirmatory": "separate per-task fixed-seed generated challenge after task-specific candidate freeze",
-    "execution_gate": "Protocol frozen only. No execution until task-specific baselines, nested warm-start/online partitioning, four-shard failure/retry/evidence preflight, measured workload budgets, generated-confirmatory protocol and explicit authorization are reviewed."
+    "execution_gate": "No campaign execution until task-specific baselines, nested warm-start/online partitioning, four-shard failure/retry/evidence preflight, measured workload budgets, generated-confirmatory protocol and explicit authorization are reviewed. The protocol is frozen; execution remains unauthorized."
   },
   "implementation": {
     "adapter_module": "src/rgm/experiments/babi_expansion_adapters.py",
