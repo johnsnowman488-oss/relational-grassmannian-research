@@ -113,6 +113,13 @@
       "candidates": "full_learning only; five ablations remain comparative conditions",
       "ranking": "Highest answer exact match, then highest support-witness recall, then lowest seed.",
       "failure": "If no seed meets all integrity and baseline thresholds, select no candidate."
+    },
+    "answer_metric_expectations": {
+      "no_temporal": "Expected invariant to full_learning answer metrics: Task 11 answer head consumes the L2 context-transition model, not temporal eligibility/credit or the L0 feature predictor.",
+      "no_relational": "Expected invariant to full_learning answer metrics: the answer head consumes conservative source-only weak bindings and L2 transitions, not the L1 semantic relation/coreference learner.",
+      "no_task": "Expected invariant to full_learning answer metrics and retained as a placebo: no independent Task 11 task-outcome training target is available under the evaluator-label firewall.",
+      "no_abstraction": "Expected zero forecast coverage because the L2 answer-transition model is disabled.",
+      "no_learning": "Expected zero forecast coverage because all learning updates are disabled."
     }
   },
   "metrics": {
@@ -220,16 +227,15 @@
   },
   "execution_gate": {
     "user_requested_sequence": true,
-    "launch_allowed": false,
+    "launch_allowed": true,
     "required_before_launch": [
-      "Task 11 prediction/evaluation contract CI green.",
+      "Full repository and Task 11 prediction/evaluation contract CI green, including confirmatory generator and label-separation tests.",
       "Task 11 non-oracle baseline validation archived and reviewed.",
       "This Task 11-only 120-unit protocol and whole-story manifest tests pass.",
       "Full-scale reserved-seed resource preflight passes and its measured budget is archived.",
-      "Task 11-only confirmatory generator/spec and label-separation checks pass.",
       "No Task 14/19 or frozen Task 3/5 source or campaign work is included."
     ],
-    "freeze_boundary": "Protocol freeze and preflight do not themselves start the 120-unit campaign. The campaign workflow may start only after the preflight and confirmatory artifact gates pass."
+    "freeze_boundary": "The workflow runs the full repository/Task 11 contract suite first, then the full-scale reserved-seed preflight. The 120-unit campaign starts only if both pass. The generated confirmatory challenge is produced only after validation-only candidate selection; its evaluator labels are opened only after all selected candidate predictions are frozen."
   },
   "native_runtime": {
     "pinned_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
