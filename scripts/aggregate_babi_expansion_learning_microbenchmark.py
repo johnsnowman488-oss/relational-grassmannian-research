@@ -43,6 +43,8 @@ def aggregate(plan_path: Path, shard_dirs: list[Path], output_path: Path) -> dic
             raise ValueError(f"shard {expected_shard}: shard ID mismatch")
         if report.get("native_commit") != "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de":
             raise ValueError(f"shard {expected_shard}: native ABI pin mismatch")
+        if report.get("manifest_sha256") != manifest_sha:
+            raise ValueError(f"shard {expected_shard}: frozen manifest fingerprint mismatch")
         if report.get("labels_loaded") != 0 or report.get("official_test_queries") != 0:
             raise ValueError(f"shard {expected_shard}: evaluator/test labels crossed boundary")
         if report.get("confirmatory_labels_loaded") != 0:
@@ -50,6 +52,27 @@ def aggregate(plan_path: Path, shard_dirs: list[Path], output_path: Path) -> dic
         story_runs = report.get("story_runs", [])
         if len(story_runs) != 48 or int(report.get("story_count", 0)) != 48:
             raise ValueError(f"shard {expected_shard}: expected exactly 48 story runs")
+        task_samples = report.get("tasks", {})
+        if set(task_samples) != {"11", "14", "19"}:
+            raise ValueError(f"shard {expected_shard}: task sample manifest incomplete")
+        shard_story_ids: dict[int, set[str]] = {}
+        for task in (11, 14, 19):
+            ids = list(task_samples[str(task)]["sample_story_ids"])
+            if len(ids) != 8 or len(set(ids)) != 8:
+                raise ValueError(f"shard {expected_shard}/Task {task}: expected eight unique fit story IDs")
+            if not set(ids) <= fit_ids[task]:
+                raise ValueError(f"shard {expected_shard}/Task {task}: sample contains a non-fit story")
+            shard_story_ids[task] = set(ids)
+            for architecture in ("HLA", "HLB"):
+                actual_ids = {
+                    str(row["story_id"]) for row in story_runs
+                    if int(row["task_id"]) == task and str(row["architecture"]) == architecture
+                }
+                if actual_ids != shard_story_ids[task]:
+                    raise ValueError(
+                        f"shard {expected_shard}/Task {task}/{architecture}: "
+                        "story rows do not match the declared sample"
+                    )
         for row in story_runs:
             task_id = int(row["task_id"])
             architecture = str(row["architecture"])
@@ -84,12 +107,6 @@ def aggregate(plan_path: Path, shard_dirs: list[Path], output_path: Path) -> dic
             file.stat().st_size for file in root.rglob("*") if file.is_file()
         )
 
-    expected_keys = {
-        (task_id, architecture, story_id)
-        for task_id, story_ids in fit_ids.items()
-        for architecture in ("HLA", "HLB")
-        for story_id in sorted(story_ids)[:0]
-    }
     # The native no-learning sample and learning microbenchmark use the same
     # deterministic eight-fit-story slice within each of the four shards.
     # Validate complete task/architecture coverage and matching sample IDs.
@@ -137,6 +154,7 @@ def aggregate(plan_path: Path, shard_dirs: list[Path], output_path: Path) -> dic
         "status": "PASS",
         "native_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
         "learning_enabled": True,
+        "manifest_sha256": manifest_sha,
         "story_runs_expected": 192,
         "story_runs_accepted": len(all_story_runs),
         "stories_per_task_architecture": 32,
