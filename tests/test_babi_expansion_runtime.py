@@ -380,5 +380,6 @@ def test_task11_persistent_sequence_retains_learning_state_without_cross_story_b
         assert raw.role("mention").entity_id == "she"
         assert not any(p.role in {"entity", "antecedent_event"} for p in raw.participants)
         if kind == "HLB":
-            assert adapter.store.count == 3
+            # Learning-only coreference targets must never enter durable evidence.
+            assert adapter.store.count == 0
         runtime.director.close()
