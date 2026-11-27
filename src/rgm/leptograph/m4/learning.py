@@ -235,6 +235,25 @@ class PredictionJournal:
         if self._active_by_target.get(target_key) == prediction_id:
             self._active_by_target.pop(target_key, None)
 
+    def withdraw_inapplicable(self, prediction_id: str) -> None:
+        """Cancel a just-issued forecast whose target is inapplicable at this exchange.
+
+        Unlike an observation-driven withdrawal, this is a same-tick scope
+        decision: the exchange type is known before any future target can occur.
+        """
+        prediction = self._predictions[prediction_id]
+        if prediction_id in self._scores or prediction.status is not PredictionStatus.ISSUED:
+            raise ValueError("only unscored issued predictions can be withdrawn")
+        target_key = (prediction.target_name, prediction.target_key)
+        prior_active = self._active_by_target.get(target_key)
+        if self._transaction_log is not None:
+            self._transaction_log.append(("withdraw", prediction_id, prediction, target_key, prior_active))
+        self._predictions[prediction_id] = Prediction(
+            **{**prediction.__dict__, "status": PredictionStatus.WITHDRAWN}
+        )
+        if self._active_by_target.get(target_key) == prediction_id:
+            self._active_by_target.pop(target_key, None)
+
     def expire(self, prediction_id: str, *, current_tick: int) -> None:
         prediction = self._predictions[prediction_id]
         if prediction_id in self._scores or prediction.status is not PredictionStatus.ISSUED:
