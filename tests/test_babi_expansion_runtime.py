@@ -348,3 +348,37 @@ def test_task11_soe_eligibility_filter_survives_checkpoint_replay():
     assert replayed
     assert {__import__("json").loads(key)[2] for key in replayed} == {"task11:L1"}
     assert {__import__("json").loads(key)[0] for key in replayed} == {"mention-L1"}
+
+
+def test_task11_persistent_sequence_retains_learning_state_without_cross_story_bindings():
+    from rgm.experiments.babi_expansion_adapters import ExpansionStory, Task11MentionEvent
+
+    first = ExpansionStory("task11/fit/persistent-1", 11, (
+        Task11MentionEvent("p1-m1", "Mary", False, "kitchen", 1, "train#1", "female"),
+        Task11MentionEvent("p1-m2", "she", True, "office", 2, "train#2", "female"),
+    ), ())
+    second = ExpansionStory("task11/fit/persistent-2", 11, (
+        Task11MentionEvent("p2-m1", "she", True, "garden", 1, "train#3", "female"),
+    ), ())
+
+    for kind in ("HLA", "HLB"):
+        adapter = make_adapter(kind)
+        runtime = BabiExpansionRuntime(adapter, learning_enabled=True)
+        outputs = runtime.ingest_story_sequence([first, second])
+
+        assert len(outputs) == 3
+        assert all(not row["abstained"] for row in outputs)
+        assert runtime.director.event_tick == 3
+        journal = adapter.learning._observation_journal
+        assert len([row for row in journal if row["kind"] == "event_role"]) == 2
+        assert len([row for row in journal if row["kind"] == "relation"]) == 1
+        assert len([row for row in journal if row["kind"] == "context"]) == 2
+
+        # The second story's pronoun cannot inherit the first story's Mary
+        # binding; it remains source evidence but receives no weak target.
+        raw, = runtime.recover_witness("p2-m1", observation_cutoff=4.0)
+        assert raw.role("mention").entity_id == "she"
+        assert not any(p.role in {"entity", "antecedent_event"} for p in raw.participants)
+        if kind == "HLB":
+            assert adapter.store.count == 3
+        runtime.director.close()

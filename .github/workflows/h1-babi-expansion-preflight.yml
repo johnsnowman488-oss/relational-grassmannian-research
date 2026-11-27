@@ -2,8 +2,10 @@ name: bAbI Tasks 11, 14 and 19 controlled execution preflight
 
 on:
   push:
+    # Superseded by the Task 11-only resource workflow. Keep this legacy
+    # three-task preflight from auto-running while Tasks 14 and 19 are locked.
     branches:
-      - "research/babi-expansion-preflight-v1"
+      - "research/babi-expansion-preflight-v1-legacy-disabled"
     paths:
       - "src/rgm/experiments/babi_expansion_*.py"
       - "scripts/freeze_babi_expansion_sources.py"

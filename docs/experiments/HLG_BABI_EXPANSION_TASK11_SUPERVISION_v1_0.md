@@ -60,3 +60,23 @@ Acceptance tests now cover both HLA and HLB: positive L0/L1/L2 updates, durable-
 - The implementation has not been evaluated for improved Task 11 answer accuracy, coreference generalisation, robustness to names/genders outside the weak-rule coverage, or transfer across story distributions.
 - The learning-cost workflow was accidentally attached to the automatic PR path and executed twice before the explicit-authorization guard was added. Those runs are quarantined as unauthorized diagnostics and do not close the resource gate.
 - Any new learning-cost benchmark must be manually dispatched with `enable_learning_cost_microbenchmark=true` after explicit user authorization. The full 360-unit learning campaign remains separately frozen and unauthorized.
+
+
+## 7. Task 11-only execution boundary — 2026-11-27
+
+Task 11 is now the sole active expansion experiment. Tasks 14 and 19 are locked: no source parsing, resource sampling, learning updates, validation, or campaign run for either task until the Task 11 results review is complete. The frozen Task 3/5 pilot remains unchanged.
+
+The Task 11 resource qualification uses four deterministic shards. Each shard creates one persistent HLA learner and one persistent HLB learner and processes 32 successive whole fit stories per architecture (128 stories per architecture overall). The same learner/native runtime persists across stories within each shard. Story-local weak antecedent derivation resets at each story boundary; no entity binding is carried from one story into another. A monotonic runtime sequence clock is used because bAbI line numbers restart at each story; event IDs and source references retain the original story-local line identity.
+
+For each story, the qualification records learner/native state fingerprints, update time, observation-journal and eligibility growth, full director/adapter plus native checkpoint size, snapshot/restore time, and post-restore fingerprint equality. It also records worker RSS, Python allocation peak and artifact size. It does not load validation labels, official-test queries or generated-confirmatory labels.
+
+## 8. Task 11 result interpretation
+
+The official bAbI Task 11 answer/support labels can evaluate location-answer performance and witness recovery. They do not supply independently reviewed antecedent/coreference edges. Therefore:
+- answer exact match, witness recall, false-witness rate, abstention and evidence-isolation metrics are reportable;
+- L0/L1/L2 learning update activity and weak-target coverage are reportable as learner diagnostics;
+- antecedent top-1 accuracy, coreference-edge precision/recall/F1 and entity-chain exact match are **NOT INDEPENDENTLY EVALUABLE** on the official Task 11 validation/test labels;
+- the synthetic confirmatory challenge is reported separately and cannot establish generalisation to raw bAbI text or substitute for independent gold coreference annotations;
+- weak-label admission/abstention is not scored against its own derivation rule.
+
+Candidate selection and performance claims are limited to the Task 11 answer/evidence contract. No cross-task ranking or claim about Tasks 14/19 is permitted in this phase.

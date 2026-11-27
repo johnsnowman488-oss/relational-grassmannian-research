@@ -6,7 +6,7 @@ second learner and it never passes evaluator labels into the observation path.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from hashlib import sha256
 from typing import Any, Mapping
 import json
@@ -382,6 +382,41 @@ class BabiExpansionRuntime:
             )
             outputs.append({"event_id": nary.event_id, "status": status,
                             "abstained": False, "runtime": result})
+        return outputs
+
+    def ingest_story_sequence(self, stories: tuple[ExpansionStory, ...] | list[ExpansionStory]) -> list[dict]:
+        """Process independent Task 11 stories through one persistent learner.
+
+        Story-local weak supervision is derived independently for each story;
+        learner parameters, SOE eligibility/credit, native state and evidence
+        stores persist across the sequence. Since bAbI line numbers restart at
+        each story, the runtime event/observation clock is mapped to a monotonic
+        sequence clock. Event IDs and source references preserve original lines.
+        """
+        stories = tuple(stories)
+        if not stories:
+            return []
+        if any(story.task_id != 11 for story in stories):
+            raise ValueError("persistent story sequences are restricted to Task 11")
+        ids = [story.story_id for story in stories]
+        if len(ids) != len(set(ids)):
+            raise ValueError("persistent story sequence contains duplicate story IDs")
+
+        outputs = []
+        clock = (self.director.event_log[-1]["observed_at"] + 1.0
+                 if self.director.event_log else 1.0)
+        for story in stories:
+            # Reset only the wrapper's one-story guard. The director, adapter,
+            # native runtime, learner, evidence and temporal-credit state persist.
+            self._story_id = None
+            self._task_id = None
+            shifted_events = tuple(
+                replace(event, observed_at=clock + index)
+                for index, event in enumerate(story.events)
+            )
+            sequence_story = replace(story, events=shifted_events)
+            outputs.extend(self.ingest_story(sequence_story))
+            clock += len(sequence_story.events) + 1.0
         return outputs
 
     def recover_witness(self, event_id: str, *, observation_cutoff: float) -> tuple[NaryEvent, ...]:
