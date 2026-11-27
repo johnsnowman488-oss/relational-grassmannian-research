@@ -61,20 +61,27 @@ def _assert_manipulations(results: dict[tuple[int, str, int, str], dict]) -> Non
                 no_learning = row("no_learning")
 
                 changed = full["online_learner_state_changed"]
-                _require(changed.get("task_outcomes") is True,
-                         f"task {task} {architecture} seed {seed}: full_learning did not update task calibration")
+                enabled_state_families = (
+                    "level0", "temporal_credit", "relations",
+                    "event_roles", "context_transitions", "task_outcomes",
+                )
+                _require(all(changed.get(name) is True for name in enabled_state_families),
+                         f"task {task} {architecture} seed {seed}: full_learning did not update every enabled learner family")
                 _require(full["phases"]["online_adaptation"]["task_outcome_prediction"]["updates_enabled"] is True,
                          f"task {task} {architecture} seed {seed}: full_learning task channel reports disabled")
-                _require(no_temporal["online_learner_state_changed"].get("level0") is False
-                         and no_temporal["online_learner_state_changed"].get("temporal_credit") is False,
-                         f"task {task} {architecture} seed {seed}: no_temporal leaked into temporal learners")
-                _require(no_relational["online_learner_state_changed"].get("relations") is False,
-                         f"task {task} {architecture} seed {seed}: no_relational changed relation learner")
-                _require(no_abstraction["online_learner_state_changed"].get("event_roles") is False
-                         and no_abstraction["online_learner_state_changed"].get("context_transitions") is False,
-                         f"task {task} {architecture} seed {seed}: no_abstraction leaked into abstraction learners")
-                _require(no_task["online_learner_state_changed"].get("task_outcomes") is False,
-                         f"task {task} {architecture} seed {seed}: no_task changed task calibration")
+
+                def require_only_suppressed(variant: str, suppressed: tuple[str, ...]) -> None:
+                    state = row(variant)["online_learner_state_changed"]
+                    _require(all(state.get(name) is False for name in suppressed),
+                             f"task {task} {architecture} seed {seed}: {variant} changed a suppressed learner")
+                    permitted = set(enabled_state_families) - set(suppressed)
+                    _require(all(state.get(name) is True for name in permitted),
+                             f"task {task} {architecture} seed {seed}: {variant} suppressed an enabled learner")
+
+                require_only_suppressed("no_temporal", ("level0", "temporal_credit"))
+                require_only_suppressed("no_relational", ("relations",))
+                require_only_suppressed("no_abstraction", ("event_roles", "context_transitions"))
+                require_only_suppressed("no_task", ("task_outcomes",))
                 _require(no_learning["phases"]["online_adaptation"]["task_outcome_prediction"]["updates_enabled"] is False,
                          f"task {task} {architecture} seed {seed}: no_learning reports task updates enabled")
                 _require(all(value is False for value in no_learning["online_learner_state_changed"].values()),
