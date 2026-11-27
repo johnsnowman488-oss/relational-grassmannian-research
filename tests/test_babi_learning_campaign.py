@@ -58,15 +58,12 @@ def test_hlb_query_recovery_flattens_source_event_tuple():
     nary = _make_nary(event, "start", "test-source")
 
     class Evidence:
-        event_ids = (event.event_id,)
-
-    class Adapter:
-        evidence = Evidence()
-
-        @staticmethod
         @property
         def event_ids(self):
             raise AssertionError("campaign hot path must not materialize the global evidence-ID list")
+
+    class Adapter:
+        evidence = Evidence()
 
         @staticmethod
         def recover_evidence(evidence_id, *, observation_cutoff):
