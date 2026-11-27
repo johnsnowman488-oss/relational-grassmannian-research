@@ -438,7 +438,7 @@ def _withdraw_query_only_predictions(adapter) -> int:
                 "next_relation_pattern", "next_event_role_pattern"
             }
         ):
-            journal.withdraw(prediction.prediction_id, current_tick=adapter.ticks)
+            journal.withdraw_inapplicable(prediction.prediction_id)
             withdrawn += 1
     return withdrawn
 
