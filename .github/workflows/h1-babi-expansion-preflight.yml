@@ -94,7 +94,7 @@ jobs:
             --source-root data/babi-v1.2-expansion \
             --output-root artifacts/babi-expansion-preflight \
             --protocol docs/experiments/HLG_BABI_EXPANSION_LEARNING_CAMPAIGN_v1_0.json \
-            --confirmatory-protocol docs/experiments/HLG_BABI_EXPANSION_CONFIRMATORY_v1_0.json \
+            --confirmatory-protocol docs/experiments/HLG_BABI_EXPANSION_CONFIRMATORY_v1_1.json \
             --confirmatory-root artifacts/babi-expansion-confirmatory \
             --prepare
       - name: Upload immutable source, partition, baseline and confirmatory inputs
