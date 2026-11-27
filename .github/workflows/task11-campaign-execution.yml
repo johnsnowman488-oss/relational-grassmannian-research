@@ -1,0 +1,62 @@
+name: Task 11 campaign execution contracts
+
+on:
+  push:
+    branches:
+      - "research/task11-campaign-execution-v1"
+    paths:
+      - "src/rgm/experiments/babi_expansion_runtime.py"
+      - "src/rgm/experiments/babi_task11_prediction.py"
+      - "src/rgm/experiments/babi_expansion_adapters.py"
+      - "src/rgm/leptograph/m4/*.py"
+      - "scripts/prepare_babi_task11_campaign.py"
+      - "scripts/run_babi_task11_campaign_unit.py"
+      - "scripts/aggregate_babi_task11_preflight.py"
+      - "tests/test_babi_task11_*.py"
+      - "tests/test_babi_expansion_runtime.py"
+      - ".github/workflows/task11-campaign-execution.yml"
+  pull_request:
+    branches:
+      - "research/task11-campaign-gates-v1"
+    paths:
+      - "src/rgm/experiments/babi_expansion_runtime.py"
+      - "src/rgm/experiments/babi_task11_prediction.py"
+      - "src/rgm/experiments/babi_expansion_adapters.py"
+      - "src/rgm/leptograph/m4/*.py"
+      - "scripts/prepare_babi_task11_campaign.py"
+      - "scripts/run_babi_task11_campaign_unit.py"
+      - "scripts/aggregate_babi_task11_preflight.py"
+      - "tests/test_babi_task11_*.py"
+      - "tests/test_babi_expansion_runtime.py"
+      - ".github/workflows/task11-campaign-execution.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task11-campaign-execution-contracts-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  full-contract-suite:
+    name: Full repository and Task 11 execution contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Compile campaign preparation, unit and aggregation scripts
+        run: |
+          python -m py_compile \
+            scripts/prepare_babi_task11_campaign.py \
+            scripts/run_babi_task11_campaign_unit.py \
+            scripts/aggregate_babi_task11_preflight.py
+      - name: Run complete repository test suite
+        run: python -m pytest -q
