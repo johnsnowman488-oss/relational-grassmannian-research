@@ -26,6 +26,8 @@ def test_task11_nearest_compatible_baseline_runs_after_raw_parser(tmp_path):
     recent = recency_only_task11(story, query)
     assert nearest.answer == "kitchen"
     assert recent.answer == "office"
+    scored = evaluate_baselines(stories, labels, evaluate_labels=True)
+    assert scored["task_results"]["11"]["nearest-compatible-antecedent"]["target_metrics"]["status"] == "NOT_AVAILABLE"
     assert not hasattr(story.events[2], "antecedent_event_id")
     assert labels[0].answer == "kitchen"
 
@@ -41,7 +43,11 @@ def test_task14_source_order_and_temporal_cue_are_distinct(tmp_path):
     assert source_order_only_task14(story, query).answer == "office"
     assert lexical_temporal_cue_task14(story, query).answer == "library"
     scored = evaluate_baselines(stories, labels, evaluate_labels=True)
-    assert scored["task_results"]["14"]["lexical-temporal-cue-rule"]["answer_exact_match"] == 1.0
+    lexical_metrics = scored["task_results"]["14"]["lexical-temporal-cue-rule"]
+    assert lexical_metrics["answer_exact_match"] == 1.0
+    assert lexical_metrics["target_metrics"]["temporal_relation_exact_match"] == 1.0
+    assert lexical_metrics["target_metrics"]["f1"] == 1.0
+    assert scored["task_results"]["14"]["source-order-only"]["target_metrics"]["f1"] < 1.0
 
 
 def test_task19_direct_edge_and_bfs_have_distinct_coverage(tmp_path):
@@ -56,7 +62,10 @@ def test_task19_direct_edge_and_bfs_have_distinct_coverage(tmp_path):
     assert direct.abstained
     assert bfs.answer == "e,n"
     scored = evaluate_baselines(stories, labels, evaluate_labels=True)
-    assert scored["task_results"]["19"]["breadth-first-search"]["answer_exact_match"] == 1.0
+    bfs_metrics = scored["task_results"]["19"]["breadth-first-search"]
+    assert bfs_metrics["answer_exact_match"] == 1.0
+    assert bfs_metrics["target_metrics"]["f1"] == 1.0
+    assert bfs_metrics["target_metrics"]["ordered_path_exact_match"] == 1.0
 
 
 def test_predictors_receive_no_evaluator_fields(tmp_path):
