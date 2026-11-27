@@ -1,6 +1,6 @@
 {
   "schema": "HLG-BABI-TASK-EXPANSION-v1.0",
-  "status": "PHASE_B_ADAPTERS_IMPLEMENTED_PENDING_SOURCE_WIDE_AUDIT",
+  "status": "PHASE_B_ADAPTERS_SOURCE_WIDE_AUDIT_PASS",
   "parent_commit": "58a13629d1ac7257a3e0627dacb35c3624217236",
   "scope": {
     "frozen_tasks": [
@@ -20,7 +20,7 @@
       4
     ],
     "execution_authorized": false,
-    "note": "Task 11/14/19 have independent source parsers, input-only evidence adapters and deterministic reference oracles under source-wide CI audit. No learning campaign is authorized. Task 3/5 remain isolated and unchanged.",
+    "note": "Phase B adapters for Tasks 11, 14 and 19 passed the complete source-wide parser/oracle/partition audit. Learning campaign execution remains unauthorized pending HLA/HLB prediction-target integration, baseline review, runtime parity and workload protocol.",
     "phase_b_adapters_implemented": true
   },
   "source": {
@@ -353,7 +353,7 @@
     },
     "candidate_selection": "task-specific validation only; no pooled cross-task ranking",
     "confirmatory": "separate per-task fixed-seed generated challenge after task-specific candidate freeze",
-    "execution_gate": "No campaign execution until Phase B source-wide parser/oracle acceptance, exact input-label isolation, whole-story partition integrity, test quarantine, task-specific baseline outputs, thresholds and runtime workload review are independently audited."
+    "execution_gate": "No learning campaign execution until task-specific HLA/HLB prediction target integration, task baselines, forecast lifecycle and ablation parity, per-task thresholds, workload estimates, worker sharding and explicit authorization are reviewed."
   },
   "implementation": {
     "adapter_module": "src/rgm/experiments/babi_expansion_adapters.py",
@@ -370,6 +370,67 @@
     "task14": "Temporal event time (yesterday/morning/afternoon/evening plus source order) is distinct from observed_at; before-location oracle chooses the previous location before the requested destination event.",
     "task19": "Relative-position statements create directed edges plus explicit inverses; BFS composes ordered direction codes; ambiguous shortest direction sequences abstain.",
     "partitioning": "Deterministic 90/10 whole-story split from en-10k train; test is parsed with include_labels=False and never emitted as learner input.",
-    "status": "Implementation is prepared; full-source CI audit must pass before any learning campaign."
+    "status": "SOURCE_WIDE_AUDIT_PASS",
+    "acceptance": {
+      "phase_b_workflow_run_id": 45993209014,
+      "phase_b_workflow_conclusion": "success",
+      "repository_ci_run_id": 45993208940,
+      "repository_ci_python_versions": {
+        "3.10": "success",
+        "3.12": "success"
+      },
+      "artifact_id": 15195305886,
+      "artifact_name": "babi-phase-b-adapter-validation",
+      "artifact_size_bytes": 1843769,
+      "artifact_sha256": "39d7247dd0ab0c3f015405d8933ef0a06c111e103d2911775dae21ef8794d767",
+      "adapter_audit_report_sha256": "ada4bd7dc5bdffb515584d3c57e11f099009eedfd3078c78d7c7cea4337a6291",
+      "source_audit_report_sha256": "21e645b73a492f2e52590d0f429e95bddfcc91b5d13e6c4b1a441adc717fed12",
+      "tasks": {
+        "11": {
+          "train_stories": 2000,
+          "train_queries": 10000,
+          "test_stories": 200,
+          "test_queries": 1000,
+          "oracle_exact_matches": 10000,
+          "oracle_exact_match_rate": 1,
+          "quarantined": 0,
+          "fit_stories": 1800,
+          "fit_queries": 9000,
+          "validation_stories": 200,
+          "validation_queries": 1000
+        },
+        "14": {
+          "train_stories": 2000,
+          "train_queries": 10000,
+          "test_stories": 200,
+          "test_queries": 1000,
+          "oracle_exact_matches": 10000,
+          "oracle_exact_match_rate": 1,
+          "quarantined": 0,
+          "fit_stories": 1800,
+          "fit_queries": 9000,
+          "validation_stories": 200,
+          "validation_queries": 1000
+        },
+        "19": {
+          "train_stories": 10000,
+          "train_queries": 10000,
+          "test_stories": 1000,
+          "test_queries": 1000,
+          "oracle_exact_matches": 10000,
+          "oracle_exact_match_rate": 1,
+          "quarantined": 0,
+          "fit_stories": 9000,
+          "fit_queries": 9000,
+          "validation_stories": 1000,
+          "validation_queries": 1000
+        }
+      },
+      "official_test_label_access": false,
+      "official_test_inputs_emitted": false,
+      "support_witnesses_rechecked_on_training": true,
+      "whole_story_partition_disjoint": true,
+      "deterministic_seed": "HLG-BABI-EXPANSION-TRAIN-VALID-v1"
+    }
   }
 }
