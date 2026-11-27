@@ -62,6 +62,41 @@ def _restore_memories(bridge: SOEHierarchyBridge, states: Sequence[Mapping]) -> 
         memory.channels = type(memory).from_dict(dict(candidate)).channels.copy()
 
 
+def _capture_exchange_transaction(adapter) -> dict:
+    """Take a bounded per-exchange rollback point, excluding append-only journals.
+
+    Full adapter snapshots are for durable checkpoints. Using one before every
+    event copies predictions, observation history, relation records and HLB
+    evidence repeatedly, making a long campaign quadratic in its event count.
+    This transaction point captures only mutable model/native state; HLB source
+    evidence and source relations remain append-only by contract.
+    """
+    runtime = adapter.bridge.runtime
+    checkpoint = getattr(runtime, "checkpoint", None)
+    if not callable(checkpoint):
+        raise TypeError("persistent native runtime must expose checkpoint()")
+    return {
+        "native": copy.deepcopy(checkpoint()),
+        "soe_banks": _memory_snapshots(adapter.bridge),
+        "readouts": [readout.snapshot() for readout in adapter.readouts],
+        "ticks": adapter.ticks,
+        "abstentions": adapter.abstentions,
+        "learning": adapter.learning.transaction_checkpoint(),
+    }
+
+
+def _restore_exchange_transaction(adapter, state: Mapping) -> None:
+    """Undo one failed exchange without rolling back append-only source evidence."""
+    runtime = adapter.bridge.runtime
+    runtime.restore(state["native"])
+    _restore_memories(adapter.bridge, state["soe_banks"])
+    for readout, candidate in zip(adapter.readouts, state["readouts"]):
+        readout.restore(candidate)
+    adapter.ticks = int(state["ticks"])
+    adapter.abstentions = int(state["abstentions"])
+    adapter.learning.rollback_transaction(state["learning"])
+
+
 @dataclass(frozen=True)
 class AbstractPrediction:
     """A learned upper-level feature prediction, never an exact path witness."""
@@ -615,7 +650,7 @@ class HierarchicalRuntimeDirector:
 
         # Forecasts are issued from the pre-step model and prior observation cutoff.
         previous_cutoff = self.event_log[-1]["observed_at"] if self.event_log else 0.0
-        before = self.adapter.snapshot()
+        before = _capture_exchange_transaction(self.adapter)
         predictions = self.adapter.learning.begin_tick(
             tick=self.event_tick, observed_at=previous_cutoff, context=context,
         )
@@ -666,8 +701,10 @@ class HierarchicalRuntimeDirector:
             if task_outcome is not None:
                 self.adapter.learning.observe_task_error(str(task_outcome[0]), float(task_outcome[1]), learn=learn)
         except Exception:
-            self.adapter.restore(before)
+            _restore_exchange_transaction(self.adapter, before)
             raise
+        else:
+            self.adapter.learning.commit_transaction()
 
         self.event_tick = next_tick
         log_row = {"event_time": float(event_time), "observed_at": float(observed_at),
