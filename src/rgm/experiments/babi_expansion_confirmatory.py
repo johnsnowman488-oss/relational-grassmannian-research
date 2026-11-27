@@ -124,7 +124,7 @@ def _task14(rng: random.Random, seed: int, ordinal: int) -> tuple[dict, dict]:
 
 def _task19(rng: random.Random, seed: int, ordinal: int) -> tuple[dict, dict]:
     node_count = rng.randint(4, 6)
-    nodes = [f"place_{rng.randrange(100_000, 999_999)}" for _ in range(node_count)]
+    nodes = [f"place_{rng.randrange(100_000, 999_999)}_{index}" for index in range(node_count)]
     direction_names = ("north", "south", "east", "west")
     observations = []
     directions = []
@@ -225,6 +225,13 @@ def generate(output_root: Path) -> dict:
 def verify(output_root: Path) -> dict:
     manifest_path = output_root / "confirmatory-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest_core = dict(manifest)
+    expected_manifest_sha = manifest_core.pop("manifest_sha256", None)
+    actual_manifest_sha = sha256(_canonical(manifest_core)).hexdigest()
+    if expected_manifest_sha != actual_manifest_sha:
+        raise ValueError("confirmatory manifest fingerprint mismatch")
+    if manifest.get("status") != "FROZEN_GENERATOR_AND_SEEDS":
+        raise ValueError("confirmatory manifest is not frozen")
     for task_id in TASKS:
         record = manifest["files"][str(task_id)]
         for key in ("inputs", "evaluator_labels"):
@@ -235,8 +242,12 @@ def verify(output_root: Path) -> dict:
         labels = [json.loads(line) for line in (output_root / record["evaluator_labels"]["path"]).read_text().splitlines()]
         if len(inputs) != STORIES_PER_SEED * len(CONFIRMATORY_SEEDS) or len(labels) != len(inputs):
             raise ValueError(f"Task {task_id}: unexpected challenge row count")
-        input_ids = {row["query"]["query_id"] for row in inputs}
-        label_ids = {row["query_id"] for row in labels}
+        input_id_list = [row["query"]["query_id"] for row in inputs]
+        label_id_list = [row["query_id"] for row in labels]
+        input_ids = set(input_id_list)
+        label_ids = set(label_id_list)
+        if len(input_ids) != len(input_id_list) or len(label_ids) != len(label_id_list):
+            raise ValueError(f"Task {task_id}: duplicate confirmatory query/label IDs")
         if input_ids != label_ids:
             raise ValueError(f"Task {task_id}: input/label partition mismatch")
         if any("gold_answer" in json.dumps(row) or "support_event_ids" in json.dumps(row) for row in inputs):
