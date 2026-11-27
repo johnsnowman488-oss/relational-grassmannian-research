@@ -671,9 +671,36 @@ class _PatternCounter:
     """Deterministic empirical learner for typed semantic patterns."""
     def __init__(self) -> None:
         self.counts: dict[str, dict[str, int]] = {}
+        self._transaction_log: dict[tuple[str, str], int | None] | None = None
+
+    def begin_transaction(self) -> None:
+        if self._transaction_log is not None:
+            raise RuntimeError("pattern counter transaction already active")
+        self._transaction_log = {}
+
+    def commit_transaction(self) -> None:
+        if self._transaction_log is None:
+            raise RuntimeError("pattern counter has no active transaction")
+        self._transaction_log = None
+
+    def rollback_transaction(self) -> None:
+        if self._transaction_log is None:
+            raise RuntimeError("pattern counter has no active transaction")
+        for (key, pattern), prior_count in self._transaction_log.items():
+            bucket = self.counts.get(key)
+            if prior_count is None:
+                if bucket is not None:
+                    bucket.pop(pattern, None)
+                    if not bucket:
+                        self.counts.pop(key, None)
+            else:
+                self.counts.setdefault(key, {})[pattern] = prior_count
+        self._transaction_log = None
 
     def observe(self, key: str, pattern: str) -> None:
         bucket = self.counts.setdefault(key, {})
+        if self._transaction_log is not None and (key, pattern) not in self._transaction_log:
+            self._transaction_log[(key, pattern)] = bucket.get(pattern)
         bucket[pattern] = bucket.get(pattern, 0) + 1
 
     def predict(self, key: str) -> str | None:
@@ -696,6 +723,7 @@ class _PatternCounter:
                 raise ValueError("pattern counts must be positive")
             candidate[key] = clean
         self.counts = candidate
+        self._transaction_log = None
 
 
 class SemanticRelationLearner:
@@ -731,6 +759,15 @@ class SemanticRelationLearner:
     def restore(self, state: Mapping) -> None:
         self._counter.restore(state)
 
+    def begin_transaction(self) -> None:
+        self._counter.begin_transaction()
+
+    def commit_transaction(self) -> None:
+        self._counter.commit_transaction()
+
+    def rollback_transaction(self) -> None:
+        self._counter.rollback_transaction()
+
 
 class NaryEventRoleLearner:
     """Predicts event type and the complete typed role schema as one object."""
@@ -765,6 +802,15 @@ class NaryEventRoleLearner:
 
     def restore(self, state: Mapping) -> None:
         self._counter.restore(state)
+
+    def begin_transaction(self) -> None:
+        self._counter.begin_transaction()
+
+    def commit_transaction(self) -> None:
+        self._counter.commit_transaction()
+
+    def rollback_transaction(self) -> None:
+        self._counter.rollback_transaction()
 
 
 class TemporalCreditLearner:
@@ -932,6 +978,15 @@ class ContextTransitionLearner:
 
     def restore(self, state: Mapping) -> None:
         self._counter.restore(state)
+
+    def begin_transaction(self) -> None:
+        self._counter.begin_transaction()
+
+    def commit_transaction(self) -> None:
+        self._counter.commit_transaction()
+
+    def rollback_transaction(self) -> None:
+        self._counter.rollback_transaction()
 
 
 class LearningRuntime:
@@ -1240,13 +1295,13 @@ class LearningRuntime:
     def transaction_checkpoint(self) -> dict[str, Any]:
         """Capture rollback-scoped state without copying append-only histories."""
         self.predictions.begin_transaction()
+        self.relations.begin_transaction()
+        self.event_roles.begin_transaction()
+        self.context_transitions.begin_transaction()
         self.temporal_credit.begin_transaction()
         self.task_outcomes.begin_transaction()
         return {
             "level0": self.level0.snapshot(),
-            "relations": self.relations.snapshot(),
-            "event_roles": self.event_roles.snapshot(),
-            "context_transitions": self.context_transitions.snapshot(),
             "eligibility": self.eligibility.snapshot(),
             "journal_count": len(self._observation_journal),
             "prediction_sequence": self._prediction_sequence,
@@ -1257,15 +1312,18 @@ class LearningRuntime:
 
     def commit_transaction(self) -> None:
         self.predictions.commit_transaction()
+        self.relations.commit_transaction()
+        self.event_roles.commit_transaction()
+        self.context_transitions.commit_transaction()
         self.temporal_credit.commit_transaction()
         self.task_outcomes.commit_transaction()
 
     def rollback_transaction(self, state: Mapping[str, Any]) -> None:
         self.predictions.rollback_transaction()
         self.level0.restore(state["level0"])
-        self.relations.restore(state["relations"])
-        self.event_roles.restore(state["event_roles"])
-        self.context_transitions.restore(state["context_transitions"])
+        self.relations.rollback_transaction()
+        self.event_roles.rollback_transaction()
+        self.context_transitions.rollback_transaction()
         self.temporal_credit.rollback_transaction()
         self.task_outcomes.rollback_transaction()
         self.eligibility.restore(state["eligibility"])
