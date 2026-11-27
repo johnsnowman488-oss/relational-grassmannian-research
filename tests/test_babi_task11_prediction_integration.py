@@ -149,6 +149,7 @@ def test_hlb_no_abstraction_ablation_disables_task11_location_transition_memory(
 
 
 def test_hlb_answer_model_snapshot_restores_into_confirmatory_prediction_adapter():
+    import json
     from types import SimpleNamespace
     from rgm.leptograph.m4.hierarchical import CanonicalRelationStore
     from rgm.leptograph.m4.learning import LearningRuntime
@@ -163,11 +164,11 @@ def test_hlb_answer_model_snapshot_restores_into_confirmatory_prediction_adapter
     runtime.ingest_story_sequence([training_story])
 
     restored_store = CanonicalRelationStore(capacity=262144)
-    restored_store.restore(trained.store.snapshot())
+    restored_store.restore(json.loads(json.dumps(trained.store.snapshot(), default=str)))
     restored_learning = LearningRuntime()
-    restored_learning.context_transitions.restore(
-        trained.learning.context_transitions.snapshot()
-    )
+    restored_learning.context_transitions.restore(json.loads(json.dumps(
+        trained.learning.context_transitions.snapshot(), default=str,
+    )))
     restored = SimpleNamespace(
         architecture="HLB",
         learning=restored_learning,
