@@ -1,6 +1,6 @@
 # HLG bAbI Task 11 supervision and evidence boundary v1.0
 
-**Status:** Contract specified; weak-label derivation and evaluator scoring implemented; HLA/HLB learning-update integration remains a separate campaign implementation gate.
+**Status:** Weak-label derivation, evaluator scoring and HLA/HLB learning-only update routing are implemented and covered by tests. Learning effectiveness, coreference generalisation and accepted resource qualification remain open.
 
 ## 1. Three information domains
 
@@ -38,6 +38,25 @@ The raw bAbI Task 11 task supplies answer and support annotations for the locati
 - generated synthetic L0/L1/L2 labels are a one-time confirmatory evaluation stream, accessed only after validation candidate selection, and never used for fitting, warm-start, online adaptation, threshold tuning or selection;
 - Task 11 query-answer accuracy does not imply antecedent-edge accuracy.
 
-## 5. Remaining learning gate
+## 5. Learning-only target-update route (implemented)
 
-This contract specifies how separate supervision signals are identified, provenance-bound and evaluated. It does not itself implement or demonstrate HLA/HLB parameter updates from those signals. Before a learning campaign, the learning controller must define and test how each target's loss/score reaches its appropriate L0/L1/L2 learner, how abstentions are masked, how pseudo-label confidence is represented, and how online temporal credit is assigned without converting weak predictions into facts. This requires an explicitly authorized bounded learning microbenchmark and remains outside the no-learning preflight.
+`derive_task11_training_bindings(story)` emits a separate training-only target stream. Explicit name mentions create self-anchor targets. A pronoun creates a weak target only when the conservative prior-only resolver finds exactly one compatible named entity; unresolved and ambiguous pronouns are quarantined and produce no inferred binding. Targets retain mention ID, antecedent ID, entity ID, source reference, rule ID and `is_gold=false`. This rule is not gold coreference annotation and carries no calibrated numeric confidence.
+
+`BabiExpansionRuntime.ingest_story()` routes these targets into existing H1 learner components without converting them to observed facts:
+- **L0 mention binding:** an augmented, learning-only n-ary event updates the event-role learner.
+- **L1 coreference edge:** a typed `corefers_with` relation updates the semantic-relation learner.
+- **L2 entity state:** an entity-scoped location/context transition updates the context-transition learner.
+- **Temporal credit:** target errors are applied through distinct `task11:L0`, `task11:L1` and `task11:L2` eligibility channels. Those filters are persisted in the observation journal and replayed after a `LearningRuntime` checkpoint restore.
+
+The evidence boundary is preserved. The director receives the raw source `nary_events` for durable evidence storage. Derived `learning_nary_events` and `learning_relations` are delivered only to learner components; HLB does not append them to its canonical evidence store. Provenance is carried in the learner observation journal. An ambiguous pronoun remains a raw, recoverable observation but receives no inferred L0/L1 binding target and no matching L2 context update.
+
+Acceptance tests now cover both HLA and HLB: positive L0/L1/L2 updates, durable-evidence isolation, ambiguous-pronoun masking, unchanged parameters with `learning_enabled=false`, and replay of a level-filtered SOE temporal-credit update. These are implementation/invariant tests, not a learning-capability or generalisation result.
+
+## 6. Remaining learning and evidence gates
+
+- The weak gender-compatibility rule is a limited pseudo-label source. It is not independently validated against a gold Task 11 antecedent-edge annotation, and Task 11 official validation still does not provide such labels.
+- No numerical pseudo-label confidence calibration exists yet. The implemented confidence policy is conservative unique-candidate admission plus explicit abstention.
+- The isolated `ExpansionForecasts` evaluator-scoring lifecycle remains separate from learner ingestion. Evaluator labels and generated-confirmatory labels are not used by the new runtime update route.
+- The implementation has not been evaluated for improved Task 11 answer accuracy, coreference generalisation, robustness to names/genders outside the weak-rule coverage, or transfer across story distributions.
+- The learning-cost workflow was accidentally attached to the automatic PR path and executed twice before the explicit-authorization guard was added. Those runs are quarantined as unauthorized diagnostics and do not close the resource gate.
+- Any new learning-cost benchmark must be manually dispatched with `enable_learning_cost_microbenchmark=true` after explicit user authorization. The full 360-unit learning campaign remains separately frozen and unauthorized.
