@@ -145,3 +145,40 @@ def test_hlb_no_abstraction_ablation_disables_task11_location_transition_memory(
     decision = predict_task11_from_learned_state(adapter, validation_story, query)
     assert decision.prediction.abstained is True
     assert decision.prediction.reason == "learned_transition_unavailable"
+
+
+
+def test_hlb_answer_model_snapshot_restores_into_confirmatory_prediction_adapter():
+    from types import SimpleNamespace
+    from rgm.leptograph.m4.hierarchical import CanonicalRelationStore
+    from rgm.leptograph.m4.learning import LearningRuntime
+
+    training_story = ExpansionStory("task11/fit/hlb-snapshot", 11, (
+        Task11MentionEvent("s1", "Mary", False, "kitchen", 1, "fit#1", "female"),
+        Task11MentionEvent("s2", "John", False, "garden", 2, "fit#2", "male"),
+        Task11MentionEvent("s3", "she", True, "office", 3, "fit#3", "female"),
+    ), ())
+    trained = make_hlb_adapter()
+    runtime = BabiExpansionRuntime(trained, enabled_channels=frozenset(ErrorChannel))
+    runtime.ingest_story_sequence([training_story])
+
+    restored_store = CanonicalRelationStore(capacity=262144)
+    restored_store.restore(trained.store.snapshot())
+    restored_learning = LearningRuntime()
+    restored_learning.context_transitions.restore(
+        trained.learning.context_transitions.snapshot()
+    )
+    restored = SimpleNamespace(
+        architecture="HLB",
+        learning=restored_learning,
+        store=restored_store,
+    )
+
+    query = ExpansionQuery("q-snapshot", 11, 4, "validation#4", entity="mary")
+    validation_story = ExpansionStory("task11/validation/hlb-snapshot", 11, (
+        Task11MentionEvent("v1", "Mary", False, "kitchen", 1, "validation#1", "female"),
+        Task11MentionEvent("v2", "John", False, "garden", 2, "validation#2", "male"),
+        Task11MentionEvent("v3", "she", True, "office", 3, "validation#3", "female"),
+    ), (query,))
+    decision = predict_task11_from_learned_state(restored, validation_story, query)
+    assert decision.prediction.answer == "office"
