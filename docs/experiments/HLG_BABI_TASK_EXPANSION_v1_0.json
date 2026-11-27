@@ -454,15 +454,16 @@
       "acceptance_runs": [
         45995326040,
         45995337324,
-        45996300512
+        45996300512,
+        45996589286
       ],
       "python_versions": {
         "3.10": "success",
         "3.12": "success"
       },
-      "tests_per_python_version": 120,
+      "tests_per_python_version": 121,
       "test_groups": {
-        "expansion_adapter_runtime_and_campaign_protocol": "20 passed",
+        "expansion_adapter_runtime_and_campaign_protocol": "21 passed",
         "integrated_evidence_and_prediction_lifecycle": "60 passed",
         "frozen_task3_task5_regression": "40 passed"
       }
