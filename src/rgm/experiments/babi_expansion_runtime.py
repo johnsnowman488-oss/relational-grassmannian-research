@@ -22,7 +22,7 @@ from rgm.leptograph.m4.hierarchical import (
     HLAAdapter, HLBAdapter, HierarchicalRuntimeDirector,
 )
 from rgm.leptograph.m4.learning import (
-    Level, Prediction, PredictionJournal, TargetObservation, TargetSchema,
+    EligibilityEvent, Level, Prediction, PredictionJournal, TargetObservation, TargetSchema,
     fingerprint,
 )
 
@@ -316,6 +316,7 @@ class BabiExpansionRuntime:
             )
             learning_relations = (relations[0],) if relations else ()
             learning_nary_events = None
+            eligibility_events = ()
             suppress_context_learning = False
             prediction_context = f"task{story.task_id}:pre:{event.event_id}"
             observed_context = f"task{story.task_id}:{type(event).__name__}"
@@ -346,6 +347,23 @@ class BabiExpansionRuntime:
                         learning_relations = ()
                     prediction_context = entity_context
                     observed_context = f"location:{event.location}"
+                    tick = self.director.event_tick + 1
+                    eligible_levels = ["L0", "L2"]
+                    if binding.target_kind == "weak_coreference":
+                        eligible_levels.append("L1")
+                    eligibility_events = tuple(
+                        EligibilityEvent(
+                            event_id=event.event_id,
+                            feature_id=f"task11:{level.lower()}:binding",
+                            channel=f"task11:{level}",
+                            event_time=nary.event_time,
+                            observed_at=nary.observed_at,
+                            observed_tick=tick,
+                            magnitude=1.0,
+                            config_fingerprint="h1-soe-eligibility-v1",
+                        )
+                        for level in eligible_levels
+                    )
             if isinstance(event, Task14TemporalEvent):
                 temporal_history.append(event)
             result = self.director.exchange(
@@ -359,6 +377,7 @@ class BabiExpansionRuntime:
                 prediction_context=prediction_context,
                 observed_context=observed_context,
                 suppress_context_learning=suppress_context_learning,
+                eligibility_events=eligibility_events,
                 learn=self.learning_enabled,
             )
             outputs.append({"event_id": nary.event_id, "status": status,
