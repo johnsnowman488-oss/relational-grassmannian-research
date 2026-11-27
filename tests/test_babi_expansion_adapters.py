@@ -130,12 +130,11 @@ def test_task19_inverse_edge_is_explicit_and_no_path_abstains(tmp_path):
 def test_task19_ambiguous_shortest_paths_abstain(tmp_path):
     path = write(
         tmp_path, "task19_ambiguous.txt",
-        "1 The office is north of the hallway.\n"
+        "1 The garden is north of the hallway.\n"
         "2 The kitchen is east of the hallway.\n"
-        "3 The office is east of the kitchen.\n"
-        "4 The garden is south of the hallway.\n"
-        "5 The office is north of the garden.\n"
-        "6 How do you go from the hallway to the office?\tn,e\t1 3\n"
+        "3 The office is east of the garden.\n"
+        "4 The office is north of the kitchen.\n"
+        "5 How do you go from the hallway to the office?\tn,e\t1 3\n"
     )
     stories, _ = parse_expansion_source(path, task_id=19, split="train")
     prediction = predict_task19(stories[0], stories[0].queries[0])
