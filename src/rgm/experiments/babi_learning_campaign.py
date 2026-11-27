@@ -657,7 +657,7 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                 float(totals["task_prediction_brier_sum"] / totals["task_prediction_count"])
                 if totals.get("task_prediction_count", 0) else None
             ),
-            "updates_enabled": learn,
+            "updates_enabled": learn and ErrorChannel.TASK in adapter.learning.enabled_channels,
         },
     }
     return metrics, global_clock
