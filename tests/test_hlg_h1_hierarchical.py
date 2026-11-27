@@ -5,6 +5,7 @@ import pytest
 
 from rgm.memory import SOEMemory
 from rgm.leptograph.m4.composition import Entity, RelationInstance, RelationType
+from rgm.leptograph.m4.learning import ErrorChannel, LearningRuntime
 from rgm.leptograph.m4.hierarchical import (
     CanonicalRelationStore, CompositeLifecycle, EvaluationPartition,
     HLAAdapter, HLBAdapter, HierarchicalEvaluationRunner,
@@ -282,3 +283,26 @@ def test_hla_and_hlb_share_upper_readouts_but_have_different_relation_retention(
                          person, [employed, based], context=None,
                          query_time=3.0, observation_cutoff=3.0)
     assert hlb.store.count == 2
+
+
+
+@pytest.mark.parametrize("adapter_type", [HLAAdapter, HLBAdapter])
+@pytest.mark.parametrize(
+    "channels",
+    [frozenset(), frozenset({ErrorChannel.TEMPORAL})],
+)
+def test_adapter_snapshot_validation_uses_frozen_ablation_and_eligibility_config(
+    adapter_type, channels,
+):
+    bridge, _ = make_bridge()
+    if adapter_type is HLAAdapter:
+        adapter = HLAAdapter(bridge, feature_dims=[2, 3, 4])
+    else:
+        adapter = HLBAdapter(bridge, capacity=262144)
+    adapter.learning = LearningRuntime(
+        enabled_channels=channels,
+        eligibility_capacity=131072,
+    )
+
+    snapshot = adapter.snapshot()
+    adapter.validate_snapshot(snapshot)
