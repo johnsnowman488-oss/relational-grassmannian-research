@@ -108,7 +108,7 @@ def _task11_learning_relation(
     *,
     context: str,
 ) -> RelationInstance:
-    """Build a typed L1 target for the learner only; never add it to HLB relation storage."""
+    """Build a typed L1 target for LearningRuntime only."""
     return RelationInstance(
         instance_id=f"{source_event.event_id}:task11-coreference-target",
         relation_type=RelationType(
@@ -122,6 +122,35 @@ def _task11_learning_relation(
         provenance=(
             f"{binding.source_ref}|{antecedent_source_ref}|{binding.rule_id}"
         ),
+    )
+
+
+def _task11_location_transition_relation(
+    source_event: NaryEvent,
+    binding: Task11TrainingBinding,
+    *,
+    previous_location: str | None,
+    location: str,
+) -> RelationInstance:
+    """Build an HLB model relation, separate from durable source evidence.
+
+    This typed transition is derived from a source mention plus its conservative
+    weak binding. It is inserted with HLBAdapter.observe(), never observe_source(),
+    and therefore lives in the rollback-scoped model relation store rather than
+    the immutable source evidence journal.
+    """
+    previous = previous_location if previous_location is not None else "__START__"
+    return RelationInstance(
+        instance_id=f"{source_event.event_id}:task11-location-transition",
+        relation_type=RelationType(
+            "task11_location_transition", "entity_state", "location",
+        ),
+        subject=Entity(f"{binding.entity_id}|{previous}", "entity_state"),
+        object=Entity(location, "location"),
+        event_time=source_event.event_time,
+        observed_at=source_event.observed_at,
+        context="task11_location_transition",
+        provenance=f"derived-learning-target:{binding.rule_id}|{binding.source_ref}",
     )
 
 
@@ -268,7 +297,8 @@ class BabiExpansionRuntime:
     """
     def __init__(self, adapter: HLAAdapter | HLBAdapter, *, capacity: int = 100000,
                  learning_enabled: bool = True,
-                 enabled_channels: Iterable[ErrorChannel] | None = None):
+                 enabled_channels: Iterable[ErrorChannel] | None = None,
+                 eligibility_capacity: int = 4096):
         if not isinstance(adapter, (HLAAdapter, HLBAdapter)):
             raise TypeError("adapter must be an existing HLAAdapter or HLBAdapter")
         if not isinstance(learning_enabled, bool):
@@ -282,7 +312,10 @@ class BabiExpansionRuntime:
             channels = frozenset(enabled_channels)
             if any(not isinstance(channel, ErrorChannel) for channel in channels):
                 raise TypeError("enabled_channels must contain ErrorChannel values")
-            self.adapter.learning = LearningRuntime(enabled_channels=channels)
+            self.adapter.learning = LearningRuntime(
+                enabled_channels=channels,
+                eligibility_capacity=eligibility_capacity,
+            )
         self.director = HierarchicalRuntimeDirector(adapter)
         admission_capacity = min(capacity, adapter.evidence.capacity) if isinstance(adapter, HLBAdapter) else capacity
         self._admission = EvidenceStore(admission_capacity)
@@ -394,6 +427,23 @@ class BabiExpansionRuntime:
                 learn=self.learning_enabled,
             )
             if story.task_id == 11 and isinstance(event, Task11MentionEvent) and binding is not None:
+                # HLB has a typed L2 transition model in its canonical relation
+                # store. These are derived learner targets, not source evidence:
+                # use observe(), never observe_source(), and honor the abstraction
+                # ablation. HLA uses its shared L2 context-transition learner.
+                if (self.learning_enabled
+                        and isinstance(self.adapter, HLBAdapter)
+                        and ErrorChannel.ABSTRACTION in self.adapter.learning.enabled_channels):
+                    transition = _task11_location_transition_relation(
+                        nary, binding,
+                        previous_location=task11_previous_location.get(binding.entity_id),
+                        location=event.location,
+                    )
+                    if self.adapter.store.count >= self.adapter.store.capacity:
+                        raise RuntimeError("HLB Task 11 model relation capacity exhausted")
+                    status = self.adapter.observe(1, transition)
+                    if status.startswith("ABSTAIN"):
+                        raise RuntimeError(f"HLB Task 11 model relation insertion failed: {status}")
                 # The entity transition state is story-local. A new story starts
                 # from __START__; no prior story's entity/location can be reused.
                 task11_previous_location[binding.entity_id] = event.location
