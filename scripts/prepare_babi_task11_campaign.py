@@ -165,7 +165,7 @@ def build_manifest(source_root: Path, protocol_path: Path, output_root: Path) ->
         "native_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
         "soe_feature_dims": [3, 3, 3],
         "soe_dt": 0.01,
-        "top_down_gain": 0.001,
+        "top_down_gain": 1e-8,
         "hlb_model_relation_capacity": 262144,
         "eligibility_capacity": 131072,
     }
