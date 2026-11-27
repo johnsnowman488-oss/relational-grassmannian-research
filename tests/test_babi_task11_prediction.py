@@ -37,7 +37,7 @@ def test_learned_context_prediction_must_agree_with_story_grounding():
     current = story()
     query = ExpansionQuery("q1", 11, 4, "validation#4", entity="mary")
     result = predict_task11_from_learned_state(
-        adapter({"task11:entity:mary": "location:office"}), current, query,
+        adapter({"task11:entity:mary:from:__START__": "location:kitchen", "task11:entity:mary:from:kitchen": "location:office"}), current, query,
     )
     assert result.prediction.answer == "office"
     assert result.prediction.abstained is False
@@ -50,7 +50,7 @@ def test_learned_context_conflict_abstains_instead_of_overriding_observed_story(
     current = story()
     query = ExpansionQuery("q1", 11, 4, "validation#4", entity="mary")
     result = predict_task11_from_learned_state(
-        adapter({"task11:entity:mary": "location:kitchen"}), current, query,
+        adapter({"task11:entity:mary:from:__START__": "location:kitchen", "task11:entity:mary:from:kitchen": "location:garden"}), current, query,
     )
     assert result.prediction.answer is None
     assert result.prediction.abstained is True
@@ -69,7 +69,7 @@ def test_query_cutoff_excludes_later_story_events():
     current = story()
     query = ExpansionQuery("q1", 11, 2, "validation#2", entity="mary")
     result = predict_task11_from_learned_state(
-        adapter({"task11:entity:mary": "location:kitchen"}), current, query,
+        adapter({"task11:entity:mary:from:__START__": "location:kitchen"}), current, query,
     )
     assert result.prediction.answer == "kitchen"
     assert result.prediction.witness_event_ids == ("m1",)
