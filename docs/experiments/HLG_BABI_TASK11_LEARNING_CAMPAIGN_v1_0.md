@@ -30,7 +30,7 @@ Validation is read-only. It may be ingested as observed source context for predi
 
 ## 3. Prediction, learning and evaluator boundaries
 
-The Task 11 prediction contract uses the H1 learned L2 context-transition model, conditioned on entity and preceding story-local location. Every predicted transition must be available from the learner and consistent with the observed story. Missing or conflicting transitions cause abstention; there is no silent symbolic-baseline fallback.
+The Task 11 prediction contract is architecture-specific. HLA reads its answer transition from the learned L2 `ContextTransitionLearner`, conditioned on entity and preceding story-local location. HLB reads typed `task11_location_transition` records from its rollback-scoped canonical model relation store. HLB inserts these derived learning targets through `observe()`, never `observe_source()`, so they do not enter the immutable source evidence journal. Both paths require every predicted transition to be available from the learner and consistent with observed story data. Missing, conflicting or ambiguous transitions cause abstention; there is no silent symbolic-baseline fallback.
 
 The weak antecedent rule admits a pronoun target only when exactly one distinct compatible prior named entity exists. Ambiguous and unresolved mentions abstain. Story-local entity/location state resets between stories even when the model persists across the fit sequence.
 
@@ -75,9 +75,9 @@ Aggregation requires exactly 120 unique run-unit keys, no duplicates or missing 
 
 ## 7. Confirmatory challenge is a separate phase
 
-The Task 11 generated confirmatory challenge is specified separately in the protocol JSON. Its generator seed is 953200 and its frozen size is 384 stories. It includes novel names, explicit entity anchors, location changes, uniquely resolvable pronouns, and a predeclared ambiguous/unresolved abstention subset.
+The Task 11 generated confirmatory challenge is specified separately in the protocol JSON and implemented by `generate_task11_confirmatory`. Its generator seed is 953200 and its frozen size is 384 stories: 320 answerable novel-name cases and 64 ambiguous-pronoun cases that must abstain. It includes explicit entity anchors, location changes, uniquely resolvable pronouns in the answerable subset, and a predeclared ambiguous subset.
 
-Generated inputs and evaluator labels must be separate files with independent hashes. The challenge is generated/evaluated only after validation candidate selection, once per selected architecture. It cannot feed training, candidate selection or threshold changes. It is not official bAbI test data and does not establish generalisation to unrestricted raw text.
+Generated inputs and evaluator labels must be separate files with independent hashes. The challenge is generated/evaluated only after validation candidate selection, once per selected architecture. The generator and evaluator are tested independently; CI does not publish or consume the challenge artifact before candidate selection. It cannot feed training, candidate selection or threshold changes. It is not official bAbI test data and does not establish generalisation to unrestricted raw text.
 
 ## 8. Launch gate
 
