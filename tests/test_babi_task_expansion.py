@@ -14,7 +14,10 @@ def load_manifest():
 
 def test_expansion_is_preparation_only_and_preserves_frozen_tasks():
     data = load_manifest()
-    assert data["status"] == "PHASE_B_ADAPTERS_SOURCE_WIDE_AUDIT_PASS"
+    assert data["status"] in {
+        "PHASE_B_ADAPTERS_SOURCE_WIDE_AUDIT_PASS",
+        "PHASE_C_RUNTIME_CONTRACT_PASS_CAMPAIGN_PROTOCOL_FROZEN",
+    }
     assert data["scope"]["phase_b_adapters_implemented"] is True
     assert data["scope"]["frozen_tasks"] == [3, 5]
     assert data["scope"]["execution_authorized"] is False
