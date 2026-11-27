@@ -43,7 +43,7 @@ SOURCE_FILES = {
     },
 }
 # GitHub Git-blob object IDs from an independent, commit-pinned copy of the
-# exact v1.2 en-10k members. Recomputed as SHA1("blob <size>\\0" + bytes).
+# exact v1.2 en-10k members. Recomputed as SHA1("blob <size>\0" + bytes).
 MIRROR_BLOB_SHA1 = {
     "qa11_basic-coreference_train.txt": "ff530d4de05dc753a0fe9d9638aa761ed855b81e",
     "qa11_basic-coreference_test.txt": "c9feb150855483c587c5a825211fc306d4cfebe3",
@@ -61,8 +61,8 @@ MIRROR_BLOB_SIZE = {
     "qa19_path-finding_test.txt": 247_449,
 }
 DIRECTIONS = {"north", "south", "east", "west"}
-LINE_RE = re.compile(r"^(\\d+)\\s+(.*)$")
-SUPPORT_RE = re.compile(r"\\d+(?:\\s+\\d+)*")
+LINE_RE = re.compile(r"^(\d+)\s+(.*)$")
+SUPPORT_RE = re.compile(r"\d+(?:\s+\d+)*")
 
 
 class SourceAuditError(ValueError):
@@ -74,7 +74,7 @@ def digest(payload: bytes) -> str:
 
 
 def git_blob_sha1(payload: bytes) -> str:
-    header = b"blob " + str(len(payload)).encode("ascii") + b"\\0"
+    header = b"blob " + str(len(payload)).encode("ascii") + b"\0"
     return sha1(header + payload).hexdigest()
 
 
@@ -131,7 +131,7 @@ def audit_member(payload: bytes, *, task_id: int, member_name: str) -> dict:
         previous_line_number = line_number
         current_story_line_count += 1
 
-        if "\\t" not in body:
+        if "\t" not in body:
             if not body.strip():
                 raise SourceAuditError(
                     f"{member_name}:{physical_line}: empty statement"
@@ -140,7 +140,7 @@ def audit_member(payload: bytes, *, task_id: int, member_name: str) -> dict:
             statement_ids.add(line_number)
             continue
 
-        fields = body.split("\\t")
+        fields = body.split("\t")
         if len(fields) != 3:
             raise SourceAuditError(
                 f"{member_name}:{physical_line}: question must have exactly "
@@ -382,7 +382,7 @@ def freeze(output: Path) -> dict:
     }
     report_path = output / "source-audit.json"
     report_path.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False) + "\\n",
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
     return manifest
