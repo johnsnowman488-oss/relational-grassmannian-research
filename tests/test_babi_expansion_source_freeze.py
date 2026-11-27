@@ -15,7 +15,7 @@ def test_task19_audit_keeps_ordered_direction_answer_and_local_supports():
     source = (
         "1 The garden is north of the kitchen.\n"
         "2 The office is east of the garden.\n"
-        "3 What is the path from the kitchen to the office?\tnorth east\t1 2\n"
+        "3 What is the path from the kitchen to the office?\tn,e\t1 2\n"
         "1 The kitchen is south of the garden.\n"
         "2 What is the path back?\tsouth\t1\n"
     ).encode()
@@ -60,7 +60,7 @@ def test_task19_rejects_destination_only_or_non_direction_answers():
         "1 The garden is north of the kitchen.\n"
         "2 What is the path?\tgarden\t1\n"
     ).encode()
-    with pytest.raises(MODULE.SourceAuditError, match="ordered cardinal-direction"):
+    with pytest.raises(MODULE.SourceAuditError, match="ordered comma-separated"):
         MODULE.audit_member(
             source, task_id=19, member_name="qa19_path-finding_train.txt"
         )
