@@ -5,9 +5,11 @@ def test_story_cluster_aggregation_uses_evaluator_schema_and_pooled_witness_coun
     run_root = tmp_path / "seed"
     run_root.mkdir()
     (run_root / "prediction-journal.jsonl").write_text(
-        '{"query_id":"q1","story_id":"story-a"}\\n'
-        '{"query_id":"q2","story_id":"story-a"}\\n'
-        '{"query_id":"q3","story_id":"story-b"}\\n',
+        "\\n".join([
+            '{"query_id":"q1","story_id":"story-a"}',
+            '{"query_id":"q2","story_id":"story-a"}',
+            '{"query_id":"q3","story_id":"story-b"}',
+        ]) + "\\n",
         encoding="utf-8",
     )
     row = {
