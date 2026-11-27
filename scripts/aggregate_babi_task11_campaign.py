@@ -68,8 +68,8 @@ def _summary(rows):
 def _story_stats(run_rows, run_dirs):
     result = defaultdict(lambda: {
         "correct": 0, "queries": 0, "covered": 0,
-        "witness_recall_sum": 0.0, "witness_recall_n": 0,
-        "false_witness_sum": 0.0, "false_witness_n": 0,
+        "witness_true": 0, "support_count": 0,
+        "false_witness": 0, "predicted_witness": 0,
     })
     for row, root in zip(run_rows, run_dirs):
         prediction_path = root / "prediction-journal.jsonl"
@@ -83,15 +83,15 @@ def _story_stats(run_rows, run_dirs):
             if story_id is None:
                 raise ValueError(f"missing story mapping for query {query['query_id']}")
             stats = result[story_id]
-            stats["correct"] += int(bool(query["answer_correct"]))
+            stats["correct"] += int(bool(query["answer_exact_match"]))
             stats["queries"] += 1
-            stats["covered"] += int(bool(query["covered"]))
-            if query.get("witness_recall") is not None:
-                stats["witness_recall_sum"] += float(query["witness_recall"])
-                stats["witness_recall_n"] += 1
-            if query.get("false_witness_rate") is not None:
-                stats["false_witness_sum"] += float(query["false_witness_rate"])
-                stats["false_witness_n"] += 1
+            stats["covered"] += int(not bool(query["abstained"]))
+            predicted = set(query.get("predicted_witness_lines", []))
+            support = set(query.get("gold_support_lines", []))
+            stats["witness_true"] += len(predicted & support)
+            stats["support_count"] += len(support)
+            stats["false_witness"] += len(predicted - support)
+            stats["predicted_witness"] += len(predicted)
     return dict(result)
 
 
@@ -113,11 +113,11 @@ def _bootstrap_interval(stats, *, metric: str, draws=BOOTSTRAPS, seed=BOOTSTRAP_
                 total_a += row["covered"]
                 total_b += row["queries"]
             elif metric == "support_witness_recall":
-                total_a += row["witness_recall_sum"]
-                total_b += row["witness_recall_n"]
+                total_a += row["witness_true"]
+                total_b += row["support_count"]
             elif metric == "false_witness_rate":
-                total_a += row["false_witness_sum"]
-                total_b += row["false_witness_n"]
+                total_a += row["false_witness"]
+                total_b += row["predicted_witness"]
         values.append(total_a / total_b if total_b else 0.0)
     values.sort()
     return {
