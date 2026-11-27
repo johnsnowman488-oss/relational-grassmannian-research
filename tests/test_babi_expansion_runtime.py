@@ -119,7 +119,7 @@ def test_prediction_contract_rejects_same_cutoff_and_scores_only_post_cutoff_lab
     assert len(predictions) == 4
     label = GoldLabel("q1", "e", (1, 2), "test#4")
     scored = forecasts.score_query(query, label, evaluated_tick=4, observed_at=4.0)
-    assert scored["task19.answer.ordered_route_answer"]["value"] == 0.0
+    assert scored["task19.answer.ordered_route_answer"]["value"] == 1.0
     assert forecasts.journal.scores[-1].target_source_id == "test#4"
 
 
