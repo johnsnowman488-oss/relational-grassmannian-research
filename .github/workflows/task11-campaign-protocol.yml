@@ -1,0 +1,52 @@
+name: Task 11 campaign protocol and repository contracts
+
+on:
+  push:
+    branches:
+      - "research/task11-campaign-protocol-v1"
+    paths:
+      - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json"
+      - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.md"
+      - "docs/experiments/HLG_BABI_TASK11_NONORACLE_BASELINE_VALIDATION_v1_0.md"
+      - "tests/test_babi_task11_campaign_protocol.py"
+      - "src/rgm/experiments/babi_task11_prediction.py"
+      - "src/rgm/experiments/babi_expansion_runtime.py"
+      - "tests/test_babi_task11_*.py"
+      - ".github/workflows/task11-campaign-protocol.yml"
+  pull_request:
+    branches:
+      - "research/task11-campaign-gates-v1"
+    paths:
+      - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json"
+      - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.md"
+      - "docs/experiments/HLG_BABI_TASK11_NONORACLE_BASELINE_VALIDATION_v1_0.md"
+      - "tests/test_babi_task11_campaign_protocol.py"
+      - "src/rgm/experiments/babi_task11_prediction.py"
+      - "src/rgm/experiments/babi_expansion_runtime.py"
+      - "tests/test_babi_task11_*.py"
+      - ".github/workflows/task11-campaign-protocol.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task11-campaign-protocol-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  protocol-and-contract-tests:
+    name: Full repository, prediction and campaign protocol tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Validate Task 11-only campaign protocol and all contracts
+        run: python -m pytest -q
