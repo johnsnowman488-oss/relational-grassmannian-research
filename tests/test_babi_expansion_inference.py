@@ -10,10 +10,10 @@ class FakeEvidence:
     def __init__(self):
         self.rows = {
             "mary-event": SimpleNamespace(
-                role=lambda name: SimpleNamespace(entity_id="Mary") if name == "mention" else None
+                role=lambda name: (SimpleNamespace(entity_id="Mary") if name == "mention" else\n                                  SimpleNamespace(entity_id="office") if name == "location" else None)
             ),
             "pronoun-event": SimpleNamespace(
-                role=lambda name: SimpleNamespace(entity_id="she") if name == "mention" else None
+                role=lambda name: (SimpleNamespace(entity_id="she") if name == "mention" else\n                                  SimpleNamespace(entity_id="office") if name == "location" else None)
             ),
         }
 
@@ -111,3 +111,28 @@ def test_task11_inference_rejects_other_tasks_and_architectures():
         )
     with pytest.raises(ValueError, match="HLA or HLB"):
         predict_task11_from_learned_state(FakeRuntime("OTHER"), query())
+
+
+
+def test_task11_forecasts_are_issued_before_official_answer_scoring():
+    from rgm.experiments.babi_expansion_runtime import ExpansionForecasts
+    from rgm.experiments.babi_expansion_adapters import GoldLabel
+    from rgm.experiments.babi_expansion_inference import issue_task11_model_forecasts
+
+    role = SimpleNamespace(
+        event_type="TASK11_MENTION_BINDING_TARGET",
+        roles=(("entity", "mary", "entity"),
+               ("antecedent_event", "mary-event", "mention_event")),
+    )
+    runtime = FakeRuntime(role_pattern=role)
+    forecasts = ExpansionForecasts(11)
+    prediction = issue_task11_model_forecasts(
+        runtime, query(), forecasts,
+        issued_tick=7, issued_at=7.0, evidence_cutoff=7.0,
+    )
+    assert prediction.answer == "office"
+    scored = forecasts.score_query(
+        query(), GoldLabel("q1", "office", (1,), "validation#9"),
+        evaluated_tick=9, observed_at=9.0,
+    )
+    assert scored["task11.answer.location_answer"]["value"] == 1.0
