@@ -64,6 +64,11 @@ def test_hlb_query_recovery_flattens_source_event_tuple():
         evidence = Evidence()
 
         @staticmethod
+        @property
+        def event_ids(self):
+            raise AssertionError("campaign hot path must not materialize the global evidence-ID list")
+
+        @staticmethod
         def recover_evidence(evidence_id, *, observation_cutoff):
             assert evidence_id == event.event_id
             assert observation_cutoff == 2.0
@@ -85,7 +90,7 @@ def test_campaign_checkpoint_is_atomic_and_marks_partial_vs_complete(tmp_path):
     partial = [{"seed": 1, "variant": "full_learning"}]
     snapshot = _write_campaign_checkpoint(
         output_path, task_id=3, architecture="HLA",
-        seeds=[1, 2], results=partial,
+        seeds=[1, 2], variants=list(CHANNELS), results=partial,
         expected_run_count=2 * len(CHANNELS), complete=False,
     )
     assert snapshot["status"] == "in_progress"
@@ -97,7 +102,7 @@ def test_campaign_checkpoint_is_atomic_and_marks_partial_vs_complete(tmp_path):
 
     completed = _write_campaign_checkpoint(
         output_path, task_id=3, architecture="HLA",
-        seeds=[1, 2], results=partial * (2 * len(CHANNELS)),
+        seeds=[1, 2], variants=list(CHANNELS), results=partial * (2 * len(CHANNELS)),
         expected_run_count=2 * len(CHANNELS), complete=True,
     )
     assert completed["status"] == "completed"
