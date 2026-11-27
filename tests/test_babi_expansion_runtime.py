@@ -267,7 +267,13 @@ def test_task11_l0_l1_l2_weak_targets_update_learners_but_never_source_evidence(
                 for participant in raw_event.participants
             )
         if kind == "HLB":
-            assert adapter.store.count == 0
+            # HLB stores derived transitions in its rollback-scoped model store,
+            # but the immutable evidence journal remains source-only.
+            model_rows = adapter.store.records(cutoff=1e300, levels=(1,))
+            assert len(model_rows) == 4
+            assert all(row.relation_type.name == "task11_location_transition"
+                       for row in model_rows)
+            assert len(adapter.evidence.event_ids) == 4
 
         journal = adapter.learning._observation_journal
         role_rows = [row for row in journal if row["kind"] == "event_role"]
@@ -302,7 +308,10 @@ def test_task11_ambiguous_pronoun_is_evidence_only_and_gets_no_learning_target()
     temporal_keys = [__import__("json").loads(key)
                      for key in adapter.learning.temporal_credit.snapshot()["weights"]]
     assert "m3" not in {key[0] for key in temporal_keys}
-    assert adapter.store.count == 0
+    model_rows = adapter.store.records(cutoff=1e300, levels=(1,))
+    assert len(model_rows) == 2
+    assert all(row.instance_id.startswith(("m1:", "m2:")) for row in model_rows)
+    assert len(adapter.evidence.event_ids) == 3
     raw_pronoun, = runtime.recover_witness("m3", observation_cutoff=3.0)
     assert raw_pronoun.role("mention").entity_id == "she"
     assert not any(p.role in {"entity", "antecedent_event"} for p in raw_pronoun.participants)
@@ -380,6 +389,7 @@ def test_task11_persistent_sequence_retains_learning_state_without_cross_story_b
         assert raw.role("mention").entity_id == "she"
         assert not any(p.role in {"entity", "antecedent_event"} for p in raw.participants)
         if kind == "HLB":
-            # Learning-only coreference targets must never enter durable evidence.
-            assert adapter.store.count == 0
+            # The second story's unresolved pronoun produces no HLB model target.
+            assert adapter.store.count == 2
+            assert len(adapter.evidence.event_ids) == 3
         runtime.director.close()
