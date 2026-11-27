@@ -107,3 +107,8 @@ The Task 11 answer head reads the L2 entity-conditioned location-transition mode
 `no_abstraction` disables the L2 answer-transition model and `no_learning` disables all learning; both are negative controls expected to have zero answer coverage. Any violation is an integrity failure, not a reason to revise the expected result after seeing validation scores.
 
 The campaign workflow runs the complete repository/Task 11 contract suite first, then the reserved-seed full-scale preflight. It launches the 120 units only after both gates pass. The actual generated confirmatory challenge is created only after validation-only candidate selection; predictions are frozen before its separate evaluator-label file is opened.
+
+
+## Reserved-seed preflight boundary
+
+The reserved seed (953099) is a resource/integrity preflight, not a performance-selection seed. Its validation predictions and scores are archived for diagnosis, but answer exact match, coverage and witness scores do not gate campaign launch and do not select a candidate. Launch depends on complete unit execution, exact partitions, label isolation, zero validation parameter updates, checkpoint recovery and resource ceilings. The 120-unit campaign uses only seeds 953100–953109 for validation-based candidate selection. No reserved-seed result is folded into the campaign summary.
