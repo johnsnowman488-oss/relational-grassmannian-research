@@ -61,7 +61,7 @@ def test_persistent_hla_ingestion_trains_context_used_by_answer_predictor():
     runtime = BabiExpansionRuntime(adapter)
     runtime.ingest_story_sequence([training_story])
 
-    learned = adapter.learning.context_transitions.predict("task11:entity:mary")
+    learned = adapter.learning.context_transitions.predict("task11:entity:mary:from:kitchen")
     assert learned == "location:office"
 
     query = ExpansionQuery("q1", 11, 4, "validation#4", entity="mary")
