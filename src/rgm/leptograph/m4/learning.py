@@ -1275,6 +1275,7 @@ class LearningRuntime:
         self._observation_journal.append({
             "kind": "relation", "value": encoded, "target_name": "next_relation_pattern",
             "target_key": key, "context": record.context, "source_id": record.instance_id,
+            "source_provenance": record.provenance,
             "event_time": record.event_time, "observed_at": record.observed_at, "tick": tick,
             "learn": bool(learn),
             "issue_context": deepcopy(self._last_issue_context),
@@ -1301,6 +1302,8 @@ class LearningRuntime:
         self._observation_journal.append({
             "kind": "event_role", "value": encoded, "target_name": "next_event_role_pattern",
             "target_key": key, "context": event.context, "source_id": event.event_id,
+            "source_provenance": event.provenance,
+            "source_locator": event.source_locator,
             "event_time": event.event_time, "observed_at": event.observed_at, "tick": tick,
             "learn": bool(learn),
             "issue_context": deepcopy(self._last_issue_context),
