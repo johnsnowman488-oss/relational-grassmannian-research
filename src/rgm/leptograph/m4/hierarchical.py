@@ -21,7 +21,7 @@ from rgm.leptograph.m4.composition import (
 )
 from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge, make_h0_chain_spec
 from rgm.leptograph.m4.evidence import EvidenceStore, NaryEvent
-from rgm.leptograph.m4.learning import LearningRuntime, EligibilityEvent
+from rgm.leptograph.m4.learning import LearningRuntime, EligibilityEvent, ErrorChannel
 
 
 H1_SCHEMA_VERSION = "0.1.0"
@@ -38,6 +38,22 @@ def _finite_vector(value, *, name: str) -> np.ndarray:
 def _fingerprint(value: object) -> str:
     payload = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _probe_learning_runtime(snapshot: Mapping) -> LearningRuntime:
+    """Validate a learning snapshot using its own frozen ablation/capacity config."""
+    eligibility = snapshot.get("eligibility", {})
+    channels = frozenset(ErrorChannel(value) for value in snapshot.get("enabled_channels", ()))
+    probe = LearningRuntime(
+        eligibility_decay=float(eligibility.get("decay", 0.9)),
+        eligibility_capacity=int(eligibility.get("capacity", 4096)),
+        eligibility_config_fingerprint=str(
+            eligibility.get("config_fingerprint", "h1-soe-eligibility-v1")
+        ),
+        enabled_channels=channels,
+    )
+    probe.restore(snapshot)
+    return probe
 
 
 def _memory_snapshots(bridge: SOEHierarchyBridge) -> list[dict]:
@@ -318,8 +334,7 @@ class HLAAdapter:
         for readout, candidate in zip(self.readouts, state["readouts"]):
             probe = LinearReadout(readout.input_dim, readout.output_dim, readout.ridge)
             probe.restore(candidate)
-        probe_learning = LearningRuntime()
-        probe_learning.restore(state["learning"])
+        _probe_learning_runtime(state["learning"])
 
     def restore(self, state: Mapping, *, preserve_observations: bool = False) -> None:
         self.validate_snapshot(state)
@@ -597,8 +612,7 @@ class HLBAdapter:
         for readout, candidate in zip(self.readouts, state["readouts"]):
             probe_readout = LinearReadout(readout.input_dim, readout.output_dim, readout.ridge)
             probe_readout.restore(candidate)
-        probe_learning = LearningRuntime()
-        probe_learning.restore(state["learning"])
+        _probe_learning_runtime(state["learning"])
 
     def restore(self, state: Mapping, *, preserve_observations: bool = False) -> None:
         self.validate_snapshot(state)
