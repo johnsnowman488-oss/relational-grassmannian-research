@@ -5,6 +5,7 @@ on:
     branches:
       - "research/babi-runtime-prediction-contract-v1"
       - "research/babi-expansion-campaign-freeze-v1"
+      - "research/babi-task-expansion-v1"
     paths:
       - "src/rgm/experiments/babi_expansion_runtime.py"
       - "tests/test_babi_expansion_runtime.py"
@@ -18,6 +19,7 @@ on:
   pull_request:
     paths:
       - "src/rgm/experiments/babi_expansion_runtime.py"
+      - "tests/test_babi_expansion_campaign_protocol.py"
       - "tests/test_babi_expansion_runtime.py"
       - "src/rgm/experiments/babi_expansion_adapters.py"
       - "src/rgm/leptograph/m4/**"
