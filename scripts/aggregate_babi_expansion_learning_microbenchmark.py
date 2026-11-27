@@ -95,10 +95,16 @@ def aggregate(plan_path: Path, shard_dirs: list[Path], output_path: Path) -> dic
         ids = [row["story_id"] for row in rows]
         if len(rows) != 128 or len(set(ids)) != 128:
             raise ValueError(f"{architecture}: expected 128 unique paired fit stories")
-        ordered = sorted(rows, key=lambda row: (row["story_id"].split("/")[-1], row["story_index"]))
-        journal = [int(row["observation_journal_rows"]) for row in ordered]
-        if any(b < a for a, b in zip(journal, journal[1:])):
-            raise ValueError(f"{architecture}: persistent learner journal shrank across stories")
+        for shard in range(4):
+            ordered = sorted(
+                [row for row in rows if int(row["shard"]) == shard],
+                key=lambda row: int(row["story_index"]),
+            )
+            if len(ordered) != STORIES_PER_SHARD:
+                raise ValueError(f"{architecture}/shard {shard}: persistent sequence incomplete")
+            journal = [int(row["observation_journal_rows"]) for row in ordered]
+            if any(b < a for a, b in zip(journal, journal[1:])):
+                raise ValueError(f"{architecture}/shard {shard}: learner journal shrank across stories")
         update = sum(float(row["update_seconds"]) for row in rows)
         events = sum(int(row["events"]) for row in rows)
         task_metrics[architecture] = {
@@ -111,7 +117,10 @@ def aggregate(plan_path: Path, shard_dirs: list[Path], output_path: Path) -> dic
             "mean_checkpoint_bytes": mean(int(row["checkpoint_bytes"]) for row in rows),
             "max_checkpoint_bytes": max(int(row["checkpoint_bytes"]) for row in rows),
             "final_checkpoint_bytes_max": max(
-                int(row["checkpoint_bytes"]) for row in rows
+                int(max(
+                    row["checkpoint_bytes"] for row in rows
+                    if int(row["shard"]) == shard and int(row["story_index"]) == STORIES_PER_SHARD - 1
+                )) for shard in range(4)
             ),
             "max_observation_journal_rows": max(journal),
             "max_temporal_credit_weights": max(int(row["temporal_credit_weights"]) for row in rows),
