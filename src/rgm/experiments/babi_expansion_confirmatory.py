@@ -354,3 +354,195 @@ if __name__ == "__main__":
     args = parser.parse_args()
     result = verify(args.output_root) if args.verify else generate(args.output_root)
     print(json.dumps(result, indent=2, sort_keys=True))
+
+
+TASK11_CONFIRMATORY_SEED = 953200
+TASK11_CONFIRMATORY_STORIES = 384
+TASK11_AMBIGUOUS_STORIES = 64
+
+
+def generate_task11_confirmatory(output_root: Path) -> dict:
+    """Generate the frozen Task 11-only challenge after validation selection.
+
+    The generated input and evaluator labels are separate files. This function
+    is intentionally not called by fit, validation, preflight or campaign jobs.
+    """
+    from rgm.experiments.babi_expansion_adapters import (
+        derive_task11_weak_binding_targets,
+        task11_confirmatory_input_to_story,
+    )
+
+    output_root.mkdir(parents=True, exist_ok=True)
+    rng = random.Random(f"HLG-BABI-TASK11-CONFIRMATORY-v1:{TASK11_CONFIRMATORY_SEED}")
+    inputs, labels = [], []
+    for ordinal in range(TASK11_CONFIRMATORY_STORIES):
+        inp, label = _task11(rng, TASK11_CONFIRMATORY_SEED, ordinal)
+        if ordinal < TASK11_AMBIGUOUS_STORIES:
+            target = label["task11_supervision"]["l2_entity_state"]["entity_id"]
+            anchor = next(
+                row for row in inp["events"]
+                if not row["is_pronoun"] and row["surface_mention"] == target
+            )
+            gender = anchor["grammatical_gender"]
+            third_name = _entity_token(rng, ordinal + 1000)
+            tick = max(row["observed_at"] for row in inp["events"]) + 1
+            inp["events"].append({
+                "event_id": f"{inp['story_id']}-e{tick:03d}",
+                "surface_mention": third_name,
+                "is_pronoun": False,
+                "grammatical_gender": gender,
+                "location": f"place_{rng.randrange(10000, 99999)}",
+                "observed_at": tick,
+                "source_ref": f"{inp['story_id']}#event={tick:03d}",
+            })
+            tick += 1
+            pronoun = "she" if gender == "female" else "he"
+            inp["events"].append({
+                "event_id": f"{inp['story_id']}-e{tick:03d}",
+                "surface_mention": pronoun,
+                "is_pronoun": True,
+                "grammatical_gender": gender,
+                "location": f"place_{rng.randrange(10000, 99999)}",
+                "observed_at": tick,
+                "source_ref": f"{inp['story_id']}#event={tick:03d}",
+            })
+            inp["query"]["observed_at"] = tick + 1
+            inp["query"]["source_ref"] = f"{inp['story_id']}#query"
+            labels.append({
+                "query_id": inp["query"]["query_id"],
+                "expected_abstention": True,
+                "expected_reason": "ambiguous_entity_mention_after_last_grounded_state",
+                "ambiguous_pronoun_event_id": inp["events"][-1]["event_id"],
+            })
+        else:
+            labels.append({
+                "query_id": label["query_id"],
+                "expected_abstention": False,
+                "gold_answer": label["gold_answer"],
+                "support_event_ids": label["support_event_ids"],
+            })
+        story = task11_confirmatory_input_to_story(inp)
+        weak = derive_task11_weak_binding_targets(story)
+        if ordinal < TASK11_AMBIGUOUS_STORIES:
+            if not any(row["reason"] == "ambiguous_gender_candidates"
+                       for row in weak["abstentions"]):
+                raise AssertionError("ambiguous confirmatory case did not trigger weak-binding abstention")
+        elif weak["abstentions"]:
+            raise AssertionError("uniquely resolvable confirmatory case unexpectedly abstained")
+        inputs.append(inp)
+
+    input_path = output_root / "task11-confirmatory-inputs.jsonl"
+    label_path = output_root / "task11-confirmatory-evaluator-labels.jsonl"
+    input_path.write_text(
+        "".join(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\\n" for row in inputs),
+        encoding="utf-8",
+    )
+    label_path.write_text(
+        "".join(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\\n" for row in labels),
+        encoding="utf-8",
+    )
+    input_ids = [row["query"]["query_id"] for row in inputs]
+    label_ids = [row["query_id"] for row in labels]
+    if len(set(input_ids)) != TASK11_CONFIRMATORY_STORIES or set(input_ids) != set(label_ids):
+        raise AssertionError("Task 11 confirmatory query/label identities are not one-to-one")
+    forbidden = {
+        "gold_answer", "support_event_ids", "mention_binding_edges",
+        "task11_supervision", "antecedent_event_id", "expected_abstention",
+    }
+    for row in inputs:
+        if forbidden & set(row) or forbidden & set(row["query"]):
+            raise AssertionError("evaluator data leaked into Task 11 confirmatory inputs")
+        if any(forbidden & set(event) for event in row["events"]):
+            raise AssertionError("evaluator data leaked into Task 11 confirmatory observations")
+
+    manifest = {
+        "schema": "HLG-BABI-TASK11-CONFIRMATORY-v1",
+        "protocol_id": "HLG-BABI-TASK11-CONFIRMATORY-v1",
+        "status": "FROZEN_GENERATOR_AND_SEEDS",
+        "not_official_babi_test": True,
+        "task_ids": [11],
+        "seed": TASK11_CONFIRMATORY_SEED,
+        "story_count": TASK11_CONFIRMATORY_STORIES,
+        "answerable_story_count": TASK11_CONFIRMATORY_STORIES - TASK11_AMBIGUOUS_STORIES,
+        "ambiguous_abstention_story_count": TASK11_AMBIGUOUS_STORIES,
+        "input_label_separation": "Distinct JSONL files; inputs contain no evaluator answers, support IDs or expected-abstention labels.",
+        "labels_used_for_learning": False,
+        "official_test_access": False,
+        "files": {
+            "inputs": {
+                "path": input_path.name, "rows": len(inputs), "sha256": _sha(input_path),
+                "query_ids_sha256": sha256("\\n".join(input_ids).encode()).hexdigest(),
+            },
+            "evaluator_labels": {
+                "path": label_path.name, "rows": len(labels), "sha256": _sha(label_path),
+                "query_ids_sha256": sha256("\\n".join(label_ids).encode()).hexdigest(),
+            },
+        },
+    }
+    manifest["manifest_sha256"] = sha256(_canonical(manifest)).hexdigest()
+    manifest_path = output_root / "task11-confirmatory-manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\\n",
+                             encoding="utf-8")
+    manifest["manifest_file_sha256"] = _sha(manifest_path)
+    return manifest
+
+
+def evaluate_task11_confirmatory(inputs: list[dict], labels: list[dict],
+                                 decisions: dict[str, Any]) -> dict:
+    """Evaluate once-selected predictions against the separately sealed labels."""
+    input_by_id = {row["query"]["query_id"]: row for row in inputs}
+    label_by_id = {row["query_id"]: row for row in labels}
+    if len(input_by_id) != len(inputs) or len(label_by_id) != len(labels):
+        raise ValueError("duplicate Task 11 confirmatory query/label IDs")
+    if set(input_by_id) != set(label_by_id) or set(input_by_id) != set(decisions):
+        raise ValueError("Task 11 confirmatory input, label and prediction IDs differ")
+
+    answerable = [row for row in labels if not row["expected_abstention"]]
+    ambiguous = [row for row in labels if row["expected_abstention"]]
+    answer_correct = 0
+    answer_covered = 0
+    true_witnesses = 0
+    total_witnesses = 0
+    false_witnesses = 0
+    correct_abstentions = 0
+    false_acceptances = 0
+    for label in answerable:
+        prediction = decisions[label["query_id"]].prediction
+        if not prediction.abstained:
+            answer_covered += 1
+            answer_correct += int(prediction.answer == label["gold_answer"])
+        predicted = set(prediction.witness_event_ids)
+        gold = set(label["support_event_ids"])
+        true_witnesses += len(predicted & gold)
+        total_witnesses += len(gold)
+        false_witnesses += len(predicted - gold)
+    for label in ambiguous:
+        prediction = decisions[label["query_id"]].prediction
+        correct_abstentions += int(prediction.abstained)
+        false_acceptances += int(not prediction.abstained)
+
+    return {
+        "schema": "HLG-BABI-TASK11-CONFIRMATORY-SCORE-v1",
+        "task_id": 11,
+        "query_count": len(labels),
+        "answerable_query_count": len(answerable),
+        "ambiguous_query_count": len(ambiguous),
+        "answer_exact_match_on_answerable": (
+            answer_correct / len(answerable) if answerable else None
+        ),
+        "answer_coverage_on_answerable": (
+            answer_covered / len(answerable) if answerable else None
+        ),
+        "support_witness_recall": (
+            true_witnesses / total_witnesses if total_witnesses else None
+        ),
+        "false_witness_rate": (
+            false_witnesses / (true_witnesses + false_witnesses)
+            if true_witnesses + false_witnesses else None
+        ),
+        "ambiguous_abstention_recall": (
+            correct_abstentions / len(ambiguous) if ambiguous else None
+        ),
+        "ambiguous_false_acceptances": false_acceptances,
+        "label_boundary": "Generated evaluator labels are consumed only after candidate predictions are fixed.",
+    }
