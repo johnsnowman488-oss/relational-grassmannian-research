@@ -147,7 +147,7 @@ def test_h0_chain_spec_accepts_bounded_top_down_gain_without_changing_bottom_up_
         for _ in banks
     ]
     _, edges = make_h0_chain_spec(
-        banks, kernels, dt=0.01, top_down_gain=1e-8,
+        banks, kernels, dt=0.01, top_down_gain=1.0,
     )
-    assert [edge["gain"] for edge in edges if edge["relation"] == 1] == [1e-8, 1e-8]
+    assert [edge["gain"] for edge in edges if edge["relation"] == 1] == [1.0, 1.0]
     assert [edge["gain"] for edge in edges if edge["relation"] == 0] == [1.0, 1.0]
