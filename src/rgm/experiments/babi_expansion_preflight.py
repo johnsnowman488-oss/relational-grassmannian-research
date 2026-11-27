@@ -121,6 +121,8 @@ def _phase_record(stories: list[ExpansionStory]) -> dict:
         "story_count": len(stories),
         "query_count": _story_query_count(stories),
         "event_count": _story_event_count(stories),
+        "story_ids_sha256": sha256("\\n".join(story.story_id for story in stories).encode("utf-8")).hexdigest(),
+        "query_ids_sha256": sha256("\\n".join(query.query_id for story in stories for query in story.queries).encode("utf-8")).hexdigest(),
     }
 
 
@@ -327,16 +329,24 @@ def run_shard(plan_path: Path, shard_id: int, output_root: Path,
 
     loaded: dict[int, tuple[dict[str, list[ExpansionStory]], list[GoldLabel]]] = {}
     for task_id, (train_name, _) in TASK_FILES.items():
+        train_path = Path(plan["source_root"]) / train_name
+        test_path = Path(plan["source_root"]) / TASK_FILES[task_id][1]
+        frozen_source = manifest["tasks"][str(task_id)]["source"]
+        if _file_sha(train_path) != frozen_source["train_sha256"]:
+            raise ValueError(f"Task {task_id}: training source digest differs from prepared manifest")
+        if _file_sha(test_path) != frozen_source["test_sha256"]:
+            raise ValueError(f"Task {task_id}: official test source digest differs from prepared manifest")
         stories, labels = parse_expansion_source(
-            Path(plan["source_root"]) / train_name,
-            task_id=task_id, split="train", include_labels=True,
+            train_path, task_id=task_id, split="train", include_labels=True,
         )
         fit, validation = _fit_validation_split(stories, task_id)
         warm, online = _warm_online_split(fit, task_id)
-        loaded[task_id] = (
-            {"warm_start": warm, "online_adaptation": online, "validation": validation},
-            labels,
-        )
+        derived = {"warm_start": warm, "online_adaptation": online, "validation": validation}
+        for phase_name, phase_stories in derived.items():
+            expected_ids = manifest["tasks"][str(task_id)]["phases"][phase_name]["story_ids"]
+            if [story.story_id for story in phase_stories] != expected_ids:
+                raise ValueError(f"Task {task_id}: recomputed {phase_name} partition differs from frozen manifest")
+        loaded[task_id] = (derived, labels)
 
     started = time.perf_counter()
     prior_resource_path = output_root / "partial-resource-usage.json"
@@ -518,6 +528,17 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
     manifest = json.loads((plan_path.parent / plan["manifest_path"]).read_text(encoding="utf-8"))
     manifest_sha = manifest["manifest_sha256"]
     expected = {row["run_unit_key"]: row for row in manifest["run_units"]}
+    baseline_report_path = plan_path.parent / "baseline-validation.json"
+    baseline_report = json.loads(baseline_report_path.read_text(encoding="utf-8"))
+    for task_id in TASKS:
+        baseline_task = baseline_report["tasks"].get(str(task_id), {})
+        baseline_metrics = baseline_task.get("baseline_metrics", {})
+        expected_names = {name for name, _ in BASELINES[task_id]}
+        if set(baseline_metrics) != expected_names:
+            raise ValueError(f"Task {task_id}: incomplete baseline validation metrics")
+        if any(row["queries"] != 1000 or row["answer_exact_match"] is None
+               for row in baseline_metrics.values()):
+            raise ValueError(f"Task {task_id}: baseline validation metrics are incomplete")
     if len(shard_roots) != WORKER_COUNT:
         raise ValueError("aggregation requires exactly four shard evidence directories")
     results: dict[str, dict] = {}
@@ -593,6 +614,8 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
             "per_shard": resources,
             "scope": "non-learning symbolic baseline workload; no HLA/HLB learner compute",
         },
+        "baseline_validation": baseline_report["tasks"],
+        "confirmatory_manifest_sha256": manifest["confirmatory_protocol"]["manifest_sha256"],
         "retry_integrity": {
             "unique_run_unit_keys": len(results),
             "duplicate_keys": 0,
