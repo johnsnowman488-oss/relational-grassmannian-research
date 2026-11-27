@@ -128,7 +128,7 @@ The Tasks 11, 14 and 19 adapters are now connected to the existing H1 runtime th
 
 - Runtime/prediction-contract PR #53 merged at `0e4da940644033b784fc65a4ef2b4ab64b66f7ba`.
 - CI runs `45995326040` and `45995337324` passed on Python 3.10 and 3.12.
-- Each Python matrix job passed 20 expansion adapter/runtime/protocol tests, 60 integrated HLG lifecycle tests and 40 frozen Task 3/5 regression tests (120 total).
+- Each Python matrix job passed 21 expansion adapter/runtime/protocol tests, 60 integrated HLG lifecycle tests and 40 frozen Task 3/5 regression tests (121 total).
 - Task 3/5 files and campaign protocol were not changed by the runtime integration.
 
 ## First-wave learning campaign protocol — FROZEN, NOT AUTHORIZED
