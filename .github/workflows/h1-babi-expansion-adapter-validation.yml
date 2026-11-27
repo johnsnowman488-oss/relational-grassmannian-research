@@ -11,6 +11,7 @@ on:
       - "tests/test_babi_expansion_adapters.py"
       - "tests/test_babi_expansion_source_freeze.py"
       - "tests/test_babi_task_expansion.py"
+      - "docs/experiments/HLG_BABI_TASK_EXPANSION_v1_0.json"
       - ".github/workflows/h1-babi-expansion-adapter-validation.yml"
   pull_request:
     branches:
@@ -22,6 +23,7 @@ on:
       - "tests/test_babi_expansion_adapters.py"
       - "tests/test_babi_expansion_source_freeze.py"
       - "tests/test_babi_task_expansion.py"
+      - "docs/experiments/HLG_BABI_TASK_EXPANSION_v1_0.json"
       - ".github/workflows/h1-babi-expansion-adapter-validation.yml"
 
 concurrency:
