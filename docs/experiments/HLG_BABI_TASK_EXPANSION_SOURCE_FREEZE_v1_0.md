@@ -28,6 +28,23 @@ The workflow emits `source-audit.json` beside the six files, README and license.
 
 The v1.2 README documents `en-10k` as the 10,000-training-example configuration and the numbered-line/tab-separated format. It explains that story IDs reset to 1 and supporting-fact IDs refer to sentences within that story. There is no separately supplied official validation split for `en-10k`; validation must therefore be derived independently from each task's training stories using a frozen, deterministic whole-story split. Official test files remain quarantined from fit, adaptation, validation and candidate selection.
 
+## Verified Phase Q result
+
+**Phase Q selected-member freeze: PASS.** GitHub Actions run `45990456267` completed successfully on source-freeze commit `9274637fcc1c3116ab1c5d08e85b0497e95da960`. The repository-wide Python 3.10/3.12 test matrix also passed in run `45990456233`.
+
+The uploaded artifact is `babi-expansion-phase-q-source-freeze` (artifact ID `15192429617`), 482,044 bytes, SHA-256 `8a7b8ec029448c81008d898e6fc0936baddd370bd470ed490b6a4b265ab4b4f2`. It contains six data members, README, license and `source-audit.json`; the artifact expires on 2027-02-25.
+
+| Member | Bytes | SHA-256 | Stories | Statements | Questions |
+|---|---:|---|---:|---:|---:|
+| Task 11 train | 1,046,139 | `edfcd97fecd4a5045af25e1790cf1408856ae362c39521b1b69cd32b88ec0ced` | 2,000 | 20,000 | 10,000 |
+| Task 11 test | 104,800 | `46f3290d0158ce1285a40cd2d793f5a65f86ae5000226e165cbc85a3dfeb2f6f` | 200 | 2,000 | 1,000 |
+| Task 14 train | 1,506,583 | `c322e0814eef71f088af1aa1334e7ae4b1ee6ca18f2ee94c05e2189226964ed6` | 2,000 | 23,404 | 10,000 |
+| Task 14 test | 151,420 | `e3f0b19858ffbec3ed1e49076cc4d1295a89ce146c50318b862f13f202b3caf2` | 200 | 2,352 | 1,000 |
+| Task 19 train | 2,475,046 | `6cfdc6f448e3cf0e3d8a390fa3add461935b033f89ede32aeef30812401ec91e` | 10,000 | 50,000 | 10,000 |
+| Task 19 test | 247,449 | `023e391f0d7f79c9e6ae1c46c093e2d0dbd50ab8fbd8965e037a75e3614c20e5` | 1,000 | 5,000 | 1,000 |
+
+The six source members contain 30,000 training questions and 3,000 test questions. Every question in all six files carries exactly two official support references; all 66,000 references resolve to prior statement lines within the corresponding story. Task 11 and Task 14 each have six observed answer classes; Task 19 has 12 ordered two-direction answer classes. SHA-256 values above were recomputed from the downloaded artifact, not copied solely from the manifest.
+
 ## Acceptance and transition
 
 Phase Q source-member acceptance requires:
