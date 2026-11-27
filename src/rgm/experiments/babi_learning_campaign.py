@@ -713,6 +713,7 @@ def _fit_and_process(
     confirmatory_order = _ordered(confirmatory, seed)
 
     _fit_warm_start(adapter.learning, warm_order, task_id)
+    warm_start_fingerprint_before = model_fingerprint(adapter.learning)
     global_clock = 0
     warm_metrics, global_clock = _process_phase(
         adapter, director, architecture, task_id, warm_order,
@@ -720,6 +721,9 @@ def _fit_and_process(
         soe_fingerprint, global_clock, baseline_native_checkpoint, gfe_module,
         progress_callback=progress_callback,
     )
+    warm_start_fingerprint_after = model_fingerprint(adapter.learning)
+    if warm_start_fingerprint_after != warm_start_fingerprint_before:
+        raise RuntimeError("score-only warm-start dynamics mutated fitted learner parameters")
     model_before_online = _model_state(adapter.learning)
     online_metrics, global_clock = _process_phase(
         adapter, director, architecture, task_id, online_order,
@@ -782,6 +786,11 @@ def _fit_and_process(
         "candidate_accepted_on_validation": accepted,
         "confirmatory_evaluated": confirmatory_metrics is not None,
         "candidate_fingerprint": candidate_fingerprint,
+        "warm_start_fingerprint_before_score_only": warm_start_fingerprint_before,
+        "warm_start_fingerprint_after_score_only": warm_start_fingerprint_after,
+        "warm_start_score_only_fingerprint_stable": (
+            warm_start_fingerprint_before == warm_start_fingerprint_after
+        ),
         "candidate_fingerprint_after_validation": fingerprint_after_validation,
         "candidate_fingerprint_after_confirmatory": fingerprint_after_confirmatory,
         "online_learner_state_changed": online_changes,
