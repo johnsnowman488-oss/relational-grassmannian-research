@@ -1,0 +1,232 @@
+name: bAbI Tasks 11, 14 and 19 controlled execution preflight
+
+on:
+  push:
+    branches:
+      - "research/babi-expansion-preflight-v1"
+    paths:
+      - "src/rgm/experiments/babi_expansion_*.py"
+      - "scripts/freeze_babi_expansion_sources.py"
+      - "scripts/audit_babi_expansion.py"
+      - "scripts/generate_babi_expansion_confirmatory.py"
+      - "tests/test_babi_expansion_*.py"
+      - "docs/experiments/HLG_BABI_EXPANSION_*.json"
+      - "docs/experiments/HLG_BABI_EXPANSION_*.md"
+      - ".github/workflows/h1-babi-expansion-preflight.yml"
+  pull_request:
+    branches:
+      - "research/babi-task-expansion-v1"
+    paths:
+      - "src/rgm/experiments/babi_expansion_*.py"
+      - "scripts/freeze_babi_expansion_sources.py"
+      - "scripts/audit_babi_expansion.py"
+      - "scripts/generate_babi_expansion_confirmatory.py"
+      - "tests/test_babi_expansion_*.py"
+      - "docs/experiments/HLG_BABI_EXPANSION_*.json"
+      - "docs/experiments/HLG_BABI_EXPANSION_*.md"
+      - ".github/workflows/h1-babi-expansion-preflight.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: babi-expansion-preflight-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  contract-tests:
+    name: Full repository tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run complete unit and invariant suite
+        run: python -m pytest -q
+
+  prepare-preflight:
+    name: Freeze sources, partitions, baselines and confirmatory inputs
+    needs: [contract-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Acquire and verify pinned Tasks 11, 14 and 19 source members
+        run: python scripts/freeze_babi_expansion_sources.py --output data/babi-v1.2-expansion
+      - name: Audit raw inputs, support witnesses and sealed official test
+        run: |
+          python scripts/audit_babi_expansion.py \
+            --source-root data/babi-v1.2-expansion \
+            --output-root artifacts/babi-expansion \
+            --max-quarantine-fraction 0.005
+      - name: Generate frozen label-separated confirmatory challenge
+        run: |
+          python scripts/generate_babi_expansion_confirmatory.py \
+            --output-root artifacts/babi-expansion-confirmatory
+      - name: Verify confirmatory hashes, query parity and evaluator separation
+        run: |
+          python scripts/generate_babi_expansion_confirmatory.py \
+            --output-root artifacts/babi-expansion-confirmatory --verify
+      - name: Build nested whole-story partitions, baseline validation and 360-unit manifest
+        run: |
+          python -m rgm.experiments.babi_expansion_preflight \
+            --source-root data/babi-v1.2-expansion \
+            --output-root artifacts/babi-expansion-preflight \
+            --protocol docs/experiments/HLG_BABI_EXPANSION_LEARNING_CAMPAIGN_v1_0.json \
+            --confirmatory-protocol docs/experiments/HLG_BABI_EXPANSION_CONFIRMATORY_v1_0.json \
+            --confirmatory-root artifacts/babi-expansion-confirmatory \
+            --prepare
+      - name: Upload immutable source, partition, baseline and confirmatory inputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-expansion-preflight-inputs
+          path: |
+            data/babi-v1.2-expansion/
+            artifacts/babi-expansion/
+            artifacts/babi-expansion-preflight/
+            artifacts/babi-expansion-confirmatory/
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 30
+
+  four-worker-preflight:
+    name: Shard ${{ matrix.shard }} non-learning dry run and retry acceptance
+    needs: [prepare-preflight]
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Download the exact frozen preflight inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: babi-expansion-preflight-inputs
+          path: .
+      - name: Create shard evidence directory before any execution
+        run: mkdir -p artifacts/shards/shard-${{ matrix.shard }}
+      - name: Exercise a mid-shard failure, preserve completed units, then retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLAN="artifacts/babi-expansion-preflight/preflight-plan.json"
+          OUT="artifacts/shards/shard-${{ matrix.shard }}"
+          FAIL_KEY="$(python -c 'import json,sys; p=json.load(open(sys.argv[1])); m=json.load(open("artifacts/babi-expansion-preflight/"+p["manifest_path"])); rows=[r for r in m["run_units"] if r["shard"]==int(sys.argv[2])]; print(rows[45]["run_unit_key"])' "$PLAN" "${{ matrix.shard }}")"
+          set +e
+          python -m rgm.experiments.babi_expansion_preflight \
+            --plan "$PLAN" --shard ${{ matrix.shard }} --shard-output "$OUT" \
+            --inject-failure-key "$FAIL_KEY"
+          FIRST_RC=$?
+          set -e
+          test "$FIRST_RC" -ne 0
+          python - "$OUT" "$FAIL_KEY" <<'PY'
+          import json, pathlib, sys
+          root, key = pathlib.Path(sys.argv[1]), sys.argv[2]
+          diagnostic = json.loads((root / "failure-diagnostic.json").read_text())
+          assert diagnostic["error"].startswith("injected one-time failure for retry acceptance:")
+          assert diagnostic["error"].endswith(key)
+          assert len(diagnostic["completed_unit_keys"]) == 45
+          assert (root / "partial-resource-usage.json").is_file()
+          PY
+          python -m rgm.experiments.babi_expansion_preflight \
+            --plan "$PLAN" --shard ${{ matrix.shard }} --shard-output "$OUT"
+          python - "$OUT" <<'PY'
+          import json, pathlib, sys
+          root = pathlib.Path(sys.argv[1])
+          status = json.loads((root / "shard-status.json").read_text())
+          usage = json.loads((root / "resource-usage.json").read_text())
+          assert status["status"] == "success"
+          assert status["unit_count"] == 90
+          assert len(status["skipped_unit_keys"]) == 45
+          assert status["recovered_failure_diagnostic"] == "failure-diagnostic.json"
+          assert usage["query_presentations"] == 900_000
+          assert usage["learning_updates"] == 0
+          assert usage["official_test_queries"] == 0
+          assert usage["retry_elapsed_seconds_included"] > 0
+          PY
+      - name: Upload shard evidence even when execution fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-expansion-preflight-shard-${{ matrix.shard }}
+          path: artifacts/shards/shard-${{ matrix.shard }}/
+          if-no-files-found: warn
+          compression-level: 6
+          retention-days: 30
+
+  aggregate-preflight:
+    name: Verify all four shards and publish measured preflight gate
+    needs: [prepare-preflight, four-worker-preflight]
+    if: always() && needs.prepare-preflight.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install research dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Download the frozen manifest and inputs
+        uses: actions/download-artifact@v4
+        with:
+          name: babi-expansion-preflight-inputs
+          path: .
+      - name: Download all four shard evidence artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: babi-expansion-preflight-shard-*
+          path: artifacts/shard-downloads
+      - name: Require exact 360-key coverage, retries, metrics and resource evidence
+        run: |
+          python -m rgm.experiments.babi_expansion_preflight \
+            --plan artifacts/babi-expansion-preflight/preflight-plan.json \
+            --aggregate \
+            --shard-dirs \
+              artifacts/shard-downloads/babi-expansion-preflight-shard-0 \
+              artifacts/shard-downloads/babi-expansion-preflight-shard-1 \
+              artifacts/shard-downloads/babi-expansion-preflight-shard-2 \
+              artifacts/shard-downloads/babi-expansion-preflight-shard-3 \
+            --aggregate-output artifacts/babi-expansion-preflight/preflight-aggregate.json
+      - name: Upload complete preflight acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: babi-expansion-preflight-acceptance
+          path: |
+            artifacts/babi-expansion-preflight/
+            artifacts/babi-expansion-confirmatory/
+            artifacts/shard-downloads/
+          if-no-files-found: warn
+          compression-level: 6
+          retention-days: 365
