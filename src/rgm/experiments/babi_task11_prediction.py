@@ -50,7 +50,12 @@ def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
         event for event in story.events
         if isinstance(event, Task11MentionEvent) and event.observed_at < query.observed_at
     )
-    model_fingerprint = fingerprint(adapter.learning.context_transitions.snapshot())
+    model_state = {
+        "architecture": getattr(adapter, "architecture", None),
+        "context_transitions": adapter.learning.context_transitions.snapshot(),
+        "hlb_model_relations": adapter.store.snapshot() if getattr(adapter, "architecture", None) == "HLB" else None,
+    }
+    model_fingerprint = fingerprint(model_state)
     if not visible:
         return Task11AnswerDecision(
             Prediction(None, (), True, "no_prior_source_observations"),
