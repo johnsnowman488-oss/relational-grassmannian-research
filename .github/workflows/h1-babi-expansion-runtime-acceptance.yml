@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "research/babi-runtime-prediction-contract-v1"
+      - "research/babi-expansion-campaign-freeze-v1"
     paths:
       - "src/rgm/experiments/babi_expansion_runtime.py"
       - "tests/test_babi_expansion_runtime.py"
