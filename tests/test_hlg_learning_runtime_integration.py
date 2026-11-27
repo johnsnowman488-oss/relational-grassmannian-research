@@ -523,3 +523,33 @@ def test_director_runs_all_three_prediction_levels_before_observation_update():
     }
     assert adapter.learning.level0.update_count == 1
     assert adapter.learning.temporal_credit.snapshot()["weights"]
+
+
+def test_score_only_observations_remain_score_only_during_rollback_replay():
+    learner = LearningRuntime()
+    seed(learner)
+    checkpoint = learner.snapshot()
+    baseline = {
+        "relations": learner.relations.snapshot(),
+        "event_roles": learner.event_roles.snapshot(),
+        "context_transitions": learner.context_transitions.snapshot(),
+        "task_outcomes": learner.task_outcomes.snapshot(),
+        "level0": learner.level0.snapshot(),
+    }
+
+    learner.begin_tick(tick=0, observed_at=0.0, context="home")
+    learner.observe_relation(
+        relation("score-only-r", "visited", observed_at=1.0), tick=1, learn=False
+    )
+    learner.observe_nary_event(
+        nary("score-only-e", event_type="moved", observed_at=1.0), tick=1, learn=False
+    )
+    learner.observe_task_error("score-only-task", 1.0, learn=False)
+
+    learner.restore(checkpoint, preserve_observations=True)
+    assert learner.relations.snapshot() == baseline["relations"]
+    assert learner.event_roles.snapshot() == baseline["event_roles"]
+    assert learner.context_transitions.snapshot() == baseline["context_transitions"]
+    assert learner.task_outcomes.snapshot() == baseline["task_outcomes"]
+    assert learner.level0.snapshot() == baseline["level0"]
+    assert len(learner.predictions.scores) == 2
