@@ -6,6 +6,7 @@ on:
     branches:
       - "research/h1-babi-learning-campaign-v1-1"
       - "research/h1-babi-execution-recovery-v1"
+      - "research/h1-babi-prediction-contract-v1"
     paths:
       - "src/rgm/experiments/babi_learning_campaign.py"
       - "src/rgm/experiments/babi_annotation.py"
@@ -104,14 +105,37 @@ jobs:
           path: native/
           if-no-files-found: error
 
+  contract-tests:
+    name: Prediction, task-channel and ablation contract tests
+    needs: [prepare-data, build-native]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Verify prediction lifecycle, task calibration and six ablations
+        run: |
+          python -m pytest -q \
+            tests/test_babi_learning_campaign.py \
+            tests/test_hlg_learning_mechanisms.py \
+            tests/test_hlg_learning_runtime_integration.py \
+            tests/test_hlg_learning_episode_boundary.py
+
   matched-campaigns:
     name: Task ${{ matrix.task }} — ${{ matrix.architecture }}
-    needs: [prepare-data, build-native]
+    needs: [prepare-data, build-native, contract-tests]
     runs-on: ubuntu-latest
     # The recovery-branch baseline pilot is capped at 90 minutes. The
     # full matched campaign retains a six-hour ceiling, with incremental
     # story/phase progress and completed-condition evidence uploads.
-    timeout-minutes: ${{ github.ref_name == 'research/h1-babi-execution-recovery-v1' && 90 || 360 }}
+    timeout-minutes: ${{ contains(fromJSON('["research/h1-babi-execution-recovery-v1","research/h1-babi-prediction-contract-v1"]'), github.ref_name) && 90 || 360 }}
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -165,7 +189,7 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: |
           mkdir -p artifacts/babi-campaign
-          if [[ "$GITHUB_REF_NAME" == "research/h1-babi-execution-recovery-v1" ]]; then
+          if [[ "$GITHUB_REF_NAME" == "research/h1-babi-execution-recovery-v1" || "$GITHUB_REF_NAME" == "research/h1-babi-prediction-contract-v1" ]]; then
             # Fresh-branch safety pilot: one fixed seed across all six
             # frozen conditions for each task/architecture. The full 10-seed
             # confirmatory campaign remains a separate acceptance gate.
