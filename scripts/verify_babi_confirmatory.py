@@ -20,8 +20,12 @@ def main() -> int:
 
     selection = json.loads(args.selection_file.read_text(encoding="utf-8"))
     selected = selection["selected_candidates"]
-    files = sorted(args.input_dir.glob("task[35]-*.json"))
-    require(len(files) == 4, f"expected exactly four confirmatory artifacts, found {len(files)}")
+    files = sorted(
+        args.input_dir / f"task{task}-{architecture}.json"
+        for task in (3, 5) for architecture in ("HLA", "HLB")
+    )
+    require(all(path.is_file() for path in files),
+            "one or more of the four confirmatory result JSON files is missing")
 
     results = {}
     for path in files:
