@@ -49,11 +49,10 @@ def test_support_reference_cannot_cross_story_boundary():
         "2 Where is John?\thallway\t3\n"
         "3 Where is Mary?\tbathroom\t1\n"
     ).encode()
-    audit = MODULE.audit_member(
-        source, task_id=11, member_name="qa11_basic-coreference_train.txt"
-    )
-    assert audit["story_count"] == 2
-    assert audit["question_count"] == 2
+    with pytest.raises(MODULE.SourceAuditError, match="support IDs"):
+        MODULE.audit_member(
+            source, task_id=11, member_name="qa11_basic-coreference_train.txt"
+        )
 
 
 def test_task19_rejects_destination_only_or_non_direction_answers():
