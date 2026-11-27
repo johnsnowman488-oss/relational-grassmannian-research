@@ -1,6 +1,6 @@
 {
   "schema": "HLG-BABI-TASK-EXPANSION-v1.0",
-  "status": "PHASE_B_ADAPTERS_SOURCE_WIDE_AUDIT_PASS",
+  "status": "PHASE_C_RUNTIME_CONTRACT_PASS_CAMPAIGN_PROTOCOL_FROZEN",
   "parent_commit": "58a13629d1ac7257a3e0627dacb35c3624217236",
   "scope": {
     "frozen_tasks": [
@@ -20,8 +20,11 @@
       4
     ],
     "execution_authorized": false,
-    "note": "Phase B adapters for Tasks 11, 14 and 19 passed the complete source-wide parser/oracle/partition audit. Learning campaign execution remains unauthorized pending HLA/HLB prediction-target integration, baseline review, runtime parity and workload protocol.",
-    "phase_b_adapters_implemented": true
+    "note": "Phase B source-wide adapters and Phase C HLA/HLB runtime/prediction contracts are accepted. The first-wave learning protocol for Tasks 11, 14 and 19 is frozen, but execution remains unauthorized pending baseline implementation, four-shard preflight, measured resource budget, generated-confirmatory protocol and explicit authorization.",
+    "phase_b_adapters_implemented": true,
+    "runtime_prediction_contract_accepted": true,
+    "campaign_protocol_frozen": true,
+    "campaign_protocol": "docs/experiments/HLG_BABI_EXPANSION_LEARNING_CAMPAIGN_v1_0.json"
   },
   "source": {
     "dataset": "Facebook bAbI v1.2.0 English en-10k",
@@ -339,21 +342,32 @@
       "no_learning"
     ],
     "seeds": {
-      "proposed": [
+      "frozen": [
         953100,
+        953101,
+        953102,
+        953103,
+        953104,
+        953105,
+        953106,
+        953107,
+        953108,
         953109
       ],
       "count": 10,
-      "freeze_required": true
+      "freeze_required": false
     },
     "concurrency": {
-      "proposed_workers": 6,
-      "limit": 4,
-      "do_not_launch_until_runtime_sharding_review": true
+      "worker_shards": 4,
+      "max_parallel": 4,
+      "run_units": 360,
+      "units_per_shard": 90,
+      "do_not_launch_until_runtime_sharding_review": true,
+      "cancel_in_progress": false
     },
     "candidate_selection": "task-specific validation only; no pooled cross-task ranking",
     "confirmatory": "separate per-task fixed-seed generated challenge after task-specific candidate freeze",
-    "execution_gate": "No campaign execution until task-specific HLA/HLB prediction target integration, task baselines, forecast lifecycle and ablation parity, per-task thresholds, workload estimates, worker sharding and explicit authorization are reviewed."
+    "execution_gate": "Protocol frozen only. No execution until task-specific baselines, nested warm-start/online partitioning, four-shard failure/retry/evidence preflight, measured workload budgets, generated-confirmatory protocol and explicit authorization are reviewed."
   },
   "implementation": {
     "adapter_module": "src/rgm/experiments/babi_expansion_adapters.py",
@@ -431,6 +445,29 @@
       "support_witnesses_rechecked_on_training": true,
       "whole_story_partition_disjoint": true,
       "deterministic_seed": "HLG-BABI-EXPANSION-TRAIN-VALID-v1"
+    },
+    "runtime_integration": {
+      "module": "src/rgm/experiments/babi_expansion_runtime.py",
+      "contract_document": "docs/experiments/HLG_BABI_EXPANSION_RUNTIME_CONTRACT_v1_0.md",
+      "pull_request": 53,
+      "merged_commit": "0e4da940644033b784fc65a4ef2b4ab64b66f7ba",
+      "acceptance_runs": [
+        45995326040,
+        45995337324
+      ],
+      "python_versions": {
+        "3.10": "success",
+        "3.12": "success"
+      },
+      "tests_per_python_version": 115
+    },
+    "campaign_protocol": {
+      "config": "docs/experiments/HLG_BABI_EXPANSION_LEARNING_CAMPAIGN_v1_0.json",
+      "document": "docs/experiments/HLG_BABI_EXPANSION_LEARNING_CAMPAIGN_v1_0.md",
+      "status": "FROZEN_NOT_AUTHORIZED",
+      "run_units": 360,
+      "query_presentations": 3600000,
+      "shards": 4
     }
   }
 }
