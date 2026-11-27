@@ -186,3 +186,32 @@ def test_runtime_is_story_scoped_and_cannot_leak_across_story_boundaries():
     import pytest
     with pytest.raises(RuntimeError, match="story-scoped"):
         runtime.ingest_story(second)
+
+
+def test_expansion_runtime_explicit_non_learning_mode_keeps_learner_parameters_frozen():
+    story = ExpansionStory("task19/fit/story000003", 19, (
+        Task19SpatialEdge("edge1", "a", "b", "east", 1, "train#1"),
+        Task19SpatialEdge("edge2", "b", "c", "north", 2, "train#2"),
+    ), ())
+    adapter = make_adapter("HLB")
+    runtime = BabiExpansionRuntime(adapter, learning_enabled=False)
+
+    def learner_parameters():
+        learning = adapter.learning
+        return {
+            "level0": learning.level0.snapshot(),
+            "relations": learning.relations.snapshot(),
+            "event_roles": learning.event_roles.snapshot(),
+            "contexts": learning.context_transitions.snapshot(),
+            "task": learning.task_outcomes.snapshot(),
+            "temporal": learning.temporal_credit.snapshot(),
+        }
+
+    before = learner_parameters()
+    outputs = runtime.ingest_story(story)
+    after = learner_parameters()
+    assert len(outputs) == 2
+    assert all(not item["abstained"] for item in outputs)
+    assert runtime.learning_enabled is False
+    assert adapter.ticks == 2
+    assert before == after
