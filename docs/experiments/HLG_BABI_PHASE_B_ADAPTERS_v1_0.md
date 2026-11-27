@@ -1,9 +1,9 @@
 # HLG bAbI Phase B — Independent Task Adapters v1.0
 
-**Status:** implementation prepared; full source-wide CI audit pending  
+**Status:** source-wide audit PASS; Phase C runtime/prediction contract PASS  
 **Tasks:** HLA / Task 11, HLB / Task 14, HLC / Task 19  
 **Source freeze:** Phase Q selected-member manifest v1.2  
-**Campaign status:** not authorized
+**Campaign status:** protocol frozen; execution not authorized
 
 ## 1. Phase B objective
 
@@ -177,3 +177,8 @@ No campaign has been launched. HLA/HLB learning results do not yet exist.
 - Authorization: per-task thresholds, seed set, worker sharding, workload estimate and campaign protocol are reviewed before any learning run.
 
 **No learning campaign is authorized by this implementation.** Phase B here means adapter and source-wide contract preparation. The next decision follows inspection of the source-wide CI artifact.
+
+
+## Phase C follow-through
+
+Runtime/prediction-contract acceptance is recorded in the task-expansion ledger. The learning campaign is now protocol-frozen in `HLG_BABI_EXPANSION_LEARNING_CAMPAIGN_v1_0.md`, but execution remains unauthorized. The Phase B symbolic predictors remain parser/oracle baselines, not learned HLA/HLB results.
