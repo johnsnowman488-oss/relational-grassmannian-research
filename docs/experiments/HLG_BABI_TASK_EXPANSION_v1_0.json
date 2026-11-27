@@ -1,6 +1,6 @@
 {
   "schema": "HLG-BABI-TASK-EXPANSION-v1.0",
-  "status": "PHASE_C_RUNTIME_CONTRACT_PASS_CAMPAIGN_PROTOCOL_FROZEN",
+  "status": "PHASE_C_ACCEPTED_PREFLIGHT_IN_PROGRESS_NOT_AUTHORIZED",
   "parent_commit": "58a13629d1ac7257a3e0627dacb35c3624217236",
   "scope": {
     "frozen_tasks": [
@@ -475,6 +475,119 @@
       "run_units": 360,
       "query_presentations": 3600000,
       "shards": 4
+    }
+  },
+  "current_tracking": {
+    "updated_on": "2026-11-27",
+    "active_branch": "research/babi-expansion-preflight-v1",
+    "frozen_task3_task5_workstream": "PARKED_UNTOUCHED",
+    "execution_authorized": false,
+    "phase_b_source_wide_adapter_acceptance": "PASS",
+    "phase_c_runtime_prediction_contract_acceptance": "PASS",
+    "first_wave_protocol": "FROZEN_NOT_AUTHORIZED",
+    "preflight": {
+      "task11_raw_mention_vs_inferred_binding": "PASS_SOURCE_BOUNDARY_AND_RUNTIME_INGESTION; NO_OBSERVED_COREFERENCE_EDGE",
+      "reviewed_non_oracle_baselines": "PASS_VALIDATION_EXECUTION; TASK11_ANTECEDENT_EDGE_GROUND_TRUTH_UNAVAILABLE_ON_OFFICIAL_BABI_VALIDATION",
+      "nested_whole_story_warm_online_partitions": "PASS_90_10_WHOLE_STORY_AND_NESTED_80_20; FROZEN_HASHES_ACCEPTED",
+      "four_worker_shard_retry_evidence_dry_run": "PASS_RUN_46066166623; 360_OF_360_KEYS; FOUR_SHARDS_90_EACH; RETRY_AND_AGGREGATE_ACCEPTED",
+      "measured_resource_budget": "PARTIAL_NO_LEARNING_ONLY; FULL_HLA_HLB_LEARNING_UPDATE_COST_NOT_MEASURED",
+      "generated_confirmatory_challenge": {
+        "status": "PASS_PROTOCOL_V1_1_GENERATION_VERIFICATION_AND_HASHES",
+        "protocol": "docs/experiments/HLG_BABI_EXPANSION_CONFIRMATORY_v1_1.json",
+        "seeds": [
+          971101,
+          971102,
+          971103
+        ],
+        "stories_per_task": 384,
+        "total_stories": 1152,
+        "manifest_sha256": "e5e6c0c981573c5e42ef4b5b449d8962365aa326a2b63068d39c1f18d02c6c1f",
+        "task11_input_sha256": "edc957cad4d1274d968611584c8288b53fb23332eaefe34c934ec153a7195276",
+        "task11_evaluator_labels_sha256": "174bddeb44c629ef15c876da8108868fffb92587da0fde526db68e4d3132df65",
+        "official_test_access": false,
+        "labels_used_for_learning": false,
+        "caveat": "Task 11 gender is an explicit synthetic challenge feature, not a claim about raw bAbI"
+      },
+      "task11_learning_supervision": {
+        "target_materialization": "PASS_ISOLATED_L0_L1_L2_BUNDLE_AND_FORECAST_SCORE_LIFECYCLE",
+        "raw_task11_training_signal": "WEAK_UNIQUE_GENDER_COMPATIBLE_PRIOR_ANCHOR; AMBIGUOUS_CASES_ABSTAIN; NOT_GOLD",
+        "hla_hlb_parameter_update_integration": "OPEN_NOT_DEMONSTRATED",
+        "evaluator_labels_as_observations": false
+      },
+      "all_ci_and_preflight_checks": "PASS_ON_PR_HEAD_02538EE; RESOURCE_AND_TASK11_LEARNING_UPDATE_GATES_REMAIN_OPEN",
+      "explicit_user_authorization": "REQUIRED"
+    },
+    "no_go_rule": "Any failed, missing, cancelled, incomplete or unverified gate keeps execution_authorized=false. Even with non-learning preflight accepted, do not launch a learner microbenchmark or the 360-unit campaign without explicit authorization.",
+    "interpretation_guardrails": [
+      "Adapter oracle agreement is not learned capability.",
+      "Runtime contract acceptance is not generalisation evidence.",
+      "Oracle upper bounds are not competitive non-oracle baselines.",
+      "Report Tasks 11, 14 and 19 separately.",
+      "Keep official test labels evaluator-only and generated-confirmatory evidence separate.",
+      "Do not modify frozen Task 3/5 protocol, branch or artifacts."
+    ],
+    "source_note": "Preflight acceptance from Actions run 46066166623 on implementation commit 02538ee794ddd9df67297d4256b752ebf2c01894; latest PR head before synchronization was fa90febc531df65a3940378b17e7aa1cc4dedd85 (resource-budget evidence update). Base synchronization is being applied as a two-parent merge; final synchronized-head CI remains pending.",
+    "active_pull_request": 55,
+    "active_pull_request_url": "https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/55",
+    "active_pull_request_head": "fa90febc531df65a3940378b17e7aa1cc4dedd85",
+    "active_pull_request_base": "research/babi-task-expansion-v1",
+    "pull_request_state": "OPEN_NOT_MERGED_BEFORE_BASE_SYNCHRONIZATION",
+    "pull_request_mergeability_at_inspection": "MERGEABLE_WITH_BASE_DIVERGENCE",
+    "ci_status": {
+      "preflight_run": 46066166623,
+      "preflight_run_number": 61,
+      "runtime_contract_run": 46066166586,
+      "phase_b_adapter_run": 46066166585,
+      "implementation_head": "02538ee794ddd9df67297d4256b752ebf2c01894",
+      "all_three": "SUCCESS",
+      "python_versions": [
+        "3.10",
+        "3.12"
+      ],
+      "full_repository_tests": "SUCCESS_BOTH_VERSIONS",
+      "native_build": "SUCCESS",
+      "source_partition_baseline_confirmatory_prepare": "SUCCESS",
+      "four_worker_shards": "SUCCESS_ALL_FOUR",
+      "aggregate": "PASS_360_OF_360",
+      "aggregate_artifact_id": 15231091582,
+      "aggregate_artifact_sha256": "d81b1c0adf1f12c604234e35f45dc7b1a5e474cdcc69458e63aa18e215e59c4d"
+    },
+    "gate_assessment": {
+      "task11_raw_mentions": "PASS_SOURCE_BOUNDARY; GENDER_CUE_IS_ATTRIBUTE_ONLY; NO_ANTECEDENT_INGESTION",
+      "task14_task19_input_boundaries": "PASS_SOURCE_WIDE_AUDIT_AND_RUNTIME_ACCEPTANCE",
+      "independent_baselines": "PASS_VALIDATION; TASK11_COREf_EDGE_TARGET_NOT_AVAILABLE_FROM_OFFICIAL_LABELS",
+      "nested_partitions": "PASS_90_10_WHOLE_STORY; NESTED_80_20_WARM_ONLINE",
+      "four_worker_retry_aggregation": "PASS_RUN_46066166623; 360_UNITS; ALL_RETRY_AND_AGGREGATE_CHECKS",
+      "native_no_learning_sample": "PASS_192_STORY_RUNS; 1692_NATIVE_STEPS; ZERO_UPDATES",
+      "resource_budget": "PARTIAL_NO_LEARNING_ONLY; LEARNER_COST_GATE_OPEN",
+      "generated_confirmatory": "PASS_V1_1; 384_PER_TASK; TASK11_IDENTIFIABLE_SYNTHETIC_SCHEMA; EVALUATOR_SEPARATED",
+      "task11_learning_supervision": "TARGET_MATERIALIZATION_AND_SCORING_PASS; HLA_HLB_UPDATE_ROUTING_OPEN"
+    },
+    "further_blockers": [
+      "Task 11 raw bAbI training/evaluator labels do not provide gold antecedent edges; do not report a coreference-edge validation metric without independent labels.",
+      "Task 11 weak unique-gender-anchor pseudo-target derivation and L0/L1/L2 forecast scoring are not yet shown updating HLA/HLB learner components.",
+      "The accepted resource preflight is non-learning only; parameter updates, trainable state growth, checkpoint/promotion/rollback cost remain unmeasured.",
+      "The generated Task 11 challenge includes a controlled explicit gender feature; it is not an official bAbI result or general coreference benchmark."
+    ],
+    "next_actions": [
+      "Define and test Task 11 L0 mention-binding, L1 coreference-edge and L2 entity-state learning update routing, including confidence/abstention, provenance and rollback replay.",
+      "Keep Task 11 official-validation antecedent-edge metrics unavailable until independent annotations are reviewed.",
+      "Obtain explicit authorization before any bounded HLA/HLB learning microbenchmark; then measure update-time, memory growth, checkpoint and rollback costs.",
+      "Only after those gates are reviewed may the frozen 360-unit learning campaign be considered for explicit authorization.",
+      "Synchronize PR #55 with this ledger update, run final CI on the synchronized head and inspect final artifacts.",
+      "Keep execution_authorized=false; leave frozen Task 3/5 branch and artifacts untouched."
+    ],
+    "synchronization": {
+      "before_sync_head": "fa90febc531df65a3940378b17e7aa1cc4dedd85",
+      "before_sync_base": "5f4726c3300664c566add3db7fb87184ff0e391b",
+      "common_ancestor": "847fc6e3d0766012e110ad1c9a8c691901b355ae",
+      "pr_commits_ahead_of_common_ancestor": 59,
+      "base_commits_ahead_of_common_ancestor": 6,
+      "base_only_files": [
+        "docs/experiments/HLG_BABI_TASK_EXPANSION_v1_0.md",
+        "docs/experiments/HLG_BABI_TASK_EXPANSION_v1_0.json"
+      ],
+      "synchronization_policy": "Two-parent merge commit retaining the PR tree and overlaying the base branch's two ledger updates; no force push."
     }
   }
 }
