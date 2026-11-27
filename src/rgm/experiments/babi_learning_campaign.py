@@ -568,6 +568,20 @@ def _process_phase(adapter, director, architecture: str, task_id: int, stories,
                     observed_context="query",
                     task_outcome=task_outcome, learn=learn,
                 )
+                # Relation and n-ary event-role targets are defined only for
+                # source-event exchanges. Close query-exchange forecasts now,
+                # rather than leaving them open until a later event or boundary.
+                for prediction in list(adapter.learning.predictions._predictions.values()):
+                    if (
+                        prediction.status.value == "ISSUED"
+                        and prediction.issued_tick == adapter.ticks
+                        and prediction.target_name in {
+                            "next_relation_pattern", "next_event_role_pattern"
+                        }
+                    ):
+                        adapter.learning.predictions.withdraw(
+                            prediction.prediction_id, current_tick=adapter.ticks
+                        )
                 if task_outcome is not None:
                     totals.setdefault("task_prediction_brier_sum", 0.0)
                     totals.setdefault("task_prediction_count", 0)
