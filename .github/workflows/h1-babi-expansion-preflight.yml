@@ -44,6 +44,12 @@ jobs:
         python-version: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout pinned Aberconics Python ABI
+        uses: actions/checkout@v4
+        with:
+          repository: johnsnowman488-oss/aberconics-framework
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          path: vendor/aberconics-framework
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -108,9 +114,44 @@ jobs:
           compression-level: 6
           retention-days: 30
 
+  build-native:
+    name: Build pinned Aberconics hierarchy runtime
+    needs: [contract-tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout pinned Aberconics C++ source and Python ABI
+        uses: actions/checkout@v4
+        with:
+          repository: johnsnowman488-oss/aberconics-framework
+          ref: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          path: vendor/aberconics-framework
+      - name: Verify pinned source commit
+        working-directory: vendor/aberconics-framework
+        run: test "$(git rev-parse HEAD)" = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
+      - name: Configure and build native shared library
+        run: |
+          cmake -S "vendor/aberconics-framework/code/c++ core" -B "vendor/aberconics-framework/code/c++ core/build-shared" \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
+            -DGFE_BUILD_TESTS=OFF -DGFE_BUILD_APPS=OFF
+          cmake --build "vendor/aberconics-framework/code/c++ core/build-shared" --parallel 2
+      - name: Verify and upload pinned native library
+        run: |
+          mkdir -p native
+          cp "vendor/aberconics-framework/code/c++ core/build-shared/libgfe_core.so" native/libgfe_core.so
+          test -s native/libgfe_core.so
+          sha256sum native/libgfe_core.so | tee native/libgfe_core.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: babi-expansion-pinned-native-runtime
+          path: native/
+          if-no-files-found: error
+          retention-days: 30
+
   four-worker-preflight:
     name: Shard ${{ matrix.shard }} non-learning dry run and retry acceptance
-    needs: [prepare-preflight]
+    needs: [prepare-preflight, build-native]
     runs-on: ubuntu-latest
     timeout-minutes: 150
     strategy:
@@ -133,8 +174,42 @@ jobs:
         with:
           name: babi-expansion-preflight-inputs
           path: .
+      - name: Download pinned native runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: babi-expansion-pinned-native-runtime
+          path: native
+      - name: Verify native runtime and source ABI pin
+        run: |
+          test -s native/libgfe_core.so
+          sha256sum -c native/libgfe_core.sha256
+          test "$(git -C vendor/aberconics-framework rev-parse HEAD)" = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
       - name: Create shard evidence directory before any execution
         run: mkdir -p artifacts/shards/shard-${{ matrix.shard }}
+      - name: Measure actual pinned native HLA/HLB runtime with learning disabled
+        env:
+          GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
+          GFE_ABERCONICS_COMMIT: 2539df6bda7ef3c9dd7c707abe26eff8bdbb59de
+          PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python scripts/run_babi_expansion_native_preflight.py \
+            --source-root data/babi-v1.2-expansion \
+            --output-root artifacts/shards/shard-${{ matrix.shard }}/native \
+            --shard ${{ matrix.shard }} \
+            --python-abi-path vendor/aberconics-framework/code/python
+          python - "artifacts/shards/shard-${{ matrix.shard }}/native/native-runtime-usage.json" <<'PY'
+          import json, pathlib, sys
+          report = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          assert report["status"] == "PASS"
+          assert report["story_count"] == 48
+          assert report["native_step_count"] == report["event_count"] > 0
+          assert report["learning_updates"] == 0
+          assert report["labels_loaded"] == 0
+          assert len(report["story_runs"]) == 48
+          assert all(row["learner_parameters_unchanged"] for row in report["story_runs"])
+          assert all(row["learning_updates"] == row["labels_loaded"] == 0 for row in report["story_runs"])
+          PY
       - name: Exercise a mid-shard failure, preserve completed units, then retry
         shell: bash
         run: |
