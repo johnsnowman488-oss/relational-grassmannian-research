@@ -3,7 +3,7 @@ import json
 from rgm.experiments.babi_expansion_adapters import (
     GoldLabel, task11_confirmatory_input_to_story,
 )
-from rgm.experiments.babi_expansion_baselines import evaluate_baselines
+from rgm.experiments.babi_expansion_baselines import evaluate_baselines, predict_task11_supervision
 from rgm.experiments.babi_expansion_confirmatory import generate, verify
 from rgm.experiments.babi_expansion_runtime import (
     ExpansionForecasts, task11_supervision_from_evaluator_label, to_nary_event,
@@ -86,23 +86,30 @@ def test_task11_l0_l1_l2_supervision_is_scored_only_after_forecast(tmp_path):
     label_row = json.loads((output / "task11-evaluator-labels.jsonl").read_text().splitlines()[0])
     story = task11_confirmatory_input_to_story(input_row)
     query = story.queries[0]
-    bundle = task11_supervision_from_evaluator_label(query, label_row)
-
+    # Issue all target forecasts from observed story/query inputs only. Do not
+    # materialize the evaluator bundle until after the forecasts are in the journal.
+    predicted = predict_task11_supervision(story, query)
     forecasts = ExpansionForecasts(11)
     forecasts.issue_query_forecasts(
         query, issued_tick=query.observed_at - 1,
         issued_at=float(query.observed_at - 1),
         evidence_cutoff=float(query.observed_at - 1),
-        l0_value=bundle.l0_mention_binding,
-        l1_value=bundle.l1_coreference_edge,
-        l2_value=bundle.l2_entity_state,
-        answer_value=label_row["gold_answer"],
-        model_fingerprint="test-model",
+        l0_value=predicted["l0_mention_binding"],
+        l1_value=predicted["l1_coreference_edge"],
+        l2_value=predicted["l2_entity_state"],
+        answer_value=predicted["answer"],
+        model_fingerprint="observations-only-task11-baseline-v1",
     )
+
+    # Open evaluator-only targets after forecast issuance and score each level.
+    bundle = task11_supervision_from_evaluator_label(query, label_row)
     scored = forecasts.score_task11_supervision(
         query, bundle, evaluated_tick=query.observed_at,
         observed_at=float(query.observed_at),
     )
     assert set(scored) == {"L0", "L1", "L2"}
+    assert scored["L0"]["value"] == 1.0
+    assert scored["L1"]["value"] == 0.0
+    assert scored["L2"]["value"] == 1.0
     assert all(row["target_source_id"] == label_row["source_ref"]
                for row in scored.values())
