@@ -29,6 +29,7 @@ from rgm.memory.soe import SOEMemory
 
 NATIVE_COMMIT = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
 HLB_CAPACITY = 262144
+TOP_DOWN_GAIN = 0.001
 ELIGIBILITY_CAPACITY = 131072
 SOE_DT = 0.01
 FEATURE_DIMS = (3, 3, 3)
@@ -86,11 +87,13 @@ def _make_adapter(architecture, native_library, gfe):
         return create_hla_adapter(
             native_library, memories, kernels, dt=SOE_DT,
             runtime_factory=gfe.create_persistent_hierarchy_runtime,
+            top_down_gain=TOP_DOWN_GAIN,
         )
     return create_hlb_adapter(
         native_library, memories, kernels, dt=SOE_DT,
         runtime_factory=gfe.create_persistent_hierarchy_runtime,
         capacity=HLB_CAPACITY,
+        top_down_gain=TOP_DOWN_GAIN,
     )
 
 
@@ -152,6 +155,8 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
         raise ValueError("HLB model relation capacity differs from frozen manifest")
     if manifest.get("eligibility_capacity") != ELIGIBILITY_CAPACITY:
         raise ValueError("eligibility capacity differs from frozen manifest")
+    if manifest.get("top_down_gain") != TOP_DOWN_GAIN:
+        raise ValueError("H0 top-down gain differs from frozen manifest")
 
     run_key = f"task11-{architecture}-{condition}-seed{seed}"
     if run_kind == "campaign":
@@ -241,6 +246,7 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
             "architecture": architecture,
             "condition": condition,
             "seed": seed,
+            "top_down_gain": TOP_DOWN_GAIN,
             "fit_model_fingerprint": fit_model_fingerprint,
             "context_transitions": adapter.learning.context_transitions.snapshot(),
             "hlb_model_relations": (
@@ -318,6 +324,7 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
             "native_commit": NATIVE_COMMIT,
             "hlb_model_relation_capacity": HLB_CAPACITY,
             "eligibility_capacity": ELIGIBILITY_CAPACITY,
+            "top_down_gain": TOP_DOWN_GAIN,
         })
         _write_json(output_root / "source-and-partition-manifest.json", {
             "manifest_sha256": manifest["manifest_sha256"],
@@ -350,6 +357,7 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
             "architecture": architecture,
             "condition": condition,
             "seed": seed,
+            "top_down_gain": TOP_DOWN_GAIN,
             "fit_stories": len(fit),
             "warm_start_stories": len(warm),
             "online_adaptation_stories": len(online),
