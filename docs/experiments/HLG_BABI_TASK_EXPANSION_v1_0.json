@@ -1,6 +1,6 @@
 {
   "schema": "HLG-BABI-TASK-EXPANSION-v1.0",
-  "status": "PHASE_C_RUNTIME_CONTRACT_PASS_CAMPAIGN_PROTOCOL_FROZEN",
+  "status": "PHASE_C_ACCEPTED_PREFLIGHT_IN_PROGRESS_NOT_AUTHORIZED",
   "parent_commit": "58a13629d1ac7257a3e0627dacb35c3624217236",
   "scope": {
     "frozen_tasks": [
@@ -476,5 +476,46 @@
       "query_presentations": 3600000,
       "shards": 4
     }
+  },
+  "current_tracking": {
+    "updated_on": "2026-11-27",
+    "active_branch": "research/babi-task-expansion-v1",
+    "frozen_task3_task5_workstream": "PARKED_UNTOUCHED",
+    "execution_authorized": false,
+    "phase_b_source_wide_adapter_acceptance": "PASS",
+    "phase_c_runtime_prediction_contract_acceptance": "PASS",
+    "first_wave_protocol": "FROZEN_NOT_AUTHORIZED",
+    "preflight": {
+      "task11_raw_mention_vs_inferred_binding": "IMPLEMENTATION_IN_PROGRESS; TASKS_14_AND_19_AUDIT_REQUIRED",
+      "reviewed_non_oracle_baselines": "IMPLEMENTATION_IN_PROGRESS; INDEPENDENT_EVALUATION_REQUIRED",
+      "nested_whole_story_warm_online_partitions": "IMPLEMENTATION_IN_PROGRESS; HASH_AND_DISJOINTNESS_ACCEPTANCE_REQUIRED",
+      "four_worker_shard_retry_evidence_dry_run": "NOT_YET_ACCEPTED; CI_MATRIX_AND_DRY_RUN_REQUIRED",
+      "measured_resource_budget": "NOT_YET_ACCEPTED; RUNTIME_THROUGHPUT_PEAK_MEMORY_STORAGE_REQUIRED",
+      "generated_confirmatory_challenge": {
+        "status": "MANIFEST_VERSIONED; CI_VERIFICATION_PENDING",
+        "latest_recorded_specification": "3 fixed seeds; 384 stories per task; SHA-256 provenance",
+        "acceptance_required": [
+          "specification",
+          "generator",
+          "fixed_seeds",
+          "story_counts",
+          "label_separation",
+          "reproducibility",
+          "hashes"
+        ]
+      },
+      "all_ci_and_preflight_checks": "MUST_PASS_WITH_ARTIFACT_REVIEW_BEFORE_AUTHORIZATION",
+      "explicit_user_authorization": "REQUIRED"
+    },
+    "no_go_rule": "Any failed, missing, cancelled, incomplete or unverified gate keeps execution_authorized=false. Do not launch the 360-unit campaign on protocol freeze or adapter/runtime CI alone.",
+    "interpretation_guardrails": [
+      "Adapter oracle agreement is not learned capability.",
+      "Runtime contract acceptance is not generalisation evidence.",
+      "Oracle upper bounds are not competitive non-oracle baselines.",
+      "Report Tasks 11, 14 and 19 separately.",
+      "Keep official test labels evaluator-only and generated-confirmatory evidence separate.",
+      "Do not modify frozen Task 3/5 protocol, branch or artifacts."
+    ],
+    "source_note": "This tracking update records the latest implementation progress discussed on 2026-11-27. It does not assert that partially implemented gates have passed."
   }
 }
