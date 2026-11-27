@@ -1,0 +1,349 @@
+{
+  "schema": "HLG-BABI-TASK-EXPANSION-v1.0",
+  "status": "PREPARATION_ONLY_NOT_EXECUTABLE",
+  "parent_commit": "58a13629d1ac7257a3e0627dacb35c3624217236",
+  "scope": {
+    "frozen_tasks": [
+      3,
+      5
+    ],
+    "next_case_studies": [
+      11,
+      14,
+      19
+    ],
+    "subsequent_case_study": [
+      13
+    ],
+    "controls": [
+      2,
+      4
+    ],
+    "execution_authorized": false,
+    "note": "Separate task suite. Does not alter Task 3/5 source, partitions, protocol, runner, workflows, outputs or acceptance gates."
+  },
+  "source": {
+    "dataset": "Facebook bAbI v1.2.0 English en-10k",
+    "archive_url": "https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz",
+    "archive_sha256": "84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c",
+    "source_format": "UTF-8 numbered story lines; story reset at line number 1; question lines contain tab-separated question, answer, and supporting-fact line numbers.",
+    "split_policy": "Derive task-specific fit and validation partitions from each official training file at whole-story granularity; retain official test bytes quarantined until parser, split and label-isolation audits pass. Do not reuse Task 3/5's story counts or hashes."
+  },
+  "shared_contract": {
+    "input_label_separation": true,
+    "story_scoped_event_and_query_ids": true,
+    "source_line_provenance_required": true,
+    "gold_answer_and_support_ids_evaluator_only": true,
+    "future_evidence_forbidden": true,
+    "cross_story_retrieval_forbidden": true,
+    "unknown_or_ambiguous_reference_policy": "explicit abstention plus diagnostic; never guess or silently bind",
+    "support_witness_policy": "preserve exact official support-line IDs; distinguish official annotated supports from learner-retrieved evidence",
+    "phases": [
+      "fit",
+      "warm_start",
+      "online_adaptation",
+      "validation",
+      "generated_confirmatory"
+    ],
+    "phase_partition_unit": "whole story",
+    "generated_confirmatory": "task-specific generator with fixed seed, novel entities/topologies/times, label-free inputs, separate evaluator labels; not described as official test data",
+    "parity": "HLA and HLB receive byte-identical task inputs, order, seeds, horizons and task-specific encodings"
+  },
+  "tasks": [
+    {
+      "task_id": 11,
+      "name": "Basic Coreference",
+      "role": "primary_case_study_1",
+      "source_files": [
+        "qa11_basic-coreference_train.txt",
+        "qa11_basic-coreference_test.txt"
+      ],
+      "input_shape": "Numbered story statements plus location/state questions. Statements include singular antecedent mentions and pronominal references (e.g. he/she/it/they as permitted by source variants); question asks for an entity's current location/state. Question line: <line_no> <question>\\t<answer>\\t<support_line_numbers>.",
+      "answer_shape": "Single entity/location token or phrase as tab field 2; support line numbers as whitespace-separated integers in tab field 3.",
+      "evidence": {
+        "L0": "Observed sentence/event features, mention surface form, grammatical number/person, source time and current-state feature vector.",
+        "L1": "Entity-mention nodes and typed COREFERS_TO / MENTION_OF links; antecedent candidate set, resolved identity edge and provenance to mention lines.",
+        "L2": "Entity-level current-state context and persistent mention-chain summary; no gold antecedent injected."
+      },
+      "prediction_targets": [
+        "next_mention_entity_binding",
+        "next_coreference_edge",
+        "next_entity_state",
+        "next_context"
+      ],
+      "metrics": [
+        "mention_to_entity_accuracy",
+        "antecedent_top1_accuracy",
+        "coreference_edge_precision_recall_f1",
+        "entity_chain_exact_match",
+        "state_answer_exact_match",
+        "support_witness_recall",
+        "false_binding_rate",
+        "abstention_rate",
+        "cross_story_binding_count",
+        "per_phase_forecast_coverage"
+      ],
+      "baseline_requirements": [
+        "nearest-compatible-antecedent",
+        "recency-only",
+        "oracle-entity-binding upper bound clearly labelled"
+      ],
+      "risks": [
+        "gender/number ambiguity",
+        "entity aliases and repeated names",
+        "pronoun scope limited to source grammar",
+        "coreference correctness must be separated from downstream location accuracy"
+      ]
+    },
+    {
+      "task_id": 14,
+      "name": "Time Reasoning",
+      "role": "primary_case_study_2",
+      "source_files": [
+        "qa14_time-reasoning_train.txt",
+        "qa14_time-reasoning_test.txt"
+      ],
+      "input_shape": "Numbered narrative statements containing absolute/relative temporal expressions (e.g. yesterday, afternoon, this evening) and event/location assertions. Questions ask where an entity went before/after a referenced event or where it was at a temporal point. Question line: <line_no> <question>\\t<answer>\\t<support_line_numbers>.",
+      "answer_shape": "Single location/event answer phrase in tab field 2; supporting source line numbers in tab field 3.",
+      "evidence": {
+        "L0": "Observed event and temporal-expression features, normalized time anchor where derivable, source order and observation time kept distinct.",
+        "L1": "Typed event nodes and BEFORE / AFTER / SAME_TIME / TEMPORALLY_ANCHORED_TO relations with exact source witnesses.",
+        "L2": "Ordered temporal context, event-time index and persistent summary sufficient to answer relative-time queries."
+      },
+      "prediction_targets": [
+        "next_temporal_anchor",
+        "next_event_time_order",
+        "next_temporal_relation",
+        "next_temporal_context"
+      ],
+      "metrics": [
+        "temporal_expression_parse_accuracy",
+        "event_time_order_accuracy",
+        "before_after_relation_f1",
+        "temporal_query_exact_match",
+        "temporal_witness_recall",
+        "contradiction_rate",
+        "abstention_rate",
+        "causal_cutoff_violation_count",
+        "per_phase_forecast_coverage"
+      ],
+      "baseline_requirements": [
+        "source_order_only",
+        "lexical_temporal-cue_rule",
+        "oracle-time-order upper bound clearly labelled"
+      ],
+      "risks": [
+        "event time is not observation time",
+        "relative expressions require anchoring policy",
+        "ambiguous/incomparable time expressions must not be forced into a total order"
+      ]
+    },
+    {
+      "task_id": 19,
+      "name": "Path Finding",
+      "role": "primary_case_study_3",
+      "source_files": [
+        "qa19_path-finding_train.txt",
+        "qa19_path-finding_test.txt"
+      ],
+      "input_shape": "Numbered statements encode directed relative-position facts between locations (e.g. one location is north/south/east/west of another). Questions request a route between two locations; answer is a sequence of cardinal-direction tokens in tab field 2, with supporting relation-line numbers in tab field 3.",
+      "answer_shape": "Whitespace-separated cardinal direction sequence (north/south/east/west) in tab field 2; supporting relation line numbers in tab field 3. Preserve token order exactly.",
+      "evidence": {
+        "L0": "Observed directed edge features, endpoint identities, orientation and source order.",
+        "L1": "Typed directed spatial relations and composable inverse/continuation edges; every edge retains its source witness.",
+        "L2": "Path context and composed route state; preserve ordered edge sequence and intermediate nodes, not merely endpoint reachability."
+      },
+      "prediction_targets": [
+        "next_spatial_edge",
+        "next_edge_orientation",
+        "next_path_composition",
+        "next_route_context"
+      ],
+      "metrics": [
+        "edge_direction_accuracy",
+        "inverse_relation_consistency",
+        "path_exact_match",
+        "path_length_error",
+        "intermediate_node_sequence_accuracy",
+        "edge_witness_recall",
+        "invalid_edge_composition_rate",
+        "false_path_rate",
+        "abstention_rate",
+        "per_phase_forecast_coverage"
+      ],
+      "baseline_requirements": [
+        "breadth_first_search over observed edges",
+        "shortest-path oracle upper bound clearly labelled",
+        "direct-edge-only baseline"
+      ],
+      "risks": [
+        "direction convention must be fixed and tested",
+        "route answer is an ordered token sequence",
+        "multiple paths/ambiguity require benchmark-specific deterministic policy",
+        "no invented edge or unobserved shortcut"
+      ]
+    },
+    {
+      "task_id": 13,
+      "name": "Compound Coreference",
+      "role": "subsequent_case_study",
+      "source_files": [
+        "qa13_compound-coreference_train.txt",
+        "qa13_compound-coreference_test.txt"
+      ],
+      "input_shape": "Statements include compound subjects (multiple named entities) and plural pronouns referring to the compound set; questions ask for an individual entity's resulting state/location. Same numbered/tab-separated bAbI record format.",
+      "answer_shape": "Single location/state answer phrase plus supporting line-number list.",
+      "evidence": {
+        "L0": "Mention features including plurality, conjunction membership and plural pronoun features.",
+        "L1": "Entity-set nodes, member-of edges and plural COREFERS_TO links with set-valued antecedents.",
+        "L2": "Persistent group/entity state with membership-sensitive updates and disambiguation."
+      },
+      "prediction_targets": [
+        "next_entity_set_binding",
+        "next_plural_coreference_edge",
+        "next_group_state",
+        "next_context"
+      ],
+      "metrics": [
+        "group_antecedent_exact_match",
+        "member_binding_precision_recall_f1",
+        "plural_coreference_edge_f1",
+        "individual_state_exact_match",
+        "support_witness_recall",
+        "false_member_binding_rate",
+        "abstention_rate",
+        "per_phase_forecast_coverage"
+      ],
+      "baseline_requirements": [
+        "nearest-compatible-group",
+        "memberwise propagation baseline",
+        "oracle-group-binding upper bound clearly labelled"
+      ],
+      "risks": [
+        "plural pronoun must bind to a set, not a single entity",
+        "overlapping groups",
+        "group updates must not overwrite non-members"
+      ]
+    },
+    {
+      "task_id": 2,
+      "name": "Two Supporting Facts",
+      "role": "control_depth_1",
+      "source_files": [
+        "qa2_two-supporting-facts_train.txt",
+        "qa2_two-supporting-facts_test.txt"
+      ],
+      "input_shape": "Numbered stories and tab-separated question, answer, support-line list; queries require composition of two supporting facts.",
+      "answer_shape": "Single answer token/phrase and support line numbers.",
+      "evidence": {
+        "L0": "Observed facts and entity/object state features.",
+        "L1": "Typed binary relations with explicit two-edge support chain.",
+        "L2": "Query context and two-hop composed evidence summary."
+      },
+      "prediction_targets": [
+        "next_relation_pattern",
+        "next_two_edge_witness_pattern",
+        "next_context"
+      ],
+      "metrics": [
+        "two_hop_query_exact_match",
+        "two_edge_witness_recall",
+        "composition_exact_match",
+        "false_chain_rate",
+        "per_phase_forecast_coverage"
+      ],
+      "baseline_requirements": [
+        "single-edge-only baseline",
+        "deterministic two-hop composition"
+      ],
+      "risks": [
+        "must not conflate support count with unique relation count"
+      ]
+    },
+    {
+      "task_id": 4,
+      "name": "Two Argument Relations",
+      "role": "control_relation_depth",
+      "source_files": [
+        "qa4_two-arg-relations_train.txt",
+        "qa4_two-arg-relations_test.txt"
+      ],
+      "input_shape": "Numbered statements encode directed binary relations (commonly spatial direction); questions query a relation or its inverse. Tab-separated answer and support-line fields.",
+      "answer_shape": "Single direction/relation token or phrase and support line numbers.",
+      "evidence": {
+        "L0": "Observed ordered subject/relation/object feature tuple.",
+        "L1": "Directed binary relation edge with explicit inverse semantics.",
+        "L2": "Relation-query context and compact relational state."
+      },
+      "prediction_targets": [
+        "next_binary_relation",
+        "next_inverse_relation",
+        "next_context"
+      ],
+      "metrics": [
+        "directed_relation_accuracy",
+        "inverse_relation_consistency",
+        "relation_query_exact_match",
+        "support_witness_recall",
+        "per_phase_forecast_coverage"
+      ],
+      "baseline_requirements": [
+        "direct-edge lookup",
+        "inverse-edge lookup"
+      ],
+      "risks": [
+        "directional inverse must be explicit; do not infer transitive closure unless separately contracted"
+      ]
+    }
+  ],
+  "campaign": {
+    "order": [
+      "11",
+      "14",
+      "19",
+      "13",
+      "2",
+      "4"
+    ],
+    "first_wave_parallel_case_studies": [
+      11,
+      14,
+      19
+    ],
+    "second_wave": [
+      13
+    ],
+    "controls": [
+      2,
+      4
+    ],
+    "architectures": [
+      "HLA",
+      "HLB"
+    ],
+    "conditions": [
+      "full_learning",
+      "no_temporal",
+      "no_relational",
+      "no_abstraction",
+      "no_task",
+      "no_learning"
+    ],
+    "seeds": {
+      "proposed": [
+        953100,
+        953109
+      ],
+      "count": 10,
+      "freeze_required": true
+    },
+    "concurrency": {
+      "proposed_workers": 6,
+      "limit": 4,
+      "do_not_launch_until_runtime_sharding_review": true
+    },
+    "candidate_selection": "task-specific validation only; no pooled cross-task ranking",
+    "confirmatory": "separate per-task fixed-seed generated challenge after task-specific candidate freeze",
+    "execution_gate": "No campaign execution until official archive members/hashes, parser coverage, annotation isolation, split counts, baseline outputs and task-specific acceptance thresholds are independently audited."
+  }
+}
