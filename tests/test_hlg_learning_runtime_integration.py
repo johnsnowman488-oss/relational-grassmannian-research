@@ -271,6 +271,32 @@ def test_independent_promotion_binds_learning_state_and_rejects_stale_candidate(
 
 
 
+
+
+def test_pattern_prediction_index_tracks_updates_and_transaction_rollback():
+    from rgm.leptograph.m4.learning import _PatternCounter
+
+    counter = _PatternCounter()
+    counter.observe("context", "pattern-b")
+    counter.observe("context", "pattern-b")
+    counter.observe("context", "pattern-a")
+    assert counter.predict("context") == "pattern-b"
+
+    counter.begin_transaction()
+    counter.observe("context", "pattern-a")
+    counter.observe("context", "pattern-a")
+    counter.observe("context", "pattern-c")
+    assert counter.predict("context") == "pattern-a"
+    counter.rollback_transaction()
+
+    assert counter.counts["context"] == {"pattern-a": 1, "pattern-b": 2}
+    assert counter.predict("context") == "pattern-b"
+
+    restored = _PatternCounter()
+    restored.restore(counter.snapshot())
+    assert restored.predict("context") == "pattern-b"
+
+
 def test_prediction_scoring_uses_index_not_full_prediction_scan():
     _, adapter, _ = system("HLA")
     learner = adapter.learning
