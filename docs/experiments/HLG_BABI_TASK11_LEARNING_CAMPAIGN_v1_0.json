@@ -240,7 +240,7 @@
     "launch_allowed_meaning": "The gated workflow may execute contract tests and the reserved-seed full-scale preflight. This does not authorize any of the 120 campaign units; campaign_units_authorized remains false until the preflight acceptance job succeeds."
   },
   "native_runtime": {
-    "pinned_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
+    "pinned_commit": "4bbcaa132131733372c17a68895a329a030c84d0",
     "soe_feature_dims": [
       3,
       3,
@@ -250,7 +250,7 @@
     "kernel": "Reuse the exact H0 kernel configuration from the accepted Task 11 persistent-resource qualification: gamma=reverse(SOEMemory.decay_rates), w=0.25 per channel, linear_decay=0.05 per state coordinate, forcing_bias=0.",
     "hlb_model_relation_capacity": 262144,
     "eligibility_capacity": 131072,
-    "top_down_gain": 1e-8,
-    "top_down_gain_rationale": "The 32-story resource qualification used gain 1.0. Full-scale no-learning preflight with gain 0.001 failed at story 530: the native hierarchy computes exp(±gain × mean-absolute source state), and accumulated state drove the exponent beyond the finite range, producing zero/non-finite kernel weights. Gain 1e-8 limits modulation to a near-base, finite regime at the observed state scale. This is a numerical-stability setting fixed before validation, not a validation-selected predictive hyperparameter. It must still pass the full 1,800-fit/200-validation preflight."
+    "top_down_gain": 1,
+    "top_down_gain_rationale": "Native commit 4bbcaa132131733372c17a68895a329a030c84d0 bounds the mean-absolute top-down observable with tanh, uses stable log-sum-exp weight normalization, rejects non-finite modulation ranges, and caps top-down gain magnitude at 50. The campaign therefore restores the intended H0 gain 1.0; the modulation remains finite for large persistent SOE states. The native C++ regression test exercises observables of magnitude 1e9. Full-scale Task 11 preflight on this exact pinned commit remains mandatory."
   }
 }
