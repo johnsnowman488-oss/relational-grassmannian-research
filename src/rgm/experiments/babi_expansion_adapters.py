@@ -439,7 +439,8 @@ def audit_predictions(stories: list[ExpansionStory], labels: list[GoldLabel]) ->
                 continue
             prediction = predictors[story.task_id](story, query)
             counts["queries"] += 1
-            if not prediction.abstained and prediction.answer == _norm(label.answer) if story.task_id != 19 else (not prediction.abstained and prediction.answer == label.answer):
+            expected = label.answer if story.task_id == 19 else _norm(label.answer)
+            if not prediction.abstained and prediction.answer == expected:
                 counts["exact_matches"] += 1
             else:
                 counts["mismatches"].append({
