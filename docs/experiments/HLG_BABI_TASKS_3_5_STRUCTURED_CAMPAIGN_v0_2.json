@@ -139,10 +139,11 @@
     "scripts/run_babi_learning_campaign.py": "6c396f54a05277da80b4426b933d96fe91537548",
     "scripts/select_babi_learning_candidates.py": "eecacccf28bc4e1328062fecd927ed63576bd24c",
     "scripts/verify_babi_confirmatory.py": "bb91cacb5dd2a6160000b20dd57acff7375d078f",
-    ".github/workflows/h1-babi-learning-campaign.yml": "1a00016bac121ce82d7d53dcabbb620f1b3c7255",
+    ".github/workflows/h1-babi-learning-campaign.yml": "41e08070205f9c6593282d950dd4129f798f804a",
     "tests/test_babi_learning_campaign.py": "2659bdd9923462b2898e78328de0366aab63616a",
     "tests/test_hlg_learning_runtime_integration.py": "7581905c1a938f9f9606ef913aa3b2ad87843940",
     "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_3.md": "dacf628ee8b9bd851b83a3567bacd3a554022b24"
   },
-  "protocol_document_git_blob_sha1": "dacf628ee8b9bd851b83a3567bacd3a554022b24"
+  "protocol_document_git_blob_sha1": "dacf628ee8b9bd851b83a3567bacd3a554022b24",
+  "provenance_note": "implementation_git_blob_sha1 values are Git object SHA-1 identifiers for exact tracked file blobs; per-run source_manifest fields named *_sha256 are computed as SHA-256 over raw file bytes."
 }
