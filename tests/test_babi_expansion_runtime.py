@@ -108,7 +108,7 @@ def test_runtime_rejects_query_forecast_issued_at_or_after_query_cutoff():
     import pytest
     query = ExpansionQuery("q1", 11, 5, "train#5", entity="mary")
     forecasts = ExpansionForecasts(11)
-    with pytest.raises(ValueError, match="prior evidence cutoff"):
+    with pytest.raises(ValueError, match="query target and its evidence cutoff"):
         forecasts.issue_query_forecasts(
             query, issued_tick=4, issued_at=5.0, evidence_cutoff=5.0,
             l0_value="she", l1_value=("she", "mary"), l2_value="kitchen",
