@@ -41,7 +41,7 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
             violations.append(f"{key}: unit status is not PASS")
         if row.get("run_kind") != "preflight" or row.get("seed") != 953099:
             violations.append(f"{key}: wrong preflight identity")
-        if row.get("native_commit") != "4bbcaa132131733372c17a68895a329a030c84d0":
+        if row.get("native_commit") != "ddf424b0ab8eb23329cd51256a919beeae2ee288":
             violations.append(f"{key}: native runtime commit differs from pinned ABI")
         if row.get("soe_feature_dims") != [3, 3, 3] or row.get("soe_dt") != 0.01:
             violations.append(f"{key}: SOE feature dimensions/time step differ from frozen configuration")
@@ -99,7 +99,7 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
         "status": "PASS" if not violations else "FAIL",
         "task_id": 11,
         "reserved_seed": 953099,
-        "native_commit": "4bbcaa132131733372c17a68895a329a030c84d0",
+        "native_commit": "ddf424b0ab8eb23329cd51256a919beeae2ee288",
         "native_library_sha256": native_library_sha256,
         "soe_feature_dims": [3, 3, 3],
         "soe_dt": 0.01,

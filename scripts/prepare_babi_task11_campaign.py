@@ -162,7 +162,7 @@ def build_manifest(source_root: Path, protocol_path: Path, output_root: Path) ->
         "confirmatory_labels_loaded": 0,
         "learner_labels_loaded": 0,
         "validation_labels_are_evaluator_only": True,
-        "native_commit": "4bbcaa132131733372c17a68895a329a030c84d0",
+        "native_commit": "ddf424b0ab8eb23329cd51256a919beeae2ee288",
         "soe_feature_dims": [3, 3, 3],
         "soe_dt": 0.01,
         "top_down_gain": 1.0,

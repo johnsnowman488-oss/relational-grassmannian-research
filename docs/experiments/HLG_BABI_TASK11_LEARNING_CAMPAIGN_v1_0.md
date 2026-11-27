@@ -97,14 +97,14 @@ The accepted 32-story-per-shard resource qualification used the original Abercon
 
 The first full-scale fit-only preflight on that native commit failed at Task 11 story `task11/train/story000050`, event `line000001`, observation tick 386. Native state maxima across the three levels were approximately 302, 640 and 932; the first two spectral reports returned non-finite `mcap=inf`, followed by `sum(w) must be non-zero`. A subsequent gain-0.001 attempt failed at story 530 after state magnitudes exceeded 1.57 million and spectral values became non-finite. Gain reduction was therefore not accepted as the architectural fix. Gain 1e-8 was an interim diagnostic configuration only and is not the frozen campaign setting.
 
-The underlying defect was unbounded mean-absolute SOE state entering exponential top-down kernel modulation. Aberconics PR #12 fixed this in native code and merged as `4bbcaa132131733372c17a68895a329a030c84d0`. The native fix:
+The underlying defect was unbounded mean-absolute SOE state entering exponential top-down kernel modulation. The bounded-modulation fix was applied on the persistent-runtime line (base `2539df6bda7ef3c9dd7c707abe26eff8bdbb59de`) and is pinned at `ddf424b0ab8eb23329cd51256a919beeae2ee288`, preserving the required `create_persistent_hierarchy_runtime` Python ABI. The native fix:
 - saturates the mean-absolute top-down observable with `tanh` using long-double accumulation and finite-input checks;
 - uses stable log-sum-exp normalization for positive kernel weights;
 - rejects non-finite or non-positive decay-rate materialization;
 - bounds top-down edge gain magnitude at 50; and
 - includes a C++ regression test with observables of magnitude 1e9, finite positive kernels and finite spectral Mcap.
 
-The campaign now pins native commit `4bbcaa132131733372c17a68895a329a030c84d0` and restores H0 top-down gain 1.0 for HLA and HLB, all six conditions and all ten seeds. This retains the intended modulation strength while bounding its drive in the native implementation. Native Linux/Windows C++ and Python CI passed; the full-scale Task 11 resource/integrity preflight on this exact commit remains mandatory. The earlier 32-story resource reports remain preserved as historical evidence for the original native commit and are not substituted for the new full-scale preflight.
+The campaign now pins native commit `ddf424b0ab8eb23329cd51256a919beeae2ee288` and restores H0 top-down gain 1.0 for HLA and HLB, all six conditions and all ten seeds. This retains the intended modulation strength while bounding its drive in the native implementation. Native CI on the pinned integration commit passed C++ on Linux and Windows and Python on Linux and Windows (198 passed, 4 skipped on each Python platform); the full-scale Task 11 resource/integrity preflight on this exact commit remains mandatory. The earlier 32-story resource reports remain preserved as historical evidence for the original native commit and are not substituted for the new full-scale preflight.
 
 ## Interpretation of the six conditions
 
