@@ -356,5 +356,5 @@ jobs:
       - name: Verify exactly one confirmatory evaluation per task and architecture
         run: |
           python scripts/verify_babi_confirmatory.py \
-            --input-dir artifacts/confirmatory/artifacts/babi-confirmatory-results \
+            --input-dir artifacts/confirmatory \
             --selection-file artifacts/selection/selected-candidates.json
