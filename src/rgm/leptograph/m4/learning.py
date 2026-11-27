@@ -1257,6 +1257,7 @@ class LearningRuntime:
             "kind": "relation", "value": encoded, "target_name": "next_relation_pattern",
             "target_key": key, "context": record.context, "source_id": record.instance_id,
             "event_time": record.event_time, "observed_at": record.observed_at, "tick": tick,
+            "learn": bool(learn),
             "issue_context": deepcopy(self._last_issue_context),
         })
         if error is not None:
@@ -1282,6 +1283,7 @@ class LearningRuntime:
             "kind": "event_role", "value": encoded, "target_name": "next_event_role_pattern",
             "target_key": key, "context": event.context, "source_id": event.event_id,
             "event_time": event.event_time, "observed_at": event.observed_at, "tick": tick,
+            "learn": bool(learn),
             "issue_context": deepcopy(self._last_issue_context),
         })
         if error is not None:
