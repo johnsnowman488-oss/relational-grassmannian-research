@@ -543,6 +543,7 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
         raise ValueError("aggregation requires exactly four shard evidence directories")
     results: dict[str, dict] = {}
     resources = []
+    native_resources = []
     for shard_root in shard_roots:
         status_path = shard_root / "shard-status.json"
         if not status_path.is_file():
@@ -570,6 +571,19 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
         if not resource_path.is_file():
             raise FileNotFoundError(f"shard {shard_id}: missing resource usage")
         resources.append(json.loads(resource_path.read_text(encoding="utf-8")))
+        native_path = shard_root / "native" / "native-runtime-usage.json"
+        if not native_path.is_file():
+            raise FileNotFoundError(f"shard {shard_id}: missing pinned native non-learning runtime evidence")
+        native = json.loads(native_path.read_text(encoding="utf-8"))
+        if (native.get("status") != "PASS" or int(native.get("shard", -1)) != shard_id
+                or int(native.get("story_count", 0)) != 48
+                or int(native.get("learning_updates", -1)) != 0
+                or int(native.get("labels_loaded", -1)) != 0
+                or int(native.get("native_step_count", 0)) <= 0):
+            raise ValueError(f"shard {shard_id}: native non-learning runtime evidence failed")
+        if any(not row.get("learner_parameters_unchanged") for row in native.get("story_runs", [])):
+            raise ValueError(f"shard {shard_id}: learner parameters changed during no-learning native run")
+        native_resources.append(native)
     if set(results) != set(expected):
         missing = sorted(set(expected) - set(results))
         extra = sorted(set(results) - set(expected))
@@ -588,6 +602,26 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
         for path in root.rglob("*")
         if path.is_file()
     )
+    native_story_runs = [story for row in native_resources for story in row["story_runs"]]
+    native_elapsed = sum(float(row["elapsed_seconds"]) for row in native_resources)
+    native_story_count = sum(int(row["story_count"]) for row in native_resources)
+    native_task_arch_projection = {}
+    for task_id in TASKS:
+        task_counts = manifest["tasks"][str(task_id)]["counts"]
+        target_stories = (int(task_counts["fit_stories"]) + int(task_counts["validation_stories"])) * len(CONDITIONS) * len(SEEDS)
+        for architecture in ARCHITECTURES:
+            samples = [story for story in native_story_runs
+                       if int(story["task_id"]) == task_id and story["architecture"] == architecture]
+            if len(samples) != 32:
+                raise ValueError(f"Task {task_id}/{architecture}: expected 32 native sample stories, got {len(samples)}")
+            seconds_per_story = native_elapsed / max(1, native_story_count)
+            native_task_arch_projection[f"task{task_id}-{architecture}"] = {
+                "sample_stories": len(samples),
+                "sample_events": sum(int(story["events"]) for story in samples),
+                "campaign_story_presentations": target_stories,
+                "projected_non_learning_runtime_seconds": seconds_per_story * target_stories,
+                "projection_scope": "measured no-learning native runtime sample scaled by story count; not a full-learning runtime estimate",
+            }
     summary = {
         "schema": "HLG-BABI-EXPANSION-PREFLIGHT-AGGREGATE-v1",
         "status": "PASS",
@@ -615,6 +649,21 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
             "scope": "non-learning symbolic baseline workload; no HLA/HLB learner compute",
         },
         "baseline_validation": baseline_report["tasks"],
+        "native_non_learning_runtime": {
+            "status": "PASS",
+            "native_commit": native_resources[0]["native_commit"],
+            "sample_story_count": native_story_count,
+            "sample_event_count": sum(int(row["event_count"]) for row in native_resources),
+            "native_steps": sum(int(row["native_step_count"]) for row in native_resources),
+            "learning_updates": sum(int(row["learning_updates"]) for row in native_resources),
+            "labels_loaded": sum(int(row["labels_loaded"]) for row in native_resources),
+            "elapsed_seconds": native_elapsed,
+            "peak_rss_mb_max": max(float(row["peak_rss_mb"]) for row in native_resources),
+            "tracemalloc_peak_mb_max": max(float(row["tracemalloc_peak_mb"]) for row in native_resources),
+            "native_steps_per_second": sum(int(row["native_step_count"]) for row in native_resources) / native_elapsed if native_elapsed else 0.0,
+            "task_architecture_projection": native_task_arch_projection,
+            "per_worker": native_resources,
+        },
         "confirmatory_manifest_sha256": manifest["confirmatory_protocol"]["manifest_sha256"],
         "retry_integrity": {
             "unique_run_unit_keys": len(results),
@@ -623,7 +672,7 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
             "wrong_shard_keys": 0,
             "manifest_mismatches": 0,
         },
-        "claim_boundary": "Passes source/partition/baseline/sharding/retry/evidence and baseline workload measurement. Does not estimate native HLA/HLB learning compute or establish learned performance.",
+        "claim_boundary": "Passes source/partition/baseline/sharding/retry/evidence, pinned native HLA/HLB no-learning sample and baseline workload measurement. Native projections are no-learning only; no learned performance result is established.",
     }
     summary["aggregate_sha256"] = _write_json(output_path, summary)
     return summary
