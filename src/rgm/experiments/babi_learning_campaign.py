@@ -12,6 +12,7 @@ from typing import Any, Callable
 import hashlib
 import json
 import math
+import os
 import time
 
 import numpy as np
@@ -766,7 +767,18 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
     confirmatory = _load_stories(
         confirmatory_root / f"task{task_id}-confirmatory.inputs.jsonl"
     )
-    native_path = Path(gfe_module.__file__).resolve().parent.parent / "c++ core" / "build-shared" / "libgfe_core.so"
+    configured_native_path = os.environ.get("GFE_CORE_LIB")
+    native_path = (
+        Path(configured_native_path).expanduser().resolve()
+        if configured_native_path else
+        Path(gfe_module.__file__).resolve().parent.parent / "c++ core" / "build-shared" / "libgfe_core.so"
+    )
+    if not native_path.is_file():
+        raise RuntimeError(
+            "cannot establish native runtime provenance: configured library does not exist at "
+            f"{native_path}"
+        )
+    native_library_sha256 = hashlib.sha256(native_path.read_bytes()).hexdigest()
     campaign_manifest_path = Path("docs/experiments/HLG_BABI_TASKS_3_5_STRUCTURED_CAMPAIGN_v0_1.json")
     source_manifest = {
         "annotation_manifest_sha256": hashlib.sha256(
@@ -777,9 +789,9 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         ).hexdigest(),
         "campaign_manifest_sha256": hashlib.sha256(campaign_manifest_path.read_bytes()).hexdigest()
             if campaign_manifest_path.exists() else None,
-        "native_runtime_commit": __import__("os").environ.get("GFE_ABERCONICS_COMMIT"),
-        "native_library_sha256": hashlib.sha256(native_path.read_bytes()).hexdigest()
-            if native_path.exists() else None,
+        "native_runtime_commit": os.environ.get("GFE_ABERCONICS_COMMIT"),
+        "native_library_path": str(native_path),
+        "native_library_sha256": native_library_sha256,
     }
     capacity_requirements = _capacity_requirements(warm, online, validation, confirmatory)
     if architecture == "HLB":
