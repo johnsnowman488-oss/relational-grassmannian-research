@@ -134,7 +134,38 @@ The workflow .github/workflows/h1-babi-expansion-adapter-validation.yml:
 
 The workflow must be reviewed for each task's exact-match rate, quarantine count/reasons, partition counts, source hashes and label separation. A green unit-test job alone is not sufficient.
 
-## 6. Acceptance gates before HLA/HLB/HLC learning
+## 7. Source-wide Phase B adapter result — PASS
+
+The source-wide validation completed successfully on 2026-11-27.
+
+- Phase B workflow run: 45993209014 — success.
+- Repository unit/invariant matrix: run 45993208940 — Python 3.10 and 3.12 both passed.
+- Uploaded artifact: babi-phase-b-adapter-validation (artifact ID 15195305886), 1,843,769 bytes.
+- Artifact SHA-256: 39d7247dd0ab0c3f015405d8933ef0a06c111e103d2911775dae21ef8794d767.
+- Adapter audit report SHA-256: ada4bd7dc5bdffb515584d3c57e11f099009eedfd3078c78d7c7cea4337a6291.
+- Source audit report SHA-256: 21e645b73a492f2e52590d0f429e95bddfcc91b5d13e6c4b1a441adc717fed12.
+
+| Task | Train stories / questions | Train oracle exact match | Quarantined | Derived fit | Derived validation | Test parsed label-free |
+|---|---:|---:|---:|---:|---:|---:|
+| 11 | 2,000 / 10,000 | 100% (10,000/10,000) | 0 | 1,800 stories / 9,000 questions | 200 / 1,000 | 200 stories / 1,000 questions |
+| 14 | 2,000 / 10,000 | 100% (10,000/10,000) | 0 | 1,800 / 9,000 | 200 / 1,000 | 200 / 1,000 |
+| 19 | 10,000 / 10,000 | 100% (10,000/10,000) | 0 | 9,000 / 9,000 | 1,000 / 1,000 | 1,000 / 1,000 |
+
+All 30,000 training queries were accepted by their task-specific reference oracle with zero mismatches and zero quarantines. The six selected source files were reacquired from the pinned external commit and rechecked. Training support references were revalidated as prior statements within the same story. The project-defined fit/validation partitions are deterministic and whole-story disjoint. All three official test members were parsed with labels disabled; no test inputs or labels were emitted into learner partitions.
+
+**Interpretation:** this establishes source-wide parser and symbolic-oracle agreement for the selected bAbI v1.2 en-10k training members. It does not establish learned coreference, temporal reasoning or path composition. The oracle baselines are deterministic and task-constrained.
+
+## 8. Remaining before a learning campaign
+
+1. Integrate task-specific prediction target objects into HLA/HLB without collapsing their semantics into one generic QA target.
+2. Add and run the declared non-oracle baselines on the same fit/validation partitions.
+3. Verify per-level L0/L1/L2 evidence parity, source-witness recovery, forecast lifecycle and ablation-channel integrity.
+4. Freeze task-specific thresholds, seed sets, runtime estimates and worker sharding.
+5. Review the Phase B artifacts and explicitly authorize a pilot before any learning campaign.
+
+No campaign has been launched. HLA/HLB learning results do not yet exist.
+
+## 9. Acceptance gates before HLA/HLB/HLC learning
 
 - Parser coverage: every source record is accepted; unsupported syntax fails closed and is counted.
 - Coreference: no cross-story binding; unresolved pronouns abstain; antecedent witnesses are traceable.
