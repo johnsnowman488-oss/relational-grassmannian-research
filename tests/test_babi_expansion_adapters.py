@@ -161,9 +161,9 @@ def test_task_adapters_reject_cross_task_inputs(tmp_path):
 def test_task11_weak_supervision_labels_only_unique_prior_gender_candidate(tmp_path):
     unique = write(
         tmp_path, "task11_unique.txt",
-        "1 Mary went to the kitchen.\\n"
-        "2 John went to the garden.\\n"
-        "3 After that she went to the office.\\n"
+        "1 Mary went to the kitchen.\n"
+        "2 John went to the garden.\n"
+        "3 After that she went to the office.\n"
     )
     stories, _ = parse_expansion_source(unique, task_id=11, split="train", include_labels=False)
     report = derive_task11_weak_binding_targets(stories[0])
@@ -177,9 +177,9 @@ def test_task11_weak_supervision_labels_only_unique_prior_gender_candidate(tmp_p
 
     ambiguous = write(
         tmp_path, "task11_ambiguous.txt",
-        "1 Mary went to the kitchen.\\n"
-        "2 Sandra went to the garden.\\n"
-        "3 After that she went to the office.\\n"
+        "1 Mary went to the kitchen.\n"
+        "2 Sandra went to the garden.\n"
+        "3 After that she went to the office.\n"
     )
     stories, _ = parse_expansion_source(ambiguous, task_id=11, split="train", include_labels=False)
     report = derive_task11_weak_binding_targets(stories[0])
