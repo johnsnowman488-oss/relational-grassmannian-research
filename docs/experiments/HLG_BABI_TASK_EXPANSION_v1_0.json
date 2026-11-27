@@ -479,7 +479,7 @@
   },
   "current_tracking": {
     "updated_on": "2026-11-27",
-    "active_branch": "research/babi-task-expansion-v1",
+    "active_branch": "research/babi-expansion-preflight-v1",
     "frozen_task3_task5_workstream": "PARKED_UNTOUCHED",
     "execution_authorized": false,
     "phase_b_source_wide_adapter_acceptance": "PASS",
@@ -516,6 +516,48 @@
       "Keep official test labels evaluator-only and generated-confirmatory evidence separate.",
       "Do not modify frozen Task 3/5 protocol, branch or artifacts."
     ],
-    "source_note": "This tracking update records the latest implementation progress discussed on 2026-11-27. It does not assert that partially implemented gates have passed."
+    "source_note": "This tracking update records the latest implementation progress discussed on 2026-11-27. It does not assert that partially implemented gates have passed.",
+    "active_pull_request": 55,
+    "active_pull_request_url": "https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/55",
+    "active_pull_request_head": "98c88031477dda828b62fda0d34de20e882e16b2",
+    "active_pull_request_base": "research/babi-task-expansion-v1",
+    "pull_request_state": "OPEN_NOT_MERGED",
+    "pull_request_mergeability_at_inspection": "MERGEABLE",
+    "ci_status": {
+      "preflight_run": 46000838110,
+      "runtime_contract_run": 46000838109,
+      "phase_b_adapter_run": 46000838112,
+      "all_three": "FAILED",
+      "first_blocker": "test_task11_parser_preserves_pronoun_without_inventing_cross_story_binding uses literal escaped backslash-n instead of physical newline; parser receives malformed single record",
+      "downstream_preflight": "SKIPPED; no preparation/native/shard/aggregate artifacts accepted"
+    },
+    "gate_assessment": {
+      "task11_raw_mentions": "IMPLEMENTED_IN_PR; CI_NOT_PASSED",
+      "independent_baselines": "IMPLEMENTED_IN_PR; CI_NOT_PASSED; TARGET_LEVEL_METRICS_INCOMPLETE",
+      "nested_partitions": "IMPLEMENTED_IN_PR; CI_NOT_PASSED",
+      "four_worker_retry_aggregation": "IMPLEMENTED_IN_PR; CI_NOT_PASSED",
+      "native_no_learning_sample": "IMPLEMENTED_IN_PR; CI_NOT_PASSED; SMALL_SAMPLE_ONLY",
+      "resource_budget": "PARTIAL_DESIGN; SYMBOLIC_WORKLOAD_AND_NATIVE_NO_LEARNING_SAMPLE_ONLY; FULL_LEARNER_COST_NOT_MEASURED",
+      "generated_confirmatory": "IMPLEMENTED_IN_PR; CI_NOT_PASSED; TASK11_ANTECEDENT_IDENTIFIABILITY_AND_FEATURE_SCHEMA_MISMATCH"
+    },
+    "further_blockers": [
+      "Task 11 generated pronoun antecedents are randomly assigned among same-gender novel entities, making some gold bindings unidentifiable from current inputs.",
+      "Generated Task 11 grammatical_gender is not represented in Task11MentionEvent or to_nary_event; runtime and challenge input schemas differ.",
+      "Task 11 baseline uses hard-coded known-name gender priors and cannot resolve novel generated entity names.",
+      "Baseline scorecard lacks full task-specific L1 target metrics, especially antecedent/coreference-edge metrics for Task 11 and temporal-relation metrics for Task 14.",
+      "Task 11 L1 target supervision/forecast lifecycle is not demonstrated; evaluator-only support labels must not be routed into learner ingestion.",
+      "Native preflight sample excludes learning updates; 360-unit shard runner executes symbolic baselines, not actual HLA/HLB learning.",
+      "Native projection pools seconds-per-story across tasks/architectures rather than task/architecture-specific rates."
+    ],
+    "next_actions": [
+      "Fix the test fixture with actual newlines and assert two story records; do not relax parser.",
+      "Rerun all three failing workflows and inspect artifacts.",
+      "Verify source, partitions, baseline and confirmatory outputs after upstream workflows pass.",
+      "Redesign Task 11 generated-confirmatory task so antecedents are identifiable from declared model-visible inputs and runtime schema.",
+      "Complete target-level baseline metrics and define Task 11 L1 supervision contract.",
+      "Review four-shard retry/aggregate evidence and keep native learning resource gate partial until measured.",
+      "Synchronize PR with base, rerun final CI and inspect all artifacts.",
+      "Keep execution_authorized=false pending all gates and explicit approval."
+    ]
   }
 }
