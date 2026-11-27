@@ -89,3 +89,12 @@ This protocol is frozen but not itself a campaign launch. The 120 units remain b
 5. the Task 11-only confirmatory generator and label-isolation checks pass.
 
 No Task 14/19 experiment or Task 3/5 modification is permitted in this sequence.
+
+
+## Full-scale native stability calibration
+
+The accepted 32-story-per-shard resource qualification used the default H0 top-down gain of 1.0. That bounded sample did not expose the long-sequence numerical failure.
+
+The first full-scale fit-only preflight, with the same gain, failed at Task 11 story `task11/train/story000050`, event `line000001`, observation tick 386. The native state maxima across the three levels were approximately 302, 640 and 932. The first two spectral reports returned non-finite `mcap=inf`; the native exchange then failed with `sum(w) must be non-zero`. The active kernel weights themselves remained positive (0.25 per channel). This is a numerical stability failure in exponential top-down modulation under accumulated SOE state, not a label-leakage or Task 11 parser failure.
+
+The campaign therefore freezes `top_down_gain=0.001` for both HLA and HLB, all six conditions and all ten seeds. The value scales the observed gain-1.0 modulation at the measured state magnitude to a finite regime. It is a fit-only numerical-stability correction, not a validation-selected predictive hyperparameter. The 32-story qualification remains valid for its original gain-1.0 configuration; it does not substitute for the new full-scale preflight at gain 0.001.
