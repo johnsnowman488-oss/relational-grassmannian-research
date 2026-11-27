@@ -161,6 +161,7 @@ def run(source_root: Path, output_root: Path, shard: int,
                 counts = _state_counts(adapter)
                 row = {
                     "task_id": 11,
+                    "shard": shard,
                     "architecture": architecture,
                     "story_id": story.story_id,
                     "story_index": story_index,
