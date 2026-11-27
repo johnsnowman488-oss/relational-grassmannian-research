@@ -1,6 +1,6 @@
 # HLG bAbI expansion resource budget assessment v1.0
 
-**Current status:** `PARTIAL_NO_LEARNING_ONLY`  
+**Current status:** `PARTIAL; ACCEPTED_NO_LEARNING_PREFLIGHT_PLUS_QUARANTINED_UNAUTHORIZED_LEARNING_DIAGNOSTIC`  
 **Decision:** The existing preflight is not a full learning-campaign resource qualification.
 
 ## Evidence currently measured by the preflight
@@ -13,15 +13,15 @@
 - Symbolic shard evidence records elapsed time including retry, presentation throughput, peak RSS, Python allocation peak and artifact storage.
 - Native projection is task- and architecture-specific, based on sampled story rate and event rate. Both are reported so readers can see the effect of task-specific story lengths. Projections are simple linear extrapolations of no-learning runtime only.
 
-## What this does not measure
+## What the accepted preflight does not measure
 
 - HLA/HLB parameter-update compute for any learning condition.
-- Growth of trainable state, optimizer/learning metadata or relation/context banks during a full campaign.
-- Memory and time cost of repeated learning updates, checkpoint creation, candidate validation, consolidation, promotion or rollback.
+- Growth of trainable state, optimizer/learning metadata or relation/context banks during a long-lived multi-story campaign.
+- Memory and time cost of full candidate validation, consolidation, promotion or rollback orchestration.
 - Runtime variability at full 3.6-million-presentation scale in the native learner.
 - End-to-end duration when source acquisition, evaluator isolation and final confirmatory evaluation are included.
 
-The native sample has only 32 stories per task/architecture across the four shards. The symbolic run units are orchestration and baseline measurements, not proxy learner updates. Do not multiply no-learning runtime by a generic factor and report that as learned runtime.
+The native no-learning sample has only 32 stories per task/architecture across the four shards. The symbolic run units are orchestration and baseline measurements, not proxy learner updates. A separate learning-enabled sample was later executed automatically by mistake; it is quarantined in the final section and is not accepted resource-gate evidence. Do not multiply no-learning runtime by a generic factor or treat the quarantined sample as a full-campaign forecast.
 
 ## Gate closure criteria
 
@@ -29,7 +29,7 @@ The resource gate remains open until one of the following is reviewed:
 1. A separately authorized, bounded HLA/HLB learning microbenchmark covers representative tasks, conditions, event volumes, parameter updates, checkpoints and recovery, with per-task/architecture throughput and peak memory; or
 2. A transparent learner-cost model is independently reviewed and anchored by measured update-level costs.
 
-The assessment must include safety margins for parallelism, peak resident memory, artifact retention and retries. A microbenchmark is not permission to launch the 360-unit learning campaign. The full campaign remains `execution_authorized=false` until all gates pass and explicit authorization is given.
+The assessment must include safety margins for parallelism, peak resident memory, artifact retention and retries. A microbenchmark is not permission to launch the 360-unit learning campaign. The full campaign remains `execution_authorized=false` until all gates pass and explicit authorization is given. A learning-cost benchmark itself also requires explicit authorization; workflow automation must not infer consent from a passing no-learning preflight.
 
 
 ## Observed preflight evidence — 2026-11-27
@@ -76,3 +76,34 @@ The projected sample counts/throughput are task- and architecture-specific. They
 ### Resource decision
 
 The measured symbolic orchestration, artifact storage and native no-learning runtime gates pass for this preflight workload. The resource-budget gate remains **`PARTIAL_NO_LEARNING_ONLY`** because actual HLA/HLB learning-update compute, trainable state growth and checkpoint/rollback costs have not been measured. Closure still requires a separately authorized bounded learner microbenchmark or a reviewed cost model grounded in measured update-level costs. This report is not authorization to run either that microbenchmark or the full learning campaign.
+
+
+## Quarantined learning-cost diagnostics — not accepted gate evidence
+
+**Process incident:** the PR workflow initially attached the learning-enabled microbenchmark directly to successful no-learning aggregate completion. This caused two duplicate automatic runs on commit `db0b34c970b8ffabaf5d96d8928cfb4979bf970c` without explicit user authorization. Both completed successfully, but both are recorded as **UNAUTHORIZED_DIAGNOSTICS_NOT_GATE_EVIDENCE**. The aggregates explicitly retained `execution_authorized=false`.
+
+| Run | ID | Aggregate artifact | Artifact digest |
+|---|---:|---:|---|
+| #97 | `46071079818` | `15233515418` | `sha256:380eda01825aef8e60eb5d49fed84eae91da231d3286ccdff3fd8c6196ba058e` |
+| #98 | `46071085170` | `15232928490` | `sha256:c85394a61ce3e986ab0914be0b44b929c238e15a4c035a3519696d5a839dc58b` |
+
+Each run sampled 192 fit-story episodes (eight per task per shard, both HLA and HLB), 1,692 events/native steps total, with a fresh adapter per story. All 192 episodes showed a learner-state change. Neither run loaded evaluator labels, official-test queries or generated-confirmatory labels.
+
+| Measure | Run #97 | Run #98 |
+|---|---:|---:|
+| Measured episode update time (sum across the 192 episodes) | 7.439 s | 6.272 s |
+| Event throughput normalized by episode update time | 227.45 events/s | 269.78 events/s |
+| LearningRuntime snapshot time (sum) | 0.260 s | 0.225 s |
+| LearningRuntime restore time (sum) | 0.337 s | 0.286 s |
+| Serialized LearningRuntime checkpoint payload (sum) | 7,959,286 bytes | 7,959,286 bytes |
+| Maximum worker peak RSS | 181.461 MiB | 181.480 MiB |
+| Maximum worker Python allocation peak | 48.555 MiB | 48.555 MiB |
+| Sum of worker wall times | 32.933 s | 28.130 s |
+
+Per task/architecture, mean episode update times ranged from 18.4–22.4 ms (Task 19 HLA), 19.4–23.0 ms (Task 19 HLB), 37.0–43.7 ms (Task 11 HLA), 37.5–44.1 ms (Task 11 HLB), 41.2–49.0 ms (Task 14 HLA) and 42.4–50.3 ms (Task 14 HLB).
+
+**Interpretation limits:** the sample used fresh adapters for every story. It measured native event ingestion with existing H1 learner updates enabled, per-episode learner-state deltas, learned journal rows, eligibility/temporal state, and Python LearningRuntime snapshot/restore time and serialized size. It did **not** measure persistent parameter/bank growth across successive stories on one learner, full native/runtime checkpoints, candidate validation, consolidation, promotion, rollback orchestration, full 360-unit learning campaign cost, or learning/generalisation performance. It is a useful debugging and rough initial cost diagnostic, but it cannot close the formal resource gate because it was not authorized and the lifecycle sample is incomplete.
+
+### Workflow correction
+
+The workflow now exposes `workflow_dispatch` with a required boolean `enable_learning_cost_microbenchmark` defaulting to `false`. The learning-cost jobs run only when that boolean is explicitly set to `true` on a manual dispatch **and** the preceding no-learning aggregate succeeds. PR/push-triggered runs skip the learning-cost jobs. No further benchmark should be launched without explicit user authorization. The 360-unit learning campaign remains separately frozen and unauthorized.
