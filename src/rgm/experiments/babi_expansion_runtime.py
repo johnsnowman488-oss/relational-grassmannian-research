@@ -431,14 +431,21 @@ class BabiExpansionRuntime:
                 try:
                     native_state = self.adapter.bridge.runtime.get_state()
                     native_weights = [row.get("w", []) for row in native_state.get("active_kernels", [])]
+                    native_state_max_abs = [
+                        max((abs(float(value)) for value in row.get("u", [])), default=0.0)
+                        for row in native_state.get("level_states", [])
+                    ]
+                    native_spectral = native_state.get("spectral_units", [])
                 except Exception:
-                    native_weights = []
+                    native_weights, native_state_max_abs, native_spectral = [], [], []
                 raise RuntimeError(
                     f"Task {story.task_id} story {story.story_id} event {event.event_id} "
                     f"at observation {event.observed_at} failed during hierarchical exchange; "
                     f"feature_dims={self.adapter.feature_dims}, "
-                    f"feature_sums={[float(sum(values)) for values in features]}, "
-                    f"native_active_kernel_weights={native_weights}"
+                    f"feature_sums={[float(sum(values)) for values in features.values()]}, "
+                    f"native_active_kernel_weights={native_weights}, "
+                    f"native_level_state_max_abs={native_state_max_abs}, "
+                    f"native_spectral_units={native_spectral}"
                 ) from exc
             if story.task_id == 11 and isinstance(event, Task11MentionEvent) and binding is not None:
                 # HLB has a typed L2 transition model in its canonical relation
