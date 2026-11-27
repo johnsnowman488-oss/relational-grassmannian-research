@@ -131,13 +131,15 @@
     "require_zero_provenance_failures": true,
     "require_zero_hlb_capacity_misses": true,
     "require_validation_only_candidate_selection": true,
-    "require_exactly_four_confirmatory_evaluations": true
+    "require_exactly_four_confirmatory_evaluations": true,
+    "require_positive_updates_in_all_enabled_channels": true,
+    "require_only_declared_ablation_channel_suppressed": true
   },
   "implementation_git_blob_sha1": {
     "src/rgm/leptograph/m4/learning.py": "97fbc4ee37f782d08725494266fdda4e95e8b1a4",
     "src/rgm/experiments/babi_learning_campaign.py": "0a8e8a9f5d359829fd8e056cb767e42130696b3a",
     "scripts/run_babi_learning_campaign.py": "6c396f54a05277da80b4426b933d96fe91537548",
-    "scripts/select_babi_learning_candidates.py": "eecacccf28bc4e1328062fecd927ed63576bd24c",
+    "scripts/select_babi_learning_candidates.py": "65f5a4e03412a0550a0cbebe5cab9ccbc3b49a9f",
     "scripts/verify_babi_confirmatory.py": "bb91cacb5dd2a6160000b20dd57acff7375d078f",
     ".github/workflows/h1-babi-learning-campaign.yml": "41e08070205f9c6593282d950dd4129f798f804a",
     "tests/test_babi_learning_campaign.py": "2659bdd9923462b2898e78328de0366aab63616a",
