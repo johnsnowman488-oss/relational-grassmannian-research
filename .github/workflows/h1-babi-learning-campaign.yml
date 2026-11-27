@@ -156,10 +156,20 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: |
           mkdir -p artifacts/babi-campaign
-          python -u scripts/run_babi_learning_campaign.py \
-            --task-id ${{ matrix.task }} \
-            --architecture ${{ matrix.architecture }} \
-            --output artifacts/babi-campaign/task${{ matrix.task }}-${{ matrix.architecture }}.json
+          if [[ "$GITHUB_REF_NAME" == "research/h1-babi-execution-recovery-v1" ]]; then
+            # Fresh-branch safety pilot: one seed and the full-learning baseline
+            # for each task/architecture. Full matched campaigns remain a later gate.
+            python -u scripts/run_babi_learning_campaign.py \
+              --task-id ${{ matrix.task }} \
+              --architecture ${{ matrix.architecture }} \
+              --seeds 953000 --variants full_learning \
+              --output artifacts/babi-campaign/task${{ matrix.task }}-${{ matrix.architecture }}.json
+          else
+            python -u scripts/run_babi_learning_campaign.py \
+              --task-id ${{ matrix.task }} \
+              --architecture ${{ matrix.architecture }} \
+              --output artifacts/babi-campaign/task${{ matrix.task }}-${{ matrix.architecture }}.json
+          fi
       - name: Upload campaign evidence
         if: always()
         uses: actions/upload-artifact@v4
