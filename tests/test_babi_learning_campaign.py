@@ -215,3 +215,18 @@ def test_open_predictions_are_closed_at_phase_boundary():
     adapter.learning = learning
     assert _withdraw_open_predictions(adapter) == 1
     assert learning.predictions.get("open-prediction").status.value == "WITHDRAWN"
+
+
+def test_six_ablation_conditions_are_unique_and_disable_only_the_declared_channels():
+    from rgm.experiments.babi_learning_campaign import CHANNELS
+    from rgm.leptograph.m4.learning import ErrorChannel
+
+    all_channels = frozenset(ErrorChannel)
+    assert len(CHANNELS) == 6
+    assert len({tuple(sorted(channel.value for channel in enabled)) for enabled in CHANNELS.values()}) == 6
+    assert CHANNELS["full_learning"] == all_channels
+    assert CHANNELS["no_temporal"] == all_channels - {ErrorChannel.TEMPORAL}
+    assert CHANNELS["no_relational"] == all_channels - {ErrorChannel.RELATIONAL}
+    assert CHANNELS["no_abstraction"] == all_channels - {ErrorChannel.ABSTRACTION}
+    assert CHANNELS["no_task"] == all_channels - {ErrorChannel.TASK}
+    assert CHANNELS["no_learning"] == frozenset()
