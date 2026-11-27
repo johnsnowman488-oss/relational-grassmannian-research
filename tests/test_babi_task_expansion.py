@@ -14,7 +14,7 @@ def load_manifest():
 
 def test_expansion_is_preparation_only_and_preserves_frozen_tasks():
     data = load_manifest()
-    assert data["status"] == "PREPARATION_ONLY_NOT_EXECUTABLE"
+    assert data["status"] == "PHASE_B_ADAPTERS_IMPLEMENTED_PENDING_SOURCE_WIDE_AUDIT"\n    assert data["scope"]["phase_b_adapters_implemented"] is True
     assert data["scope"]["frozen_tasks"] == [3, 5]
     assert data["scope"]["execution_authorized"] is False
     assert data["campaign"]["first_wave_parallel_case_studies"] == [11, 14, 19]
