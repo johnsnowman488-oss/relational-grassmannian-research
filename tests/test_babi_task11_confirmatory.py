@@ -57,3 +57,25 @@ def test_task11_confirmatory_evaluator_detects_ambiguous_false_acceptance():
     result = evaluate_task11_confirmatory(inputs, labels, decisions)
     assert result["ambiguous_abstention_recall"] == 0.0
     assert result["ambiguous_false_acceptances"] == 1
+
+
+
+def test_task11_confirmatory_generator_keeps_inputs_and_labels_separate(tmp_path):
+    from rgm.experiments.babi_expansion_confirmatory import (
+        generate_task11_confirmatory,
+        verify_task11_confirmatory,
+    )
+
+    manifest = generate_task11_confirmatory(tmp_path)
+    verified = verify_task11_confirmatory(tmp_path)
+    assert manifest["task_ids"] == [11]
+    assert manifest["story_count"] == 384
+    assert manifest["answerable_story_count"] == 320
+    assert manifest["ambiguous_abstention_story_count"] == 64
+    assert verified["status"] == "PASS"
+    input_path = tmp_path / "task11-confirmatory-inputs.jsonl"
+    label_path = tmp_path / "task11-confirmatory-evaluator-labels.jsonl"
+    assert input_path.read_bytes() != label_path.read_bytes()
+    first = __import__("json").loads(input_path.read_text().splitlines()[0])
+    assert "gold_answer" not in first
+    assert "expected_abstention" not in first
