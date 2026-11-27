@@ -10,6 +10,7 @@ on:
       - "scripts/audit_babi_expansion.py"
       - "tests/test_babi_expansion_adapters.py"
       - "tests/test_babi_expansion_source_freeze.py"
+      - "tests/test_babi_task_expansion.py"
       - ".github/workflows/h1-babi-expansion-adapter-validation.yml"
   pull_request:
     branches:
@@ -20,6 +21,7 @@ on:
       - "scripts/audit_babi_expansion.py"
       - "tests/test_babi_expansion_adapters.py"
       - "tests/test_babi_expansion_source_freeze.py"
+      - "tests/test_babi_task_expansion.py"
       - ".github/workflows/h1-babi-expansion-adapter-validation.yml"
 
 concurrency:
