@@ -138,7 +138,8 @@ def test_task19_ambiguous_shortest_paths_abstain(tmp_path):
     )
     stories, _ = parse_expansion_source(path, task_id=19, split="train")
     prediction = predict_task19(stories[0], stories[0].queries[0])
-    assert prediction.abstained is True\n    assert prediction.reason == "ambiguous_shortest_paths"
+    assert prediction.abstained is True
+    assert prediction.reason == "ambiguous_shortest_paths"
 
 
 def test_task_adapters_reject_cross_task_inputs(tmp_path):
