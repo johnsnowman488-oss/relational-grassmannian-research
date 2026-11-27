@@ -183,3 +183,19 @@ def test_hlb_answer_model_snapshot_restores_into_confirmatory_prediction_adapter
     ), (query,))
     decision = predict_task11_from_learned_state(restored, validation_story, query)
     assert decision.prediction.answer == "office"
+
+
+
+def test_ablation_checkpoint_validation_reconstructs_frozen_learning_configuration():
+    for factory in (make_adapter, make_hlb_adapter):
+        adapter = factory()
+        runtime = BabiExpansionRuntime(
+            adapter, learning_enabled=False, enabled_channels=frozenset(),
+        )
+        story = ExpansionStory("task11/preflight/no-learning-checkpoint", 11, (
+            Task11MentionEvent("n1", "Mary", False, "kitchen", 1, "fit#1", "female"),
+        ), ())
+        runtime.ingest_story_sequence([story])
+        checkpoint = runtime.director.snapshot()
+        runtime.director.restore(checkpoint, preserve_observations=False)
+        assert runtime.adapter.learning.enabled_channels == frozenset()
