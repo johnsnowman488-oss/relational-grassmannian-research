@@ -6,6 +6,7 @@ import pytest
 
 from rgm.experiments.babi_expansion_adapters import (
     AmbiguousPathError,
+    derive_task11_weak_binding_targets,
     parse_expansion_source,
     predict_task11,
     predict_task14,
@@ -155,3 +156,32 @@ def test_task_adapters_reject_cross_task_inputs(tmp_path):
     stories, _ = parse_expansion_source(path, task_id=11, split="train")
     with pytest.raises(ValueError, match="another task"):
         predict_task14(stories[0], stories[0].queries[0])
+
+
+def test_task11_weak_supervision_labels_only_unique_prior_gender_candidate(tmp_path):
+    unique = write(
+        tmp_path, "task11_unique.txt",
+        "1 Mary went to the kitchen.\\n"
+        "2 John went to the garden.\\n"
+        "3 After that she went to the office.\\n"
+    )
+    stories, _ = parse_expansion_source(unique, task_id=11, split="train", include_labels=False)
+    report = derive_task11_weak_binding_targets(stories[0])
+    assert len(report["targets"]) == 1
+    target = report["targets"][0]
+    assert target.entity_id == "mary"
+    assert target.antecedent_event_id == stories[0].events[0].event_id
+    assert target.mention_event_id == stories[0].events[2].event_id
+    assert report["not_gold_labels"] is True
+    assert report["evidence_mutations"] == 0
+
+    ambiguous = write(
+        tmp_path, "task11_ambiguous.txt",
+        "1 Mary went to the kitchen.\\n"
+        "2 Sandra went to the garden.\\n"
+        "3 After that she went to the office.\\n"
+    )
+    stories, _ = parse_expansion_source(ambiguous, task_id=11, split="train", include_labels=False)
+    report = derive_task11_weak_binding_targets(stories[0])
+    assert report["targets"] == ()
+    assert report["abstentions"][0]["reason"] == "ambiguous_gender_candidates"
