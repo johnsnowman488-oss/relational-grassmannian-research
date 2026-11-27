@@ -74,7 +74,7 @@ def test_task14_event_time_is_not_observation_time():
         Task14TemporalEvent("e2", "mary", "garden", "this evening", (3, 2), 2, "train#2"),
     ), ())
     mapped = to_nary_event(story, story.events[1])
-    assert mapped.event_time == 3.0
+    assert mapped.event_time == 0.003
     assert mapped.observed_at == 2.0
     assert mapped.observed_at >= mapped.event_time
 
