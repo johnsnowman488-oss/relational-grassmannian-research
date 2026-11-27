@@ -101,11 +101,19 @@ def test_hla_and_hlb_issue_and_score_semantic_predictions_in_live_cycle():
             nary_events=(observed_event,), **kwargs,
         )
         assert {p.target_name for p in result["predictions"]} == {
-            "next_relation_pattern", "next_event_role_pattern"
+            "next_relation_pattern", "next_event_role_pattern", "next_context"
         }
         scores = adapter.learning.predictions.scores
-        assert len(scores) == 2
-        assert all(score.value == 0.0 for score in scores)
+        assert len(scores) == 3
+        score_by_target = {
+            adapter.learning.predictions.get(score.prediction_id).target_name: score.value
+            for score in scores
+        }
+        assert score_by_target == {
+            "next_relation_pattern": 0.0,
+            "next_event_role_pattern": 0.0,
+            "next_context": 0.0,
+        }
         if architecture == "HLA":
             assert not hasattr(adapter, "store")
             assert adapter.learning.event_roles.predict("home").event_type == "gave"
@@ -132,8 +140,10 @@ def test_score_only_exchange_scores_predictions_without_updating_learners():
             learn=False,
         )
 
-        assert any(p.target_name == "next_event_role_pattern" for p in result["predictions"])
-        assert len(adapter.learning.predictions.scores) == 1
+        assert {p.target_name for p in result["predictions"]} == {
+            "next_relation_pattern", "next_event_role_pattern", "next_context"
+        }
+        assert len(adapter.learning.predictions.scores) == 2
         assert adapter.learning.event_roles.snapshot() == roles_before
         assert adapter.learning.relations.snapshot() == relations_before
         assert adapter.learning.temporal_credit.snapshot() == temporal_before
@@ -175,11 +185,11 @@ def test_prediction_error_replay_reissues_incumbent_forecasts_after_rollback():
     learner.begin_tick(tick=0, observed_at=0.0, context="home")
     learner.observe_relation(relation("new-r", "visited", observed_at=1.0), tick=1)
     learner.observe_nary_event(nary("new-e", event_type="moved", observed_at=1.0), tick=1)
-    assert len(learner.predictions.scores) == 2
+    assert len(learner.predictions.scores) == 3
 
     learner.restore(checkpoint, preserve_observations=True)
-    assert len(learner.predictions.scores) == 2
-    assert {s.value for s in learner.predictions.scores} == {1.0}
+    assert len(learner.predictions.scores) == 3
+    assert {s.value for s in learner.predictions.scores} == {0.0, 1.0}
     assert len(learner.relations.snapshot()) == 1
     assert len(learner.event_roles.snapshot()) == 1
 
@@ -226,7 +236,7 @@ def test_integrated_candidate_rollback_preserves_and_replays_all_observations():
         eligibility_events=(eligibility("credit-e"),),
         temporal_error=0.5, task_outcome=("babi-task-5", 1.0),
     )
-    assert len(result["predictions"]) == 2
+    assert len(result["predictions"]) == 3
     assert runtime.state["step_count"] == 1
     assert adapter.evidence.event_ids == ("source-event",)
     assert adapter.learning.temporal_credit.snapshot()["weights"]
@@ -242,7 +252,7 @@ def test_integrated_candidate_rollback_preserves_and_replays_all_observations():
     assert adapter.learning.eligibility.values(prediction_cutoff_tick=1)
     assert adapter.learning.temporal_credit.snapshot()["weights"]
     assert adapter.learning.task_outcomes.error_rate("babi-task-5") == 1.0
-    assert len(adapter.learning.predictions.scores) == 2
+    assert len(adapter.learning.predictions.scores) == 3
 
 
 def test_independent_promotion_binds_learning_state_and_rejects_stale_candidate():
@@ -423,8 +433,11 @@ def test_forecast_context_is_not_inferred_from_the_current_target_observation():
         relation_records=((0, observed),),
         nary_events=(nary("no-leak-e", observed_at=1.0),),
     )
-    assert result["predictions"] == ()
-    assert adapter.learning.predictions.scores == ()
+    prediction_by_target = {p.target_name: p for p in result["predictions"]}
+    assert prediction_by_target["next_context"].value == "__ABSTAIN__"
+    assert prediction_by_target["next_relation_pattern"].value == "__ABSTAIN__"
+    assert prediction_by_target["next_event_role_pattern"].value == "__ABSTAIN__"
+    assert len(adapter.learning.predictions.scores) == 3
 
 
 def test_semantic_predictions_include_exact_entity_and_role_bindings():
@@ -442,8 +455,11 @@ def test_l0_feature_and_l2_context_predictions_are_issued_and_error_routed():
     learner.fit_level0_predictor([[0.0, 0.0], [0.0, 2.0]], partition="fit")
     learner.fit_context_transitions([("home", "home")], partition="fit")
     issued = learner.begin_tick(tick=0, observed_at=0.0, context="home")
-    assert {p.level.value for p in issued} == {"L0_GROUNDING", "L2_CONTEXT"}
-    assert {p.target_name for p in issued} == {"next_l0_features", "next_context"}
+    assert {p.level.value for p in issued} == {"L0_GROUNDING", "L1_RELATIONAL", "L2_CONTEXT"}
+    assert {p.target_name for p in issued} == {
+        "next_l0_features", "next_relation_pattern",
+        "next_event_role_pattern", "next_context",
+    }
 
     learner.advance_temporal(1)
     learner.observe_eligibility(eligibility("l0-credit"))
