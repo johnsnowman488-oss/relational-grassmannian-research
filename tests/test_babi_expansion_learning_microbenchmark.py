@@ -89,3 +89,22 @@ def test_task11_persistent_resource_aggregate_rejects_checkpoint_recovery_mismat
     path.write_text(json.dumps(report))
     with pytest.raises(ValueError, match="checkpoint recovery mismatch"):
         aggregate(plan, shards, tmp_path / "aggregate.json")
+
+
+def test_state_counts_reads_actual_eligibility_ledger_storage():
+    from types import SimpleNamespace
+
+    from scripts.run_babi_expansion_learning_microbenchmark import _state_counts
+
+    adapter = SimpleNamespace(learning=SimpleNamespace(
+        _observation_journal=[{"kind": "relation"}, {"kind": "event_role"}, {"kind": "context"}],
+        temporal_credit=SimpleNamespace(weights={"a": 1, "b": 2}),
+        eligibility=SimpleNamespace(_states={"x": {}, "y": {}}),
+    ))
+    counts = _state_counts(adapter)
+    assert counts["observation_journal_rows"] == 3
+    assert counts["relation_rows"] == 1
+    assert counts["event_role_rows"] == 1
+    assert counts["context_rows"] == 1
+    assert counts["temporal_credit_weights"] == 2
+    assert counts["eligibility_records"] == 2
