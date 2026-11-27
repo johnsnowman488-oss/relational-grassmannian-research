@@ -163,10 +163,12 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
         raise ValueError("SOE time step differs from frozen manifest")
 
     run_key = f"task11-{architecture}-{condition}-seed{seed}"
+    manifest_shard = None
     if run_kind == "campaign":
         units = {row["run_unit_key"]: row for row in manifest["run_units"]}
         if run_key not in units:
             raise ValueError(f"run unit is not in frozen manifest: {run_key}")
+        manifest_shard = units[run_key]["shard"]
     partition = manifest["seed_partitions"].get(str(seed))
     if partition is None:
         raise ValueError(f"missing seed-specific nested partition for seed {seed}")
@@ -247,6 +249,7 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
         model_snapshot = {
             "schema": "HLG-BABI-TASK11-ANSWER-MODEL-SNAPSHOT-v1",
             "run_key": run_key,
+            "manifest_shard": manifest_shard,
             "architecture": architecture,
             "condition": condition,
             "seed": seed,
@@ -310,6 +313,7 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
         _write_json(output_root / "per-run-config.json", {
             "run_key": run_key,
             "run_kind": run_kind,
+            "manifest_shard": manifest_shard,
             "task_id": 11,
             "architecture": architecture,
             "condition": condition,
@@ -359,6 +363,7 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
             "status": "PASS",
             "run_key": run_key,
             "run_kind": run_kind,
+            "manifest_shard": manifest_shard,
             "task_id": 11,
             "architecture": architecture,
             "condition": condition,
