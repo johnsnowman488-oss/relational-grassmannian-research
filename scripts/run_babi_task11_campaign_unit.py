@@ -75,11 +75,11 @@ def _memories():
 
 
 def _kernels(memories):
+    # Match the pinned H0 campaign ABI configuration used by the existing
+    # hierarchical validation runner: two normalized native channel weights.
     return [{
-        "gamma": bank.decay_rates[::-1].tolist(),
-        "w": [0.25] * bank.channel_count,
-        "linear_decay": [0.05] * (bank.channel_count * bank.feature_dim),
-        "forcing_bias": [0.0] * (bank.channel_count * bank.feature_dim),
+        "gamma": list(reversed(bank.decay_rates)),
+        "w": [0.5, 0.5],
     } for bank in memories]
 
 
