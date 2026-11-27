@@ -31,11 +31,7 @@ NATIVE_COMMIT = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
 HLB_CAPACITY = 262144
 ELIGIBILITY_CAPACITY = 131072
 SOE_DT = 0.01
-SOE_BANK_CONFIG = (
-    (4, (0.1, 0.4)),
-    (4, (0.2, 0.7)),
-    (4, (0.05, 0.3)),
-)
+FEATURE_DIMS = (3, 3, 3)
 CHANNELS = {
     "full_learning": frozenset(ErrorChannel),
     "no_temporal": frozenset({ErrorChannel.RELATIONAL, ErrorChannel.ABSTRACTION, ErrorChannel.TASK}),
@@ -70,16 +66,16 @@ def _phase_stories(stories, ids):
 
 
 def _memories():
-    return [SOEMemory(feature_dim=dim, decay_rates=list(decays))
-            for dim, decays in SOE_BANK_CONFIG]
+    return [SOEMemory(feature_dim=dimension) for dimension in FEATURE_DIMS]
 
 
 def _kernels(memories):
-    # Match the pinned H0 campaign ABI configuration used by the existing
-    # hierarchical validation runner: two normalized native channel weights.
+    # Match the already accepted Task 11 persistent-resource qualification.
     return [{
-        "gamma": list(reversed(bank.decay_rates)),
-        "w": [0.5, 0.5],
+        "gamma": bank.decay_rates[::-1].tolist(),
+        "w": [0.25] * bank.channel_count,
+        "linear_decay": [0.05] * (bank.channel_count * bank.feature_dim),
+        "forcing_bias": [0.0] * (bank.channel_count * bank.feature_dim),
     } for bank in memories]
 
 
