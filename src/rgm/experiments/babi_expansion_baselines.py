@@ -297,6 +297,7 @@ def evaluate_baselines(
                 target_metric["temporal_relation_exact_match"] = target_exact_queries / target_scored_queries
             if task_id == 19 and path_scored_queries:
                 target_metric["ordered_path_exact_match"] = path_exact_queries / path_scored_queries
+                target_metric["target_exact_match"] = path_exact_queries / path_scored_queries
 
             results[str(task_id)][name] = {
                 "queries": query_count,
