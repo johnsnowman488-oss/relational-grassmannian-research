@@ -361,7 +361,7 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
             "checkpoint_seconds": checkpoint_seconds,
             "restore_seconds": restore_seconds,
         })
-        _write_json(output_root / "per-run-stdout.json", {
+        _write_json(output_root / "per-run-stdout.log", {
             "run_key": run_key,
             "status": "PASS",
             "answer_exact_match": evaluation["answer_exact_match"],
@@ -370,12 +370,10 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
             "false_witness_rate": evaluation["false_witness_rate"],
         })
         (output_root / "per-run-stderr.log").write_text("", encoding="utf-8")
-        hashes = []
-        for path in sorted(output_root.iterdir()):
-            if path.is_file() and path.name != "sha256sums.txt":
-                hashes.append(f"{_file_sha(path)}  {path.name}")
-        (output_root / "sha256sums.txt").write_text("\n".join(hashes) + "\n", encoding="utf-8")
-        artifact_bytes = sum(path.stat().st_size for path in output_root.iterdir() if path.is_file())
+        artifact_bytes = sum(
+            path.stat().st_size for path in output_root.iterdir()
+            if path.is_file() and path.name != "sha256sums.txt"
+        )
         metrics["artifact_bytes"] = artifact_bytes
         metrics["resource_gate"] = {
             "rss_limit_mb": 4096,
@@ -392,6 +390,11 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
             ),
         }
         _write_json(output_root / "per-run-metrics.json", metrics)
+        hashes = []
+        for path in sorted(output_root.iterdir()):
+            if path.is_file() and path.name != "sha256sums.txt":
+                hashes.append(f"{_file_sha(path)}  {path.name}")
+        (output_root / "sha256sums.txt").write_text("\\n".join(hashes) + "\\n", encoding="utf-8")
         if not metrics["resource_gate"]["within_limits"]:
             raise RuntimeError("Task 11 unit exceeded a frozen resource ceiling")
         return metrics
