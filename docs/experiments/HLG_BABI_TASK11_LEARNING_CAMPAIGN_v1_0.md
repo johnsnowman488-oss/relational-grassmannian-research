@@ -12,7 +12,7 @@ The campaign contains exactly:
 1\text{ task}\times2\text{ architectures}\times6\text{ conditions}\times10\text{ seeds}=120\text{ run units}.
 ]
 
-The seeds are 953100–953109. The six conditions are full learning, no temporal, no relational, no abstraction, no task, and no learning. Each run unit starts with a clean learner and native runtime. HLA and HLB are paired on identical story order, partitions, event features and query cutoffs.
+The seeds are 953100–953109. The six conditions are full learning, no temporal, no relational, no abstraction, no task, and no learning. The no-task condition is explicitly a placebo/negative control for Task 11: the evaluator-label firewall means there is no independent task-outcome training target in this task path, so this condition must not be interpreted as a causal task-channel ablation. Each run unit starts with a clean learner and native runtime. HLA and HLB are paired on identical story order, partitions, event features and query cutoffs.
 
 This protocol replaces the earlier multi-task 360-unit design for the active Task 11 campaign. It does not modify the historical protocol record, Task 3/5 campaign, or Tasks 14/19 source/experiment state.
 
@@ -24,7 +24,7 @@ The only active source is the frozen bAbI v1.2.0 English en-10k Task 11 training
 - 200 validation stories (1,000 queries);
 - 200 official test stories (1,000 queries), labels sealed and never loaded.
 
-Fit stories are partitioned again by the frozen warm/online hash seed into 1,440 warm-start stories and 360 online-adaptation stories. Story membership is indivisible. The exact query counts for these two nested phases must be computed from the story manifest; they must not be estimated from the 80/20 story ratio.
+Fit stories are partitioned again for each campaign seed by a seed-specific SHA-256 hash into 1,440 warm-start stories and 360 online-adaptation stories. HLA and HLB share the exact same assignment for each seed. Each seed's phase membership and hashes are frozen in the campaign manifest. Story membership is indivisible. The exact query counts for these two nested phases must be computed from the story manifest; they must not be estimated from the 80/20 story ratio.
 
 Validation is read-only. It may be ingested as observed source context for prediction, but it cannot update learner parameters, thresholds, normalization, calibration or candidate state. Official test remains sealed.
 
@@ -55,12 +55,12 @@ The previously accepted resource qualification covered four independent 32-story
 
 Therefore the campaign has a separate reserved-seed preflight (seed 953099, excluded from the 10 campaign seeds). It runs the complete 1,800-story fit path and 200-story read-only validation for HLA and HLB under full-learning and no-learning conditions: four run units total.
 
-The preflight must measure peak RSS, Python allocation, update time, full checkpoint size and restore time, artifact size, and retry behavior. Hard ceilings are:
+The full HLB relation store is configured at 262,144 records and the event-resolved eligibility ledger at 131,072 records; these are explicit capacity settings, not estimates. The preflight must measure peak RSS, Python allocation, update time, full checkpoint size and restore time, artifact size, and retry behavior. Hard ceilings are:
 
 | Measure | Maximum |
 |---|---:|
-| Worker RSS | 2,048 MiB |
-| Python allocation peak | 1,024 MiB |
+| Worker RSS | 4,096 MiB |
+| Python allocation peak | 2,048 MiB |
 | Full checkpoint | 512 MiB |
 | Run-unit wall time | 3,600 s |
 | Run-unit evidence artifacts | 256 MiB |
