@@ -462,7 +462,7 @@ def predict_task11(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
         if not event.is_pronoun:
             entity = _norm(mention)
             gender = event.grammatical_gender or _NAME_GENDER.get(entity, "unknown")
-            history.append((entity, event.event_id, gender)))
+            history.append((entity, event.event_id, gender))
             state[entity] = (event.location, event.event_id, (event.event_id,))
             continue
         gender = event.grammatical_gender or _PRONOUN_GENDER.get(mention)
