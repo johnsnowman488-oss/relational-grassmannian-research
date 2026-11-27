@@ -1500,7 +1500,22 @@ class LearningRuntime:
                     if item["kind"] == "context" and "context_transition_learner" in routed:
                         self.context_transitions.observe(item["current_context"], item["value"])
             elif item["kind"] == "task":
-                if item["error"] > 0:
+                # v1.3 journals the forecast and binary target separately so
+                # rollback replay can reconstruct the same prequential update.
+                if "target_error" in item:
+                    target_error = float(item["target_error"])
+                    current = self.last_signals.as_dict()
+                    self.last_signals = LearningSignals(
+                        temporal=current["temporal"], relational=current["relational"],
+                        abstraction=current["abstraction"],
+                        task=float(item["brier_error"]),
+                        integrity_failures=self.last_signals.integrity_failures,
+                    )
+                    routed = self.error_router.route(self.last_signals)
+                    if "task_outcome_learner" in routed:
+                        self.task_outcomes.observe_error(item["task_key"], target_error)
+                elif item.get("error", 0.0) > 0:
+                    # Backward-compatible replay of pre-v1.3 journal records.
                     self.task_outcomes.observe_error(item["task_key"], item["error"])
             elif item["kind"] == "temporal_error":
                 values = self.eligibility.values(prediction_cutoff_tick=int(item["tick"]))
