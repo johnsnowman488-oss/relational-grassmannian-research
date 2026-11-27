@@ -1,40 +1,52 @@
 # bAbI Expansion Source Freeze — Phase Q (A1/A2)
 
 **Branch:** `research/babi-task-expansion-v1`  
-**Scope:** official v1.2.0 English `en-10k` source members for Tasks 11, 14 and 19.  
+**Scope:** v1.2.0 English `en-10k` source members for Tasks 11, 14 and 19.  
 **Isolation:** the Task 3/5 freezer, pilot branch, source files, partitions, runner and campaign remain unchanged.
 
-## A1 — source identity and format audit
+## A1 — external source identity and format audit
 
-The workflow downloads a fresh copy of `tasks_1-20_v1-2.tar.gz` from the content-addressed Hugging Face mirror and requires the exact Git-LFS SHA-256 and byte length recorded in the source pin. It extracts only these six regular-file members:
+The Phase Q workflow obtains a fresh external copy of the six selected source members from the immutable Git commit:
 
-| Task | Split | Archive member |
+`raviraju/NLP_QA_Project@0051751275841561267b1c6f5d9116b985521df1`
+
+It also downloads the v1.2 release `README.txt` and `LICENSE.txt` from the same commit. Each source member is checked against its independently observed Git blob SHA-1 and byte length from the commit tree. The source audit records SHA-256 as the primary experiment integrity digest.
+
+| Task | Split | Source member |
 |---|---|---|
 | 11 — Basic Coreference | train / test | `qa11_basic-coreference_train.txt`, `qa11_basic-coreference_test.txt` |
 | 14 — Time Reasoning | train / test | `qa14_time-reasoning_train.txt`, `qa14_time-reasoning_test.txt` |
 | 19 — Path Finding | train / test | `qa19_path-finding_train.txt`, `qa19_path-finding_test.txt` |
 
-The freezer verifies each member's exact byte length and Git blob SHA-1 against the independent, commit-pinned `raviraju/NLP_QA_Project` copy. It also records SHA-256, byte size, line counts, story counts, statement/question counts, answer distributions and supporting-fact distributions.
+The parser validates UTF-8, numbered records, story reset at line 1, contiguous story-local IDs, exactly three tab-separated question fields, and each support ID against a prior statement line in the same story. Task 19 answers must be ordered sequences of cardinal-direction tokens. Malformed records and unresolved, forward or cross-story support witnesses fail closed.
 
-The parser validates UTF-8, numbered records, story reset at line 1, contiguous story-local line IDs, exactly three tab-separated question fields, and every support ID against a prior statement line in the same story. Task 19 answers must be ordered sequences of cardinal directions. A malformed record or unresolved/forward/cross-story support witness fails closed.
+**Archive limitation recorded explicitly:** Hugging Face exposes a v1.2 tarball LFS pointer with SHA-256 `0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898` and size 15,719,851 bytes, but the attempted current `resolve/main/data/tasks_1-20_v1-2.tar.gz` endpoint returned HTTP 404. Phase Q therefore does not claim to have downloaded or verified that archive object. It instead freezes the exact six selected member bytes from the commit-pinned external copy. This provides the required second copy of the experiment inputs while preserving the archive retrieval limitation in the generated audit report.
 
 ## A2 — reproducible immutable manifest
 
-The workflow emits `source-audit.json` alongside the archive and six extracted members. The manifest contains the archive LFS object identity, source URL, dataset version, provenance caveat, license evidence, independent mirror commit, selected-member SHA-256 and size, task-specific format statistics, support-witness validation and the no-official-validation-split policy.
+The workflow emits `source-audit.json` beside the six files, README and license. The manifest contains dataset version, language/configuration, provenance and license evidence, external source commit, per-member byte lengths, Git blob identity, SHA-256, story/question/statement counts, answer distributions, support counts and witness validation.
 
-The `en-10k` release supplies training and test files, not a separately named official validation split. Validation must therefore be derived independently from each task's training file using deterministic whole-story partitioning. Official test files remain quarantined from fit, adaptation and validation.
+The v1.2 README documents `en-10k` as the 10,000-training-example configuration and the numbered-line/tab-separated format. It explains that story IDs reset to 1 and supporting-fact IDs refer to sentences within that story. There is no separately supplied official validation split for `en-10k`; validation must therefore be derived independently from each task's training stories using a frozen, deterministic whole-story split. Official test files remain quarantined from fit, adaptation, validation and candidate selection.
 
 ## Acceptance and transition
 
-Phase Q is complete only when the GitHub Actions job passes both the offline audit tests and the fresh external acquisition, all six extracted member bytes match the independent mirror, and the generated source manifest reports all acceptance flags true. The uploaded artifact is the branch's fresh source copy; it is not committed as raw dataset files.
+Phase Q source-member acceptance requires:
+1. All six selected members downloaded from the immutable external commit.
+2. Every member matches its pinned Git blob identity and byte size.
+3. Every member parses as UTF-8 numbered bAbI records and produces a SHA-256 digest.
+4. All question support IDs resolve to prior statement lines in the same story.
+5. Task 19 ordered-direction answer validation passes.
+6. Offline audit tests pass and the generated report is uploaded.
 
-Passing Phase Q authorizes Phase B adapter development for HLA/HLB Tasks 11, 14 and 19. It does **not** authorize a learning campaign. Phase B must add independent task adapters, evidence/prediction/evaluation contracts, task-specific oracles and baselines, and partition/leakage tests before any campaign is scheduled.
+The full v1.2 tarball itself is **not** claimed as acquired or verified. Phase Q therefore closes at selected-member source freeze, not archive-file freeze.
+
+Passing Phase Q authorizes Phase B adapter development for HLA/HLB Tasks 11, 14 and 19. It does **not** authorize a learning campaign. Phase B must add independent task adapters, task-specific evidence/prediction/evaluation contracts, independently written task oracles, baselines and partition/leakage tests before a learning campaign is considered.
 
 ## Provenance references
 
-- Dataset: `facebook/babi_qa`, v1.2.0, English `en-10k`; archive object pinned by SHA-256.
-- Independent extracted-member mirror: `raviraju/NLP_QA_Project` at commit `0051751275841561267b1c6f5d9116b985521df1`.
+- Dataset release: Facebook bAbI v1.2.0, English `en-10k`.
+- External member copy: `raviraju/NLP_QA_Project` at commit `0051751275841561267b1c6f5d9116b985521df1`.
+- License evidence: `tasks_1-20_v1-2/LICENSE.txt` in that commit, identifying Facebook, Inc. and CC BY 3.0 Unported.
+- Format/release evidence: `tasks_1-20_v1-2/README.txt` in that commit.
 - Dataset paper: Jason Weston et al., *Towards AI-Complete Question Answering: A Set of Prerequisite Toy Tasks*, [arXiv:1502.05698](https://arxiv.org/abs/1502.05698).
-- License: CC BY 3.0 Unported, evidenced by the mirror's `tasks_1-20_v1-2/LICENSE.txt` and the Facebook bAbI dataset loader metadata.
-
-The archive endpoint is a mirror, not a currently publisher-controlled download host. The source manifest preserves that distinction rather than representing the mirror as the original publisher.
+- Hugging Face v1.2 archive LFS pointer: SHA-256 `0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898`, size 15,719,851 bytes; its current resolve URL returned 404 and it is not represented as a downloaded artifact.
