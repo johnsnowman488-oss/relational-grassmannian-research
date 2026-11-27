@@ -109,3 +109,19 @@ def test_evaluator_reports_false_witnesses_without_rewriting_the_prediction():
     assert report["support_witness_recall"] == 1.0
     assert report["false_witness_rate"] == 1 / 3
     assert prediction.witness_event_ids == ("m1", "m2", "m3")
+
+
+def test_ambiguous_later_pronoun_abstains_instead_of_returning_stale_entity_location():
+    ambiguous = ExpansionStory("task11/validation/ambiguous", 11, (
+        Task11MentionEvent("m1", "Mary", False, "kitchen", 1, "validation#story=2#line=1"),
+        Task11MentionEvent("m2", "Sandra", False, "garden", 2, "validation#story=2#line=2"),
+        Task11MentionEvent("m3", "she", True, "office", 3, "validation#story=2#line=3", "female"),
+    ), ())
+    query = ExpansionQuery("q2", 11, 4, "validation#4", entity="mary")
+    result = predict_task11_from_learned_state(
+        adapter({"task11:entity:mary:from:__START__": "location:kitchen"}),
+        ambiguous, query,
+    )
+    assert result.prediction.abstained is True
+    assert result.prediction.answer is None
+    assert result.prediction.reason == "ambiguous_entity_mention_after_last_grounded_state"
