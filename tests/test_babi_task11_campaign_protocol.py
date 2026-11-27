@@ -21,6 +21,7 @@ def test_task11_campaign_is_exactly_120_units_and_keeps_other_tasks_locked():
     assert config["scope"]["tasks14_19_locked"] is True
     assert config["scope"]["task3_task5_modified"] is False
     assert config["native_runtime"]["top_down_gain"] == 1.0
+    assert config["native_runtime"]["pinned_commit"] == "48228f8c326c0e8546855eb898d374453d705b77"
 
 
 def test_task11_protocol_uses_nested_whole_story_partitions_and_sealed_test():
@@ -43,6 +44,11 @@ def test_task11_protocol_has_measured_resource_preflight_and_no_oracle_shortcut(
     assert preflight["run_units"] == 4
     assert preflight["max_parallel"] == 4
     assert preflight["pass_rule"]
+    assert preflight["limits"]["max_worker_rss_mb"] == 2048
+    assert preflight["limits"]["max_python_allocation_mb"] == 1024
+    assert preflight["limits"]["max_checkpoint_bytes"] == 536870912
+    assert preflight["limits"]["max_unit_wall_seconds"] == 3600
+    assert preflight["limits"]["max_unit_artifact_bytes"] == 268435456
     assert config["execution_gate"]["launch_allowed"] is True
     assert any("full repository" in item.lower() for item in config["execution_gate"]["required_before_launch"])
     assert any("full-scale reserved-seed resource preflight" in item.lower() for item in config["execution_gate"]["required_before_launch"])

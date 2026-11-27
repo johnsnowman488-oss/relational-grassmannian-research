@@ -27,7 +27,7 @@ from rgm.leptograph.m4.learning import ErrorChannel, LearningRuntime
 from rgm.memory.soe import SOEMemory
 
 
-NATIVE_COMMIT = "ddf424b0ab8eb23329cd51256a919beeae2ee288"
+NATIVE_COMMIT = "48228f8c326c0e8546855eb898d374453d705b77"
 HLB_CAPACITY = 262144
 TOP_DOWN_GAIN = 1.0
 ELIGIBILITY_CAPACITY = 131072
@@ -430,14 +430,14 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
         )
         metrics["artifact_bytes"] = artifact_bytes
         metrics["resource_gate"] = {
-            "rss_limit_mb": 4096,
-            "python_allocation_limit_mb": 2048,
+            "rss_limit_mb": 2048,
+            "python_allocation_limit_mb": 1024,
             "checkpoint_limit_bytes": 536870912,
             "unit_wall_limit_seconds": 3600,
             "artifact_limit_bytes": 268435456,
             "within_limits": (
-                peak_rss_mb <= 4096
-                and trace_peak / (1024.0 * 1024.0) <= 2048
+                peak_rss_mb <= 2048
+                and trace_peak / (1024.0 * 1024.0) <= 1024
                 and checkpoint_bytes <= 536870912
                 and elapsed <= 3600
                 and artifact_bytes <= 268435456
