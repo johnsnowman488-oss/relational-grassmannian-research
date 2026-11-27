@@ -17,6 +17,10 @@ on:
       - "src/rgm/leptograph/m4/evidence.py"
       - "src/rgm/leptograph/m4/hierarchical.py"
       - "src/rgm/leptograph/m4/learning.py"
+      - "tests/test_babi_learning_campaign.py"
+      - "tests/test_hlg_learning_mechanisms.py"
+      - "tests/test_hlg_learning_runtime_integration.py"
+      - "tests/test_hlg_learning_episode_boundary.py"
       - ".github/workflows/h1-babi-learning-campaign.yml"
   pull_request:
     branches: ["research/h1-learning-runtime-integration"]
@@ -30,6 +34,10 @@ on:
       - "src/rgm/leptograph/m4/evidence.py"
       - "src/rgm/leptograph/m4/hierarchical.py"
       - "src/rgm/leptograph/m4/learning.py"
+      - "tests/test_babi_learning_campaign.py"
+      - "tests/test_hlg_learning_mechanisms.py"
+      - "tests/test_hlg_learning_runtime_integration.py"
+      - "tests/test_hlg_learning_episode_boundary.py"
       - ".github/workflows/h1-babi-learning-campaign.yml"
 
 # Serialize campaign runs for this head branch, but never cancel an in-flight run.
