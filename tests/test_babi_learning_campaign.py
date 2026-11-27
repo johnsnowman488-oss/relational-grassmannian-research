@@ -230,3 +230,34 @@ def test_six_ablation_conditions_are_unique_and_disable_only_the_declared_channe
     assert CHANNELS["no_abstraction"] == all_channels - {ErrorChannel.ABSTRACTION}
     assert CHANNELS["no_task"] == all_channels - {ErrorChannel.TASK}
     assert CHANNELS["no_learning"] == frozenset()
+
+
+def test_query_only_exchange_immediately_withdraws_event_only_forecasts():
+    from rgm.experiments.babi_learning_campaign import _withdraw_query_only_predictions
+    from rgm.leptograph.m4.learning import (
+        LearningRuntime, Level, Prediction, TargetSchema, fingerprint,
+    )
+
+    learning = LearningRuntime()
+    schemas = (
+        TargetSchema("next_relation_pattern", Level.L1, "relation", 1, "exact_match"),
+        TargetSchema("next_event_role_pattern", Level.L1, "relation", 1, "exact_match"),
+        TargetSchema("next_context", Level.L2, "categorical", 1, "accuracy"),
+    )
+    for index, schema in enumerate(schemas):
+        learning.predictions.issue(Prediction(
+            f"query-prediction-{index}", schema.level, schema.name,
+            f"target-{index}", 4, 4.0, 1, 4.0, "__ABSTAIN__",
+            "model", fingerprint(schema.__dict__),
+        ))
+
+    class Adapter:
+        ticks = 4
+        pass
+
+    adapter = Adapter()
+    adapter.learning = learning
+    assert _withdraw_query_only_predictions(adapter) == 2
+    assert learning.predictions.get("query-prediction-0").status.value == "WITHDRAWN"
+    assert learning.predictions.get("query-prediction-1").status.value == "WITHDRAWN"
+    assert learning.predictions.get("query-prediction-2").status.value == "ISSUED"
