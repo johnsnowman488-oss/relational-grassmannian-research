@@ -283,7 +283,7 @@ def test_same_time_prediction_target_is_withdrawn_and_transactionally_restorable
     relation_prediction = next(
         p for p in issued if p.target_name == "next_relation_pattern"
     )
-    learner.transaction_checkpoint()
+    checkpoint = learner.transaction_checkpoint()
 
     learner.observe_relation(
         relation("same-time-target", "visited", observed_at=1.0), tick=1
@@ -292,15 +292,13 @@ def test_same_time_prediction_target_is_withdrawn_and_transactionally_restorable
     assert not learner.predictions.scores
     assert ("next_relation_pattern", "relation@1") not in learner.predictions._active_by_target
 
-    # A failed enclosing exchange must restore a withdrawn incumbent forecast.
-    # Build a fresh transaction so the rollback path is exercised separately.
-    learner.predictions.begin_transaction()
-    learner.predictions.withdraw(
-        relation_prediction.prediction_id, current_tick=1
-    ) if learner.predictions.get(relation_prediction.prediction_id).status.value == "ISSUED" else None
-    # The first transaction is closed explicitly by the test after the
-    # withdrawal operation; the state under test is the non-scoreable status.
-    learner.predictions.commit_transaction()
+    # Rollback restores the outstanding forecast and its target index.
+    learner.rollback_transaction(checkpoint)
+    assert learner.predictions.get(relation_prediction.prediction_id).status.value == "ISSUED"
+    assert learner.predictions._active_by_target[
+        ("next_relation_pattern", "relation@1")
+    ] == relation_prediction.prediction_id
+    assert not learner.predictions.scores
 
 
 def test_pattern_prediction_index_tracks_updates_and_transaction_rollback():
