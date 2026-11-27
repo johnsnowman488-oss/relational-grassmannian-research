@@ -109,10 +109,11 @@ def to_nary_event(story: ExpansionStory, event: Any) -> NaryEvent:
     )
 
 
-def to_spatial_relation(event: Task19SpatialEdge) -> RelationInstance:
-    """Create a typed directed edge; inverse orientation remains explicit in type."""
-    return RelationInstance(
-        instance_id=event.event_id,
+def to_spatial_relations(event: Task19SpatialEdge) -> tuple[RelationInstance, RelationInstance]:
+    """Create both directed orientations, retaining the same source witness."""
+    inverse = {"north": "south", "south": "north", "east": "west", "west": "east"}
+    forward = RelationInstance(
+        instance_id=f"{event.event_id}:forward",
         relation_type=RelationType(f"spatial_{event.direction}", "location", "location"),
         subject=Entity(event.start, "location"),
         object=Entity(event.end, "location"),
@@ -121,6 +122,22 @@ def to_spatial_relation(event: Task19SpatialEdge) -> RelationInstance:
         context="task19_spatial",
         provenance=event.source_ref,
     )
+    backward = RelationInstance(
+        instance_id=f"{event.event_id}:inverse",
+        relation_type=RelationType(f"spatial_{inverse[event.direction]}", "location", "location"),
+        subject=Entity(event.end, "location"),
+        object=Entity(event.start, "location"),
+        event_time=float(event.observed_at),
+        observed_at=float(event.observed_at),
+        context="task19_spatial",
+        provenance=event.source_ref,
+    )
+    return forward, backward
+
+
+def to_spatial_relation(event: Task19SpatialEdge) -> RelationInstance:
+    """Compatibility helper returning the forward directed edge."""
+    return to_spatial_relations(event)[0]
 
 
 def _feature_vector(task_id: int, event: Any, level: int, width: int) -> tuple[float, ...]:
@@ -147,7 +164,8 @@ class BabiExpansionRuntime:
             raise TypeError("adapter must be an existing HLAAdapter or HLBAdapter")
         self.adapter = adapter
         self.director = HierarchicalRuntimeDirector(adapter)
-        self.evidence = adapter.evidence if isinstance(adapter, HLBAdapter) else EvidenceStore(capacity)
+        self._admission = EvidenceStore(capacity)
+        self.evidence = adapter.evidence if isinstance(adapter, HLBAdapter) else self._admission
         self._story_id: str | None = None
         self._task_id: int | None = None
 
@@ -158,7 +176,7 @@ class BabiExpansionRuntime:
         outputs = []
         for event in story.events:
             nary = to_nary_event(story, event)
-            status = self.evidence.append(nary)
+            status = self._admission.append(nary)
             if status == "ABSTAIN_CAPACITY":
                 outputs.append({"event_id": nary.event_id, "status": status, "abstained": True})
                 continue
@@ -171,13 +189,14 @@ class BabiExpansionRuntime:
                 level: _feature_vector(story.task_id, event, level, self.adapter.feature_dims[level])
                 for level in range(3)
             }
-            relations = (to_spatial_relation(event),) if isinstance(event, Task19SpatialEdge) else ()
+            relations = to_spatial_relations(event) if isinstance(event, Task19SpatialEdge) else ()
+            learning_relations = (relations[0],) if relations else ()
             result = self.director.exchange(
                 event_time=nary.event_time, observed_at=nary.observed_at,
                 event_features=features,
                 relation_records=tuple((1, relation) for relation in relations)
                     if isinstance(self.adapter, HLBAdapter) else (),
-                learning_relations=relations if isinstance(self.adapter, HLAAdapter) else (),
+                learning_relations=learning_relations,
                 nary_events=(nary,),
                 prediction_context=f"task{story.task_id}:pre:{event.event_id}",
                 observed_context=f"task{story.task_id}:{type(event).__name__}",
@@ -205,8 +224,8 @@ class ExpansionForecasts:
     ) -> tuple[Prediction, ...]:
         if query.task_id != self.contract.task_id:
             raise ValueError("query task does not match prediction contract")
-        if issued_at > evidence_cutoff or issued_tick < 0:
-            raise ValueError("forecast must be issued against a prior evidence cutoff")
+        if issued_at > evidence_cutoff or issued_tick < 0 or query.observed_at <= evidence_cutoff:
+            raise ValueError("forecast must precede the query target and its evidence cutoff")
         issued = []
         for schema, value, suffix in (
             (self.contract.l0, l0_value, "l0"),
