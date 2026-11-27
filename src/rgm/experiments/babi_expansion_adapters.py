@@ -25,6 +25,7 @@ class Task11MentionEvent:
     location: str
     observed_at: int
     source_ref: str
+    grammatical_gender: str | None = None
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,9 @@ class Prediction:
     witness_event_ids: tuple[str, ...]
     abstained: bool
     reason: str | None = None
+    antecedent_edges: tuple[tuple[str, str], ...] = ()
+    temporal_edges: tuple[tuple[str, str], ...] = ()
+    spatial_path_edges: tuple[tuple[str, str, str, str], ...] = ()
 
 
 class AmbiguousPathError(ValueError):
@@ -200,6 +204,7 @@ def parse_task11(path: Path, *, split: str, include_labels: bool = True):
         # deliberately deferred to a baseline or to the learning runtime.
         state["events"].append(Task11MentionEvent(
             event_id, mention, is_pronoun, location, line_no, source_ref,
+            grammatical_gender=_PRONOUN_GENDER.get(mention) if is_pronoun else None,
         ))
 
     result = [
@@ -207,6 +212,57 @@ def parse_task11(path: Path, *, split: str, include_labels: bool = True):
         for _, v in sorted(stories.items())
     ]
     return result, labels
+
+
+def task11_confirmatory_input_to_story(record: dict) -> ExpansionStory:
+    """Validate the sealed synthetic Task 11 input against runtime dataclasses.
+
+    Only model-visible event/query fields are accepted. Evaluator annotations,
+    antecedent IDs and gold entity bindings are rejected at this boundary.
+    """
+    if not isinstance(record, dict) or set(record) != {"story_id", "task_id", "events", "query"}:
+        raise ValueError("Task 11 confirmatory record has an invalid top-level schema")
+    if record["task_id"] != 11 or not isinstance(record["events"], list):
+        raise ValueError("Task 11 confirmatory record has an invalid task/events value")
+    story_id = str(record["story_id"])
+    if not story_id:
+        raise ValueError("Task 11 confirmatory story_id is required")
+    event_fields = {"event_id", "surface_mention", "is_pronoun", "grammatical_gender",
+                    "location", "observed_at", "source_ref"}
+    events = []
+    previous_tick = 0
+    for row in record["events"]:
+        if not isinstance(row, dict) or set(row) != event_fields:
+            raise ValueError("Task 11 confirmatory event does not match runtime input schema")
+        mention = str(row["surface_mention"]).casefold()
+        is_pronoun = row["is_pronoun"]
+        gender = row["grammatical_gender"]
+        if not isinstance(is_pronoun, bool) or gender not in {None, "female", "male"}:
+            raise ValueError("Task 11 confirmatory mention cue is invalid")
+        if is_pronoun and _PRONOUN_GENDER.get(mention) != gender:
+            raise ValueError("Task 11 pronoun and grammatical-gender cue disagree")
+        tick = int(row["observed_at"])
+        if tick <= previous_tick:
+            raise ValueError("Task 11 confirmatory events must have strictly increasing observations")
+        previous_tick = tick
+        events.append(Task11MentionEvent(
+            str(row["event_id"]), mention, is_pronoun, _norm(str(row["location"])),
+            tick, str(row["source_ref"]), gender,
+        ))
+    query_row = record["query"]
+    query_fields = {"query_id", "task_id", "entity", "observed_at", "source_ref"}
+    if not isinstance(query_row, dict) or set(query_row) != query_fields or query_row["task_id"] != 11:
+        raise ValueError("Task 11 confirmatory query does not match runtime input schema")
+    entity = _norm(str(query_row["entity"]))
+    if entity not in {event.surface_mention for event in events if not event.is_pronoun}:
+        raise ValueError("Task 11 query entity has no observed name anchor")
+    query = ExpansionQuery(
+        str(query_row["query_id"]), 11, int(query_row["observed_at"]),
+        str(query_row["source_ref"]), entity=entity,
+    )
+    if query.observed_at <= previous_tick:
+        raise ValueError("Task 11 confirmatory query must follow all observations")
+    return ExpansionStory(story_id, 11, tuple(events), (query,))
 
 
 def parse_task14(path: Path, *, split: str, include_labels: bool = True):
@@ -338,22 +394,25 @@ def predict_task11(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
         raise ValueError("Task 11 predictor received another task's input")
     history: list[tuple[str, str, str]] = []
     state: dict[str, tuple[str, str, tuple[str, ...]]] = {}
+    antecedent_edges: list[tuple[str, str]] = []
     for event in story.events:
         if not isinstance(event, Task11MentionEvent) or event.observed_at >= query.observed_at:
             continue
         mention = event.surface_mention.casefold()
         if not event.is_pronoun:
             entity = _norm(mention)
-            history.append((entity, event.event_id, _NAME_GENDER.get(entity, "unknown")))
+            gender = event.grammatical_gender or _NAME_GENDER.get(entity, "unknown")
+            history.append((entity, event.event_id, gender)))
             state[entity] = (event.location, event.event_id, (event.event_id,))
             continue
-        gender = _PRONOUN_GENDER.get(mention)
+        gender = event.grammatical_gender or _PRONOUN_GENDER.get(mention)
         if not gender:
             continue
         candidates = [row for row in history if row[2] == gender]
         if not candidates:
             continue
         entity, antecedent_id, _ = candidates[-1]
+        antecedent_edges.append((event.event_id, antecedent_id))
         previous = state.get(entity)
         witnesses = (antecedent_id, event.event_id)
         if previous:
@@ -362,7 +421,8 @@ def predict_task11(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
     target = state.get(query.entity or "")
     if target is None:
         return Prediction(None, (), True, "entity_state_not_observed")
-    return Prediction(target[0], target[2], False)
+    return Prediction(target[0], target[2], False,
+                      antecedent_edges=tuple(antecedent_edges))
 
 
 def predict_task14(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
