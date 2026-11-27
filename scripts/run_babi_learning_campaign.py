@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import gfe_ctypes
-from rgm.experiments.babi_learning_campaign import run_campaign
+from rgm.experiments.babi_learning_campaign import CHANNELS, run_campaign
 
 DEFAULT_SEEDS = list(range(953000, 953010))
 
@@ -19,6 +19,10 @@ def main() -> int:
     parser.add_argument("--confirmatory-root", type=Path, default=Path("artifacts/babi-confirmatory"))
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--seeds", type=int, nargs="+", default=DEFAULT_SEEDS)
+    parser.add_argument(
+        "--variants", choices=tuple(CHANNELS), nargs="+", default=list(CHANNELS),
+        help="A unique subset of the six frozen learning/ablation conditions (default: all six).",
+    )
     args = parser.parse_args()
 
     native_library = gfe_ctypes.load_gfe_library()
@@ -26,6 +30,7 @@ def main() -> int:
         args.task_id, args.architecture, args.data_root,
         args.annotation_root, args.confirmatory_root, args.output,
         args.seeds, gfe_ctypes, native_library,
+        variants=args.variants,
     )
     accepted = sum(
         row["candidate_accepted_on_validation"]
