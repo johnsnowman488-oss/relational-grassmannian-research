@@ -98,3 +98,12 @@ The accepted 32-story-per-shard resource qualification used the default H0 top-d
 The first full-scale fit-only preflight, with the same gain, failed at Task 11 story `task11/train/story000050`, event `line000001`, observation tick 386. The native state maxima across the three levels were approximately 302, 640 and 932. The first two spectral reports returned non-finite `mcap=inf`; the native exchange then failed with `sum(w) must be non-zero`. The active kernel weights themselves remained positive (0.25 per channel). This is a numerical stability failure in exponential top-down modulation under accumulated SOE state, not a label-leakage or Task 11 parser failure.
 
 The campaign therefore freezes `top_down_gain=0.001` for both HLA and HLB, all six conditions and all ten seeds. The value scales the observed gain-1.0 modulation at the measured state magnitude to a finite regime. It is a fit-only numerical-stability correction, not a validation-selected predictive hyperparameter. The 32-story qualification remains valid for its original gain-1.0 configuration; it does not substitute for the new full-scale preflight at gain 0.001.
+
+
+## Interpretation of the six conditions
+
+The Task 11 answer head reads the L2 entity-conditioned location-transition model. Therefore `no_temporal` and `no_relational` are mechanistic learner-component controls, not direct answer-head ablations: their answer predictions are expected to remain invariant to `full_learning`. `no_task` is also expected to be answer-invariant and is a placebo because Task 11 supplies no independent task-outcome training target under the label firewall. The campaign aggregator checks these invariances per architecture and seed.
+
+`no_abstraction` disables the L2 answer-transition model and `no_learning` disables all learning; both are negative controls expected to have zero answer coverage. Any violation is an integrity failure, not a reason to revise the expected result after seeing validation scores.
+
+The campaign workflow runs the complete repository/Task 11 contract suite first, then the reserved-seed full-scale preflight. It launches the 120 units only after both gates pass. The actual generated confirmatory challenge is created only after validation-only candidate selection; predictions are frozen before its separate evaluator-label file is opened.
