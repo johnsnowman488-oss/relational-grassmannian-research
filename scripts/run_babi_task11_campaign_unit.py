@@ -193,6 +193,15 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
     import gfe_ctypes as gfe
     native_library = gfe.load_gfe_library()
     adapter = _make_adapter(architecture, native_library, gfe)
+    initial_native_state = adapter.bridge.runtime.get_state()
+    initial_kernel_weights = [row["w"] for row in initial_native_state["active_kernels"]]
+    print(json.dumps({
+        "run_key": run_key,
+        "initial_native_kernel_weights": initial_kernel_weights,
+        "initial_native_spectral_units": initial_native_state["spectral_units"],
+    }, sort_keys=True), flush=True)
+    if any(not weights or sum(weights) <= 0 for weights in initial_kernel_weights):
+        raise RuntimeError("pinned native runtime was created with zero-sum kernel weights")
     channels = CHANNELS[condition]
     runtime = BabiExpansionRuntime(
         adapter,
