@@ -261,11 +261,12 @@
       "3.12": "success"
     },
     "test_groups": {
-      "expansion_adapter_runtime_and_campaign_protocol": "20 passed",
+      "expansion_adapter_runtime_and_campaign_protocol": "21 passed",
       "integrated_evidence_and_prediction_lifecycle": "60 passed",
       "frozen_task3_task5_regression": "40 passed"
     },
-    "test_total_per_python_version": 120,
-    "runtime_protocol_freeze_workflow_run": 45996300512
+    "test_total_per_python_version": 121,
+    "runtime_protocol_freeze_workflow_run": 45996589286,
+    "acceptance_commit": "01acfffbab2eef646f23d1d10f6c0f1a003597b3"
   }
 }
