@@ -33,9 +33,10 @@ def test_task11_resolves_singular_pronoun_and_keeps_gold_separate(tmp_path):
     assert len(stories) == 2
     assert len(labels) == 2
     first = stories[0]
-    assert first.events[1].actor_entity == "mary"
+    assert first.events[1].surface_mention == "she"
     assert first.events[1].is_pronoun is True
-    assert first.events[1].antecedent_event_id == first.events[0].event_id
+    assert not hasattr(first.events[1], "actor_entity")
+    assert not hasattr(first.events[1], "antecedent_event_id")
     prediction = predict_task11(first, first.queries[0])
     assert prediction.answer == "bedroom"
     assert prediction.witness_event_ids == tuple(event.event_id for event in first.events)
