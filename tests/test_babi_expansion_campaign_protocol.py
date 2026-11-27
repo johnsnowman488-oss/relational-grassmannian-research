@@ -39,9 +39,9 @@ def test_protocol_keeps_official_test_sealed_and_candidate_selection_task_local(
 def test_protocol_records_final_runtime_and_task35_acceptance():
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
     evidence = config["acceptance_evidence"]
-    assert evidence["runtime_protocol_freeze_workflow_run"] == 45996300512
+    assert evidence["runtime_protocol_freeze_workflow_run"] == 45996589286
     assert evidence["python_versions"] == {"3.10": "success", "3.12": "success"}
-    assert evidence["test_groups"]["expansion_adapter_runtime_and_campaign_protocol"] == "20 passed"
+    assert evidence["test_groups"]["expansion_adapter_runtime_and_campaign_protocol"] == "21 passed"
     assert evidence["test_groups"]["integrated_evidence_and_prediction_lifecycle"] == "60 passed"
     assert evidence["test_groups"]["frozen_task3_task5_regression"] == "40 passed"
-    assert evidence["test_total_per_python_version"] == 120
+    assert evidence["test_total_per_python_version"] == 121
