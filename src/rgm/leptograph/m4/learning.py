@@ -1146,17 +1146,16 @@ class LearningRuntime:
         self.predictions.issue(prediction)
         issued.append(prediction)
         next_context = self.context_transitions.predict(context)
-        if next_context is not None:
-            self._prediction_sequence += 1
-            schema = self.schemas["next_context"]
-            prediction = Prediction(
-                f"lrn-l2-{self._prediction_sequence}", Level.L2, schema.name,
-                f"context@{tick + 1}", tick, observed_at, schema.horizon_ticks,
-                observed_at, next_context, fingerprint(self.context_transitions.snapshot()),
-                fingerprint(schema.__dict__),
-            )
-            self.predictions.issue(prediction)
-            issued.append(prediction)
+        self._prediction_sequence += 1
+        schema = self.schemas["next_context"]
+        prediction = Prediction(
+            f"lrn-l2-{self._prediction_sequence}", Level.L2, schema.name,
+            f"context@{tick + 1}", tick, observed_at, schema.horizon_ticks,
+            observed_at, next_context if next_context is not None else "__ABSTAIN__",
+            fingerprint(self.context_transitions.snapshot()), fingerprint(schema.__dict__),
+        )
+        self.predictions.issue(prediction)
+        issued.append(prediction)
         role_pattern = self.event_roles.predict(context)
         self._prediction_sequence += 1
         schema = self.schemas["next_event_role_pattern"]
