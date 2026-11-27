@@ -135,16 +135,15 @@ All conditions use the same fit-only warm-start fitting. Therefore `no_learning`
 
 Use ten paired seeds `953000–953009`. Run four workers concurrently: Task 3 HLA, Task 3 HLB, Task 5 HLA and Task 5 HLB. Each worker executes all six conditions for all ten seeds (60 seed-condition outputs per worker; 240 across the matched campaign).
 
-Candidate selection uses validation only:
+Candidate selection uses validation only. The six ablations are causal controls, not candidate alternatives. Select one seed per task from the `full_learning` results by paired HLA/HLB validation evidence:
 
 1. All source, provenance, prediction-coverage, no-leakage and evidence-integrity gates pass.
 2. Task-query exact accuracy and supporting-witness recall meet the frozen structured-query acceptance thresholds.
-3. Maximise L1 event-role and relation-pattern forecast accuracy.
-4. Minimise L0 feature forecast error.
-5. Report L2 context accuracy and task-outcome Brier loss as distinct outcomes.
-6. Minimise abstention; stable candidate identity is the final tie-break.
-
-Before G4, freeze candidate fingerprints, implementation commit, protocol and criteria fingerprints, source/annotation/confirmatory manifests, validation metrics and acceptance decisions. Run the generated confirmatory challenge once after candidate freeze. Confirmatory evidence cannot retune or promote a candidate.
+3. For each seed, compute mean L1 relation/event-role accuracy across HLA and HLB; maximise this score.
+4. Break ties by lower mean L0 feature MSE, then lower task-query abstention rate, then lower seed number.
+5. Report L2 context accuracy and task-outcome Brier loss as distinct outcomes; they do not replace the frozen L1/L0 selection criteria.
+6. Freeze both HLA and HLB candidate fingerprints for the selected seed, plus implementation commit, protocol and criteria fingerprints, source/annotation/confirmatory manifests, validation metrics and acceptance decisions.
+7. Reconstruct the selected full-learning candidate from the frozen seed and verify its fingerprint. Run exactly one generated-confirmatory evaluation for each selected task/architecture pair (four evaluations total). Confirmatory evidence cannot retune or promote a candidate.
 
 ## 8. Acceptance gates
 
