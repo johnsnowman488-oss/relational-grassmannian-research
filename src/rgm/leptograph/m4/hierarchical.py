@@ -627,8 +627,10 @@ class HierarchicalRuntimeDirector:
                  relation_records: Sequence[tuple[int, RelationInstance]] = (),
                  learning_relations: Sequence[RelationInstance] = (),
                  nary_events: Sequence[NaryEvent] = (),
+                 learning_nary_events: Sequence[NaryEvent] | None = None,
                  prediction_context: str | None = None,
                  observed_context: str | None = None,
+                 suppress_context_learning: bool = False,
                  eligibility_events: Sequence[EligibilityEvent] = (),
                  temporal_error: float | None = None,
                  task_outcome: tuple[str, float] | None = None,
@@ -644,6 +646,12 @@ class HierarchicalRuntimeDirector:
             int(level): tuple(float(x) for x in values) for level, values in event_features.items()
         }
         observed_relations = [record for _, record in relation_records] + list(learning_relations)
+        # Source n-ary events and learning-only target events have distinct
+        # lifecycles. The latter are never appended to HLB's durable EvidenceStore.
+        role_target_events = (list(nary_events) if learning_nary_events is None
+                              else list(learning_nary_events))
+        if not isinstance(suppress_context_learning, bool):
+            raise TypeError("suppress_context_learning must be a boolean")
         # Prediction context is an explicit pre-observation input. It is never
         # inferred from the target relation/event arriving in this exchange.
         context = prediction_context
@@ -667,9 +675,17 @@ class HierarchicalRuntimeDirector:
                     self.adapter.learning.predictions.withdraw(
                         prediction_id, current_tick=next_tick
                     )
-            if not nary_events:
+            if not role_target_events:
                 prediction_id = self.adapter.learning.predictions._active_by_target.get(
                     ("next_event_role_pattern", f"event@{next_tick}")
+                )
+                if prediction_id is not None:
+                    self.adapter.learning.predictions.withdraw(
+                        prediction_id, current_tick=next_tick
+                    )
+            if suppress_context_learning:
+                prediction_id = self.adapter.learning.predictions._active_by_target.get(
+                    ("next_context", f"context@{next_tick}")
                 )
                 if prediction_id is not None:
                     self.adapter.learning.predictions.withdraw(
@@ -697,24 +713,25 @@ class HierarchicalRuntimeDirector:
                 )
             for record in observed_relations:
                 self.adapter.learning.observe_relation(record, tick=next_tick, learn=learn)
-            for event in nary_events:
+            for event in role_target_events:
                 self.adapter.learning.observe_nary_event(event, tick=next_tick, learn=learn)
-            target_context = observed_context
-            if target_context is None:
-                if observed_relations:
-                    target_context = observed_relations[0].context
-                elif nary_events:
-                    target_context = nary_events[0].context
-            if observed_context is not None or observed_relations or nary_events:
-                source_id = (observed_relations[0].instance_id if observed_relations else
-                             nary_events[0].event_id if nary_events else f"context-source-{next_tick}")
-                target_event_time = (observed_relations[0].event_time if observed_relations else
-                                     nary_events[0].event_time if nary_events else event_time)
-                self.adapter.learning.observe_context_transition(
-                    prediction_context, target_context, source_id=source_id,
-                    event_time=target_event_time, observed_at=observed_at, tick=next_tick,
-                    learn=learn,
-                )
+            if not suppress_context_learning:
+                target_context = observed_context
+                if target_context is None:
+                    if observed_relations:
+                        target_context = observed_relations[0].context
+                    elif nary_events:
+                        target_context = nary_events[0].context
+                if observed_context is not None or observed_relations or nary_events:
+                    source_id = (observed_relations[0].instance_id if observed_relations else
+                                 nary_events[0].event_id if nary_events else f"context-source-{next_tick}")
+                    target_event_time = (observed_relations[0].event_time if observed_relations else
+                                         nary_events[0].event_time if nary_events else event_time)
+                    self.adapter.learning.observe_context_transition(
+                        prediction_context, target_context, source_id=source_id,
+                        event_time=target_event_time, observed_at=observed_at, tick=next_tick,
+                        learn=learn,
+                    )
             if temporal_error is not None:
                 self.adapter.learning.observe_temporal_error(float(temporal_error), tick=next_tick, learn=learn)
             if task_outcome is not None:
