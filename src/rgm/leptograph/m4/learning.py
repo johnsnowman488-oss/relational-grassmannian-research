@@ -136,13 +136,20 @@ class PredictionJournal:
     def __init__(self) -> None:
         self._predictions: dict[str, Prediction] = {}
         self._scores: dict[str, PredictionScore] = {}
+        self._active_by_target: dict[tuple[str, str], str] = {}
+        self._transaction_log: list[tuple] | None = None
 
     def issue(self, prediction: Prediction) -> None:
         if prediction.status is not PredictionStatus.ISSUED:
             raise ValueError("new predictions must start in ISSUED state")
         if prediction.prediction_id in self._predictions:
             raise ValueError("prediction ID collision")
+        target_key = (prediction.target_name, prediction.target_key)
+        prior_active = self._active_by_target.get(target_key)
+        if self._transaction_log is not None:
+            self._transaction_log.append(("issue", prediction.prediction_id, target_key, prior_active))
         self._predictions[prediction.prediction_id] = prediction
+        self._active_by_target[target_key] = prediction.prediction_id
 
     def score(self, prediction_id: str, target: TargetObservation,
               schema: TargetSchema, *, evaluated_tick: int) -> PredictionScore:
@@ -193,10 +200,16 @@ class PredictionJournal:
         ) else PredictionStatus.CONTRADICTED
         score = PredictionScore(prediction_id, target.source_id, schema.metric,
                                 value, evaluated_tick, outcome)
+        target_key = (prediction.target_name, prediction.target_key)
+        prior_active = self._active_by_target.get(target_key)
+        if self._transaction_log is not None:
+            self._transaction_log.append(("score", prediction_id, prediction, target_key, prior_active))
         self._scores[prediction_id] = score
         self._predictions[prediction_id] = Prediction(
             **{**prediction.__dict__, "status": PredictionStatus.SCORED}
         )
+        if self._active_by_target.get(target_key) == prediction_id:
+            self._active_by_target.pop(target_key, None)
         return score
 
     def expire(self, prediction_id: str, *, current_tick: int) -> None:
@@ -205,9 +218,15 @@ class PredictionJournal:
             raise ValueError("only unscored issued predictions can expire")
         if current_tick <= prediction.issued_tick + prediction.horizon_ticks:
             raise ValueError("prediction horizon has not elapsed")
+        target_key = (prediction.target_name, prediction.target_key)
+        prior_active = self._active_by_target.get(target_key)
+        if self._transaction_log is not None:
+            self._transaction_log.append(("expire", prediction_id, prediction, target_key, prior_active))
         self._predictions[prediction_id] = Prediction(
             **{**prediction.__dict__, "status": PredictionStatus.EXPIRED}
         )
+        if self._active_by_target.get(target_key) == prediction_id:
+            self._active_by_target.pop(target_key, None)
 
     def get(self, prediction_id: str) -> Prediction:
         return self._predictions[prediction_id]
@@ -215,6 +234,48 @@ class PredictionJournal:
     @property
     def scores(self) -> tuple[PredictionScore, ...]:
         return tuple(self._scores[k] for k in sorted(self._scores))
+
+    def begin_transaction(self) -> None:
+        if self._transaction_log is not None:
+            raise RuntimeError("prediction journal transaction already active")
+        self._transaction_log = []
+
+    def commit_transaction(self) -> None:
+        if self._transaction_log is None:
+            raise RuntimeError("prediction journal has no active transaction")
+        self._transaction_log = None
+
+    def rollback_transaction(self) -> None:
+        if self._transaction_log is None:
+            raise RuntimeError("prediction journal has no active transaction")
+        for change in reversed(self._transaction_log):
+            kind = change[0]
+            if kind == "issue":
+                _, prediction_id, target_key, prior_active = change
+                self._predictions.pop(prediction_id, None)
+                self._scores.pop(prediction_id, None)
+                if prior_active is None:
+                    self._active_by_target.pop(target_key, None)
+                else:
+                    self._active_by_target[target_key] = prior_active
+            elif kind == "score":
+                _, prediction_id, prior_prediction, target_key, prior_active = change
+                self._predictions[prediction_id] = prior_prediction
+                self._scores.pop(prediction_id, None)
+                if prior_active is None:
+                    self._active_by_target.pop(target_key, None)
+                else:
+                    self._active_by_target[target_key] = prior_active
+            elif kind == "expire":
+                _, prediction_id, prior_prediction, target_key, prior_active = change
+                self._predictions[prediction_id] = prior_prediction
+                if prior_active is None:
+                    self._active_by_target.pop(target_key, None)
+                else:
+                    self._active_by_target[target_key] = prior_active
+            else:
+                raise RuntimeError(f"unknown prediction transaction change: {kind}")
+        self._transaction_log = None
 
     def snapshot(self) -> dict:
         return {
@@ -242,6 +303,11 @@ class PredictionJournal:
                 raise ValueError("invalid prediction score checkpoint")
             scores[score.prediction_id] = score
         self._predictions, self._scores = predictions, scores
+        self._active_by_target = {
+            (p.target_name, p.target_key): p.prediction_id
+            for p in predictions.values() if p.status is PredictionStatus.ISSUED
+        }
+        self._transaction_log = None
 
 
 @dataclass(frozen=True)
@@ -708,6 +774,27 @@ class TemporalCreditLearner:
             raise ValueError("temporal learning rate must be positive and finite")
         self.learning_rate = float(learning_rate)
         self.weights: dict[str, float] = {}
+        self._transaction_log: dict[str, tuple[bool, float | None]] | None = None
+
+    def begin_transaction(self) -> None:
+        if self._transaction_log is not None:
+            raise RuntimeError("temporal credit transaction already active")
+        self._transaction_log = {}
+
+    def commit_transaction(self) -> None:
+        if self._transaction_log is None:
+            raise RuntimeError("temporal credit has no active transaction")
+        self._transaction_log = None
+
+    def rollback_transaction(self) -> None:
+        if self._transaction_log is None:
+            raise RuntimeError("temporal credit has no active transaction")
+        for key, (existed, value) in self._transaction_log.items():
+            if existed:
+                self.weights[key] = float(value)
+            else:
+                self.weights.pop(key, None)
+        self._transaction_log = None
 
     def update(self, error: float, eligibility: Mapping[tuple[str, str, str], float]) -> None:
         if not math.isfinite(error) or error < 0:
@@ -716,6 +803,8 @@ class TemporalCreditLearner:
             return
         for (event_id, feature_id, channel), trace in sorted(eligibility.items()):
             key = json.dumps((event_id, feature_id, channel), separators=(",", ":"))
+            if self._transaction_log is not None and key not in self._transaction_log:
+                self._transaction_log[key] = (key in self.weights, self.weights.get(key))
             self.weights[key] = self.weights.get(key, 0.0) - self.learning_rate * error * float(trace)
 
     def snapshot(self) -> dict:
@@ -734,10 +823,34 @@ class TaskOutcomeLearner:
     """Small task-level calibration learner, updated only from task residuals."""
     def __init__(self) -> None:
         self.outcomes: dict[str, list[int]] = {}
+        self._transaction_log: dict[str, int | None] | None = None
+
+    def begin_transaction(self) -> None:
+        if self._transaction_log is not None:
+            raise RuntimeError("task outcome transaction already active")
+        self._transaction_log = {}
+
+    def commit_transaction(self) -> None:
+        if self._transaction_log is None:
+            raise RuntimeError("task outcomes have no active transaction")
+        self._transaction_log = None
+
+    def rollback_transaction(self) -> None:
+        if self._transaction_log is None:
+            raise RuntimeError("task outcomes have no active transaction")
+        for key, prior_length in self._transaction_log.items():
+            if prior_length is None:
+                self.outcomes.pop(key, None)
+            else:
+                del self.outcomes[key][prior_length:]
+        self._transaction_log = None
 
     def observe_error(self, task_key: str, error: float) -> None:
         if not task_key or not math.isfinite(error) or error < 0:
             raise ValueError("task outcome requires a key and finite non-negative error")
+        if self._transaction_log is not None and task_key not in self._transaction_log:
+            prior = self.outcomes.get(task_key)
+            self._transaction_log[task_key] = None if prior is None else len(prior)
         self.outcomes.setdefault(task_key, []).append(int(error > 0.0))
 
     def error_rate(self, task_key: str) -> float | None:
@@ -1123,6 +1236,44 @@ class LearningRuntime:
             routed = self.error_router.route(self.last_signals)
             if learn and "task_outcome_learner" in routed:
                 self.task_outcomes.observe_error(task_key, error)
+
+    def transaction_checkpoint(self) -> dict[str, Any]:
+        """Capture rollback-scoped state without copying append-only histories."""
+        self.predictions.begin_transaction()
+        self.temporal_credit.begin_transaction()
+        self.task_outcomes.begin_transaction()
+        return {
+            "level0": self.level0.snapshot(),
+            "relations": self.relations.snapshot(),
+            "event_roles": self.event_roles.snapshot(),
+            "context_transitions": self.context_transitions.snapshot(),
+            "eligibility": self.eligibility.snapshot(),
+            "journal_count": len(self._observation_journal),
+            "prediction_sequence": self._prediction_sequence,
+            "last_observed_at": self._last_observed_at,
+            "last_signals": self.last_signals,
+            "last_issue_context": deepcopy(self._last_issue_context),
+        }
+
+    def commit_transaction(self) -> None:
+        self.predictions.commit_transaction()
+        self.temporal_credit.commit_transaction()
+        self.task_outcomes.commit_transaction()
+
+    def rollback_transaction(self, state: Mapping[str, Any]) -> None:
+        self.predictions.rollback_transaction()
+        self.level0.restore(state["level0"])
+        self.relations.restore(state["relations"])
+        self.event_roles.restore(state["event_roles"])
+        self.context_transitions.restore(state["context_transitions"])
+        self.temporal_credit.rollback_transaction()
+        self.task_outcomes.rollback_transaction()
+        self.eligibility.restore(state["eligibility"])
+        del self._observation_journal[int(state["journal_count"]):]
+        self._prediction_sequence = int(state["prediction_sequence"])
+        self._last_observed_at = float(state["last_observed_at"])
+        self.last_signals = state["last_signals"]
+        self._last_issue_context = deepcopy(state["last_issue_context"])
 
     def snapshot(self) -> dict:
         return {
