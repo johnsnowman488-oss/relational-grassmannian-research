@@ -227,7 +227,7 @@
   },
   "execution_gate": {
     "user_requested_sequence": true,
-    "launch_allowed": true,
+    "launch_allowed": false,
     "required_before_launch": [
       "Full repository and Task 11 prediction/evaluation contract CI green, including confirmatory generator and label-separation tests.",
       "Task 11 non-oracle baseline validation archived and reviewed.",
@@ -235,7 +235,7 @@
       "Full-scale reserved-seed resource preflight passes and its measured budget is archived.",
       "No Task 14/19 or frozen Task 3/5 source or campaign work is included."
     ],
-    "freeze_boundary": "The workflow runs the full repository/Task 11 contract suite first, then the full-scale reserved-seed preflight. The 120-unit campaign starts only if both pass. The generated confirmatory challenge is produced only after validation-only candidate selection; its evaluator labels are opened only after all selected candidate predictions are frozen."
+    "freeze_boundary": "Protocol freeze and the 120-unit execution gate remain distinct. The workflow runs the full repository/Task 11 contract suite first, then the full-scale reserved-seed preflight. The 120-unit campaign starts only if both pass. The generated confirmatory challenge is produced only after validation-only candidate selection; its evaluator labels are opened only after all selected candidate predictions are frozen."
   },
   "native_runtime": {
     "pinned_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
