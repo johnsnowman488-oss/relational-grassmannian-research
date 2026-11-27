@@ -195,6 +195,27 @@ def predict_task11_supervision(story: ExpansionStory, query: ExpansionQuery) -> 
         }
     if entity_id != query.entity:
         raise RuntimeError("Task 11 predicted target mention does not resolve to queried entity")
+    # L2 preserves all source witnesses that resolve to the queried entity,
+    # including repeated explicit name mentions. The answer baseline's compact
+    # witness chain may legitimately reset at a new name mention; that is not
+    # the same object as the entity's complete evidence-support set.
+    resolved_entity_by_event: dict[str, str] = {}
+    for event in story.events:
+        if not isinstance(event, Task11MentionEvent):
+            continue
+        if not event.is_pronoun:
+            resolved_entity_by_event[event.event_id] = event.surface_mention.casefold()
+        else:
+            antecedent_id = antecedent_by_mention.get(event.event_id)
+            antecedent = event_by_id.get(antecedent_id or "")
+            if isinstance(antecedent, Task11MentionEvent) and not antecedent.is_pronoun:
+                resolved_entity_by_event[event.event_id] = antecedent.surface_mention.casefold()
+    entity_witness_event_ids = [
+        event.event_id for event in story.events
+        if resolved_entity_by_event.get(event.event_id) == query.entity
+    ]
+    if not entity_witness_event_ids:
+        raise RuntimeError("Task 11 L2 entity state has no resolved source witnesses")
     return {
         "l0_mention_binding": {
             "mention_event_id": target_event_id,
@@ -204,7 +225,7 @@ def predict_task11_supervision(story: ExpansionStory, query: ExpansionQuery) -> 
         "l2_entity_state": {
             "entity_id": query.entity,
             "location": prediction.answer,
-            "witness_event_ids": list(prediction.witness_event_ids),
+            "witness_event_ids": entity_witness_event_ids,
         },
         "answer": prediction.answer,
     }
