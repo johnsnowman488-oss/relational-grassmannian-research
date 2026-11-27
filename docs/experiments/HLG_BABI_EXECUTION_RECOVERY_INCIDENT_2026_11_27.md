@@ -71,7 +71,7 @@ Correction:
 
 The campaign writes an atomic progress sidecar at phase start, every 25 stories, at phase completion and after the final seed-condition. It records task, architecture, seed, ablation, phase, story and query counts, native steps, elapsed time and completed condition count. The upload step runs even after failure, preserving progress for inspection.
 
-The recovery branch runs a bounded pilot: seed `953000`, `full_learning` only, for each of the four task/architecture combinations. This is an execution and contract gate, not the matched research campaign. The complete 10-seed × 6-condition campaign remains gated on successful four-way pilot evidence.
+The recovery branch first ran a four-way baseline pilot (seed `953000`, `full_learning` only) and then a provenance recheck of the same four combinations. The current bounded pilot expands this to seed `953000` across all six frozen conditions for each task/architecture combination. These are execution and contract gates, not the matched research campaign. The complete 10-seed × 6-condition campaign remains gated on successful six-condition pilot evidence.
 
 ## Pilot evidence observed so far
 
@@ -84,16 +84,27 @@ The first post-optimization pilot on commit `c9de8d810b24f787027d83e1d1054832151
 | Task 3 — HLB | Failed at old 65,536 source-relation capacity | — | Not evaluated |
 | Task 5 — HLB | Failed at old 65,536 source-relation capacity | — | Not evaluated |
 
-The HLA pilot results showed 100% exact task-answer accuracy and 100% support-witness recall on eligible queries, with no false cross-story witnesses or provenance failures. Task 5 contained same-time observations that were correctly quarantined (not scored). These task-answer figures are produced by the deterministic evidence-backed task solver; they are **not** evidence that learned prediction alone answers bAbI. Separate prediction metrics and learner-state changes are recorded independently.
+The initial recovery pilot exposed the same-time scoring and old-capacity defects. After those fixes, the capacity-corrected four-way baseline pilot on commit `77f6664b9f00ce358ec17feba16c49878943710b` completed all four jobs successfully:
 
-The HLA pilot outputs on that commit predate the native-library hash correction. They must not be treated as provenance-complete final artifacts.
+| Task / architecture | Result | Elapsed | Validation candidate |
+|---|---|---:|---|
+| Task 3 — HLA | Completed all four phases | ~275 s | Accepted |
+| Task 3 — HLB | Completed all four phases | ~252 s | Accepted |
+| Task 5 — HLA | Completed all four phases | ~118 s | Accepted |
+| Task 5 — HLB | Completed all four phases | ~136 s | Accepted |
 
-The four-way pilot on the capacity-corrected code is currently the next acceptance gate. Do not infer HLB success until its completed artifacts are inspected and the preflight, capacity, witness, provenance and runtime invariants all pass.
+Each result contained exactly one complete seed-condition. Both HLB preflights passed. Task 3 retained 154,786 source events and 154,786 relations; Task 5 retained 61,532 source events and 73,971 relations. All four had zero capacity misses, zero false witnesses, zero provenance failures, 100% support-witness recall on eligible queries, and the one-native-step-per-adapter-tick invariant. The earlier outputs had a null native-library hash, so they are execution/capacity evidence but not provenance-complete results.
+
+The provenance recheck on commit `4ccfd71c0f5002ac3bd3dc27b27a15a920e2f458` then completed all four full-learning jobs successfully. Each result recorded the actual loaded library path and SHA-256 `38b278a93a5b3fa3b544f55d958a2f7a44bb6e1d39154e63072f5ed7be511e4b`; this digest was independently checked against the downloaded pinned native artifact's sidecar and the library bytes. The run is [45956329669](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45956329669).
+
+The full-learning pilot results showed 100% exact task-answer accuracy and 100% support-witness recall on eligible queries, with no false cross-story witnesses or provenance failures. Task 5 contained same-time observations that were correctly withdrawn (not scored). Prediction lifecycle counts were recorded separately. These task-answer figures are produced by the deterministic evidence-backed task solver; they are **not** evidence that learned prediction alone answers bAbI. Separate prediction metrics and learner-state changes are recorded independently.
+
+The current six-condition, one-seed pilot is run [45957046418](https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45957046418) on commit `fd174d197d62f036d785a397a46130dcfce414c9`. Its prerequisites and repository CI have passed; all four task/architecture jobs entered execution. It must finish with six complete, unique variants per job before the full matched campaign is opened.
 
 ## Acceptance gates before the full campaign
 
 1. Repository unit/invariant CI passes on Python 3.10 and 3.12.
-2. All four bounded pilots finish with `complete=true`, exactly one result each, and no missing/duplicate seed-condition.
+2. All four six-condition pilots finish with `complete=true`, exactly six results each for seed `953000`, and no missing/duplicate variants.
 3. Each artifact has matching task/architecture/seed/variant identity and frozen input hashes.
 4. Native runtime path, pinned commit and actual loaded-library SHA-256 are present and match the downloaded runtime artifact.
 5. HLB source event and relation counts remain within the configured capacity; no capacity misses occur.
