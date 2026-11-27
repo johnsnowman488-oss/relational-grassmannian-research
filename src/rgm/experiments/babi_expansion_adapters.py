@@ -39,6 +39,18 @@ class Task11WeakBindingTarget:
 
 
 @dataclass(frozen=True)
+class Task11TrainingBinding:
+    """Learning-only binding target, distinct from immutable source evidence."""
+    mention_event_id: str
+    antecedent_event_id: str
+    entity_id: str
+    source_ref: str
+    target_kind: str
+    rule_id: str
+    is_gold: bool = False
+
+
+@dataclass(frozen=True)
 class Task14TemporalEvent:
     event_id: str
     actor: str
@@ -322,6 +334,47 @@ def derive_task11_weak_binding_targets(story: ExpansionStory) -> dict:
         "abstentions": tuple(abstentions),
         "not_gold_labels": True,
         "evidence_mutations": 0,
+    }
+
+
+def derive_task11_training_bindings(story: ExpansionStory) -> dict:
+    """Create a separate training-only L0/L1 binding stream from source mentions.
+
+    Explicit names create self-anchor targets. Pronouns create weak coreference
+    targets only when the existing conservative rule finds one distinct prior
+    compatible entity. Ambiguous pronouns are quarantined and produce no target.
+    This report never mutates or augments source observations.
+    """
+    if story.task_id != 11:
+        raise ValueError("Task 11 training binding derivation received another task")
+    weak = derive_task11_weak_binding_targets(story)
+    weak_by_id = {target.mention_event_id: target for target in weak["targets"]}
+    targets: list[Task11TrainingBinding] = []
+    for event in story.events:
+        if not isinstance(event, Task11MentionEvent):
+            raise TypeError("Task 11 story contains a non-Task-11 event")
+        if not event.is_pronoun:
+            targets.append(Task11TrainingBinding(
+                event.event_id, event.event_id, event.surface_mention.casefold(),
+                event.source_ref, "observed_name_anchor",
+                "task11.explicit-name-anchor.v1", False,
+            ))
+            continue
+        binding = weak_by_id.get(event.event_id)
+        if binding is not None:
+            targets.append(Task11TrainingBinding(
+                binding.mention_event_id, binding.antecedent_event_id,
+                binding.entity_id, binding.source_ref,
+                "weak_coreference", binding.rule_id, False,
+            ))
+    return {
+        "schema": "HLG-BABI-TASK11-TRAINING-BINDINGS-v1",
+        "story_id": story.story_id,
+        "targets": tuple(targets),
+        "abstentions": weak["abstentions"],
+        "gold_labels_used": False,
+        "evidence_mutations": 0,
+        "claim_boundary": "explicit self-anchors plus prior-only unique-candidate weak targets; not gold coreference truth",
     }
 
 
