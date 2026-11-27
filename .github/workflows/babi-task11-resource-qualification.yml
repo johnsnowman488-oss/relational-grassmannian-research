@@ -1,4 +1,5 @@
 name: bAbI Task 11 persistent learner resource qualification
+run-name: Task 11 resource qualification (${{ github.sha }})
 
 on:
   push:
