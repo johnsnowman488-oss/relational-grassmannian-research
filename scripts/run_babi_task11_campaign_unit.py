@@ -202,6 +202,9 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
     }, sort_keys=True), flush=True)
     if any(not weights or sum(weights) <= 0 for weights in initial_kernel_weights):
         raise RuntimeError("pinned native runtime was created with zero-sum kernel weights")
+    native_smoke_checkpoint = adapter.bridge.runtime.checkpoint()
+    adapter.bridge.runtime.step({})
+    adapter.bridge.runtime.restore(native_smoke_checkpoint)
     channels = CHANNELS[condition]
     runtime = BabiExpansionRuntime(
         adapter,
