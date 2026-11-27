@@ -231,6 +231,7 @@ def _task11_parameter_state(adapter):
         "relations": adapter.learning.relations.snapshot(),
         "event_roles": adapter.learning.event_roles.snapshot(),
         "contexts": adapter.learning.context_transitions.snapshot(),
+        "temporal": adapter.learning.temporal_credit.snapshot(),
     }
 
 
@@ -248,6 +249,12 @@ def test_task11_l0_l1_l2_weak_targets_update_learners_but_never_source_evidence(
         assert before["event_roles"] != after["event_roles"]
         assert before["relations"] != after["relations"]
         assert before["contexts"] != after["contexts"]
+        assert before["temporal"] != after["temporal"]
+        temporal_keys = [__import__("json").loads(key)
+                         for key in after["temporal"]["weights"]]
+        assert {key[2] for key in temporal_keys} == {
+            "task11:L0", "task11:L1", "task11:L2",
+        }
 
         # The derived binding/edge targets are routed only into LearningRuntime.
         # Evidence recovery returns source-grounded mention events without any
@@ -292,6 +299,9 @@ def test_task11_ambiguous_pronoun_is_evidence_only_and_gets_no_learning_target()
     assert len([row for row in journal if row["kind"] == "event_role"]) == 2
     assert len([row for row in journal if row["kind"] == "relation"]) == 0
     assert len([row for row in journal if row["kind"] == "context"]) == 2
+    temporal_keys = [__import__("json").loads(key)
+                     for key in adapter.learning.temporal_credit.snapshot()["weights"]]
+    assert "m3" not in {key[0] for key in temporal_keys}
     assert adapter.store.count == 0
     raw_pronoun, = runtime.recover_witness("m3", observation_cutoff=3.0)
     assert raw_pronoun.role("mention").entity_id == "she"
