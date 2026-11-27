@@ -182,9 +182,20 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
         ]
         if len(pred_rows) != 1000 or len({p["query_id"] for p in pred_rows}) != 1000:
             raise ValueError(f"{key}: prediction journal incomplete or duplicated")
+        run_config = _load(root / "per-run-config.json")
+        if run_config.get("native_commit") != manifest["native_commit"]:
+            raise ValueError(f"{key}: native runtime commit differs from manifest")
+        if run_config.get("soe_feature_dims") != manifest["soe_feature_dims"]:
+            raise ValueError(f"{key}: SOE feature dimensions differ from manifest")
+        if run_config.get("soe_dt") != manifest["soe_dt"]:
+            raise ValueError(f"{key}: SOE time step differs from manifest")
+        if run_config.get("top_down_gain") != manifest["top_down_gain"]:
+            raise ValueError(f"{key}: top-down gain differs from manifest")
         model_snapshot = _load(root / "model-snapshot.json")
         if model_snapshot.get("run_key") != key or model_snapshot.get("evaluator_labels_included") is not False:
             raise ValueError(f"{key}: answer model snapshot identity or label boundary invalid")
+        if model_snapshot.get("top_down_gain") != manifest["top_down_gain"]:
+            raise ValueError(f"{key}: model snapshot top-down gain differs from manifest")
         by_key[key] = row
         row_dir_pairs.append((row, root))
 
