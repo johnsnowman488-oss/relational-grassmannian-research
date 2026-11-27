@@ -103,6 +103,9 @@ def test_task11_l0_l1_l2_supervision_is_scored_only_after_forecast(tmp_path):
 
     # Open evaluator-only targets after forecast issuance and score each level.
     bundle = task11_supervision_from_evaluator_label(query, label_row)
+    assert predicted["l0_mention_binding"] == bundle.l0_mention_binding
+    assert predicted["l1_coreference_edge"] == bundle.l1_coreference_edge
+    assert predicted["l2_entity_state"] == bundle.l2_entity_state
     scored = forecasts.score_task11_supervision(
         query, bundle, evaluated_tick=query.observed_at,
         observed_at=float(query.observed_at),
