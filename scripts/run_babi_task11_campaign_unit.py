@@ -157,6 +157,10 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
         raise ValueError("eligibility capacity differs from frozen manifest")
     if manifest.get("top_down_gain") != TOP_DOWN_GAIN:
         raise ValueError("H0 top-down gain differs from frozen manifest")
+    if manifest.get("soe_feature_dims") != list(FEATURE_DIMS):
+        raise ValueError("SOE feature dimensions differ from frozen manifest")
+    if manifest.get("soe_dt") != SOE_DT:
+        raise ValueError("SOE time step differs from frozen manifest")
 
     run_key = f"task11-{architecture}-{condition}-seed{seed}"
     if run_kind == "campaign":
