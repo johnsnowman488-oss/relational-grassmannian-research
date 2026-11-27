@@ -80,7 +80,7 @@ def test_evaluator_scores_answer_and_witnesses_only_after_prediction_is_fixed():
     current = story()
     query = ExpansionQuery("q1", 11, 4, "validation#4", entity="mary")
     decision = predict_task11_from_learned_state(
-        adapter({"task11:entity:mary": "location:office"}), current, query,
+        adapter({"task11:entity:mary:from:__START__": "location:kitchen", "task11:entity:mary:from:kitchen": "location:office"}), current, query,
     )
     labels = [GoldLabel("q1", "office", (1, 3), "validation#4")]
     report = evaluate_task11_predictions([ExpansionStory(
