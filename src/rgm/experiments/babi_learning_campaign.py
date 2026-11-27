@@ -821,7 +821,7 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
                         variant_index: int, details: dict[str, Any]) -> None:
         stories_done = int(details["stories_completed"])
         stories_expected = int(details["stories_expected"])
-        if stories_done != stories_expected and stories_done % 25 != 0:
+        if stories_done not in {1, stories_expected} and stories_done % 25 != 0:
             return
         payload = {
             "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
