@@ -69,17 +69,6 @@
     "task5_source_relation_projections": 73971,
     "one_native_step_per_adapter_tick": true
   },
-  "implementation_blob_sha256": {
-    "src/rgm/leptograph/m4/learning.py": "97fbc4ee37f782d08725494266fdda4e95e8b1a4",
-    "src/rgm/experiments/babi_learning_campaign.py": "0a8e8a9f5d359829fd8e056cb767e42130696b3a",
-    "scripts/run_babi_learning_campaign.py": "6c396f54a05277da80b4426b933d96fe91537548",
-    "scripts/select_babi_learning_candidates.py": "eecacccf28bc4e1328062fecd927ed63576bd24c",
-    "scripts/verify_babi_confirmatory.py": "bb91cacb5dd2a6160000b20dd57acff7375d078f",
-    ".github/workflows/h1-babi-learning-campaign.yml": "1a00016bac121ce82d7d53dcabbb620f1b3c7255",
-    "tests/test_babi_learning_campaign.py": "2659bdd9923462b2898e78328de0366aab63616a",
-    "tests/test_hlg_learning_runtime_integration.py": "7581905c1a938f9f9606ef913aa3b2ad87843940",
-    "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_3.md": "dacf628ee8b9bd851b83a3567bacd3a554022b24"
-  },
   "matched_campaign": {
     "seeds": [
       953000,
@@ -144,5 +133,16 @@
     "require_validation_only_candidate_selection": true,
     "require_exactly_four_confirmatory_evaluations": true
   },
-  "protocol_document_sha256": "dacf628ee8b9bd851b83a3567bacd3a554022b24"
+  "implementation_git_blob_sha1": {
+    "src/rgm/leptograph/m4/learning.py": "97fbc4ee37f782d08725494266fdda4e95e8b1a4",
+    "src/rgm/experiments/babi_learning_campaign.py": "0a8e8a9f5d359829fd8e056cb767e42130696b3a",
+    "scripts/run_babi_learning_campaign.py": "6c396f54a05277da80b4426b933d96fe91537548",
+    "scripts/select_babi_learning_candidates.py": "eecacccf28bc4e1328062fecd927ed63576bd24c",
+    "scripts/verify_babi_confirmatory.py": "bb91cacb5dd2a6160000b20dd57acff7375d078f",
+    ".github/workflows/h1-babi-learning-campaign.yml": "1a00016bac121ce82d7d53dcabbb620f1b3c7255",
+    "tests/test_babi_learning_campaign.py": "2659bdd9923462b2898e78328de0366aab63616a",
+    "tests/test_hlg_learning_runtime_integration.py": "7581905c1a938f9f9606ef913aa3b2ad87843940",
+    "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_3.md": "dacf628ee8b9bd851b83a3567bacd3a554022b24"
+  },
+  "protocol_document_git_blob_sha1": "dacf628ee8b9bd851b83a3567bacd3a554022b24"
 }
