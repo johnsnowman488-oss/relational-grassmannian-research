@@ -651,11 +651,11 @@ class HierarchicalRuntimeDirector:
         # Forecasts are issued from the pre-step model and prior observation cutoff.
         previous_cutoff = self.event_log[-1]["observed_at"] if self.event_log else 0.0
         before = _capture_exchange_transaction(self.adapter)
-        predictions = self.adapter.learning.begin_tick(
-            tick=self.event_tick, observed_at=previous_cutoff, context=context,
-        )
         statuses = []
         try:
+            predictions = self.adapter.learning.begin_tick(
+                tick=self.event_tick, observed_at=previous_cutoff, context=context,
+            )
             if isinstance(self.adapter, HLBAdapter):
                 for level, record in relation_records:
                     statuses.append(self.adapter.observe_source(level, record))
