@@ -62,7 +62,7 @@ def test_task_event_mapping_preserves_nary_roles_and_provenance():
     assert mapped.event_type == "ENTITY_LOCATION_MENTION"
     assert mapped.role("mention").entity_id == "she"
     assert mapped.role("location").entity_id == "hallway"
-    assert mapped.role("antecedent") is None
+    assert not any(participant.role in {"entity", "antecedent"} for participant in mapped.participants)
     assert mapped.provenance == "babi-v1.2-task-11"
     assert mapped.source_locator == "train#2"
     assert len(mapped.payload_digest) == 64
