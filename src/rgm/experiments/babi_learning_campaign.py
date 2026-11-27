@@ -645,6 +645,10 @@ def _fit_and_process(
             raise RuntimeError("score-only confirmatory evaluation mutated candidate parameters")
 
     runtime = adapter.bridge.runtime
+    prediction_status_counts: dict[str, int] = {}
+    for prediction in adapter.learning.predictions._predictions.values():
+        status = prediction.status.value
+        prediction_status_counts[status] = prediction_status_counts.get(status, 0) + 1
     output = {
         "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
         "task_id": task_id,
@@ -672,6 +676,7 @@ def _fit_and_process(
                 if architecture == "HLB" else 0
             ),
             "eligibility_values": len(adapter.learning.eligibility.values(prediction_cutoff_tick=adapter.ticks)),
+            "prediction_status_counts": prediction_status_counts,
             "temporal_credit_state_sha256": _digest_json(adapter.learning.temporal_credit.snapshot()),
             "soe_configuration_fingerprint": soe_fingerprint,
         },
