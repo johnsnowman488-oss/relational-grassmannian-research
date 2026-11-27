@@ -167,9 +167,9 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
             raise ValueError(f"unexpected run-unit key: {key}")
         unit = expected_units[key]
         if any(row.get(field) != unit[field] for field in (
-            "task_id", "architecture", "condition", "seed",
+            "task_id", "architecture", "condition", "seed", "manifest_shard",
         )):
-            raise ValueError(f"{key}: run identity differs from frozen manifest")
+            raise ValueError(f"{key}: run identity/shard differs from frozen manifest")
         if row.get("run_kind") != "campaign" or row.get("status") != "PASS":
             raise ValueError(f"{key}: run unit did not complete successfully")
         if row.get("manifest_sha256") != manifest["manifest_sha256"]:
@@ -201,6 +201,10 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
         }:
             raise ValueError(f"{key}: prediction journal and evaluator query IDs differ")
         run_config = _load(root / "per-run-config.json")
+        if run_config.get("manifest_shard") != unit["shard"]:
+            raise ValueError(f"{key}: per-run config shard differs from manifest")
+        if model_snapshot.get("manifest_shard") != unit["shard"]:
+            raise ValueError(f"{key}: model snapshot shard differs from manifest")
         if run_config.get("native_commit") != manifest["native_commit"]:
             raise ValueError(f"{key}: native runtime commit differs from manifest")
         if run_config.get("soe_feature_dims") != manifest["soe_feature_dims"]:
