@@ -156,6 +156,7 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
         raise ValueError(f"expected 120 run artifact directories, found {len(run_dirs)}")
 
     by_key = {}
+    native_library_hashes = set()
     row_dir_pairs = []
     for root in run_dirs:
         _verify_hash_list(root)
@@ -205,6 +206,9 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
             raise ValueError(f"{key}: per-run config shard differs from manifest")
         if run_config.get("native_commit") != manifest["native_commit"]:
             raise ValueError(f"{key}: native runtime commit differs from manifest")
+        if not run_config.get("native_library_sha256") or run_config.get("native_library_sha256") != row.get("native_library_sha256"):
+            raise ValueError(f"{key}: native library SHA-256 is missing or inconsistent")
+        native_library_hashes.add(run_config["native_library_sha256"])
         if run_config.get("soe_feature_dims") != manifest["soe_feature_dims"]:
             raise ValueError(f"{key}: SOE feature dimensions differ from manifest")
         if run_config.get("soe_dt") != manifest["soe_dt"]:
@@ -218,6 +222,8 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
             raise ValueError(f"{key}: answer model snapshot identity or label boundary invalid")
         if model_snapshot.get("top_down_gain") != manifest["top_down_gain"]:
             raise ValueError(f"{key}: model snapshot top-down gain differs from manifest")
+        if model_snapshot.get("native_library_sha256") != run_config["native_library_sha256"]:
+            raise ValueError(f"{key}: model snapshot native library hash differs from run config")
         if model_snapshot.get("manifest_sha256") != manifest["manifest_sha256"]:
             raise ValueError(f"{key}: model snapshot manifest identity mismatch")
         if model_snapshot.get("protocol_sha256") != manifest["protocol_sha256"]:
@@ -231,6 +237,8 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
 
     if set(by_key) != set(expected_units):
         raise ValueError("campaign has missing or extra run-unit keys")
+    if len(native_library_hashes) != 1:
+        raise ValueError("campaign units do not share one native library SHA-256")
 
     grouped = defaultdict(list)
     grouped_dirs = defaultdict(list)
