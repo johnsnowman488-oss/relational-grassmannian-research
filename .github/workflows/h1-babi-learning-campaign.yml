@@ -48,10 +48,11 @@ on:
       - "tests/test_hlg_learning_episode_boundary.py"
       - ".github/workflows/h1-babi-learning-campaign.yml"
 
-# Serialize campaign runs for this head branch, but never cancel an in-flight run.
-# A push and its corresponding pull_request event therefore cannot duplicate a campaign.
+# Give each explicitly triggered campaign its own concurrency key. GitHub retains
+# only one pending run per key; branch-scoped keys caused fresh commits to replace
+# the queued campaign before its four workers were scheduled.
 concurrency:
-  group: babi-learning-campaign-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: babi-learning-campaign-${{ github.run_id }}
   cancel-in-progress: false
 
 permissions:
