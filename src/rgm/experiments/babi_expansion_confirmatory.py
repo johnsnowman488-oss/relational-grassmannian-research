@@ -546,3 +546,48 @@ def evaluate_task11_confirmatory(inputs: list[dict], labels: list[dict],
         "ambiguous_false_acceptances": false_acceptances,
         "label_boundary": "Generated evaluator labels are consumed only after candidate predictions are fixed.",
     }
+
+
+def verify_task11_confirmatory(output_root: Path) -> dict:
+    manifest_path = output_root / "task11-confirmatory-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    core = dict(manifest)
+    expected = core.pop("manifest_sha256", None)
+    if expected != sha256(_canonical(core)).hexdigest():
+        raise ValueError("Task 11 confirmatory manifest fingerprint mismatch")
+    if manifest.get("status") != "FROZEN_GENERATOR_AND_SEEDS" or manifest.get("task_ids") != [11]:
+        raise ValueError("Task 11 confirmatory manifest is not frozen Task 11-only")
+    files = manifest["files"]
+    inputs_path = output_root / files["inputs"]["path"]
+    labels_path = output_root / files["evaluator_labels"]["path"]
+    if _sha(inputs_path) != files["inputs"]["sha256"]:
+        raise ValueError("Task 11 confirmatory input digest mismatch")
+    if _sha(labels_path) != files["evaluator_labels"]["sha256"]:
+        raise ValueError("Task 11 confirmatory label digest mismatch")
+    inputs = [json.loads(line) for line in inputs_path.read_text(encoding="utf-8").splitlines() if line]
+    labels = [json.loads(line) for line in labels_path.read_text(encoding="utf-8").splitlines() if line]
+    if len(inputs) != TASK11_CONFIRMATORY_STORIES or len(labels) != len(inputs):
+        raise ValueError("Task 11 confirmatory row count mismatch")
+    input_ids = [row["query"]["query_id"] for row in inputs]
+    label_ids = [row["query_id"] for row in labels]
+    if len(set(input_ids)) != len(input_ids) or set(input_ids) != set(label_ids):
+        raise ValueError("Task 11 confirmatory input/label IDs do not match")
+    if sum(bool(row.get("expected_abstention")) for row in labels) != TASK11_AMBIGUOUS_STORIES:
+        raise ValueError("Task 11 confirmatory ambiguous subset size mismatch")
+    from rgm.experiments.babi_expansion_adapters import task11_confirmatory_input_to_story
+    forbidden = {"gold_answer", "support_event_ids", "expected_abstention",
+                 "expected_reason", "mention_binding_edges", "task11_supervision"}
+    for row in inputs:
+        if forbidden & set(row) or forbidden & set(row["query"]):
+            raise ValueError("evaluator labels leaked into Task 11 confirmatory inputs")
+        if any(forbidden & set(event) for event in row["events"]):
+            raise ValueError("evaluator labels leaked into Task 11 confirmatory observations")
+        task11_confirmatory_input_to_story(row)
+    return {
+        "status": "PASS",
+        "manifest_sha256": expected,
+        "input_sha256": files["inputs"]["sha256"],
+        "evaluator_labels_sha256": files["evaluator_labels"]["sha256"],
+        "story_count": len(inputs),
+        "ambiguous_abstention_story_count": TASK11_AMBIGUOUS_STORIES,
+    }
