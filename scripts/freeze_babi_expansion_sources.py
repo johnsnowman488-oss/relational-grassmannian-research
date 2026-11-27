@@ -57,7 +57,7 @@ MIRROR_BLOB_SIZE = {
 }
 SUPPORT_RE = re.compile(r"\d+(?:\s+\d+)*")
 LINE_RE = re.compile(r"^(\d+)\s+(.*)$")
-DIRECTIONS = {"north", "south", "east", "west"}
+DIRECTION_CODES = {"n", "s", "e", "w"}
 
 
 class SourceAuditError(ValueError):
@@ -173,14 +173,14 @@ def audit_member(payload: bytes, *, task_id: int, member_name: str) -> dict:
                 f"statement lines in this story: {invalid}"
             )
         if task_id == 19:
-            direction_tokens = answer.lower().split()
+            direction_tokens = [token.strip().lower() for token in answer.split(",")]
             if (
                 not direction_tokens
-                or any(token not in DIRECTIONS for token in direction_tokens)
+                or any(token not in DIRECTION_CODES for token in direction_tokens)
             ):
                 raise SourceAuditError(
                     f"{member_name}:{physical_line}: Task 19 answer is not an "
-                    f"ordered cardinal-direction sequence: {answer!r}"
+                    f"ordered comma-separated n/s/e/w direction-code sequence: {answer!r}"
                 )
 
         question_count += 1
