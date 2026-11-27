@@ -52,7 +52,7 @@ def _model_fingerprint(architecture: str, learning: Any) -> str:
 
 
 def _source_witnesses(runtime: Any, query: ExpansionQuery,
-                      predicted_relation: Any) -> tuple[str, ...]:
+                      predicted_relation: Any, location: str) -> tuple[str, ...]:
     evidence = runtime.evidence
     ids = tuple(getattr(evidence, "event_ids", ()))
     witnesses: set[str] = set()
@@ -65,7 +65,10 @@ def _source_witnesses(runtime: Any, query: ExpansionQuery,
         records = evidence.recover(event_id, observation_cutoff=float(query.observed_at))
         for record in records:
             mention = record.role("mention")
-            if mention is not None and mention.entity_id.casefold() == query.entity.casefold():
+            observed_location = record.role("location")
+            if (mention is not None and observed_location is not None
+                    and mention.entity_id.casefold() == query.entity.casefold()
+                    and observed_location.entity_id.casefold() == location.casefold()):
                 witnesses.add(event_id)
     return tuple(sorted(witnesses))
 
@@ -123,7 +126,7 @@ def predict_task11_from_learned_state(runtime: Any, query: ExpansionQuery) -> Ta
         if candidate:
             location = candidate
 
-    witnesses = _source_witnesses(runtime, query, relation_pattern)
+    witnesses = _source_witnesses(runtime, query, relation_pattern, location)
     if location is None:
         return Task11ModelPrediction(
             architecture, query.query_id, l0, l1, ABSTAIN, None, witnesses,
@@ -142,3 +145,24 @@ def predict_task11_from_learned_state(runtime: Any, query: ExpansionQuery) -> Ta
         {"entity_id": entity, "location": location, "witness_event_ids": list(witnesses)},
         location, witnesses, False, None, _model_fingerprint(architecture, learning),
     )
+
+
+
+def issue_task11_model_forecasts(runtime: Any, query: ExpansionQuery, forecasts: Any, *,
+                                 issued_tick: int, issued_at: float,
+                                 evidence_cutoff: float) -> Task11ModelPrediction:
+    """Issue L0/L1/L2/answer forecasts before evaluator labels are opened."""
+    prediction = predict_task11_from_learned_state(runtime, query)
+    values = prediction.forecast_values()
+    forecasts.issue_query_forecasts(
+        query,
+        issued_tick=issued_tick,
+        issued_at=issued_at,
+        evidence_cutoff=evidence_cutoff,
+        l0_value=values["l0_value"],
+        l1_value=values["l1_value"],
+        l2_value=values["l2_value"],
+        answer_value=values["answer_value"],
+        model_fingerprint=prediction.model_fingerprint,
+    )
+    return prediction
