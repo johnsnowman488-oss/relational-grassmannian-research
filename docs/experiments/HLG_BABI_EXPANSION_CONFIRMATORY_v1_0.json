@@ -2,44 +2,7 @@
   "schema": "HLG-BABI-EXPANSION-CONFIRMATORY-PROTOCOL-v1",
   "protocol_id": "HLG-BABI-EXPANSION-CONFIRMATORY-v1",
   "protocol_version": "1.0.0",
-  "status": "FROZEN_GENERATOR_AND_SEEDS",
-  "parent_learning_protocol": "HLG-BABI-EXPANSION-LEARNING-CAMPAIGN-v1",
-  "purpose": "One-time generated, label-separated confirmatory challenge after validation candidate selection. This is not official bAbI test data.",
-  "tasks": [
-    11,
-    14,
-    19
-  ],
-  "generator": "src/rgm/experiments/babi_expansion_confirmatory.py",
-  "entrypoint": "python -m rgm.experiments.babi_expansion_confirmatory --output-root artifacts/babi-expansion-confirmatory",
-  "seeds": [
-    971101,
-    971102,
-    971103
-  ],
-  "stories_per_seed_per_task": 128,
-  "stories_per_task": 384,
-  "total_stories": 1152,
-  "generation_policy": {
-    "deterministic_random_stream": "random.Random('HLG-BABI-CONFIRMATORY-v1:{task_id}:{seed}')",
-    "story_order": "Seed ascending, then ordinal ascending",
-    "entity_policy": "Novel entity/location tokens generated per story; no overlap with official-test labels or training story identifiers",
-    "task11": "Raw mention surface, pronoun flag, grammatical-gender cue, location and observation index; no resolved antecedent or entity binding in input. Query names target entity; labels contain answer location and supporting event IDs.",
-    "task14": "Shuffled source-order temporal observations with explicit ordinal anchor feature and a before-destination query; labels contain previous temporal location and the target/predecessor witness events.",
-    "task19": "Novel directed spatial chain and ordered route query; labels contain direction sequence and supporting edge IDs.",
-    "evaluator_separation": "Inputs and labels are separate JSONL files. The generator rejects answer/support fields in every input/query/observation. Only query IDs are shared for evaluator joins.",
-    "no_training_access": "Generated-confirmatory labels are never provided to warm-start or online-adaptation phases. They are read once after validation candidate selection.",
-    "official_test_access": false
-  },
-  "acceptance": {
-    "required_tasks": 3,
-    "required_stories_per_task": 384,
-    "input_rows_match_label_rows": true,
-    "unique_query_ids": true,
-    "input_contains_no_gold_answer_or_support_ids": true,
-    "input_hashes_and_label_hashes_recorded": true,
-    "deterministic_repeat_manifest_sha256_match": true
-  },
-  "source_claim_boundary": "A generated challenge validates transfer to a separately generated distribution only; it is not an official bAbI benchmark result and is not a substitute for the frozen official-test policy.",
-  "freeze_note": "The exact generated files are fixed by this committed generator, protocol and seed schedule. The runtime-generated manifest records SHA-256 for each task input and evaluator-label JSONL; the aggregate manifest hash is retained with CI artifacts."
+  "status": "SUPERSEDED",
+  "superseded_by": "docs/experiments/HLG_BABI_EXPANSION_CONFIRMATORY_v1_1.json",
+  "reason": "The v1.0 Task 11 generator could create non-identifiable antecedents and its gender feature was not aligned with runtime ingestion. Do not use this protocol or its generated outputs as accepted confirmatory evidence."
 }
