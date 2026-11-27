@@ -73,7 +73,7 @@ A declared target must receive a forecast at each applicable exchange. If a lear
 
 The relation-pattern target is one canonical projection per source-event exchange. For Task 5 GIVE, the source evidence still preserves both typed projections (`gave_to` and `gave_object`); the forecast metric is explicitly the first canonical projection in the deterministic relation ordering. The n-ary event-role target separately scores the complete GIVE(giver, object, recipient) event.
 
-Relation and event-role forecasts are not applicable to query-only exchanges. Withdraw those forecasts at that exchange and record the withdrawal; never allow them to remain active and match a later event. At story/phase boundaries, close all remaining issued forecasts as right-censored/withdrawn. This prevents forecasts from crossing episode boundaries.
+Relation and event-role forecasts are not applicable to query-only exchanges. Withdraw those forecasts immediately after the query exchange issues them and record the withdrawal; do not leave them open until the next event or story boundary. At story/phase boundaries, close all remaining event forecasts as right-censored/withdrawn. This prevents forecasts from crossing episode boundaries.
 
 ### 4.2 Strict causal scoring
 
