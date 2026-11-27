@@ -166,12 +166,14 @@ jobs:
         run: |
           mkdir -p artifacts/babi-campaign
           if [[ "$GITHUB_REF_NAME" == "research/h1-babi-execution-recovery-v1" ]]; then
-            # Fresh-branch safety pilot: one seed and the full-learning baseline
-            # for each task/architecture. Full matched campaigns remain a later gate.
+            # Fresh-branch safety pilot: one fixed seed across all six
+            # frozen conditions for each task/architecture. The full 10-seed
+            # confirmatory campaign remains a separate acceptance gate.
             python -u scripts/run_babi_learning_campaign.py \
               --task-id ${{ matrix.task }} \
               --architecture ${{ matrix.architecture }} \
-              --seeds 953000 --variants full_learning \
+              --seeds 953000 \
+              --variants full_learning no_temporal no_relational no_abstraction no_task no_learning \
               --output artifacts/babi-campaign/task${{ matrix.task }}-${{ matrix.architecture }}.json
           else
             python -u scripts/run_babi_learning_campaign.py \
