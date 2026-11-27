@@ -486,28 +486,38 @@
     "phase_c_runtime_prediction_contract_acceptance": "PASS",
     "first_wave_protocol": "FROZEN_NOT_AUTHORIZED",
     "preflight": {
-      "task11_raw_mention_vs_inferred_binding": "IMPLEMENTATION_IN_PROGRESS; TASKS_14_AND_19_AUDIT_REQUIRED",
-      "reviewed_non_oracle_baselines": "IMPLEMENTATION_IN_PROGRESS; INDEPENDENT_EVALUATION_REQUIRED",
-      "nested_whole_story_warm_online_partitions": "IMPLEMENTATION_IN_PROGRESS; HASH_AND_DISJOINTNESS_ACCEPTANCE_REQUIRED",
-      "four_worker_shard_retry_evidence_dry_run": "NOT_YET_ACCEPTED; CI_MATRIX_AND_DRY_RUN_REQUIRED",
-      "measured_resource_budget": "NOT_YET_ACCEPTED; RUNTIME_THROUGHPUT_PEAK_MEMORY_STORAGE_REQUIRED",
+      "task11_raw_mention_vs_inferred_binding": "PASS_SOURCE_BOUNDARY_AND_RUNTIME_INGESTION; NO_OBSERVED_COREFERENCE_EDGE",
+      "reviewed_non_oracle_baselines": "PASS_VALIDATION_EXECUTION; TASK11_ANTECEDENT_EDGE_GROUND_TRUTH_UNAVAILABLE_ON_OFFICIAL_BABI_VALIDATION",
+      "nested_whole_story_warm_online_partitions": "PASS_90_10_WHOLE_STORY_AND_NESTED_80_20; FROZEN_HASHES_ACCEPTED",
+      "four_worker_shard_retry_evidence_dry_run": "PASS_RUN_46066166623; 360_OF_360_KEYS; FOUR_SHARDS_90_EACH; RETRY_AND_AGGREGATE_ACCEPTED",
+      "measured_resource_budget": "PARTIAL_NO_LEARNING_ONLY; FULL_HLA_HLB_LEARNING_UPDATE_COST_NOT_MEASURED",
       "generated_confirmatory_challenge": {
-        "status": "MANIFEST_VERSIONED; CI_VERIFICATION_PENDING",
-        "latest_recorded_specification": "3 fixed seeds; 384 stories per task; SHA-256 provenance",
-        "acceptance_required": [
-          "specification",
-          "generator",
-          "fixed_seeds",
-          "story_counts",
-          "label_separation",
-          "reproducibility",
-          "hashes"
-        ]
+        "status": "PASS_PROTOCOL_V1_1_GENERATION_VERIFICATION_AND_HASHES",
+        "protocol": "docs/experiments/HLG_BABI_EXPANSION_CONFIRMATORY_v1_1.json",
+        "seeds": [
+          971101,
+          971102,
+          971103
+        ],
+        "stories_per_task": 384,
+        "total_stories": 1152,
+        "manifest_sha256": "e5e6c0c981573c5e42ef4b5b449d8962365aa326a2b63068d39c1f18d02c6c1f",
+        "task11_input_sha256": "edc957cad4d1274d968611584c8288b53fb23332eaefe34c934ec153a7195276",
+        "task11_evaluator_labels_sha256": "174bddeb44c629ef15c876da8108868fffb92587da0fde526db68e4d3132df65",
+        "official_test_access": false,
+        "labels_used_for_learning": false,
+        "caveat": "Task 11 gender is an explicit synthetic challenge feature, not a claim about raw bAbI"
       },
-      "all_ci_and_preflight_checks": "MUST_PASS_WITH_ARTIFACT_REVIEW_BEFORE_AUTHORIZATION",
+      "task11_learning_supervision": {
+        "target_materialization": "PASS_ISOLATED_L0_L1_L2_BUNDLE_AND_FORECAST_SCORE_LIFECYCLE",
+        "raw_task11_training_signal": "WEAK_UNIQUE_GENDER_COMPATIBLE_PRIOR_ANCHOR; AMBIGUOUS_CASES_ABSTAIN; NOT_GOLD",
+        "hla_hlb_parameter_update_integration": "OPEN_NOT_DEMONSTRATED",
+        "evaluator_labels_as_observations": false
+      },
+      "all_ci_and_preflight_checks": "PASS_ON_PR_HEAD_02538EE; RESOURCE_AND_TASK11_LEARNING_UPDATE_GATES_REMAIN_OPEN",
       "explicit_user_authorization": "REQUIRED"
     },
-    "no_go_rule": "Any failed, missing, cancelled, incomplete or unverified gate keeps execution_authorized=false. Do not launch the 360-unit campaign on protocol freeze or adapter/runtime CI alone.",
+    "no_go_rule": "Any failed, missing, cancelled, incomplete or unverified gate keeps execution_authorized=false. Even with non-learning preflight accepted, do not launch a learner microbenchmark or the 360-unit campaign without explicit authorization.",
     "interpretation_guardrails": [
       "Adapter oracle agreement is not learned capability.",
       "Runtime contract acceptance is not generalisation evidence.",
@@ -516,48 +526,56 @@
       "Keep official test labels evaluator-only and generated-confirmatory evidence separate.",
       "Do not modify frozen Task 3/5 protocol, branch or artifacts."
     ],
-    "source_note": "This tracking update records the latest implementation progress discussed on 2026-11-27. It does not assert that partially implemented gates have passed.",
+    "source_note": "Preflight acceptance recorded from Actions run 46066166623 on commit 02538ee794ddd9df67297d4256b752ebf2c01894. Phase B run 46066166585 and runtime contract run 46066166586 passed. Learning-update and full campaign resource qualification remain open.",
     "active_pull_request": 55,
     "active_pull_request_url": "https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/55",
-    "active_pull_request_head": "98c88031477dda828b62fda0d34de20e882e16b2",
+    "active_pull_request_head": "02538ee794ddd9df67297d4256b752ebf2c01894",
     "active_pull_request_base": "research/babi-task-expansion-v1",
-    "pull_request_state": "OPEN_NOT_MERGED",
+    "pull_request_state": "OPEN_NOT_MERGED_AT_LEDGER_UPDATE",
     "pull_request_mergeability_at_inspection": "MERGEABLE",
     "ci_status": {
-      "preflight_run": 46000838110,
-      "runtime_contract_run": 46000838109,
-      "phase_b_adapter_run": 46000838112,
-      "all_three": "FAILED",
-      "first_blocker": "test_task11_parser_preserves_pronoun_without_inventing_cross_story_binding uses literal escaped backslash-n instead of physical newline; parser receives malformed single record",
-      "downstream_preflight": "SKIPPED; no preparation/native/shard/aggregate artifacts accepted"
+      "preflight_run": 46066166623,
+      "preflight_run_number": 61,
+      "runtime_contract_run": 46066166586,
+      "phase_b_adapter_run": 46066166585,
+      "implementation_head": "02538ee794ddd9df67297d4256b752ebf2c01894",
+      "all_three": "SUCCESS",
+      "python_versions": [
+        "3.10",
+        "3.12"
+      ],
+      "full_repository_tests": "SUCCESS_BOTH_VERSIONS",
+      "native_build": "SUCCESS",
+      "source_partition_baseline_confirmatory_prepare": "SUCCESS",
+      "four_worker_shards": "SUCCESS_ALL_FOUR",
+      "aggregate": "PASS_360_OF_360",
+      "aggregate_artifact_id": 15231091582,
+      "aggregate_artifact_sha256": "d81b1c0adf1f12c604234e35f45dc7b1a5e474cdcc69458e63aa18e215e59c4d"
     },
     "gate_assessment": {
-      "task11_raw_mentions": "IMPLEMENTED_IN_PR; CI_NOT_PASSED",
-      "independent_baselines": "IMPLEMENTED_IN_PR; CI_NOT_PASSED; TARGET_LEVEL_METRICS_INCOMPLETE",
-      "nested_partitions": "IMPLEMENTED_IN_PR; CI_NOT_PASSED",
-      "four_worker_retry_aggregation": "IMPLEMENTED_IN_PR; CI_NOT_PASSED",
-      "native_no_learning_sample": "IMPLEMENTED_IN_PR; CI_NOT_PASSED; SMALL_SAMPLE_ONLY",
-      "resource_budget": "PARTIAL_DESIGN; SYMBOLIC_WORKLOAD_AND_NATIVE_NO_LEARNING_SAMPLE_ONLY; FULL_LEARNER_COST_NOT_MEASURED",
-      "generated_confirmatory": "IMPLEMENTED_IN_PR; CI_NOT_PASSED; TASK11_ANTECEDENT_IDENTIFIABILITY_AND_FEATURE_SCHEMA_MISMATCH"
+      "task11_raw_mentions": "PASS_SOURCE_BOUNDARY; GENDER_CUE_IS_ATTRIBUTE_ONLY; NO_ANTECEDENT_INGESTION",
+      "task14_task19_input_boundaries": "PASS_SOURCE_WIDE_AUDIT_AND_RUNTIME_ACCEPTANCE",
+      "independent_baselines": "PASS_VALIDATION; TASK11_COREf_EDGE_TARGET_NOT_AVAILABLE_FROM_OFFICIAL_LABELS",
+      "nested_partitions": "PASS_90_10_WHOLE_STORY; NESTED_80_20_WARM_ONLINE",
+      "four_worker_retry_aggregation": "PASS_RUN_46066166623; 360_UNITS; ALL_RETRY_AND_AGGREGATE_CHECKS",
+      "native_no_learning_sample": "PASS_192_STORY_RUNS; 1692_NATIVE_STEPS; ZERO_UPDATES",
+      "resource_budget": "PARTIAL_NO_LEARNING_ONLY; LEARNER_COST_GATE_OPEN",
+      "generated_confirmatory": "PASS_V1_1; 384_PER_TASK; TASK11_IDENTIFIABLE_SYNTHETIC_SCHEMA; EVALUATOR_SEPARATED",
+      "task11_learning_supervision": "TARGET_MATERIALIZATION_AND_SCORING_PASS; HLA_HLB_UPDATE_ROUTING_OPEN"
     },
     "further_blockers": [
-      "Task 11 generated pronoun antecedents are randomly assigned among same-gender novel entities, making some gold bindings unidentifiable from current inputs.",
-      "Generated Task 11 grammatical_gender is not represented in Task11MentionEvent or to_nary_event; runtime and challenge input schemas differ.",
-      "Task 11 baseline uses hard-coded known-name gender priors and cannot resolve novel generated entity names.",
-      "Baseline scorecard lacks full task-specific L1 target metrics, especially antecedent/coreference-edge metrics for Task 11 and temporal-relation metrics for Task 14.",
-      "Task 11 L1 target supervision/forecast lifecycle is not demonstrated; evaluator-only support labels must not be routed into learner ingestion.",
-      "Native preflight sample excludes learning updates; 360-unit shard runner executes symbolic baselines, not actual HLA/HLB learning.",
-      "Native projection pools seconds-per-story across tasks/architectures rather than task/architecture-specific rates."
+      "Task 11 raw bAbI training/evaluator labels do not provide gold antecedent edges; do not report a coreference-edge validation metric without independent labels.",
+      "Task 11 weak unique-gender-anchor pseudo-target derivation and L0/L1/L2 forecast scoring are not yet shown updating HLA/HLB learner components.",
+      "The accepted resource preflight is non-learning only; parameter updates, trainable state growth, checkpoint/promotion/rollback cost remain unmeasured.",
+      "The generated Task 11 challenge includes a controlled explicit gender feature; it is not an official bAbI result or general coreference benchmark."
     ],
     "next_actions": [
-      "Fix the test fixture with actual newlines and assert two story records; do not relax parser.",
-      "Rerun all three failing workflows and inspect artifacts.",
-      "Verify source, partitions, baseline and confirmatory outputs after upstream workflows pass.",
-      "Redesign Task 11 generated-confirmatory task so antecedents are identifiable from declared model-visible inputs and runtime schema.",
-      "Complete target-level baseline metrics and define Task 11 L1 supervision contract.",
-      "Review four-shard retry/aggregate evidence and keep native learning resource gate partial until measured.",
-      "Synchronize PR with base, rerun final CI and inspect all artifacts.",
-      "Keep execution_authorized=false pending all gates and explicit approval."
+      "Define and test Task 11 L0 mention-binding, L1 coreference-edge and L2 entity-state learning update routing, including confidence/abstention, provenance and rollback replay.",
+      "Keep Task 11 official-validation antecedent-edge metrics unavailable until independent annotations are reviewed.",
+      "Obtain explicit authorization before any bounded HLA/HLB learning microbenchmark; then measure update-time, memory growth, checkpoint and rollback costs.",
+      "Only after those gates are reviewed may the frozen 360-unit learning campaign be considered for explicit authorization.",
+      "Synchronize PR #55 with this ledger update, run final CI on the synchronized head and inspect final artifacts.",
+      "Keep execution_authorized=false; leave frozen Task 3/5 branch and artifacts untouched."
     ]
   }
 }
