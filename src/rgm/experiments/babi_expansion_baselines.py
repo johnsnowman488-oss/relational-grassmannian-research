@@ -1,0 +1,223 @@
+"""Independent non-oracle baselines for bAbI expansion Tasks 11, 14 and 19.
+
+Prediction functions accept only observed stories/queries. Gold labels are read
+only by the scoring boundary in evaluate_baselines(), never by a predictor.
+"""
+from __future__ import annotations
+
+from collections import defaultdict, deque
+from typing import Callable, Iterable
+
+from rgm.experiments.babi_expansion_adapters import (
+    ExpansionQuery, ExpansionStory, GoldLabel, Prediction, Task11MentionEvent,
+    Task14TemporalEvent, Task19SpatialEdge, predict_task11,
+)
+
+
+_NAME_GENDER = {
+    "mary": "female", "sandra": "female", "julie": "female",
+    "john": "male", "daniel": "male", "fred": "male", "bill": "male",
+}
+_PRONOUN_GENDER = {"she": "female", "he": "male"}
+_INVERSE = {"north": "south", "south": "north", "east": "west", "west": "east"}
+_DIRECTION_CODE = {"north": "n", "south": "s", "east": "e", "west": "w"}
+_DIRECTION_ORDER = ("north", "south", "east", "west")
+
+
+def recency_only_task11(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
+    """Deliberately weak control: latest observed location, ignoring identity."""
+    if story.task_id != 11 or query.task_id != 11:
+        raise ValueError("Task 11 baseline received another task's input")
+    prior = [e for e in story.events if isinstance(e, Task11MentionEvent)
+             and e.observed_at < query.observed_at]
+    if not prior:
+        return Prediction(None, (), True, "no_prior_mention")
+    latest = max(prior, key=lambda e: e.observed_at)
+    return Prediction(latest.location, (latest.event_id,), False)
+
+
+def source_order_only_task14(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
+    """Choose the preceding same-actor event by source order, not event time."""
+    if story.task_id != 14 or query.task_id != 14:
+        raise ValueError("Task 14 baseline received another task's input")
+    events = [e for e in story.events if isinstance(e, Task14TemporalEvent)
+              and e.observed_at < query.observed_at]
+    targets = [e for e in events if e.actor == query.entity
+               and e.destination == query.target_location]
+    if not targets:
+        return Prediction(None, (), True, "target_event_not_observed")
+    target = max(targets, key=lambda e: e.observed_at)
+    prior = [e for e in events if e.actor == query.entity
+             and e.observed_at < target.observed_at]
+    if not prior:
+        return Prediction(None, (target.event_id,), True, "no_prior_source_order_event")
+    previous = max(prior, key=lambda e: e.observed_at)
+    return Prediction(previous.destination, (previous.event_id, target.event_id), False)
+
+
+def lexical_temporal_cue_task14(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
+    """Use only the observed temporal anchor rank and its source-order tie-break."""
+    if story.task_id != 14 or query.task_id != 14:
+        raise ValueError("Task 14 baseline received another task's input")
+    events = [e for e in story.events if isinstance(e, Task14TemporalEvent)
+              and e.observed_at < query.observed_at]
+    targets = [e for e in events if e.actor == query.entity
+               and e.destination == query.target_location]
+    if not targets:
+        return Prediction(None, (), True, "target_event_not_observed")
+    target = max(targets, key=lambda e: (e.event_time, e.observed_at))
+    prior = [e for e in events if e.actor == query.entity
+             and e.event_time < target.event_time]
+    if not prior:
+        return Prediction(None, (target.event_id,), True, "no_prior_temporal_location")
+    previous = max(prior, key=lambda e: (e.event_time, e.observed_at))
+    return Prediction(previous.destination, (previous.event_id, target.event_id), False)
+
+
+def direct_edge_only_task19(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
+    """Return a direction only when one observed edge directly connects endpoints."""
+    if story.task_id != 19 or query.task_id != 19:
+        raise ValueError("Task 19 baseline received another task's input")
+    candidates: list[tuple[str, str]] = []
+    for e in story.events:
+        if not isinstance(e, Task19SpatialEdge) or e.observed_at >= query.observed_at:
+            continue
+        if e.start == query.start_location and e.end == query.end_location:
+            candidates.append((_DIRECTION_CODE[e.direction], e.event_id))
+        elif e.end == query.start_location and e.start == query.end_location:
+            candidates.append((_DIRECTION_CODE[_INVERSE[e.direction]], e.event_id))
+    sequences = {direction for direction, _ in candidates}
+    if not candidates:
+        return Prediction(None, (), True, "no_direct_observed_edge")
+    if len(sequences) != 1:
+        return Prediction(None, (), True, "conflicting_direct_edges")
+    direction = next(iter(sequences))
+    witness = min(event_id for code, event_id in candidates if code == direction)
+    return Prediction(direction, (witness,), False)
+
+
+def breadth_first_search_task19(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
+    """Shortest observed-edge BFS; ambiguous shortest direction sequences abstain."""
+    if story.task_id != 19 or query.task_id != 19:
+        raise ValueError("Task 19 baseline received another task's input")
+    graph: dict[str, list[tuple[str, str, str]]] = defaultdict(list)
+    for e in story.events:
+        if not isinstance(e, Task19SpatialEdge) or e.observed_at >= query.observed_at:
+            continue
+        graph[e.start].append((e.end, e.direction, e.event_id))
+        graph[e.end].append((e.start, _INVERSE[e.direction], e.event_id))
+    for node in graph:
+        graph[node].sort(key=lambda edge: (_DIRECTION_ORDER.index(edge[1]), edge[0], edge[2]))
+    queue = deque([(query.start_location, (), (), frozenset({query.start_location}))])
+    best_depth: int | None = None
+    solutions: list[tuple[tuple[str, ...], tuple[str, ...]]] = []
+    while queue:
+        node, directions, witnesses, visited = queue.popleft()
+        depth = len(directions)
+        if best_depth is not None and depth > best_depth:
+            break
+        if node == query.end_location and directions:
+            best_depth = depth
+            solutions.append((directions, witnesses))
+            continue
+        for next_node, direction, event_id in graph.get(node, []):
+            if next_node in visited:
+                continue
+            queue.append((next_node, directions + (direction,),
+                          witnesses + (event_id,), visited | {next_node}))
+    if not solutions:
+        return Prediction(None, (), True, "no_observed_path")
+    sequences = {solution[0] for solution in solutions}
+    if len(sequences) != 1:
+        return Prediction(None, (), True, "ambiguous_shortest_paths")
+    directions, witness_ids = sorted(solutions, key=lambda item: item[1])[0]
+    answer = ",".join(_DIRECTION_CODE[d] for d in directions)
+    return Prediction(answer, witness_ids, False)
+
+
+BASELINES: dict[int, tuple[tuple[str, Callable], ...]] = {
+    11: (("nearest-compatible-antecedent", predict_task11),
+         ("recency-only", recency_only_task11)),
+    14: (("source-order-only", source_order_only_task14),
+         ("lexical-temporal-cue-rule", lexical_temporal_cue_task14)),
+    19: (("direct-edge-only", direct_edge_only_task19),
+         ("breadth-first-search", breadth_first_search_task19)),
+}
+
+
+def evaluate_baselines(
+    stories: Iterable[ExpansionStory],
+    labels: Iterable[GoldLabel],
+    *,
+    evaluate_labels: bool = True,
+) -> dict:
+    """Score predictors against evaluator labels in a separate scoring pass."""
+    story_rows = list(stories)
+    label_rows = list(labels)
+    stories_by_id = {story.story_id: story for story in story_rows}
+    queries_by_id = {
+        query.query_id: (story, query)
+        for story in story_rows for query in story.queries
+    }
+    if len(queries_by_id) != sum(len(story.queries) for story in story_rows):
+        raise ValueError("duplicate query IDs in baseline input")
+    labels_by_id = {label.query_id: label for label in label_rows}
+    if len(labels_by_id) != len(label_rows):
+        raise ValueError("duplicate evaluator labels")
+    if evaluate_labels and set(labels_by_id) != set(queries_by_id):
+        raise ValueError("baseline scorer requires exactly one evaluator label per query")
+    if not evaluate_labels and labels_by_id:
+        raise ValueError("non-evaluating baseline pass must not receive evaluator labels")
+
+    results = {}
+    for task_id in (11, 14, 19):
+        task_queries = [(query_id, pair) for query_id, pair in queries_by_id.items()
+                        if pair[0].task_id == task_id]
+        if not task_queries:
+            continue
+        results[str(task_id)] = {}
+        for name, predictor in BASELINES[task_id]:
+            query_count = correct = covered = supported = support_total = false_witnesses = 0
+            predicted_witnesses = 0
+            for query_id, (story, query) in task_queries:
+                # Predictor receives source observations only; label is accessed
+                # after prediction below, solely in this evaluator boundary.
+                prediction = predictor(story, query)
+                query_count += 1
+                covered += int(not prediction.abstained)
+                if not evaluate_labels:
+                    continue
+                label = labels_by_id[query_id]
+                correct += int(not prediction.abstained and prediction.answer == label.answer)
+                story_prefix = query_id.rsplit(":line", 1)[0]
+                gold_witnesses = {
+                    f"{story_prefix}:line{line_no:06d}"
+                    for line_no in label.support_line_numbers
+                }
+                predicted = set(prediction.witness_event_ids)
+                predicted_witnesses += len(predicted)
+                supported += len(predicted & gold_witnesses)
+                support_total += len(gold_witnesses)
+                false_witnesses += len(predicted - gold_witnesses)
+            results[str(task_id)][name] = {
+                "queries": query_count,
+                "predictions_covered": covered,
+                "coverage": covered / query_count if query_count else 0.0,
+                "prediction_presentations": query_count,
+                "labels_scored": query_count if evaluate_labels else 0,
+                "answer_exact_matches": correct if evaluate_labels else None,
+                "answer_exact_match": correct / query_count if evaluate_labels and query_count else None,
+                "support_witnesses_recalled": supported if evaluate_labels else None,
+                "support_witness_total": support_total if evaluate_labels else None,
+                "support_witness_recall": supported / support_total if evaluate_labels and support_total else None,
+                "false_witness_count": false_witnesses if evaluate_labels else None,
+                "false_witness_rate": (
+                    false_witnesses / predicted_witnesses
+                    if evaluate_labels and predicted_witnesses else None
+                ),
+            }
+    return {
+        "schema": "HLG-BABI-EXPANSION-BASELINE-EVALUATION-v1",
+        "label_scoring_enabled": evaluate_labels,
+        "task_results": results,
+    }
