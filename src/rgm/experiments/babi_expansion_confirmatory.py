@@ -47,6 +47,7 @@ def _task11(rng: random.Random, seed: int, ordinal: int) -> tuple[dict, dict]:
     current: dict[str, str] = {}
     witnesses: dict[str, list[str]] = {entity: [] for entity in entities}
     anchor_event_ids: dict[str, str] = {}
+    current_anchor_event_ids: dict[str, str] = {}
     last_event_ids: dict[str, str] = {}
     last_was_pronoun: dict[str, bool] = {}
     binding_edges = []
@@ -57,6 +58,7 @@ def _task11(rng: random.Random, seed: int, ordinal: int) -> tuple[dict, dict]:
         location = locations.pop()
         event_id = f"{story_id}-e{tick:03d}"
         anchor_event_ids[entity] = event_id
+        current_anchor_event_ids[entity] = event_id
         source_ref = f"{story_id}#event={tick:03d}"
         observations.append({
             "event_id": event_id,
@@ -96,9 +98,11 @@ def _task11(rng: random.Random, seed: int, ordinal: int) -> tuple[dict, dict]:
         if use_pronoun:
             binding_edges.append({
                 "mention_event_id": event_id,
-                "antecedent_event_id": anchor_event_ids[entity],
+                "antecedent_event_id": current_anchor_event_ids[entity],
                 "entity_id": entity,
             })
+        else:
+            current_anchor_event_ids[entity] = event_id
 
     target = rng.choice(entities)
     target_event_id = last_event_ids[target]
@@ -118,7 +122,7 @@ def _task11(rng: random.Random, seed: int, ordinal: int) -> tuple[dict, dict]:
     if last_was_pronoun[target]:
         l1_target = {
             "mention_event_id": target_event_id,
-            "antecedent_event_id": anchor_event_ids[target],
+            "antecedent_event_id": current_anchor_event_ids[target],
             "entity_id": target,
             "relation": "corefers_with",
         }
