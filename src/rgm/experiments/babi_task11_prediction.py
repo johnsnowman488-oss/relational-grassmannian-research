@@ -16,6 +16,8 @@ from rgm.experiments.babi_expansion_adapters import (
     Prediction,
     Task11MentionEvent,
     derive_task11_training_bindings,
+    _NAME_GENDER,
+    _PRONOUN_GENDER,
 )
 from rgm.leptograph.m4.learning import fingerprint
 
@@ -67,6 +69,28 @@ def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
             Prediction(None, (), True, "entity_has_no_unambiguous_story_binding"),
             None, model_fingerprint, (),
         )
+
+    # An ambiguous/unresolved pronoun after the last unambiguous mention could
+    # refer to this entity. Do not answer from a stale earlier location merely
+    # because the conservative weak resolver correctly withheld that pronoun.
+    entity_gender = _NAME_GENDER.get(query.entity.casefold())
+    if entity_gender is not None:
+        last_grounded_time = max(event.observed_at for event in grounded)
+        event_by_id = {event.event_id: event for event in visible}
+        for abstention in bindings["abstentions"]:
+            unresolved = event_by_id.get(abstention["mention_event_id"])
+            if unresolved is None or unresolved.observed_at <= last_grounded_time:
+                continue
+            unresolved_gender = (
+                unresolved.grammatical_gender
+                or _PRONOUN_GENDER.get(unresolved.surface_mention.casefold())
+            )
+            if unresolved_gender == entity_gender:
+                return Task11AnswerDecision(
+                    Prediction(None, (), True,
+                               "ambiguous_entity_mention_after_last_grounded_state"),
+                    None, model_fingerprint, tuple(event.event_id for event in grounded),
+                )
 
     previous_location = None
     model_context = None
