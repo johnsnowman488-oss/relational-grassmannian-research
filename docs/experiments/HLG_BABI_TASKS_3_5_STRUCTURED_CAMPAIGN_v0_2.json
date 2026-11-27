@@ -1,0 +1,118 @@
+{
+  "manifest_id": "HLG-BABI-T3-T5-STRUCTURED-v0.2",
+  "status": "PROPOSED_FROZEN_AMENDMENT_GATED_ON_G2_ACCEPTANCE",
+  "supersedes": "HLG-BABI-T3-T5-STRUCTURED-v0.1 for future v1.3.0 campaign execution; v0.1 retained unchanged as historical source freeze",
+  "protocol": {
+    "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.3.0",
+    "document": "docs/experiments/HLG_BABI_TASKS_3_5_LEARNING_PROTOCOL_v1_3.md",
+    "parent_protocol": "HLG-BABI-T3-T5-LEARNING-v1.2.2",
+    "key_amendments": [
+      "complete forecast issuance and explicit abstention scoring",
+      "per-target lifecycle and 100% held-out target coverage",
+      "Laplace-smoothed task-solver error-probability prediction with Brier scoring",
+      "HLB capacity 262144"
+    ]
+  },
+  "dataset": {
+    "name": "bAbI Question Answering 20 Tasks",
+    "version": "1.2.0",
+    "configuration": "English en-10k",
+    "license": "CC BY 3.0",
+    "archive_sha256": "84f5296ab9a1ad0dc9464e08c491d65cd08830fca3acae9ab86f75e0fb81573c",
+    "archive_size_bytes": 11745123,
+    "source_split_sha256": {
+      "task3_train_source": "d125e8d2987ef764d107bf9f23223bfd166400581c1ace418533b540fd19592f",
+      "task3_fit": "cdad5e4154693d833911c3093e0dcd118b1853cfab89a9a3a5123c8e1d03b63e",
+      "task3_validation": "5e8460f07f50f70ae845f43ea40012bf9d7633154addf85a3e7f1181cbf1de34",
+      "task5_train_source": "2506910935b701bac64fc8b1d7ff12bd8d0f47ceefca183454282bec784c12a5",
+      "task5_fit": "cac8d78eeb2a540e7d61b94b6331d20b7f6c7d9d492bc6f3215ea761ad868782",
+      "task5_validation": "68ac25abdc15ecb64c474b74d4053d617fb811900c97fac49f5fabf4f5282923"
+    },
+    "partitions": {
+      "fit_story_count_per_task": 1800,
+      "warm_start_story_count_per_task": 1200,
+      "online_adaptation_story_count_per_task": 600,
+      "validation_story_count_per_task": 200,
+      "confirmatory_story_count_per_task": 200,
+      "confirmatory_queries_per_story": 5,
+      "confirmatory_seeds": {
+        "task3": 953900,
+        "task5": 953901
+      },
+      "official_test": "quarantined; not scored"
+    }
+  },
+  "input_artifact": {
+    "workflow_run_id": 45957046418,
+    "artifact_id": 15179043770,
+    "artifact_name": "babi-learning-inputs",
+    "zip_sha256": "77ce2b6d9931d1d8c2cd601422d8234242bbf6664ec08e68cac43853703a79eb",
+    "annotation_manifest_sha256": "beec2c62fc3bdf1b43f7fbca28d1f4ef7b70e0ffac487cddb16272e90bbc15c8",
+    "confirmatory_input_manifest_sha256": "bdca487bf20ba9e44a76f3f8412cd0774b7309eae7f1498ce57675ef025680"
+  },
+  "historical_v1_2_2_pilot": {
+    "workflow_run_id": 45957046418,
+    "run_url": "https://github.com/johnsnowman488-oss/relational-grassmannian-research/actions/runs/45957046418",
+    "implementation_commit": "fd174d197d62f036d785a397a46130dcfce414c9",
+    "native_runtime_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
+    "native_library_sha256": "38b278a93a5b3fa3b544f55d958a2f7a44bb6e1d39154e63072f5ed7be511e4b",
+    "note": "Historical v1.2.2 single-seed six-condition pilot; does not constitute execution of v1.3.0."
+  },
+  "runtime": {
+    "native_runtime_repository": "johnsnowman488-oss/aberconics-framework",
+    "native_runtime_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
+    "native_library_sha256": "38b278a93a5b3fa3b544f55d958a2f7a44bb6e1d39154e63072f5ed7be511e4b",
+    "hlb_capacity": 262144,
+    "task3_source_events": 154786,
+    "task3_source_relation_projections": 154786,
+    "task5_source_events": 61532,
+    "task5_source_relation_projections": 73971,
+    "one_native_step_per_adapter_tick": true
+  },
+  "implementation_blob_sha256": {
+    "src/rgm/leptograph/m4/learning.py": "e00630e8391e9b8327b86272551debc13ec1c08c",
+    "src/rgm/leptograph/m4/hierarchical.py": "9bac681c2d72c2902a19e01347e3785141ea9263",
+    "src/rgm/experiments/babi_learning_campaign.py": "52334b85b63c27bc3fc1f92a727bed519c6134fe",
+    ".github/workflows/h1-babi-learning-campaign.yml": "9769b0545b3da25bfc74205a8fe7879872b9f072"
+  },
+  "matched_campaign": {
+    "seeds": [
+      953000,
+      953001,
+      953002,
+      953003,
+      953004,
+      953005,
+      953006,
+      953007,
+      953008,
+      953009
+    ],
+    "variants": [
+      "full_learning",
+      "no_temporal",
+      "no_relational",
+      "no_abstraction",
+      "no_task",
+      "no_learning"
+    ],
+    "workers": [
+      "task3-HLA",
+      "task3-HLB",
+      "task5-HLA",
+      "task5-HLB"
+    ],
+    "expected_seed_condition_outputs": 240,
+    "concurrency": 4,
+    "confirmatory_policy": "one-time generated challenge after validation-only candidate freeze"
+  },
+  "acceptance": {
+    "require_prediction_target_coverage": 1,
+    "require_score_only_candidate_fingerprint_stability": true,
+    "require_all_six_ablation_manipulations": true,
+    "require_hla_hlb_evidence_parity": true,
+    "require_zero_cross_story_witnesses": true,
+    "require_zero_provenance_failures": true,
+    "require_zero_hlb_capacity_misses": true
+  }
+}
