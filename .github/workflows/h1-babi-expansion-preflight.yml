@@ -22,6 +22,7 @@ on:
       - "scripts/freeze_babi_expansion_sources.py"
       - "scripts/audit_babi_expansion.py"
       - "scripts/generate_babi_expansion_confirmatory.py"
+      - "scripts/run_babi_expansion_native_preflight.py"
       - "tests/test_babi_expansion_*.py"
       - "docs/experiments/HLG_BABI_EXPANSION_*.json"
       - "docs/experiments/HLG_BABI_EXPANSION_*.md"
