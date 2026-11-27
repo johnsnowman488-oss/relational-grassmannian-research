@@ -298,6 +298,7 @@ class BabiExpansionRuntime:
         temporal_history: list[Task14TemporalEvent] = []
         task11_bindings_by_id = {}
         task11_events_by_id = {}
+        task11_previous_location: dict[str, str] = {}
         if story.task_id == 11:
             binding_report = derive_task11_training_bindings(story)
             task11_bindings_by_id = {
@@ -306,6 +307,7 @@ class BabiExpansionRuntime:
             }
             task11_events_by_id = {event.event_id: event for event in story.events}
         for event in story.events:
+            binding = None
             nary = to_nary_event(story, event)
             status = self._admission.append(nary)
             if status == "ABSTAIN_CAPACITY":
@@ -340,7 +342,9 @@ class BabiExpansionRuntime:
                     observed_context = None
                     suppress_context_learning = True
                 else:
-                    entity_context = f"task11:entity:{binding.entity_id}"
+                    previous_location = task11_previous_location.get(binding.entity_id)
+                    previous_key = previous_location if previous_location is not None else "__START__"
+                    entity_context = f"task11:entity:{binding.entity_id}:from:{previous_key}"
                     learning_nary_events = (
                         _task11_learning_event(nary, binding, context=entity_context),
                     )
@@ -389,6 +393,10 @@ class BabiExpansionRuntime:
                 eligibility_events=eligibility_events,
                 learn=self.learning_enabled,
             )
+            if story.task_id == 11 and isinstance(event, Task11MentionEvent) and binding is not None:
+                # The entity transition state is story-local. A new story starts
+                # from __START__; no prior story's entity/location can be reused.
+                task11_previous_location[binding.entity_id] = event.location
             outputs.append({"event_id": nary.event_id, "status": status,
                             "abstained": False, "runtime": result})
         return outputs
