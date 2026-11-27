@@ -75,7 +75,12 @@
     "L1": "typed corefers_with relation target; official validation edge gold unavailable",
     "L2": "entity-conditioned location transition",
     "answer": "separate location-answer forecast; answer and witness scoring only after prediction decisions are frozen",
-    "weak_supervision": "Pronoun target only for exactly one distinct compatible prior named entity; ambiguous/unresolved pronouns abstain; no cross-story binding."
+    "weak_supervision": "Pronoun target only for exactly one distinct compatible prior named entity; ambiguous/unresolved pronouns abstain; no cross-story binding.",
+    "architecture_specific_prediction": {
+      "HLA": "Answer transition is read from the learned ContextTransitionLearner conditioned on task11:entity:<entity>:from:<previous-location>.",
+      "HLB": "Answer transition is read from typed task11_location_transition records in HLBAdapter's rollback-scoped canonical model store; derived targets are inserted with observe(), never observe_source(), and never enter the immutable source evidence journal.",
+      "common": "Both architectures use the same source observations and conservative prior-only weak binding rule. Official answer/support labels remain evaluator-only."
+    }
   },
   "baselines": {
     "strongest_non_oracle": "nearest-compatible-antecedent",
@@ -208,7 +213,10 @@
     "generator_seed": 953200,
     "stories": 384,
     "construction": "Task 11 only; two distinct named anchors with disjoint novel names per story, explicit location changes, pronoun mentions with exactly one compatible antecedent, and a predeclared ambiguous/unresolved subset that must abstain. Keep generated input JSONL and evaluator label JSONL as separate files with independent SHA-256 hashes.",
-    "execution": "After validation candidate selection only; evaluate selected HLA and HLB candidate once each. No tuning or candidate reselection from confirmatory results."
+    "execution": "After validation candidate selection only; evaluate selected HLA and HLB candidate once each. No tuning or candidate reselection from confirmatory results.",
+    "answerable_stories": 320,
+    "ambiguous_abstention_stories": 64,
+    "generator": "generate_task11_confirmatory; inputs and evaluator labels are separate JSONL files; generated only after validation candidate selection."
   },
   "execution_gate": {
     "user_requested_sequence": true,
