@@ -1,6 +1,6 @@
 # bAbI Task Expansion — Evidence and Acceptance Preparation v1.0
 
-**Status:** Phase B adapter implementation; source-wide audit pending; no learning campaign authorized  
+**Status:** Phase B adapters passed source-wide audit; learning campaign not authorized  
 **Parent:** Task 3/5 pilot branch commit `58a13629d1ac7257a3e0627dacb35c3624217236`  
 **Scope:** Tasks 11, 14, 19 first; Task 13 second; Tasks 2 and 4 as controls.
 
@@ -98,7 +98,19 @@ The Phase B validation workflow reacquires the pinned external source members, r
 
 No learning campaign may start until these gates are reviewed and explicitly authorized.
 
-## 10. Frozen Task 3/5 implementation boundary
+## 9. Verified Phase B result
+
+The source-wide adapter validation passed on 2026-11-27:
+- Workflow run 45993209014: success.
+- Repository unit/invariant matrix run 45993208940: Python 3.10 and 3.12 both success.
+- Artifact ID 15195305886, SHA-256 39d7247dd0ab0c3f015405d8933ef0a06c111e103d2911775dae21ef8794d767.
+- Task 11, 14 and 19 training oracle exact match: 10,000/10,000 each; zero quarantines.
+- Derived fit/validation partitions are 90/10 whole-story splits with counts of 1,800/200 stories for Tasks 11 and 14, and 9,000/1,000 for Task 19.
+- Official test members were parsed label-free (200, 200 and 1,000 stories respectively); no test labels or inputs were emitted.
+
+The result verifies source parser and deterministic symbolic-oracle agreement. It is not a learning result and does not authorize campaign execution.
+
+## 10. Current known implementation boundary
 
 The current code has:
 - a numbered-story parser and evaluator-only answer/support label separation for Tasks 3 and 5;
