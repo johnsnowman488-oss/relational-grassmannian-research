@@ -7,6 +7,7 @@ on:
     paths:
       - "src/rgm/experiments/babi_expansion_runtime.py"
       - "tests/test_babi_expansion_runtime.py"
+      - "tests/test_babi_expansion_campaign_protocol.py"
       - "src/rgm/experiments/babi_expansion_adapters.py"
       - "src/rgm/leptograph/m4/**"
       - "tests/test_hlg_integrated_contract_acceptance.py"
@@ -51,7 +52,7 @@ jobs:
           python -m pip install -e ".[dev]"
       - name: Expansion adapter and runtime contract tests
         run: |
-          pytest -q tests/test_babi_expansion_adapters.py tests/test_babi_expansion_runtime.py
+          pytest -q tests/test_babi_expansion_adapters.py tests/test_babi_expansion_runtime.py tests/test_babi_expansion_campaign_protocol.py
       - name: Integrated HLG evidence and prediction lifecycle
         run: |
           pytest -q tests/test_hlg_integrated_contract_acceptance.py tests/test_hlg_learning_runtime_integration.py tests/test_hlg_learning_mechanisms.py tests/test_hlg_learning_episode_boundary.py
