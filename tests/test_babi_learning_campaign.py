@@ -77,6 +77,32 @@ def test_hlb_query_recovery_flattens_source_event_tuple():
     assert recovered == [event]
 
 
+
+
+def test_hlb_capacity_preflight_counts_event_and_relation_projections():
+    from rgm.experiments.babi_learning_campaign import (
+        HLB_CAPACITY, _capacity_requirements,
+    )
+    from rgm.experiments.babi_structured import StructuredStory
+
+    move = StructuredEvent(
+        "capacity:move", "MOVE",
+        (("actor", "amara"), ("destination", "garden")),
+        1, 1, "synthetic://capacity/move",
+    )
+    give = StructuredEvent(
+        "capacity:give", "GIVE",
+        (("giver", "amara"), ("recipient", "belen"), ("object", "book")),
+        2, 2, "synthetic://capacity/give",
+    )
+    story = StructuredStory("capacity:story", (move, give), ())
+    requirements = _capacity_requirements([(story, {})])
+
+    assert requirements == {"source_event_count": 2, "source_relation_count": 3}
+    # Frozen full Task 3 campaign needs 154,786; keep explicit safety margin.
+    assert HLB_CAPACITY >= 154786
+
+
 def test_campaign_checkpoint_is_atomic_and_marks_partial_vs_complete(tmp_path):
     import json
     from rgm.experiments.babi_learning_campaign import (
