@@ -1343,14 +1343,25 @@ class LearningRuntime:
         values = self.eligibility.values(prediction_cutoff_tick=tick)
         return values
 
-    def observe_temporal_error(self, error: float, *, tick: int, learn: bool = True) -> None:
+    def observe_temporal_error(
+        self, error: float, *, tick: int, learn: bool = True,
+        eligibility_channels: Iterable[str] | None = None,
+    ) -> None:
         if not math.isfinite(error) or error < 0:
             raise ValueError("temporal error must be finite and non-negative")
+        channels = (None if eligibility_channels is None
+                    else tuple(sorted(set(str(channel) for channel in eligibility_channels))))
+        if channels is not None and any(not channel for channel in channels):
+            raise ValueError("eligibility channel filters cannot contain empty values")
         self._observation_journal.append({
             "kind": "temporal_error", "error": float(error), "tick": int(tick),
+            "eligibility_channels": None if channels is None else list(channels),
             "learn": bool(learn),
         })
         values = self.eligibility.values(prediction_cutoff_tick=tick)
+        if channels is not None:
+            allowed = set(channels)
+            values = {key: trace for key, trace in values.items() if key[2] in allowed}
         self.last_signals = LearningSignals(
             temporal=float(error), relational=self.last_signals.relational,
             abstraction=self.last_signals.abstraction, task=self.last_signals.task,
@@ -1549,6 +1560,9 @@ class LearningRuntime:
                     self.task_outcomes.observe_error(item["task_key"], item["error"])
             elif item["kind"] == "temporal_error":
                 values = self.eligibility.values(prediction_cutoff_tick=int(item["tick"]))
+                if item.get("eligibility_channels") is not None:
+                    allowed = set(item["eligibility_channels"])
+                    values = {key: trace for key, trace in values.items() if key[2] in allowed}
                 current = self.last_signals.as_dict()
                 current["temporal"] = float(item["error"])
                 signals = LearningSignals(
