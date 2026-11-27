@@ -190,6 +190,7 @@ def make_h0_chain_spec(
     kernels: Sequence[Mapping[str, object]],
     *,
     dt: float,
+    top_down_gain: float = 1.0,
 ) -> tuple[list[dict], list[dict]]:
     """Build the matched three-level native chain specification.
 
@@ -201,6 +202,8 @@ def make_h0_chain_spec(
         raise ValueError("H0 requires exactly three memories and three kernel specifications")
     if not isfinite(dt) or dt <= 0:
         raise ValueError("dt must be finite and positive")
+    if not isfinite(top_down_gain) or top_down_gain < 0:
+        raise ValueError("top_down_gain must be finite and non-negative")
     levels = []
     for index, (memory, kernel) in enumerate(zip(memories, kernels)):
         if "gamma" not in kernel or "w" not in kernel:
@@ -216,4 +219,8 @@ def make_h0_chain_spec(
             form=int(kernel.get("form", 1)),
             coupling_index=int(kernel.get("coupling_index", 0)),
         ))
-    return levels, [dict(edge) for edge in H0_DEFAULT_EDGES]
+    edges = [dict(edge) for edge in H0_DEFAULT_EDGES]
+    for edge in edges:
+        if edge["relation"] == 1:
+            edge["gain"] = float(top_down_gain)
+    return levels, edges
