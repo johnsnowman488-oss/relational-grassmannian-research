@@ -353,7 +353,7 @@
     },
     "candidate_selection": "task-specific validation only; no pooled cross-task ranking",
     "confirmatory": "separate per-task fixed-seed generated challenge after task-specific candidate freeze",
-    "execution_gate": "No learning campaign execution until task-specific HLA/HLB prediction target integration, task baselines, forecast lifecycle and ablation parity, per-task thresholds, workload estimates, worker sharding and explicit authorization are reviewed."
+    "execution_gate": "No campaign execution until task-specific HLA/HLB prediction target integration, task baselines, forecast lifecycle and ablation parity, per-task thresholds, workload estimates, worker sharding and explicit authorization are reviewed."
   },
   "implementation": {
     "adapter_module": "src/rgm/experiments/babi_expansion_adapters.py",
