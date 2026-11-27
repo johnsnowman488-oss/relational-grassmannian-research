@@ -671,20 +671,24 @@ class _PatternCounter:
     """Deterministic empirical learner for typed semantic patterns."""
     def __init__(self) -> None:
         self.counts: dict[str, dict[str, int]] = {}
+        self._best_by_key: dict[str, str] = {}
         self._transaction_log: dict[tuple[str, str], int | None] | None = None
+        self._best_transaction_log: dict[str, str | None] | None = None
 
     def begin_transaction(self) -> None:
         if self._transaction_log is not None:
             raise RuntimeError("pattern counter transaction already active")
         self._transaction_log = {}
+        self._best_transaction_log = {}
 
     def commit_transaction(self) -> None:
-        if self._transaction_log is None:
+        if self._transaction_log is None or self._best_transaction_log is None:
             raise RuntimeError("pattern counter has no active transaction")
         self._transaction_log = None
+        self._best_transaction_log = None
 
     def rollback_transaction(self) -> None:
-        if self._transaction_log is None:
+        if self._transaction_log is None or self._best_transaction_log is None:
             raise RuntimeError("pattern counter has no active transaction")
         for (key, pattern), prior_count in self._transaction_log.items():
             bucket = self.counts.get(key)
@@ -695,20 +699,30 @@ class _PatternCounter:
                         self.counts.pop(key, None)
             else:
                 self.counts.setdefault(key, {})[pattern] = prior_count
+        for key, prior_best in self._best_transaction_log.items():
+            if prior_best is None:
+                self._best_by_key.pop(key, None)
+            else:
+                self._best_by_key[key] = prior_best
         self._transaction_log = None
+        self._best_transaction_log = None
 
     def observe(self, key: str, pattern: str) -> None:
         bucket = self.counts.setdefault(key, {})
-        if self._transaction_log is not None and (key, pattern) not in self._transaction_log:
-            self._transaction_log[(key, pattern)] = bucket.get(pattern)
+        if self._transaction_log is not None and self._best_transaction_log is not None:
+            if (key, pattern) not in self._transaction_log:
+                self._transaction_log[(key, pattern)] = bucket.get(pattern)
+            if key not in self._best_transaction_log:
+                self._best_transaction_log[key] = self._best_by_key.get(key)
         bucket[pattern] = bucket.get(pattern, 0) + 1
+        best = self._best_by_key.get(key)
+        if best is None or bucket[pattern] > bucket[best] or (
+            bucket[pattern] == bucket[best] and pattern < best
+        ):
+            self._best_by_key[key] = pattern
 
     def predict(self, key: str) -> str | None:
-        bucket = self.counts.get(key, {})
-        if not bucket:
-            return None
-        # Deterministic tie-break is lexical, never dependent on hash iteration.
-        return min(bucket, key=lambda p: (-bucket[p], p))
+        return self._best_by_key.get(key)
 
     def snapshot(self) -> dict:
         return {key: dict(sorted(values.items())) for key, values in sorted(self.counts.items())}
@@ -723,7 +737,12 @@ class _PatternCounter:
                 raise ValueError("pattern counts must be positive")
             candidate[key] = clean
         self.counts = candidate
+        self._best_by_key = {
+            key: min(values, key=lambda pattern: (-values[pattern], pattern))
+            for key, values in candidate.items() if values
+        }
         self._transaction_log = None
+        self._best_transaction_log = None
 
 
 class SemanticRelationLearner:
