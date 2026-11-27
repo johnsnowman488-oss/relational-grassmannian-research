@@ -140,6 +140,53 @@ def to_spatial_relation(event: Task19SpatialEdge) -> RelationInstance:
     return to_spatial_relations(event)[0]
 
 
+def to_task_relations(
+    story: ExpansionStory, event: Any, *,
+    prior_temporal_events: tuple[Task14TemporalEvent, ...] = (),
+) -> tuple[RelationInstance, ...]:
+    """Materialize task-specific L1 relations with exact source provenance."""
+    if story.task_id == 11 and isinstance(event, Task11MentionEvent):
+        if not event.is_pronoun:
+            return ()
+        return (RelationInstance(
+            instance_id=f"{event.event_id}:corefers_to",
+            relation_type=RelationType("corefers_to", "mention_event", "mention_event"),
+            subject=Entity(event.event_id, "mention_event"),
+            object=Entity(event.antecedent_event_id, "mention_event"),
+            event_time=float(event.observed_at),
+            observed_at=float(event.observed_at),
+            context=f"task11:{story.story_id}",
+            provenance=event.source_ref,
+        ),)
+    if story.task_id == 14 and isinstance(event, Task14TemporalEvent):
+        same_actor = [prior for prior in prior_temporal_events if prior.actor == event.actor]
+        if not same_actor:
+            return ()
+        earlier = [prior for prior in same_actor if prior.event_time < event.event_time]
+        later = [prior for prior in same_actor if prior.event_time > event.event_time]
+        if earlier:
+            before_event = max(earlier, key=lambda item: item.event_time)
+            after_event = event
+        elif later:
+            before_event = event
+            after_event = min(later, key=lambda item: item.event_time)
+        else:
+            return ()
+        return (RelationInstance(
+            instance_id=f"{before_event.event_id}:before:{after_event.event_id}",
+            relation_type=RelationType("before", "temporal_event", "temporal_event"),
+            subject=Entity(before_event.event_id, "temporal_event"),
+            object=Entity(after_event.event_id, "temporal_event"),
+            event_time=float(before_event.event_time[0]) / 1000.0,
+            observed_at=float(event.observed_at),
+            context=f"task14:{story.story_id}",
+            provenance=f"{before_event.source_ref}|{after_event.source_ref}",
+        ),)
+    if story.task_id == 19 and isinstance(event, Task19SpatialEdge):
+        return to_spatial_relations(event)
+    raise TypeError("event type does not match its expansion story task")
+
+
 def _feature_vector(task_id: int, event: Any, level: int, width: int) -> tuple[float, ...]:
     """Deterministic label-free projection shared by HLA and HLB."""
     payload = json.dumps(
@@ -164,7 +211,8 @@ class BabiExpansionRuntime:
             raise TypeError("adapter must be an existing HLAAdapter or HLBAdapter")
         self.adapter = adapter
         self.director = HierarchicalRuntimeDirector(adapter)
-        self._admission = EvidenceStore(capacity)
+        admission_capacity = min(capacity, adapter.evidence.capacity) if isinstance(adapter, HLBAdapter) else capacity
+        self._admission = EvidenceStore(admission_capacity)
         self.evidence = adapter.evidence if isinstance(adapter, HLBAdapter) else self._admission
         self._story_id: str | None = None
         self._task_id: int | None = None
@@ -174,6 +222,7 @@ class BabiExpansionRuntime:
             raise RuntimeError("runtime instance is story-scoped; create a new episode for another story")
         self._story_id, self._task_id = story.story_id, story.task_id
         outputs = []
+        temporal_history: list[Task14TemporalEvent] = []
         for event in story.events:
             nary = to_nary_event(story, event)
             status = self._admission.append(nary)
@@ -189,8 +238,12 @@ class BabiExpansionRuntime:
                 level: _feature_vector(story.task_id, event, level, self.adapter.feature_dims[level])
                 for level in range(3)
             }
-            relations = to_spatial_relations(event) if isinstance(event, Task19SpatialEdge) else ()
+            relations = to_task_relations(
+                story, event, prior_temporal_events=tuple(temporal_history),
+            )
             learning_relations = (relations[0],) if relations else ()
+            if isinstance(event, Task14TemporalEvent):
+                temporal_history.append(event)
             result = self.director.exchange(
                 event_time=nary.event_time, observed_at=nary.observed_at,
                 event_features=features,
