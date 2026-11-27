@@ -131,3 +131,45 @@ def test_campaign_checkpoint_is_atomic_and_marks_partial_vs_complete(tmp_path):
     assert completed["status"] == "completed"
     assert completed["complete"] is True
     assert completed["completed_run_count"] == completed["expected_run_count"]
+
+
+
+
+def test_begin_tick_issues_explicit_abstention_forecasts_for_unseen_l1_and_l2_contexts():
+    from rgm.leptograph.m4.learning import LearningRuntime
+
+    learning = LearningRuntime()
+    learning.fit_level0_predictor([[0.0, 0.0, 0.0, 0.0]], partition="fit")
+    predictions = learning.begin_tick(tick=0, observed_at=0.0, context="unseen-context")
+    by_target = {prediction.target_name: prediction for prediction in predictions}
+
+    assert set(by_target) == {
+        "next_l0_features", "next_relation_pattern",
+        "next_event_role_pattern", "next_context",
+    }
+    assert by_target["next_relation_pattern"].value == "__ABSTAIN__"
+    assert by_target["next_event_role_pattern"].value == "__ABSTAIN__"
+    assert by_target["next_context"].value == "__ABSTAIN__"
+
+
+def test_open_predictions_are_closed_at_phase_boundary():
+    from rgm.experiments.babi_learning_campaign import _withdraw_open_predictions
+    from rgm.leptograph.m4.learning import (
+        LearningRuntime, Level, Prediction, TargetSchema, fingerprint,
+    )
+
+    learning = LearningRuntime()
+    schema = TargetSchema("next_relation_pattern", Level.L1, "relation", 1, "exact_match")
+    prediction = Prediction(
+        "open-prediction", Level.L1, schema.name, "relation@1",
+        0, 0.0, 1, 0.0, "__ABSTAIN__", "model", fingerprint(schema.__dict__),
+    )
+    learning.predictions.issue(prediction)
+
+    class Adapter:
+        ticks = 1
+
+    adapter = Adapter()
+    adapter.learning = learning
+    assert _withdraw_open_predictions(adapter) == 1
+    assert learning.predictions.get("open-prediction").status.value == "WITHDRAWN"
