@@ -656,6 +656,25 @@ class HierarchicalRuntimeDirector:
             predictions = self.adapter.learning.begin_tick(
                 tick=self.event_tick, observed_at=previous_cutoff, context=context,
             )
+            # Relation/event-role targets exist only on source-event exchanges.
+            # Withdraw the just-issued forecasts explicitly on query-only ticks;
+            # do not leave them open to be accidentally matched to a later event.
+            if not observed_relations:
+                prediction_id = self.adapter.learning.predictions._active_by_target.get(
+                    ("next_relation_pattern", f"relation@{next_tick}")
+                )
+                if prediction_id is not None:
+                    self.adapter.learning.predictions.withdraw(
+                        prediction_id, current_tick=next_tick
+                    )
+            if not nary_events:
+                prediction_id = self.adapter.learning.predictions._active_by_target.get(
+                    ("next_event_role_pattern", f"event@{next_tick}")
+                )
+                if prediction_id is not None:
+                    self.adapter.learning.predictions.withdraw(
+                        prediction_id, current_tick=next_tick
+                    )
             if isinstance(self.adapter, HLBAdapter):
                 for level, record in relation_records:
                     statuses.append(self.adapter.observe_source(level, record))
