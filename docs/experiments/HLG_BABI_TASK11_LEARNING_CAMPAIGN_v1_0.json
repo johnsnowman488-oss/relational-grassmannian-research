@@ -230,5 +230,17 @@
       "No Task 14/19 or frozen Task 3/5 source or campaign work is included."
     ],
     "freeze_boundary": "Protocol freeze and preflight do not themselves start the 120-unit campaign. The campaign workflow may start only after the preflight and confirmatory artifact gates pass."
+  },
+  "native_runtime": {
+    "pinned_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
+    "soe_feature_dims": [
+      3,
+      3,
+      3
+    ],
+    "dt": 0.01,
+    "kernel": "Reuse the exact H0 kernel configuration from the accepted Task 11 persistent-resource qualification: gamma=reverse(SOEMemory.decay_rates), w=0.25 per channel, linear_decay=0.05 per state coordinate, forcing_bias=0.",
+    "hlb_model_relation_capacity": 262144,
+    "eligibility_capacity": 131072
   }
 }
