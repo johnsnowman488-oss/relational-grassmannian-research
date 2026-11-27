@@ -139,7 +139,13 @@ class EvidenceStore:
 
     @property
     def event_ids(self) -> tuple[str, ...]:
+        # Compatibility view for reporting/checkpoint export. Hot-path membership
+        # checks must use has_event() to avoid materializing this growing tuple.
         return tuple(self._event_order)
+
+    def has_event(self, event_id: str) -> bool:
+        """Return source-journal membership in O(1), without copying event_ids."""
+        return event_id in self._events
 
     def append(self, event: NaryEvent) -> str:
         prior = self._events.get(event.event_id)
