@@ -15,11 +15,13 @@ import re
 
 @dataclass(frozen=True)
 class Task11MentionEvent:
+    """Raw mention observation; identity resolution is baseline/learner-derived.
+
+    No entity binding or antecedent witness is stored in the source adapter.
+    """
     event_id: str
-    actor_entity: str
     surface_mention: str
     is_pronoun: bool
-    antecedent_event_id: str
     location: str
     observed_at: int
     source_ref: str
@@ -160,7 +162,6 @@ def parse_task11(path: Path, *, split: str, include_labels: bool = True):
     """Parse singular coreference and location-state questions for Task 11."""
     stories: dict[int, dict[str, list]] = {}
     labels: list[GoldLabel] = []
-    last_mention: dict[int, list[tuple[str, str, str]]] = defaultdict(list)
     move_pattern = re.compile(
         r"(?:(?:After that|Afterwards|Following that|Then)\s+)?"
         r"(?P<mention>[A-Za-z]+)\s+"
@@ -195,23 +196,10 @@ def parse_task11(path: Path, *, split: str, include_labels: bool = True):
         mention = match.group("mention").casefold()
         location = _norm(match.group("location"))
         is_pronoun = mention in _PRONOUN_GENDER
-        if is_pronoun:
-            gender = _PRONOUN_GENDER[mention]
-            candidates = [
-                item for item in last_mention[ordinal]
-                if _NAME_GENDER.get(item[0]) == gender
-            ]
-            if not candidates:
-                raise ValueError(f"{source_ref}: unresolved singular pronoun {mention!r}")
-            antecedent_entity, antecedent_event_id, _ = candidates[-1]
-            entity = antecedent_entity
-        else:
-            entity = _norm(mention)
-            antecedent_event_id = event_id
-            last_mention[ordinal].append((entity, event_id, mention))
+        # Preserve only the observed surface mention. Antecedent selection is
+        # deliberately deferred to a baseline or to the learning runtime.
         state["events"].append(Task11MentionEvent(
-            event_id, entity, mention, is_pronoun, antecedent_event_id,
-            location, line_no, source_ref,
+            event_id, mention, is_pronoun, location, line_no, source_ref,
         ))
 
     result = [
@@ -341,21 +329,40 @@ def parse_expansion_source(path: Path, *, task_id: int, split: str,
 
 
 def predict_task11(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
+    """Nearest gender-compatible antecedent baseline over raw mention events.
+
+    This is a deterministic, source-grammar baseline, not a parser annotation
+    and not a learned coreference result. It sees no GoldLabel or support IDs.
+    """
     if story.task_id != 11 or query.task_id != 11:
         raise ValueError("Task 11 predictor received another task's input")
-    candidates = [
-        event for event in story.events
-        if isinstance(event, Task11MentionEvent)
-        and event.actor_entity == query.entity
-        and event.observed_at < query.observed_at
-    ]
-    if not candidates:
+    history: list[tuple[str, str, str]] = []
+    state: dict[str, tuple[str, str, tuple[str, ...]]] = {}
+    for event in story.events:
+        if not isinstance(event, Task11MentionEvent) or event.observed_at >= query.observed_at:
+            continue
+        mention = event.surface_mention.casefold()
+        if not event.is_pronoun:
+            entity = _norm(mention)
+            history.append((entity, event.event_id, _NAME_GENDER.get(entity, "unknown")))
+            state[entity] = (event.location, event.event_id, (event.event_id,))
+            continue
+        gender = _PRONOUN_GENDER.get(mention)
+        if not gender:
+            continue
+        candidates = [row for row in history if row[2] == gender]
+        if not candidates:
+            continue
+        entity, antecedent_id, _ = candidates[-1]
+        previous = state.get(entity)
+        witnesses = (antecedent_id, event.event_id)
+        if previous:
+            witnesses = tuple(dict.fromkeys(previous[2] + witnesses))
+        state[entity] = (event.location, event.event_id, witnesses)
+    target = state.get(query.entity or "")
+    if target is None:
         return Prediction(None, (), True, "entity_state_not_observed")
-    latest = max(candidates, key=lambda event: event.observed_at)
-    witnesses = (latest.event_id,)
-    if latest.is_pronoun and latest.antecedent_event_id != latest.event_id:
-        witnesses = (latest.antecedent_event_id, latest.event_id)
-    return Prediction(latest.location, witnesses, False)
+    return Prediction(target[0], target[2], False)
 
 
 def predict_task14(story: ExpansionStory, query: ExpansionQuery) -> Prediction:
