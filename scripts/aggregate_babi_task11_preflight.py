@@ -45,7 +45,7 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
             violations.append(f"{key}: native runtime commit differs from pinned ABI")
         if row.get("soe_feature_dims") != [3, 3, 3] or row.get("soe_dt") != 0.01:
             violations.append(f"{key}: SOE feature dimensions/time step differ from frozen configuration")
-        if row.get("top_down_gain") != 0.001:
+        if row.get("top_down_gain") != 1e-8:
             violations.append(f"{key}: top-down gain differs from stability-frozen value")
         if (row.get("task_id") != 11 or row.get("fit_stories") != 1800
                 or row.get("warm_start_stories") != 1440
@@ -95,7 +95,7 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
         "native_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
         "soe_feature_dims": [3, 3, 3],
         "soe_dt": 0.01,
-        "top_down_gain": 0.001,
+        "top_down_gain": 1e-8,
         "run_units_expected": 4,
         "run_units_accepted": len(reports),
         "run_keys": sorted(reports),
