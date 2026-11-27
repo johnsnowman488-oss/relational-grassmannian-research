@@ -27,9 +27,9 @@ from rgm.leptograph.m4.learning import ErrorChannel, LearningRuntime
 from rgm.memory.soe import SOEMemory
 
 
-NATIVE_COMMIT = "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de"
+NATIVE_COMMIT = "4bbcaa132131733372c17a68895a329a030c84d0"
 HLB_CAPACITY = 262144
-TOP_DOWN_GAIN = 1e-8
+TOP_DOWN_GAIN = 1.0
 ELIGIBILITY_CAPACITY = 131072
 SOE_DT = 0.01
 FEATURE_DIMS = (3, 3, 3)
