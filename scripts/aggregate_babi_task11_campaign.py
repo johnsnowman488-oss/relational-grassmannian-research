@@ -193,11 +193,14 @@ def aggregate(manifest_path: Path, protocol_path: Path, run_root: Path,
 
     grouped = defaultdict(list)
     grouped_dirs = defaultdict(list)
+    grouped_pairs = defaultdict(list)
     for row, root in row_dir_pairs:
-        grouped[(row["architecture"], row["condition"])].append(row)
-        grouped_dirs[(row["architecture"], row["condition"])].append(root)
-    for key, rows in grouped.items():
-        rows.sort(key=lambda row: row["seed"])
+        grouped_pairs[(row["architecture"], row["condition"])].append((row, root))
+    for key, pairs in grouped_pairs.items():
+        pairs.sort(key=lambda pair: pair[0]["seed"])
+        grouped[key] = [pair[0] for pair in pairs]
+        grouped_dirs[key] = [pair[1] for pair in pairs]
+        rows = grouped[key]
         if len(rows) != 10 or [row["seed"] for row in rows] != list(SEEDS):
             raise ValueError(f"{key}: expected ten unique seeds")
 
