@@ -86,6 +86,11 @@ def test_task19_relation_orientation_is_encoded_in_typed_edge():
     assert relation.object.entity_id == "hallway"
     assert relation.relation_type.name == "spatial_east"
     assert relation.provenance == "train#1"
+    from rgm.experiments.babi_expansion_runtime import to_spatial_relations
+    forward, inverse = to_spatial_relations(event)
+    assert (forward.subject.entity_id, forward.object.entity_id) == ("kitchen", "hallway")
+    assert (inverse.subject.entity_id, inverse.object.entity_id) == ("hallway", "kitchen")
+    assert inverse.relation_type.name == "spatial_west"
 
 
 def test_task_specific_prediction_contracts_bind_l0_l1_l2_and_answer_levels():
