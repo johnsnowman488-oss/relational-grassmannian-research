@@ -32,17 +32,32 @@ def _entity_token(rng: random.Random, index: int) -> str:
 
 
 def _task11(rng: random.Random, seed: int, ordinal: int) -> tuple[dict, dict]:
-    entities = [_entity_token(rng, i) for i in range(4)]
-    genders = {entity: rng.choice(("female", "male")) for entity in entities}
+    """Generate an identifiable two-entity coreference episode.
+
+    The two name anchors have distinct, explicitly model-visible grammatical-
+    gender cues. Every pronoun therefore has exactly one compatible antecedent.
+    The generated cue is part of the synthetic input schema, not a hidden
+    evaluator-only attribute or a claim about raw bAbI surface text.
+    """
+    entities = [_entity_token(rng, i) for i in range(2)]
+    genders = {entities[0]: "female", entities[1]: "male"}
     locations = [f"place_{rng.randrange(10_000, 99_999)}" for _ in range(12)]
+    story_id = f"t11-s{seed}-story{ordinal:04d}"
     observations = []
     current: dict[str, str] = {}
     witnesses: dict[str, list[str]] = {entity: [] for entity in entities}
+    anchor_event_ids: dict[str, str] = {}
+    last_event_ids: dict[str, str] = {}
+    last_was_pronoun: dict[str, bool] = {}
+    binding_edges = []
     tick = 0
+
     for entity in entities:
         tick += 1
         location = locations.pop()
-        event_id = f"t11-s{seed}-story{ordinal:04d}-e{tick:03d}"
+        event_id = f"{story_id}-e{tick:03d}"
+        anchor_event_ids[entity] = event_id
+        source_ref = f"{story_id}#event={tick:03d}"
         observations.append({
             "event_id": event_id,
             "surface_mention": entity,
@@ -50,39 +65,90 @@ def _task11(rng: random.Random, seed: int, ordinal: int) -> tuple[dict, dict]:
             "grammatical_gender": genders[entity],
             "location": location,
             "observed_at": tick,
+            "source_ref": source_ref,
         })
         current[entity] = location
         witnesses[entity].append(event_id)
+        last_event_ids[entity] = event_id
+        last_was_pronoun[entity] = False
+
     for _ in range(8):
         tick += 1
         entity = rng.choice(entities)
         use_pronoun = rng.random() < 0.60
         surface = ("she" if genders[entity] == "female" else "he") if use_pronoun else entity
         location = locations.pop()
-        event_id = f"t11-s{seed}-story{ordinal:04d}-e{tick:03d}"
+        event_id = f"{story_id}-e{tick:03d}"
+        source_ref = f"{story_id}#event={tick:03d}"
         observations.append({
             "event_id": event_id,
             "surface_mention": surface,
             "is_pronoun": use_pronoun,
-            "grammatical_gender": genders[entity] if use_pronoun else genders[entity],
+            "grammatical_gender": genders[entity],
             "location": location,
             "observed_at": tick,
+            "source_ref": source_ref,
         })
         current[entity] = location
         witnesses[entity].append(event_id)
-    target = rng.choice(entities)
-    query = {
-        "query_id": f"t11-s{seed}-story{ordinal:04d}-q",
-        "task_id": 11,
-        "target_entity": target,
-        "observed_at": tick + 1,
-    }
-    inp = {"story_id": f"t11-s{seed}-story{ordinal:04d}", "task_id": 11,
-           "observations": observations, "query": query}
-    label = {"query_id": query["query_id"], "gold_answer": current[target],
-             "support_event_ids": witnesses[target]}
-    return inp, label
+        last_event_ids[entity] = event_id
+        last_was_pronoun[entity] = use_pronoun
+        if use_pronoun:
+            binding_edges.append({
+                "mention_event_id": event_id,
+                "antecedent_event_id": anchor_event_ids[entity],
+                "entity_id": entity,
+            })
 
+    target = rng.choice(entities)
+    target_event_id = last_event_ids[target]
+    query = {
+        "query_id": f"{story_id}-q",
+        "task_id": 11,
+        "entity": target,
+        "observed_at": tick + 1,
+        "source_ref": f"{story_id}#query",
+    }
+    inp = {
+        "story_id": story_id,
+        "task_id": 11,
+        "events": observations,
+        "query": query,
+    }
+    if last_was_pronoun[target]:
+        l1_target = {
+            "mention_event_id": target_event_id,
+            "antecedent_event_id": anchor_event_ids[target],
+            "entity_id": target,
+            "relation": "corefers_with",
+        }
+    else:
+        l1_target = {
+            "mention_event_id": target_event_id,
+            "antecedent_event_id": None,
+            "entity_id": target,
+            "relation": "self_anchor",
+        }
+    label = {
+        "query_id": query["query_id"],
+        "source_ref": f"{story_id}#evaluator-label",
+        "gold_answer": current[target],
+        "support_event_ids": witnesses[target],
+        "mention_binding_edges": binding_edges,
+        "task11_supervision": {
+            "l0_mention_binding": {
+                "mention_event_id": target_event_id,
+                "entity_id": target,
+            },
+            "l1_coreference_edge": l1_target,
+            "l2_entity_state": {
+                "entity_id": target,
+                "location": current[target],
+                "witness_event_ids": witnesses[target],
+            },
+        },
+    }
+    return inp, label
 
 def _task14(rng: random.Random, seed: int, ordinal: int) -> tuple[dict, dict]:
     actor = f"actor_{rng.randrange(100_000, 999_999)}"
@@ -168,7 +234,7 @@ def generate(output_root: Path) -> dict:
         "stories_per_seed_per_task": STORIES_PER_SEED,
         "task_ids": list(TASKS),
         "task_generators": {
-            "11": "raw name/pronoun mentions, novel entity tokens, location-state query; no resolved antecedent in input",
+            "11": "two novel entities with distinct model-visible grammatical-gender cues; pronoun antecedents are uniquely identifiable; bindings/targets remain evaluator-only",
             "14": "shuffled source-order temporal events with explicit ordinal anchor features; before-destination query",
             "19": "novel directed spatial chain with ordered route query and source edge witnesses",
         },
@@ -199,15 +265,29 @@ def generate(output_root: Path) -> dict:
         label_ids = [row["query_id"] for row in label_rows]
         if len(set(input_ids)) != len(input_ids) or set(input_ids) != set(label_ids):
             raise AssertionError(f"Task {task_id}: confirmatory query/label identity mismatch")
-        forbidden = {"gold_answer", "support_event_ids", "support_line_numbers", "answer"}
+        forbidden = {"gold_answer", "support_event_ids", "support_line_numbers", "answer",
+                     "mention_binding_edges", "task11_supervision", "antecedent_event_id"}
         for row in input_rows:
             if forbidden & set(row):
                 raise AssertionError(f"Task {task_id}: evaluator field found in input record")
             if forbidden & set(row["query"]):
                 raise AssertionError(f"Task {task_id}: evaluator field found in query")
-            for event in row["observations"]:
+            event_rows = row["events"] if task_id == 11 else row["observations"]
+            for event in event_rows:
                 if forbidden & set(event):
                     raise AssertionError(f"Task {task_id}: evaluator field found in observation")
+            if task_id == 11:
+                from rgm.experiments.babi_expansion_adapters import task11_confirmatory_input_to_story
+                story = task11_confirmatory_input_to_story(row)
+                anchors = {e.surface_mention: e.grammatical_gender for e in story.events if not e.is_pronoun}
+                if len(anchors) != 2 or set(anchors.values()) != {"female", "male"}:
+                    raise AssertionError("Task 11 confirmatory anchors must have distinct gender cues")
+                for event in story.events:
+                    if event.is_pronoun:
+                        matches = [name for name, gender in anchors.items()
+                                   if gender == event.grammatical_gender]
+                        if len(matches) != 1:
+                            raise AssertionError("Task 11 pronoun antecedent is not identifiable")
         manifest["files"][str(task_id)] = {
             "inputs": {"path": inputs_path.name, "rows": len(input_rows), "sha256": _sha(inputs_path)},
             "evaluator_labels": {"path": labels_path.name, "rows": len(label_rows), "sha256": _sha(labels_path)},
@@ -250,8 +330,14 @@ def verify(output_root: Path) -> dict:
             raise ValueError(f"Task {task_id}: duplicate confirmatory query/label IDs")
         if input_ids != label_ids:
             raise ValueError(f"Task {task_id}: input/label partition mismatch")
-        if any("gold_answer" in json.dumps(row) or "support_event_ids" in json.dumps(row) for row in inputs):
+        forbidden_input_tokens = ("gold_answer", "support_event_ids", "support_line_numbers",
+                                  "mention_binding_edges", "task11_supervision", "antecedent_event_id")
+        if any(token in json.dumps(row) for row in inputs for token in forbidden_input_tokens):
             raise ValueError(f"Task {task_id}: evaluator content leaked into inputs")
+        if task_id == 11:
+            from rgm.experiments.babi_expansion_adapters import task11_confirmatory_input_to_story
+            for row in inputs:
+                task11_confirmatory_input_to_story(row)
     return {"status": "PASS", "manifest_sha256": manifest["manifest_sha256"],
             "task_count": len(TASKS), "stories_per_task": STORIES_PER_SEED * len(CONFIRMATORY_SEEDS)}
 
