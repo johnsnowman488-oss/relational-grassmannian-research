@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 
 from rgm.memory import SOEMemory
-from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge, SOEStateLayout, make_native_level_spec
+from rgm.leptograph.m4.soe_bridge import (
+    SOEHierarchyBridge, SOEStateLayout, make_h0_chain_spec, make_native_level_spec,
+)
 
 
 class FakeRuntime:
@@ -135,3 +137,17 @@ def test_native_step_failure_does_not_commit_python_soe_state():
     with pytest.raises(RuntimeError, match="native step rejected"):
         bridge.step({0: [1.0, 0.0, 0.0]})
     assert all(np.array_equal(a, b.channels) for a, b in zip(before, banks))
+
+
+
+def test_h0_chain_spec_accepts_bounded_top_down_gain_without_changing_bottom_up_edges():
+    banks = [SOEMemory(feature_dim=3, decay_rates=[0.1, 0.5]) for _ in range(3)]
+    kernels = [
+        {"gamma": [0.5, 0.1], "w": [0.4, 0.6]}
+        for _ in banks
+    ]
+    _, edges = make_h0_chain_spec(
+        banks, kernels, dt=0.01, top_down_gain=0.001,
+    )
+    assert [edge["gain"] for edge in edges if edge["relation"] == 1] == [0.001, 0.001]
+    assert [edge["gain"] for edge in edges if edge["relation"] == 0] == [1.0, 1.0]
