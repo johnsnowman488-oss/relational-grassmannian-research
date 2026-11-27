@@ -93,12 +93,18 @@ No Task 14/19 experiment or Task 3/5 modification is permitted in this sequence.
 
 ## Full-scale native stability calibration
 
-The accepted 32-story-per-shard resource qualification used the default H0 top-down gain of 1.0. That bounded sample did not expose the long-sequence numerical failure.
+The accepted 32-story-per-shard resource qualification used the original Aberconics native commit `2539df6bda7ef3c9dd7c707abe26eff8bdbb59de` with H0 top-down gain 1.0. That bounded sample did not expose the long-sequence numerical failure.
 
-The first full-scale fit-only preflight, with the same gain, failed at Task 11 story `task11/train/story000050`, event `line000001`, observation tick 386. The native state maxima across the three levels were approximately 302, 640 and 932. The first two spectral reports returned non-finite `mcap=inf`; the native exchange then failed with `sum(w) must be non-zero`. The active kernel weights themselves remained positive (0.25 per channel). This is a numerical stability failure in exponential top-down modulation under accumulated SOE state, not a label-leakage or Task 11 parser failure.
+The first full-scale fit-only preflight on that native commit failed at Task 11 story `task11/train/story000050`, event `line000001`, observation tick 386. Native state maxima across the three levels were approximately 302, 640 and 932; the first two spectral reports returned non-finite `mcap=inf`, followed by `sum(w) must be non-zero`. A subsequent gain-0.001 attempt failed at story 530 after state magnitudes exceeded 1.57 million and spectral values became non-finite. Gain reduction was therefore not accepted as the architectural fix. Gain 1e-8 was an interim diagnostic configuration only and is not the frozen campaign setting.
 
-The first full-scale preflight with `top_down_gain=0.001` also failed at story 530 in both no-learning architectures. The native mapper applies `exp(±gain × mean-absolute source state)`; the accumulated state pushed that exponent beyond the finite range, collapsing the modulated kernel weights. The protocol now freezes `top_down_gain=1e-8` for both HLA and HLB, all six conditions and all ten seeds. This keeps the modulation close to its base kernel at the observed state scale while retaining a finite positive coupling. It is a fit-only numerical-stability setting, not a validation-selected predictive hyperparameter. The 32-story qualification remains valid for its original gain-1.0 configuration; neither that sample nor the failed gain-0.001 preflight substitutes for a successful full-scale preflight at gain 1e-8.
+The underlying defect was unbounded mean-absolute SOE state entering exponential top-down kernel modulation. Aberconics PR #12 fixed this in native code and merged as `4bbcaa132131733372c17a68895a329a030c84d0`. The native fix:
+- saturates the mean-absolute top-down observable with `tanh` using long-double accumulation and finite-input checks;
+- uses stable log-sum-exp normalization for positive kernel weights;
+- rejects non-finite or non-positive decay-rate materialization;
+- bounds top-down edge gain magnitude at 50; and
+- includes a C++ regression test with observables of magnitude 1e9, finite positive kernels and finite spectral Mcap.
 
+The campaign now pins native commit `4bbcaa132131733372c17a68895a329a030c84d0` and restores H0 top-down gain 1.0 for HLA and HLB, all six conditions and all ten seeds. This retains the intended modulation strength while bounding its drive in the native implementation. Native Linux/Windows C++ and Python CI passed; the full-scale Task 11 resource/integrity preflight on this exact commit remains mandatory. The earlier 32-story resource reports remain preserved as historical evidence for the original native commit and are not substituted for the new full-scale preflight.
 
 ## Interpretation of the six conditions
 
