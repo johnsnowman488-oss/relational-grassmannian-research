@@ -933,6 +933,13 @@ class TaskOutcomeLearner:
                 del self.outcomes[key][prior_length:]
         self._transaction_log = None
 
+    def predict_error_probability(self, task_key: str) -> float:
+        """Laplace-smoothed prior probability that this task channel errs."""
+        if not task_key:
+            raise ValueError("task outcome prediction requires a task key")
+        values = self.outcomes.get(task_key, ())
+        return float((sum(values) + 1) / (len(values) + 2))
+
     def observe_error(self, task_key: str, error: float) -> None:
         if not task_key or not math.isfinite(error) or error < 0:
             raise ValueError("task outcome requires a key and finite non-negative error")
@@ -1127,17 +1134,17 @@ class LearningRuntime:
             self.predictions.issue(prediction)
             issued.append(prediction)
         pattern = self.relations.predict(context)
-        if pattern is not None:
-                self._prediction_sequence += 1
-                schema = self.schemas["next_relation_pattern"]
-                prediction = Prediction(
-                    f"lrn-rel-{self._prediction_sequence}", Level.L1, schema.name,
-                    f"relation@{tick + 1}", tick, observed_at, schema.horizon_ticks,
-                    observed_at, self.relations._encode(pattern), fingerprint(self.relations.snapshot()),
-                    fingerprint(schema.__dict__),
-                )
-                self.predictions.issue(prediction)
-                issued.append(prediction)
+        self._prediction_sequence += 1
+        schema = self.schemas["next_relation_pattern"]
+        prediction = Prediction(
+            f"lrn-rel-{self._prediction_sequence}", Level.L1, schema.name,
+            f"relation@{tick + 1}", tick, observed_at, schema.horizon_ticks,
+            observed_at,
+            self.relations._encode(pattern) if pattern is not None else "__ABSTAIN__",
+            fingerprint(self.relations.snapshot()), fingerprint(schema.__dict__),
+        )
+        self.predictions.issue(prediction)
+        issued.append(prediction)
         next_context = self.context_transitions.predict(context)
         if next_context is not None:
             self._prediction_sequence += 1
@@ -1151,17 +1158,17 @@ class LearningRuntime:
             self.predictions.issue(prediction)
             issued.append(prediction)
         role_pattern = self.event_roles.predict(context)
-        if role_pattern is not None:
-            self._prediction_sequence += 1
-            schema = self.schemas["next_event_role_pattern"]
-            prediction = Prediction(
-                f"lrn-role-{self._prediction_sequence}", Level.L1, schema.name,
-                f"event@{tick + 1}", tick, observed_at, schema.horizon_ticks,
-                observed_at, self.event_roles._encode(role_pattern), fingerprint(self.event_roles.snapshot()),
-                fingerprint(schema.__dict__),
-            )
-            self.predictions.issue(prediction)
-            issued.append(prediction)
+        self._prediction_sequence += 1
+        schema = self.schemas["next_event_role_pattern"]
+        prediction = Prediction(
+            f"lrn-role-{self._prediction_sequence}", Level.L1, schema.name,
+            f"event@{tick + 1}", tick, observed_at, schema.horizon_ticks,
+            observed_at,
+            self.event_roles._encode(role_pattern) if role_pattern is not None else "__ABSTAIN__",
+            fingerprint(self.event_roles.snapshot()), fingerprint(schema.__dict__),
+        )
+        self.predictions.issue(prediction)
+        issued.append(prediction)
         return tuple(issued)
 
     def _score_and_update(self, name: str, key: str, value: Any, source_id: str,
@@ -1326,18 +1333,29 @@ class LearningRuntime:
             self.temporal_credit.update(float(error), values)
 
     def observe_task_error(self, task_key: str, error: float, *, learn: bool = True) -> None:
-        if not task_key or not math.isfinite(error) or error < 0:
-            raise ValueError("task outcome requires a key and finite non-negative error")
-        self._observation_journal.append({"kind": "task", "task_key": task_key, "error": float(error)})
-        if error > 0:
-            self.last_signals = LearningSignals(
-                temporal=self.last_signals.temporal, relational=self.last_signals.relational,
-                abstraction=self.last_signals.abstraction, task=error,
-                integrity_failures=self.last_signals.integrity_failures,
-            )
-            routed = self.error_router.route(self.last_signals)
-            if learn and "task_outcome_learner" in routed:
-                self.task_outcomes.observe_error(task_key, error)
+        """Score the task channel's prior error-probability forecast, then update it.
+
+        The target is the committed binary task outcome (1=solver error, 0=correct).
+        This calibrates task-level reliability; it does not train or claim to be
+        the deterministic answer executor.
+        """
+        if not task_key or not math.isfinite(error) or error < 0 or error > 1:
+            raise ValueError("task outcome requires a key and a binary-range error")
+        target = float(error > 0.0)
+        predicted = self.task_outcomes.predict_error_probability(task_key)
+        brier_error = (predicted - target) ** 2
+        self._observation_journal.append({
+            "kind": "task", "task_key": task_key, "target_error": target,
+            "predicted_error_probability": predicted, "brier_error": brier_error,
+        })
+        self.last_signals = LearningSignals(
+            temporal=self.last_signals.temporal, relational=self.last_signals.relational,
+            abstraction=self.last_signals.abstraction, task=brier_error,
+            integrity_failures=self.last_signals.integrity_failures,
+        )
+        routed = self.error_router.route(self.last_signals)
+        if learn and "task_outcome_learner" in routed:
+            self.task_outcomes.observe_error(task_key, target)
 
     def transaction_checkpoint(self) -> dict[str, Any]:
         """Capture rollback-scoped state without copying append-only histories."""
