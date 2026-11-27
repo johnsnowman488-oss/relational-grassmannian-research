@@ -190,3 +190,59 @@ The latest recorded work note says the confirmatory manifest uses three fixed se
 - Report task-specific results separately; do not pool Tasks 11, 14 and 19 into a score that conceals a failed capability.
 - Preserve official test labels as evaluator-only and keep generated-confirmatory evidence separate from official test evidence.
 - Do not modify the frozen Task 3/5 branch, protocol, artifacts or thresholds as part of this workstream.
+
+
+## 12. PR #55 preflight investigation — 2026-11-27
+
+**Active implementation:** [PR #55 — Implement leakage-safe bAbI expansion execution preflight](https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/55)  
+**Head branch:** `research/babi-expansion-preflight-v1`  
+**Head commit inspected:** `98c88031477dda828b62fda0d34de20e882e16b2`  
+**Base:** `research/babi-task-expansion-v1`  
+**PR state:** open, not merged. The head is 29 commits ahead and 2 commits behind the base after this ledger update; GitHub currently reports it mergeable.
+
+### CI status and first blocking defect
+
+The latest inspected head commit has three associated workflow runs, all failed:
+
+- `46000838110` — controlled execution preflight: Python 3.10 and 3.12 full-suite jobs failed; preparation, native build, four-shard and aggregate jobs were skipped.
+- `46000838109` — runtime/prediction-contract workflow: Python 3.10 and 3.12 jobs failed.
+- `46000838112` — Phase B adapter validation workflow: failed.
+
+All three failures converge on one test-fixture defect in `tests/test_babi_expansion_adapters.py::test_task11_parser_preserves_pronoun_without_inventing_cross_story_binding`. The fixture contains escaped backslash-n characters rather than actual newline characters. The parser therefore receives one malformed physical line and raises an unsupported Task 11 statement error. The failure is in the test fixture, not evidence that raw-pronoun parsing itself failed. Correct the fixture to contain actual line breaks and assert the intended two-story boundary explicitly (each line-number reset to 1 starts a new story); then rerun all three workflows. Do not weaken the parser to accept malformed input.
+
+The full-suite log reports 552 tests passed and one failed on Python 3.10; the focused workflow reports 21 passed and one failed. No downstream preflight artifact exists from these runs, so none of the new source/partition/baseline/native/shard/aggregate gates has yet been demonstrated by this PR's CI.
+
+### Implemented in PR #55, pending acceptance
+
+- Task 11 runtime inputs now contain surface mention, pronoun flag, location and provenance only; parser-side antecedent/entity binding was removed. Task 11 L1 ingestion no longer fabricates a coreference edge.
+- Independent baseline predictors were added for Tasks 11, 14 and 19, with a validation scorecard and answer/witness/coverage metrics.
+- Deterministic whole-story 90/10 fit/validation partitioning and nested 80/20 warm-start/online partitioning were added.
+- The 360-key manifest and four modulo-assigned 90-unit shards were added.
+- Retry-safe per-unit evidence and injected mid-shard failure/retry logic were added.
+- A pinned Aberconics native HLA/HLB no-learning sample was added.
+- A generated confirmatory challenge was added: three seeds (971101–971103), 128 stories per seed per task, 384 per task and 1,152 overall.
+
+These are implementation facts from the PR diff, not accepted gate results.
+
+### Further blockers and scientific design risks found in source review
+
+1. **Task 11 confirmatory identifiability/input mismatch.** The generator randomly assigns genders to four novel entities and randomly assigns pronoun events to those entities. With multiple entities sharing a gender, the pronoun surface alone does not identify which entity was intended; the generator's gold state may depend on a hidden random choice. It emits a `grammatical_gender` field, but `Task11MentionEvent` and `to_nary_event` do not carry that field into the runtime. The existing nearest-compatible baseline also relies on a hard-coded known-name gender table and cannot use the novel generated names. The challenge must be redesigned so every pronoun antecedent is observable/identifiable under the declared input contract, and the exact same model-visible features are consumed by the runtime and evaluator. Do not accept the current Task 11 challenge as a valid coreference generalisation test.
+2. **Baseline target-level coverage is incomplete.** The baseline scorecard currently reports answer exact match, support-witness recall, false-witness rate and coverage. The frozen task contracts additionally require direct target-level evidence such as Task 11 antecedent/coreference-edge quality, Task 14 temporal-order/relation quality, and Task 19 edge/path composition diagnostics. In particular, the Task 11 baseline returns answer and witness IDs but no explicit predicted antecedent edge set. Add task-level target metrics or narrow the protocol claims before using this scorecard for candidate-selection readiness.
+3. **Runtime target materialization remains unproven.** The runtime declares L0/L1/L2 target schemas, but Task 11's observed ingestion intentionally creates no L1 coreference relation. The inspected preflight PR does not demonstrate causal issuance/scoring of Task 11 binding forecasts or equivalent task-specific L1/L2 target observations. The later learning runner must define where these targets come from without turning evaluator-only support labels into learner inputs. If the bAbI labels do not provide direct coreference-edge supervision, document and test the alternative self-supervised/weak-supervision contract explicitly.
+4. **Resource budget is partial by design.** The native script measures a small no-learning sample (8 fit stories per task per shard, HLA and HLB; 48 story-runs per shard). The 360-unit shard runner executes symbolic baseline presentations and orchestration only; it does not run HLA/HLB learner updates. The aggregate explicitly excludes native learner compute. This is useful orchestration and no-learning runtime evidence, but it is not a measured full-learning campaign runtime or a complete resource budget. Keep that distinction in the gate status and obtain a justified learning-cost estimate or separately authorized bounded learning microbenchmark before claiming the campaign resource gate closed.
+5. **Native projection is coarse.** Aggregate projection uses one pooled seconds-per-story value across tasks and architectures, even though event counts and per-task runtime differ. Report task/architecture-specific sample rates and event-normalized rates; avoid presenting the pooled projection as a reliable campaign estimate.
+6. **PR/base synchronization.** The PR branch is two commits behind the base because the dedicated ledger was updated after the PR branch point. GitHub reports mergeable at inspection, but synchronize the branch before final merge and rerun affected CI on the final merge candidate.
+
+### Required next sequence
+
+1. Repair the newline fixture only; preserve the strict parser and assert two distinct stories.
+2. Rerun all three currently failing workflows and inspect complete logs.
+3. Only after tests pass, run source acquisition/audit, confirmatory generation/verification and partition/baseline preparation; inspect artifacts and hashes.
+4. Redesign Task 11 generated-confirmatory inputs/labels to remove hidden antecedent ambiguity and align generator/runtime feature schemas.
+5. Add or explicitly defer target-level baseline metrics and define the Task 11 L1 supervision/forecast lifecycle.
+6. Complete four-shard no-learning/retry/aggregation CI, then review exact 360-key coverage and evidence.
+7. Keep resource acceptance marked partial until the native learner cost is measured or a justified bounded estimate is independently reviewed.
+8. Synchronize PR #55 with the updated base, rerun final CI and inspect every artifact.
+9. Keep `execution_authorized=false` until every required gate is accepted and explicit authorization is given.
+
+**Current decision:** PR #55 is useful and contains substantial gate-closing work, but no outstanding gate is considered passed by its latest CI. The first immediate repair is a malformed test fixture; the Task 11 confirmatory identifiability and runtime-feature mismatch are the most important design-level blockers to resolve before accepting the generated challenge.
