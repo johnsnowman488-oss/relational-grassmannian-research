@@ -162,10 +162,10 @@ def build_manifest(source_root: Path, protocol_path: Path, output_root: Path) ->
         "confirmatory_labels_loaded": 0,
         "learner_labels_loaded": 0,
         "validation_labels_are_evaluator_only": True,
-        "native_commit": "2539df6bda7ef3c9dd7c707abe26eff8bdbb59de",
+        "native_commit": "4bbcaa132131733372c17a68895a329a030c84d0",
         "soe_feature_dims": [3, 3, 3],
         "soe_dt": 0.01,
-        "top_down_gain": 1e-8,
+        "top_down_gain": 1.0,
         "hlb_model_relation_capacity": 262144,
         "eligibility_capacity": 131072,
     }
