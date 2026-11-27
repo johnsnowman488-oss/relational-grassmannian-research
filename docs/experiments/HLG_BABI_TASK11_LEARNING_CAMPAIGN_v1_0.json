@@ -64,10 +64,11 @@
       "queries": 1000,
       "loaded": false
     },
-    "warm_online_seed": "HLG-BABI-EXPANSION-WARM-ONLINE-v1",
+    "warm_online_seed": "HLG-BABI-TASK11-WARM-ONLINE-v1:<seed>",
     "warm_online_fraction": 0.8,
     "unit": "whole story",
-    "ordering": "SHA-256 rank by fixed seed and story ID; retain source order within each phase; no story splitting."
+    "ordering": "SHA-256 rank by fixed seed and story ID; retain source order within each phase; no story splitting.",
+    "warm_online_policy": "Per-seed deterministic SHA-256 whole-story assignment; HLA and HLB share the same 1,440/360 assignment for each seed. The 10 seed partitions are separately hashed in the manifest."
   },
   "targets": {
     "L0": "mention-to-entity binding from source-only observations and conservative weak targets",
@@ -98,7 +99,7 @@
       "no_temporal": "Disable temporal eligibility/credit and L0 feature-predictor updates only.",
       "no_relational": "Disable L1 semantic relation/coreference updates only.",
       "no_abstraction": "Disable L2 context and event-role abstraction updates only.",
-      "no_task": "Disable task-answer reliability calibration only.",
+      "no_task": "Disable task-answer reliability calibration; this is a predeclared placebo/negative-control condition because Task 11 has no independent task-outcome training target under the evaluator-label firewall. Do not interpret it as a task-channel causal ablation.",
       "no_learning": "Disable all learning updates; preserve source ingestion, inference, forecasts and scoring."
     },
     "candidate_selection": {
@@ -164,11 +165,13 @@
     "worker_count": 4,
     "max_parallel": 4,
     "limits": {
-      "max_worker_rss_mb": 2048,
-      "max_python_allocation_mb": 1024,
+      "max_worker_rss_mb": 4096,
+      "max_python_allocation_mb": 2048,
       "max_checkpoint_bytes": 536870912,
       "max_unit_wall_seconds": 3600,
-      "max_unit_artifact_bytes": 268435456
+      "max_unit_artifact_bytes": 268435456,
+      "hlb_model_relation_capacity": 262144,
+      "eligibility_capacity": 131072
     },
     "retry_policy": "At most two retries for a failed preflight unit; preserve failed-attempt logs and never overwrite successful evidence.",
     "pass_rule": "All four reserved-seed units complete; exact partition and label-isolation checks pass; all resource ceilings remain within limits; resource budget is archived before the 120-unit campaign."
