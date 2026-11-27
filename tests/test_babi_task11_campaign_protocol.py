@@ -42,7 +42,10 @@ def test_task11_protocol_has_measured_resource_preflight_and_no_oracle_shortcut(
     assert preflight["run_units"] == 4
     assert preflight["max_parallel"] == 4
     assert preflight["pass_rule"]
-    assert config["execution_gate"]["launch_allowed"] is False
+    assert config["execution_gate"]["launch_allowed"] is True
+    assert any("full repository" in item.lower() for item in config["execution_gate"]["required_before_launch"])
+    assert any("full-scale reserved-seed resource preflight" in item.lower() for item in config["execution_gate"]["required_before_launch"])
+    assert "campaign starts only if both pass" in config["execution_gate"]["freeze_boundary"].lower()
     assert config["baselines"]["strongest_non_oracle"] == "nearest-compatible-antecedent"
     assert config["baselines"]["validation_answer_exact_match"] == 1.0
 
