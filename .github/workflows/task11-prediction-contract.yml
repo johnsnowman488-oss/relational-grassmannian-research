@@ -1,0 +1,52 @@
+name: Task 11 learned-state prediction contract
+
+on:
+  push:
+    branches:
+      - "research/task11-model-prediction-contract-v1"
+    paths:
+      - "src/rgm/experiments/babi_expansion_inference.py"
+      - "src/rgm/experiments/babi_expansion_runtime.py"
+      - "src/rgm/experiments/babi_expansion_adapters.py"
+      - "src/rgm/leptograph/m4/learning.py"
+      - "src/rgm/leptograph/m4/hierarchical.py"
+      - "tests/test_babi_expansion_inference.py"
+      - "tests/test_babi_expansion_*.py"
+      - ".github/workflows/task11-prediction-contract.yml"
+  pull_request:
+    branches:
+      - "research/babi-expansion-preflight-v1"
+    paths:
+      - "src/rgm/experiments/babi_expansion_inference.py"
+      - "src/rgm/experiments/babi_expansion_runtime.py"
+      - "src/rgm/experiments/babi_expansion_adapters.py"
+      - "src/rgm/leptograph/m4/learning.py"
+      - "src/rgm/leptograph/m4/hierarchical.py"
+      - "tests/test_babi_expansion_inference.py"
+      - "tests/test_babi_expansion_*.py"
+      - ".github/workflows/task11-prediction-contract.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task11-prediction-contract-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  contract-tests:
+    name: Full repository and Task 11 prediction contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Run full repository test suite
+        run: python -m pytest -q
