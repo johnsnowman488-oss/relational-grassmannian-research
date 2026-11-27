@@ -1,0 +1,59 @@
+{
+  "schema": "HLG-BABI-EXPANSION-CONFIRMATORY-PROTOCOL-v1",
+  "protocol_id": "HLG-BABI-EXPANSION-CONFIRMATORY-v1",
+  "protocol_version": "1.1.0",
+  "status": "FROZEN_GENERATOR_AND_SEEDS",
+  "parent_learning_protocol": "HLG-BABI-EXPANSION-LEARNING-CAMPAIGN-v1",
+  "purpose": "One-time generated, label-separated confirmatory challenge after validation candidate selection. Not official bAbI test data. Task 11 adds an explicit model-visible gender feature in a controlled synthetic input schema.",
+  "tasks": [
+    11,
+    14,
+    19
+  ],
+  "generator": "src/rgm/experiments/babi_expansion_confirmatory.py",
+  "entrypoint": "python -m rgm.experiments.babi_expansion_confirmatory --output-root artifacts/babi-expansion-confirmatory",
+  "seeds": [
+    971101,
+    971102,
+    971103
+  ],
+  "stories_per_seed_per_task": 128,
+  "stories_per_task": 384,
+  "total_stories": 1152,
+  "generation_policy": {
+    "deterministic_random_stream": "random.Random('HLG-BABI-CONFIRMATORY-v1:{task_id}:{seed}')",
+    "story_order": "Seed ascending, then ordinal ascending",
+    "entity_policy": "Novel entity/location tokens generated per story; no overlap with official-test labels or training story identifiers",
+    "task11": {
+      "input_schema": "Task11MentionEvent runtime-compatible schema: event_id, surface_mention, is_pronoun, grammatical_gender, location, observed_at, source_ref; query: query_id, task_id, entity, observed_at, source_ref",
+      "construction": "Exactly two novel entity anchors with distinct model-visible grammatical-gender cues; every she/he pronoun has exactly one compatible prior name anchor",
+      "no_input_binding": true,
+      "evaluator_only_targets": [
+        "mention_binding_edges",
+        "task11_supervision.l0_mention_binding",
+        "task11_supervision.l1_coreference_edge",
+        "task11_supervision.l2_entity_state"
+      ],
+      "label_policy": "Antecedent is the most recent prior explicit name anchor for the uniquely compatible gender; target name anchors use self_anchor, not a coreference edge",
+      "scope_note": "The gender cue is a synthetic input feature and is not claimed to be present in raw bAbI text"
+    },
+    "task14": "Shuffled source-order temporal observations with explicit ordinal anchor features; before-destination query; labels include predecessor/target witness events",
+    "task19": "Novel directed spatial chain and ordered route query; labels include direction sequence and supporting edge IDs",
+    "evaluator_separation": "Inputs and evaluator labels are distinct JSONL files; evaluator-only coreference edges and target bundles cannot cross the runtime ingestion boundary",
+    "no_training_access": "Generated-confirmatory labels are never provided to warm-start or online-adaptation phases. They are read only after validation candidate selection.",
+    "official_test_access": false
+  },
+  "acceptance": {
+    "required_tasks": 3,
+    "required_stories_per_task": 384,
+    "input_rows_match_label_rows": true,
+    "unique_query_ids": true,
+    "task11_input_matches_runtime_schema": true,
+    "every_task11_pronoun_has_unique_gender_compatible_anchor": true,
+    "input_contains_no_gold_answer_support_or_antecedent_ids": true,
+    "input_hashes_and_label_hashes_recorded": true,
+    "deterministic_repeat_manifest_sha256_match": true
+  },
+  "source_claim_boundary": "A generated challenge validates transfer only to this separate synthetic distribution; it is not an official bAbI benchmark result and is not a substitute for the frozen official-test policy.",
+  "freeze_note": "Protocol v1.1 replaces the non-identifiable Task 11 generated challenge from v1.0. The exact generated files are fixed by this protocol, generator and seed schedule; runtime manifests record SHA-256 for input and evaluator-label files."
+}
