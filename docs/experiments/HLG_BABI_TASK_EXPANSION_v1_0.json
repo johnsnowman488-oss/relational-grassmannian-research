@@ -529,13 +529,13 @@
       "Do not modify frozen Task 3/5 protocol, branch or artifacts.",
       "Quarantined automatic microbenchmark measurements are diagnostic-only and cannot close the resource gate."
     ],
-    "source_note": "Run #91 (46070052456) on implementation head 289acf71 passed all accepted no-learning preflight stages, including 360/360 aggregate. Task 11 L0/L1/L2 learner routing was then implemented and tested; Phase B/runtime/full tests passed on subsequent heads. Workflow commit e0ef1b99 added manual dispatch authorization after two duplicate, automatic learning-cost diagnostic runs (#97/#98) completed without explicit approval. Their data is quarantined and not accepted gate evidence. Current PR head f6e718ad has zero base drift; current no-learning CI runs #103/#104 are in progress.",
+    "source_note": "Run #91 (46070052456) on implementation head 289acf71 passed all accepted no-learning preflight stages, including 360/360 aggregate. Task 11 L0/L1/L2 learner routing was implemented and tested; Phase B/runtime/full tests passed on the workflow authorization guard commit e0ef1b99. Two automatic learning-cost diagnostic runs (#97/#98, db0b34c9) completed without explicit approval and are quarantined, not accepted gate evidence. Run #100 on e0ef1b99 passed the complete no-learning preflight and explicitly skipped both learning-cost jobs, confirming the workflow guard. Subsequent commits update only the research ledger; latest documentation-head preflight #106 was in progress at ledger update.",
     "active_pull_request": 55,
     "active_pull_request_url": "https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/55",
-    "active_pull_request_head": "f6e718ad3b97c622cc9bb35e99f9b7b730aa43d3",
+    "active_pull_request_head": "1d53f807c349a4ebf6c251eb609a6f59c8b6c665",
     "active_pull_request_base": "5f4726c3300664c566add3db7fb87184ff0e391b",
     "pull_request_state": "OPEN",
-    "pull_request_mergeability_at_inspection": "MERGEABLE; CURRENT_HEAD_CI_IN_PROGRESS",
+    "pull_request_mergeability_at_inspection": "MERGEABLE; BASE_BEHIND_BY_ZERO; CURRENT_DOCS_HEAD_CI_PENDING",
     "ci_status": {
       "latest_accepted_preflight": {
         "run_number": 91,
@@ -576,20 +576,55 @@
       },
       "latest_no_learning_preflight_runs_in_progress": [
         {
-          "run_number": 103,
-          "run_id": 46072008522,
-          "commit": "f0b96ec712af17bf0e3b475c8316ca63f90c403d"
-        },
-        {
           "run_number": 104,
           "run_id": 46072028317,
           "commit": "f6e718ad3b97c622cc9bb35e99f9b7b730aa43d3"
+        },
+        {
+          "run_number": 105,
+          "run_id": 46072035268,
+          "commit": "f6e718ad3b97c622cc9bb35e99f9b7b730aa43d3"
+        },
+        {
+          "run_number": 106,
+          "run_id": 46072101270,
+          "commit": "0531fbdd142b3ecd0c8131ad2f7e80ee4bbb13e5"
         }
       ],
       "workflow_authorization_guard": {
         "commit": "e0ef1b99e3678db180315ce9a311b5412e33761a",
         "learning_microbenchmark_trigger": "WORKFLOW_DISPATCH_ONLY; INPUT enable_learning_cost_microbenchmark=true",
-        "automatic_pr_push_runs": "SKIP_LEARNING_COST_JOB"
+        "automatic_pr_push_runs": "SKIP_LEARNING_COST_JOB",
+        "proof_run": {
+          "run_number": 100,
+          "run_id": 46071673678,
+          "commit": "e0ef1b99e3678db180315ce9a311b5412e33761a",
+          "conclusion": "SUCCESS",
+          "aggregate_artifact_id": 15232434633,
+          "aggregate_sha256": "1b1c83d7822b9baea43fcc7c2f3345eda31592e948e2bbbe9f9746dffe2b4360",
+          "bounded_learning_job": "SKIPPED",
+          "learning_cost_aggregate": "SKIPPED"
+        }
+      },
+      "latest_docs_head_run_in_progress": {
+        "run_number": 106,
+        "run_id": 46072101270,
+        "commit": "0531fbdd142b3ecd0c8131ad2f7e80ee4bbb13e5",
+        "source_audit_run": {
+          "run_number": 66,
+          "run_id": 46072101260,
+          "conclusion": "SUCCESS"
+        },
+        "runtime_contract_run": {
+          "run_number": 67,
+          "run_id": 46072101271,
+          "conclusion": "SUCCESS"
+        },
+        "full_repository_tests": [
+          "3.10",
+          "3.12"
+        ],
+        "preflight": "IN_PROGRESS_AT_LEDGER_UPDATE"
       }
     },
     "gate_assessment": {
@@ -621,9 +656,10 @@
     "synchronization": {
       "common_ancestor": "5f4726c3300664c566add3db7fb87184ff0e391b",
       "base_tip": "5f4726c3300664c566add3db7fb87184ff0e391b",
-      "pr_commits_ahead_of_base": 86,
+      "pr_commits_ahead_of_base": 88,
       "base_commits_ahead_of_pr": 0,
-      "synchronization_policy": "Two-parent merge synchronization retained; current PR source branch remains zero commits behind base."
+      "synchronization_policy": "Two-parent merge synchronization retained; current PR source branch remains zero commits behind base.",
+      "tip_note": "active_pull_request_head above is the branch tip inspected immediately before this ledger-only update. This JSON commit itself follows that tip and makes no scientific-code changes."
     },
     "unauthorized_learning_microbenchmark": {
       "status": "COMPLETED_AUTOMATICALLY_UNAUTHORIZED_QUARANTINED_NOT_GATE_EVIDENCE",
