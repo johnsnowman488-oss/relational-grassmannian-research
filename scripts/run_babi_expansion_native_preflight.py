@@ -141,8 +141,10 @@ def run(source_root: Path, output_root: Path, shard: int, python_abi_path: Path)
                     ]
                     if learn_true_rows:
                         raise AssertionError(f"{story.story_id}: learning-enabled observation recorded")
-                    native_state = adapter.bridge.runtime.get_state()
-                    native_steps = int(native_state["step_count"])
+                    # The pinned PersistentHierarchyRuntime exposes the
+                    # committed count as a property; get_state() contains only
+                    # level state, kernels and spectral units.
+                    native_steps = int(adapter.bridge.runtime.step_count)
                     if native_steps != len(story.events):
                         raise AssertionError(
                             f"{story.story_id}: expected {len(story.events)} native steps, got {native_steps}"
