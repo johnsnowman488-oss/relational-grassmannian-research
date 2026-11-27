@@ -102,11 +102,7 @@ def run(source_root: Path, output_root: Path, shard: int,
     if labels:
         raise AssertionError("Task 11 evaluator labels crossed the parser boundary")
     fit, _validation = _fit_validation_split(stories, 11)
-    task_manifest = manifest["tasks"]["11"]
-    manifest_fit_ids = (
-        set(task_manifest["phases"]["warm_start"]["story_ids"])
-        | set(task_manifest["phases"]["online_adaptation"]["story_ids"])
-    )
+    manifest_fit_ids = set(manifest["partitions"]["fit_story_ids"])
     if manifest_fit_ids != {story.story_id for story in fit}:
         raise AssertionError("Task 11 source fit partition differs from frozen manifest")
     sample = fit[shard * STORIES_PER_SHARD:(shard + 1) * STORIES_PER_SHARD]
