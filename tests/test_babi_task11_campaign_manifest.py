@@ -32,7 +32,3 @@ def test_task11_seed_specific_nested_partitions_are_whole_story_and_deterministi
     assert {row.story_id for row in warm_a} != {
         row.story_id for row in warm_b
     }
-    # HLA and HLB receive the same manifest assignment for a given seed.
-    assert {row.story_id for row in warm_a} == {
-        row.story_id for row in warm_a
-    }
