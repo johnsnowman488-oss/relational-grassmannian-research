@@ -150,9 +150,13 @@ jobs:
     needs: [prepare-data, build-native, contract-tests]
     runs-on: ubuntu-latest
     # Recovery and prediction-contract branches run one-seed acceptance pilots.
-    # The full matched campaign retains a six-hour ceiling, with incremental
-    # story/phase progress and completed-condition evidence uploads.
-    timeout-minutes: ${{ contains(fromJSON('["research/h1-babi-execution-recovery-v1","research/h1-babi-prediction-contract-v1"]'), github.ref_name) && 90 || 360 }}
+    # The previous pilot's Task 3 HLB worker was cancelled while still making
+    # progress near 90 minutes. Raise the pilot ceiling to four hours as a
+    # safeguard, while treating the observed HLA/HLB runtime spread as a
+    # separate performance-investigation item rather than assuming timeout
+    # was the only contributing factor. The full matched campaign retains a
+    # six-hour ceiling pending workload sharding/performance validation.
+    timeout-minutes: ${{ contains(fromJSON('["research/h1-babi-execution-recovery-v1","research/h1-babi-prediction-contract-v1"]'), github.ref_name) && 240 || 360 }}
     strategy:
       fail-fast: false
       max-parallel: 4
