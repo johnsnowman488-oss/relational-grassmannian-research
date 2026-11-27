@@ -614,13 +614,32 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
                        if int(story["task_id"]) == task_id and story["architecture"] == architecture]
             if len(samples) != 32:
                 raise ValueError(f"Task {task_id}/{architecture}: expected 32 native sample stories, got {len(samples)}")
-            seconds_per_story = native_elapsed / max(1, native_story_count)
+            sample_elapsed = sum(float(story["elapsed_seconds"]) for story in samples)
+            sample_events = sum(int(story["events"]) for story in samples)
+            sample_story_rate = len(samples) / sample_elapsed if sample_elapsed else 0.0
+            sample_event_rate = sample_events / sample_elapsed if sample_elapsed else 0.0
+            target_event_presentations = sum(
+                int(phase["event_count"])
+                for phase in manifest["tasks"][str(task_id)]["phases"].values()
+            ) * len(CONDITIONS) * len(SEEDS)
             native_task_arch_projection[f"task{task_id}-{architecture}"] = {
                 "sample_stories": len(samples),
-                "sample_events": sum(int(story["events"]) for story in samples),
+                "sample_events": sample_events,
+                "sample_elapsed_seconds": sample_elapsed,
+                "measured_stories_per_second": sample_story_rate,
+                "measured_events_per_second": sample_event_rate,
                 "campaign_story_presentations": target_stories,
-                "projected_non_learning_runtime_seconds": seconds_per_story * target_stories,
-                "projection_scope": "measured no-learning native runtime sample scaled by story count; not a full-learning runtime estimate",
+                "campaign_event_presentations": target_event_presentations,
+                "projected_non_learning_runtime_from_story_rate_seconds": (
+                    target_stories / sample_story_rate if sample_story_rate else None
+                ),
+                "projected_non_learning_runtime_from_event_rate_seconds": (
+                    target_event_presentations / sample_event_rate if sample_event_rate else None
+                ),
+                "projection_scope": (
+                    "task/architecture-specific no-learning native sample; "
+                    "linear extrapolation only, excludes learner updates and interactions"
+                ),
             }
     summary = {
         "schema": "HLG-BABI-EXPANSION-PREFLIGHT-AGGREGATE-v1",
@@ -662,6 +681,7 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
             "tracemalloc_peak_mb_max": max(float(row["tracemalloc_peak_mb"]) for row in native_resources),
             "native_steps_per_second": sum(int(row["native_step_count"]) for row in native_resources) / native_elapsed if native_elapsed else 0.0,
             "task_architecture_projection": native_task_arch_projection,
+            "projection_method": "per-task and per-architecture story/event rates; pooled rates are not used",
             "per_worker": native_resources,
         },
         "confirmatory_manifest_sha256": manifest["confirmatory_protocol"]["manifest_sha256"],
@@ -672,7 +692,22 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
             "wrong_shard_keys": 0,
             "manifest_mismatches": 0,
         },
-        "claim_boundary": "Passes source/partition/baseline/sharding/retry/evidence, pinned native HLA/HLB no-learning sample and baseline workload measurement. Native projections are no-learning only; no learned performance result is established.",
+        "resource_budget_gate": {
+            "status": "PARTIAL_NO_LEARNING_ONLY",
+            "measured": [
+                "four-worker symbolic baseline orchestration including retries",
+                "per-worker elapsed time, peak RSS, Python allocation peak and artifact storage",
+                "pinned native HLA/HLB no-learning ingestion sample by task and architecture",
+                "task/architecture-specific story-normalized and event-normalized non-learning projections"
+            ],
+            "not_measured": [
+                "HLA/HLB parameter-update runtime",
+                "learning-state growth under full campaign workload",
+                "per-update memory and checkpoint/rollback cost"
+            ],
+            "closure_condition": "A separately authorized bounded learning microbenchmark or independently reviewed learner-cost model is required before campaign resource authorization."
+        },
+        "claim_boundary": "Passes source/partition/baseline/sharding/retry/evidence, pinned native HLA/HLB no-learning sample and baseline workload measurement. Native projections are no-learning only; no learned performance result is established."
     }
     summary["aggregate_sha256"] = _write_json(output_path, summary)
     return summary
