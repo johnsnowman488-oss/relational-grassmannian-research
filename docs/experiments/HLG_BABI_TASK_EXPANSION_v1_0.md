@@ -1,6 +1,6 @@
 # bAbI Task Expansion — Evidence and Acceptance Preparation v1.0
 
-**Status:** preparation contract; no new task execution authorized  
+**Status:** Phase B adapter implementation; source-wide audit pending; no learning campaign authorized  
 **Parent:** Task 3/5 pilot branch commit `58a13629d1ac7257a3e0627dacb35c3624217236`  
 **Scope:** Tasks 11, 14, 19 first; Task 13 second; Tasks 2 and 4 as controls.
 
@@ -74,7 +74,31 @@ Retain HLA/HLB paired inputs and the six existing ablation semantics only after 
 
 A CI pass only establishes implementation/contract acceptance. It does not establish that the architecture has learned coreference, temporal reasoning or path composition.
 
-## 8. Current known implementation boundary
+## 8. Phase B implementation boundary
+
+The separate module `src/rgm/experiments/babi_expansion_adapters.py` now implements independent parsers and input-only adapters for Tasks 11, 14 and 19, with task-specific deterministic reference predictors. It does not import or widen the Task 3/5 parser.
+
+- Task 11 resolves constrained singular `he/she` mentions to the nearest compatible explicitly named entity, emits a mention-to-entity binding and answers current-location queries. Unknown or unanchored pronouns fail closed.
+- Task 14 parses the source's four temporal anchors (yesterday, this morning, this afternoon, this evening), keeps event-time ordering distinct from observation time, and answers "Where was X before Y?" from the immediately preceding temporal location.
+- Task 19 converts "X is direction of Y" into a directed edge from Y to X, adds the explicit inverse edge, and composes an ordered path. It preserves edge witnesses and abstains when shortest paths disagree on the direction sequence.
+
+The `ExpansionStory` and `ExpansionQuery` inputs contain no gold answers or support IDs. `GoldLabel` is a separate evaluator-only record. `scripts/audit_babi_expansion.py` derives deterministic 90/10 whole-story fit/validation partitions from the en-10k training members. Official test members are parsed with labels disabled and are not emitted as learner inputs.
+
+The Phase B validation workflow reacquires the pinned external source members, runs the adapter contract tests, parses all six train/test members, verifies train support references, audits training oracle predictions against evaluator-only labels, freezes partition hashes and uploads evidence. It is an acceptance workflow, not a learning campaign.
+
+**Important limitation:** Task 11's constrained name-gender prior and nearest-compatible-antecedent resolver is an explicit symbolic baseline/adapter, not a learned coreference model. Task 14's four-bucket temporal parser is limited to the source grammar. Task 19's BFS is a deterministic compositional baseline. None of these establishes HLA/HLB learning capability.
+
+## 9. Remaining Phase B acceptance gates
+
+1. Run the full source-wide workflow and inspect every task's parser coverage, oracle mismatches and quarantine rate.
+2. Confirm exact 90/10 whole-story counts, disjointness, source-order preservation and deterministic hashes.
+3. Review the task-specific baseline outputs and support-witness behavior, especially Task 11's antecedent witnesses and Task 14's temporal tie policy.
+4. Add task-specific prediction target serialization and HLA/HLB parity only after the adapter audit passes.
+5. Define and review thresholds, workload estimates, worker sharding and candidate selection separately for each task.
+
+No learning campaign may start until these gates are reviewed and explicitly authorized.
+
+## 10. Frozen Task 3/5 implementation boundary
 
 The current code has:
 - a numbered-story parser and evaluator-only answer/support label separation for Tasks 3 and 5;
