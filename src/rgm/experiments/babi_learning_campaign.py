@@ -700,6 +700,7 @@ def _fit_and_process(
     warm_start, online, validation, confirmatory,
     gfe_module, native_library, source_manifest: dict[str, Any],
     progress_callback: Callable[[dict[str, Any]], None] | None = None,
+    run_confirmatory: bool = False,
 ) -> dict[str, Any]:
     adapter, soe_fingerprint = _make_adapter(
         architecture, gfe_module, native_library, CHANNELS[variant]
@@ -752,8 +753,11 @@ def _fit_and_process(
     )
     confirmatory_metrics = None
     fingerprint_after_confirmatory = None
-    if accepted:
-        # Gold answers and witness IDs are derived only now, after candidate freeze.
+    if run_confirmatory:
+        if not accepted:
+            raise RuntimeError("selected candidate failed validation; confirmatory evaluation is forbidden")
+        # This path is invoked only for the validation-selected full_learning
+        # candidate, in a separate workflow stage after all ablations finish.
         confirmatory_metrics, global_clock = _process_phase(
             adapter, director, architecture, task_id, confirmatory_order,
             "generated_confirmatory", False, "babi-synthetic-confirmatory-v1.2",
@@ -776,6 +780,7 @@ def _fit_and_process(
         "variant": variant,
         "seed": seed,
         "candidate_accepted_on_validation": accepted,
+        "confirmatory_evaluated": confirmatory_metrics is not None,
         "candidate_fingerprint": candidate_fingerprint,
         "candidate_fingerprint_after_validation": fingerprint_after_validation,
         "candidate_fingerprint_after_confirmatory": fingerprint_after_confirmatory,
@@ -810,12 +815,14 @@ def _write_campaign_checkpoint(
     output_path: Path, *, task_id: int, architecture: str,
     seeds: list[int], variants: list[str], results: list[dict[str, Any]],
     expected_run_count: int, complete: bool,
+    stage: str = "validation_selection",
 ) -> dict[str, Any]:
     """Atomically persist an evidence snapshot after each completed run."""
     output = {
         "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.3.0",
         "task_id": task_id,
         "architecture": architecture,
+        "stage": stage,
         "seeds": seeds,
         "variants": list(variants),
         "status": "completed" if complete else "in_progress",
@@ -847,7 +854,9 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
                  annotation_root: Path, confirmatory_root: Path,
                  output_path: Path, seeds: list[int],
                  gfe_module, native_library,
-                 variants: list[str] | None = None) -> dict[str, Any]:
+                 variants: list[str] | None = None,
+                 run_confirmatory: bool = False,
+                 selection_manifest_path: Path | None = None) -> dict[str, Any]:
     warm = _load_stories(
         annotation_root / f"task{task_id}-warm-start.inputs.jsonl",
         annotation_root / f"task{task_id}-warm-start.labels.jsonl",
@@ -903,6 +912,10 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         "protocol_document_sha256": hashlib.sha256(protocol_document_path.read_bytes()).hexdigest()
             if protocol_document_path.exists() else None,
         "native_runtime_commit": os.environ.get("GFE_ABERCONICS_COMMIT"),
+        "selection_manifest_sha256": (
+            hashlib.sha256(selection_manifest_path.read_bytes()).hexdigest()
+            if selection_manifest_path is not None and selection_manifest_path.is_file() else None
+        ),
         "native_library_path": str(native_path),
         "native_library_sha256": native_library_sha256,
     }
@@ -932,14 +945,17 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
         raise ValueError("variants must be a non-empty unique subset of the frozen ablation conditions")
     if not seeds or len(seeds) != len(set(seeds)):
         raise ValueError("seeds must be non-empty and unique")
+    if run_confirmatory and (len(seeds) != 1 or variants != ["full_learning"]):
+        raise ValueError("confirmatory stage requires exactly one selected seed and full_learning variant")
     expected_run_count = len(seeds) * len(variants)
+    stage = "confirmatory" if run_confirmatory else "validation_selection"
     results: list[dict[str, Any]] = []
     progress_path = output_path.with_name(output_path.stem + ".progress.json")
     campaign_started = time.monotonic()
     _write_campaign_checkpoint(
         output_path, task_id=task_id, architecture=architecture,
         seeds=seeds, variants=variants, results=results,
-        expected_run_count=expected_run_count, complete=False,
+        expected_run_count=expected_run_count, complete=False, stage=stage,
     )
 
     def report_progress(seed: int, variant: str, seed_index: int,
@@ -989,12 +1005,13 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
                 progress_callback=lambda details, seed=seed, variant=variant,
                     seed_index=seed_index, variant_index=variant_index:
                     report_progress(seed, variant, seed_index, variant_index, details),
+                run_confirmatory=run_confirmatory,
             )
             results.append(result)
             _write_campaign_checkpoint(
                 output_path, task_id=task_id, architecture=architecture,
                 seeds=seeds, variants=variants, results=results,
-                expected_run_count=expected_run_count, complete=False,
+                expected_run_count=expected_run_count, complete=False, stage=stage,
             )
             print(
                 f"[campaign-progress] task={task_id} architecture={architecture} "
@@ -1006,7 +1023,7 @@ def run_campaign(task_id: int, architecture: str, data_root: Path,
     completed = _write_campaign_checkpoint(
         output_path, task_id=task_id, architecture=architecture,
         seeds=seeds, variants=variants, results=results,
-        expected_run_count=expected_run_count, complete=True,
+        expected_run_count=expected_run_count, complete=True, stage=stage,
     )
     _write_progress_checkpoint(progress_path, {
         "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.3.0",
