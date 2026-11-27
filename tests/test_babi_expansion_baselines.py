@@ -1,10 +1,14 @@
 from pathlib import Path
 
-from rgm.experiments.babi_expansion_adapters import parse_expansion_source
+import pytest
+
+from rgm.experiments.babi_expansion_adapters import (
+    ExpansionQuery, ExpansionStory, Task11MentionEvent, parse_expansion_source,
+)
 from rgm.experiments.babi_expansion_baselines import (
     breadth_first_search_task19, direct_edge_only_task19,
     evaluate_baselines, lexical_temporal_cue_task14,
-    recency_only_task11, source_order_only_task14,
+    predict_task11_supervision, recency_only_task11, source_order_only_task14,
 )
 
 
@@ -78,3 +82,14 @@ def test_predictors_receive_no_evaluator_fields(tmp_path):
     assert not hasattr(stories[0].queries[0], "answer")
     assert not hasattr(stories[0].queries[0], "support_line_numbers")
     assert labels[0].query_id == stories[0].queries[0].query_id
+
+
+def test_task11_target_supervision_abstains_on_ambiguous_antecedents():
+    story = ExpansionStory("task11/validation/ambiguous", 11, (
+        Task11MentionEvent("mary", "mary", False, "kitchen", 1, "train#1", "female"),
+        Task11MentionEvent("sandra", "sandra", False, "garden", 2, "train#2", "female"),
+        Task11MentionEvent("pronoun", "she", True, "office", 3, "train#3", "female"),
+    ), ())
+    query = ExpansionQuery("query", 11, 4, "train#4", entity="mary")
+    with pytest.raises(RuntimeError, match="abstains on ambiguous mentions"):
+        predict_task11_supervision(story, query)
