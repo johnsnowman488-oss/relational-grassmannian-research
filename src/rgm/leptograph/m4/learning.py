@@ -212,6 +212,29 @@ class PredictionJournal:
             self._active_by_target.pop(target_key, None)
         return score
 
+    def withdraw(self, prediction_id: str, *, current_tick: int) -> None:
+        """Withdraw a forecast when its next target is not strictly post-cutoff.
+
+        Equal-time or late targets remain valid observations, but they cannot
+        score a forecast whose evidence cutoff already includes that time.
+        Withdrawal records the non-scoreable lifecycle outcome without
+        weakening the strict post-cutoff scoring contract.
+        """
+        prediction = self._predictions[prediction_id]
+        if prediction_id in self._scores or prediction.status is not PredictionStatus.ISSUED:
+            raise ValueError("only unscored issued predictions can be withdrawn")
+        if current_tick <= prediction.issued_tick:
+            raise ValueError("prediction cannot be withdrawn before a later observation tick")
+        target_key = (prediction.target_name, prediction.target_key)
+        prior_active = self._active_by_target.get(target_key)
+        if self._transaction_log is not None:
+            self._transaction_log.append(("withdraw", prediction_id, prediction, target_key, prior_active))
+        self._predictions[prediction_id] = Prediction(
+            **{**prediction.__dict__, "status": PredictionStatus.WITHDRAWN}
+        )
+        if self._active_by_target.get(target_key) == prediction_id:
+            self._active_by_target.pop(target_key, None)
+
     def expire(self, prediction_id: str, *, current_tick: int) -> None:
         prediction = self._predictions[prediction_id]
         if prediction_id in self._scores or prediction.status is not PredictionStatus.ISSUED:
@@ -266,7 +289,7 @@ class PredictionJournal:
                     self._active_by_target.pop(target_key, None)
                 else:
                     self._active_by_target[target_key] = prior_active
-            elif kind == "expire":
+            elif kind in {"expire", "withdraw"}:
                 _, prediction_id, prior_prediction, target_key, prior_active = change
                 self._predictions[prediction_id] = prior_prediction
                 if prior_active is None:
@@ -1148,6 +1171,11 @@ class LearningRuntime:
             return None
         prediction = self.predictions.get(prediction_id)
         if prediction.status is not PredictionStatus.ISSUED:
+            return None
+        if observed_at <= prediction.evidence_cutoff:
+            # Same-time and late observations are preserved in the observation
+            # journal, but are not eligible targets for this forecast.
+            self.predictions.withdraw(prediction_id, current_tick=tick)
             return None
         schema = self.schemas[name]
         score = self.predictions.score(
