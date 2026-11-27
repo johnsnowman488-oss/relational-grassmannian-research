@@ -272,7 +272,8 @@ def test_independent_promotion_binds_learning_state_and_rejects_stale_candidate(
 
 
 def test_prediction_scoring_uses_index_not_full_prediction_scan():
-    _, learner, _ = system("HLA")
+    _, adapter, _ = system("HLA")
+    learner = adapter.learning
     seed(learner)
 
     class NoValuesDict(dict):
