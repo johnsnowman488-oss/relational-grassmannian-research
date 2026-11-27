@@ -63,6 +63,8 @@ def _assert_manipulations(results: dict[tuple[int, str, int, str], dict]) -> Non
                 changed = full["online_learner_state_changed"]
                 _require(changed.get("task_outcomes") is True,
                          f"task {task} {architecture} seed {seed}: full_learning did not update task calibration")
+                _require(full["phases"]["online_adaptation"]["task_outcome_prediction"]["updates_enabled"] is True,
+                         f"task {task} {architecture} seed {seed}: full_learning task channel reports disabled")
                 _require(no_temporal["online_learner_state_changed"].get("level0") is False
                          and no_temporal["online_learner_state_changed"].get("temporal_credit") is False,
                          f"task {task} {architecture} seed {seed}: no_temporal leaked into temporal learners")
@@ -73,6 +75,8 @@ def _assert_manipulations(results: dict[tuple[int, str, int, str], dict]) -> Non
                          f"task {task} {architecture} seed {seed}: no_abstraction leaked into abstraction learners")
                 _require(no_task["online_learner_state_changed"].get("task_outcomes") is False,
                          f"task {task} {architecture} seed {seed}: no_task changed task calibration")
+                _require(no_learning["phases"]["online_adaptation"]["task_outcome_prediction"]["updates_enabled"] is False,
+                         f"task {task} {architecture} seed {seed}: no_learning reports task updates enabled")
                 _require(all(value is False for value in no_learning["online_learner_state_changed"].values()),
                          f"task {task} {architecture} seed {seed}: no_learning changed learner state")
 
@@ -253,10 +257,20 @@ def main() -> int:
         path.name: hashlib.sha256(path.read_bytes()).hexdigest()
         for path in files
     }
+    reference_result = results[(3, "HLA", expected_seeds[0], "full_learning")]
+    reference_provenance = reference_result["source_manifest"]
     output = {
         "protocol_id": "HLG-BABI-T3-T5-LEARNING-v1.3.0",
         "stage": "validation_only_candidate_selection",
         "selection_policy": "select one paired seed per task from full_learning only; ablations remain controls",
+        "source_provenance": {
+            key: reference_provenance.get(key) for key in (
+                "implementation_commit", "annotation_manifest_sha256",
+                "confirmatory_manifest_sha256", "campaign_manifest_sha256",
+                "protocol_document_sha256", "native_runtime_commit",
+                "native_library_sha256",
+            )
+        },
         "input_worker_artifact_sha256": artifact_hashes,
         "expected_seeds": expected_seeds,
         "selected_candidates": selected,
