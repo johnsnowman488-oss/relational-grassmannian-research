@@ -12,6 +12,9 @@ on:
       - "scripts/prepare_babi_task11_campaign.py"
       - "scripts/run_babi_task11_campaign_unit.py"
       - "scripts/aggregate_babi_task11_preflight.py"
+      - "scripts/aggregate_babi_task11_campaign.py"
+      - "scripts/evaluate_babi_task11_confirmatory.py"
+      - "scripts/generate_babi_task11_confirmatory.py"
       - "tests/test_babi_task11_*.py"
       - "tests/test_babi_expansion_runtime.py"
       - ".github/workflows/task11-campaign-execution.yml"
@@ -57,6 +60,9 @@ jobs:
           python -m py_compile \
             scripts/prepare_babi_task11_campaign.py \
             scripts/run_babi_task11_campaign_unit.py \
-            scripts/aggregate_babi_task11_preflight.py
+            scripts/aggregate_babi_task11_preflight.py \
+            scripts/aggregate_babi_task11_campaign.py \
+            scripts/evaluate_babi_task11_confirmatory.py \
+            scripts/generate_babi_task11_confirmatory.py
       - name: Run complete repository test suite
         run: python -m pytest -q
