@@ -1,63 +1,192 @@
 {
-  "schema": "HLG-BABI-EXPANSION-SOURCE-FREEZE-PIN-v1.1",
+  "schema": "HLG-BABI-EXPANSION-SOURCE-FREEZE-PIN-v1.2",
   "phase": "Q",
-  "status": "MEMBER_SOURCE_PINNED_PENDING_EXTERNAL_ACQUISITION_AND_AUDIT",
+  "status": "VERIFIED_SELECTED_MEMBERS",
   "branch": "research/babi-task-expansion-v1",
+  "verified_commit": "9274637fcc1c3116ab1c5d08e85b0497e95da960",
+  "workflow": {
+    "name": "bAbI expansion Phase Q source freeze",
+    "run_id": 45990456267,
+    "conclusion": "success",
+    "repository_ci_run_id": 45990456233,
+    "repository_ci_conclusion": "success",
+    "artifact": {
+      "id": 15192429617,
+      "name": "babi-expansion-phase-q-source-freeze",
+      "sha256": "8a7b8ec029448c81008d898e6fc0936baddd370bd470ed490b6a4b265ab4b4f2",
+      "size_bytes": 482044,
+      "expires_at": "2027-02-25T11:26:11Z"
+    }
+  },
   "dataset": {
     "name": "The 20-Task bAbI Question-Answering Dataset",
     "release": "1.2.0",
     "language": "English",
     "configuration": "en-10k",
-    "license": "CC BY 3.0 Unported",
-    "provenance": "Version and license evidence are carried by the commit-pinned README and LICENSE files."
+    "copyright": "Copyright (c) 2015-present, Facebook, Inc.",
+    "license": "Creative Commons Attribution 3.0 Unported (CC BY 3.0)",
+    "license_file_sha256": "d12f09a636365a040fd581ebab6bf018d6fe61973c6d4862f841a6aca2f53efa",
+    "readme_file_sha256": "1f2c9fd266ec732f988403122a1d76f552f24ccd3904230f2f9c65df578abb86",
+    "paper": "https://arxiv.org/abs/1502.05698"
   },
   "external_copy": {
     "repository": "raviraju/NLP_QA_Project",
     "commit": "0051751275841561267b1c6f5d9116b985521df1",
     "root_url": "https://raw.githubusercontent.com/raviraju/NLP_QA_Project/0051751275841561267b1c6f5d9116b985521df1/tasks_1-20_v1-2/",
-    "download_mode": "six selected members individually; README and LICENSE also downloaded",
-    "git_blob_verification": "Recompute SHA1('blob <size>\\\\0' + bytes) for each member.",
-    "primary_integrity_hash": "SHA-256"
+    "mode": "six selected member files downloaded individually; README and LICENSE downloaded from same immutable commit",
+    "integrity": "Each source member's Git blob SHA-1 and byte length were verified; SHA-256 stored as primary experimental checksum."
   },
   "archive_reference": {
     "filename": "tasks_1-20_v1-2.tar.gz",
     "mirror_lfs_oid": "sha256:0364ebde659f14d11bc21744516c5ec49d3d06cb692733f66680771244998898",
     "size_bytes": 15719851,
-    "mirror_repository": "facebook/babi_qa",
-    "current_resolve_main_endpoint": "https://huggingface.co/datasets/facebook/babi_qa/resolve/main/data/tasks_1-20_v1-2.tar.gz",
     "status": "NOT_DOWNLOADED_HTTP_404",
-    "note": "Archive LFS pointer metadata is retained for provenance, but the Phase Q job downloads and verifies the six required selected members from an immutable external Git commit instead. No archive-byte verification is claimed."
+    "note": "The current Hugging Face resolve/main tarball URL returned HTTP 404. No full archive download or byte verification is claimed. Phase Q freezes the six selected experiment source members."
   },
-  "selected_members": [
+  "members": [
     {
       "task_id": 11,
-      "name": "Basic Coreference",
-      "train": "tasks_1-20_v1-2/en-10k/qa11_basic-coreference_train.txt",
-      "train_size_bytes": 1046139,
-      "train_git_blob_sha1": "ff530d4de05dc753a0fe9d9638aa761ed855b81e",
-      "test": "tasks_1-20_v1-2/en-10k/qa11_basic-coreference_test.txt",
-      "test_size_bytes": 104800,
-      "test_git_blob_sha1": "c9feb150855483c587c5a825211fc306d4cfebe3"
+      "split": "train",
+      "path": "tasks_1-20_v1-2/en-10k/qa11_basic-coreference_train.txt",
+      "size_bytes": 1046139,
+      "sha256": "edfcd97fecd4a5045af25e1790cf1408856ae362c39521b1b69cd32b88ec0ced",
+      "git_blob_sha1": "ff530d4de05dc753a0fe9d9638aa761ed855b81e",
+      "stories": 2000,
+      "statements": 20000,
+      "questions": 10000,
+      "answer_counts": {
+        "bathroom": 1606,
+        "bedroom": 1701,
+        "garden": 1701,
+        "hallway": 1683,
+        "kitchen": 1680,
+        "office": 1629
+      },
+      "support_count_distribution": {
+        "2": 10000
+      }
+    },
+    {
+      "task_id": 11,
+      "split": "test_quarantined",
+      "path": "tasks_1-20_v1-2/en-10k/qa11_basic-coreference_test.txt",
+      "size_bytes": 104800,
+      "sha256": "46f3290d0158ce1285a40cd2d793f5a65f86ae5000226e165cbc85a3dfeb2f6f",
+      "git_blob_sha1": "c9feb150855483c587c5a825211fc306d4cfebe3",
+      "stories": 200,
+      "statements": 2000,
+      "questions": 1000,
+      "answer_counts": {
+        "bathroom": 153,
+        "bedroom": 171,
+        "garden": 164,
+        "hallway": 187,
+        "kitchen": 170,
+        "office": 155
+      },
+      "support_count_distribution": {
+        "2": 1000
+      }
     },
     {
       "task_id": 14,
-      "name": "Time Reasoning",
-      "train": "tasks_1-20_v1-2/en-10k/qa14_time-reasoning_train.txt",
-      "train_size_bytes": 1506583,
-      "train_git_blob_sha1": "35350c2fbfcc081218731cf3929f3e56c169360c",
-      "test": "tasks_1-20_v1-2/en-10k/qa14_time-reasoning_test.txt",
-      "test_size_bytes": 151420,
-      "test_git_blob_sha1": "c0c88cd92b690d6c533c3e532cb8a9e38ae8f1bf"
+      "split": "train",
+      "path": "tasks_1-20_v1-2/en-10k/qa14_time-reasoning_train.txt",
+      "size_bytes": 1506583,
+      "sha256": "c322e0814eef71f088af1aa1334e7ae4b1ee6ca18f2ee94c05e2189226964ed6",
+      "git_blob_sha1": "35350c2fbfcc081218731cf3929f3e56c169360c",
+      "stories": 2000,
+      "statements": 23404,
+      "questions": 10000,
+      "answer_counts": {
+        "bedroom": 1634,
+        "cinema": 1722,
+        "kitchen": 1648,
+        "office": 1688,
+        "park": 1638,
+        "school": 1670
+      },
+      "support_count_distribution": {
+        "2": 10000
+      }
+    },
+    {
+      "task_id": 14,
+      "split": "test_quarantined",
+      "path": "tasks_1-20_v1-2/en-10k/qa14_time-reasoning_test.txt",
+      "size_bytes": 151420,
+      "sha256": "e3f0b19858ffbec3ed1e49076cc4d1295a89ce146c50318b862f13f202b3caf2",
+      "git_blob_sha1": "c0c88cd92b690d6c533c3e532cb8a9e38ae8f1bf",
+      "stories": 200,
+      "statements": 2352,
+      "questions": 1000,
+      "answer_counts": {
+        "bedroom": 162,
+        "cinema": 171,
+        "kitchen": 176,
+        "office": 177,
+        "park": 152,
+        "school": 162
+      },
+      "support_count_distribution": {
+        "2": 1000
+      }
     },
     {
       "task_id": 19,
-      "name": "Path Finding",
-      "train": "tasks_1-20_v1-2/en-10k/qa19_path-finding_train.txt",
-      "train_size_bytes": 2475046,
-      "train_git_blob_sha1": "c9ec29b500eaf11f977d24c38aa0504f09f00cbf",
-      "test": "tasks_1-20_v1-2/en-10k/qa19_path-finding_test.txt",
-      "test_size_bytes": 247449,
-      "test_git_blob_sha1": "fe316702f1bd930bf17257fac3513ec3ceac628c"
+      "split": "train",
+      "path": "tasks_1-20_v1-2/en-10k/qa19_path-finding_train.txt",
+      "size_bytes": 2475046,
+      "sha256": "6cfdc6f448e3cf0e3d8a390fa3add461935b033f89ede32aeef30812401ec91e",
+      "git_blob_sha1": "c9ec29b500eaf11f977d24c38aa0504f09f00cbf",
+      "stories": 10000,
+      "statements": 50000,
+      "questions": 10000,
+      "answer_counts": {
+        "e,e": 817,
+        "e,n": 802,
+        "e,s": 815,
+        "n,e": 844,
+        "n,n": 842,
+        "n,w": 823,
+        "s,e": 822,
+        "s,s": 856,
+        "s,w": 852,
+        "w,n": 853,
+        "w,s": 809,
+        "w,w": 865
+      },
+      "support_count_distribution": {
+        "2": 10000
+      }
+    },
+    {
+      "task_id": 19,
+      "split": "test_quarantined",
+      "path": "tasks_1-20_v1-2/en-10k/qa19_path-finding_test.txt",
+      "size_bytes": 247449,
+      "sha256": "023e391f0d7f79c9e6ae1c46c093e2d0dbd50ab8fbd8965e037a75e3614c20e5",
+      "git_blob_sha1": "fe316702f1bd930bf17257fac3513ec3ceac628c",
+      "stories": 1000,
+      "statements": 5000,
+      "questions": 1000,
+      "answer_counts": {
+        "e,e": 81,
+        "e,n": 88,
+        "e,s": 79,
+        "n,e": 85,
+        "n,n": 92,
+        "n,w": 92,
+        "s,e": 83,
+        "s,s": 71,
+        "s,w": 93,
+        "w,n": 80,
+        "w,s": 90,
+        "w,w": 66
+      },
+      "support_count_distribution": {
+        "2": 1000
+      }
     }
   ],
   "format_contract": {
@@ -65,23 +194,29 @@
     "record": "ID text",
     "question": "ID question<TAB>answer<TAB>supporting-fact IDs",
     "story_boundary": "ID resets to 1",
-    "line_numbering": "consecutive story-local record IDs",
-    "support_scope": "prior statement lines in the same story",
+    "line_numbering": "Consecutive record IDs within each story",
+    "support_scope": "Only prior statement-line IDs within the same story",
     "official_validation_split": false,
-    "validation_derivation": "task-specific deterministic whole-story split from training source",
-    "test_policy": "sealed/quarantined from fit, adaptation, validation and candidate selection"
+    "validation_derivation": "Derive deterministic whole-story fit/validation partitions from each task's training member only",
+    "test_policy": "Official test member remains quarantined from fitting, adaptation, validation and candidate selection",
+    "task19_answer_encoding": "Ordered comma-separated one-letter direction codes: n, s, e, w; preserve exact token order."
+  },
+  "acceptance": {
+    "external_six_member_copy_downloaded": true,
+    "all_six_member_sizes_and_git_blobs_match": true,
+    "six_sha256_digests_recomputed_from_artifact": true,
+    "all_members_parse_utf8": true,
+    "story_boundaries_and_contiguous_ids_valid": true,
+    "all_support_witnesses_story_local_prior_statements": true,
+    "task19_direction_sequence_audit_passed": true,
+    "official_test_members_quarantined": true,
+    "full_tarball_downloaded_and_verified": false,
+    "phase_q_selected_member_freeze_complete": true
   },
   "phase_transition": {
-    "phase_q_complete_when": [
-      "all six selected members downloaded from external immutable commit",
-      "all six members match pinned Git blob identity and size",
-      "SHA-256 is computed for all selected members",
-      "all six members parse and story-local support references validate",
-      "Task 19 ordered cardinal-direction answer audit passes",
-      "offline source-audit tests pass",
-      "source-audit.json and six selected files are uploaded as a run artifact"
-    ],
-    "phase_b_authorized_after_phase_q": true,
-    "learning_campaign_authorized": false
+    "phase_q_status": "COMPLETE_FOR_SELECTED_EXPERIMENT_MEMBERS",
+    "phase_b_authorized": true,
+    "learning_campaign_authorized": false,
+    "frozen_task35_untouched": true
   }
 }
