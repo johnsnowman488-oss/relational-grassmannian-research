@@ -1,0 +1,270 @@
+{
+  "schema": "HLG-BABI-EXPANSION-LEARNING-CAMPAIGN-v1.0",
+  "protocol_id": "HLG-BABI-EXPANSION-LEARNING-CAMPAIGN-v1",
+  "status": "FROZEN_NOT_AUTHORIZED",
+  "protocol_version": "1.0.0",
+  "source": {
+    "dataset": "Facebook bAbI v1.2.0 English en-10k",
+    "source_freeze_manifest": "docs/experiments/HLG_BABI_TASK_EXPANSION_SOURCE_FREEZE_v1_0.json",
+    "adapter_manifest": "docs/experiments/HLG_BABI_TASK_EXPANSION_v1_0.json",
+    "partition_seed": "HLG-BABI-EXPANSION-TRAIN-VALID-v1",
+    "fit_validation_policy": "Deterministic whole-story 90/10 split from en-10k training member; official test is label-sealed and never used for model selection."
+  },
+  "scope": {
+    "tasks": [
+      11,
+      14,
+      19
+    ],
+    "architectures": [
+      "HLA",
+      "HLB"
+    ],
+    "conditions": [
+      "full_learning",
+      "no_temporal",
+      "no_relational",
+      "no_abstraction",
+      "no_task",
+      "no_learning"
+    ],
+    "seeds": [
+      953100,
+      953101,
+      953102,
+      953103,
+      953104,
+      953105,
+      953106,
+      953107,
+      953108,
+      953109
+    ],
+    "task3_task5_modified": false,
+    "task13_2_4_in_scope": false
+  },
+  "partitions": {
+    "task11": {
+      "fit_stories": 1800,
+      "fit_queries": 9000,
+      "validation_stories": 200,
+      "validation_queries": 1000,
+      "test_stories": 200,
+      "test_queries": 1000
+    },
+    "task14": {
+      "fit_stories": 1800,
+      "fit_queries": 9000,
+      "validation_stories": 200,
+      "validation_queries": 1000,
+      "test_stories": 200,
+      "test_queries": 1000
+    },
+    "task19": {
+      "fit_stories": 9000,
+      "fit_queries": 9000,
+      "validation_stories": 1000,
+      "validation_queries": 1000,
+      "test_stories": 1000,
+      "test_queries": 1000
+    },
+    "fit_subphases": {
+      "warm_start_fraction": 0.8,
+      "online_adaptation_fraction": 0.2,
+      "unit": "whole story",
+      "seed": "HLG-BABI-EXPANSION-WARM-ONLINE-v1",
+      "query_counts": "Computed from actual story assignments in each run manifest; never assumed from story fractions.",
+      "ordering": "Stable hash assignment, then preserve source order within each phase; online events are consumed in story-local order."
+    },
+    "validation": "Read-only; no parameter, threshold, normalization or candidate update is permitted."
+  },
+  "task_level_contract": {
+    "L0": "Grounding/feature prediction: task-specific mention, temporal-anchor or directed-edge observations.",
+    "L1": "Relational prediction: coreference binding, temporal precedence or ordered spatial/path composition.",
+    "L2": "Context prediction: entity-state, temporal-context or route-context state.",
+    "answer": "Separate task-query answer target at L2; exact answer scoring is not substituted for L0/L1/L2 target scoring.",
+    "channel_routing": {
+      "temporal": "L0 feature prediction and SOE temporal eligibility/credit",
+      "relational": "L1 typed relation and path/coreference/temporal-relation learning",
+      "abstraction": "L2 context and event-role abstraction",
+      "task": "Task-answer reliability calibration only"
+    },
+    "gold_separation": "GoldLabel and official support-line IDs are evaluator-only. They are never passed to runtime ingestion, feature construction, warm start or online adaptation."
+  },
+  "baselines": {
+    "task11": [
+      "nearest-compatible-antecedent",
+      "recency-only"
+    ],
+    "task14": [
+      "source-order-only",
+      "lexical-temporal-cue-rule"
+    ],
+    "task19": [
+      "direct-edge-only",
+      "breadth-first-search"
+    ],
+    "oracle_upper_bounds": {
+      "task11": "constrained symbolic entity-binding oracle",
+      "task14": "symbolic normalized-time-order oracle",
+      "task19": "shortest-path symbolic oracle",
+      "policy": "Report separately as diagnostic upper bounds; exclude from candidate selection and non-oracle baseline threshold."
+    }
+  },
+  "experimental_design": {
+    "matched_unit": "task × architecture × condition × seed",
+    "run_units": 360,
+    "formula": "3 tasks × 2 architectures × 6 conditions × 10 seeds",
+    "run_order": "Stable lexicographic task, architecture, condition, seed order before sharding.",
+    "pairing": "HLA and HLB use identical task story order, seed, phase assignment, feature projection, query order and forecast horizons.",
+    "reset": "Every run unit starts from a clean model/native runtime; no state crosses seeds, conditions, tasks or architectures.",
+    "ablation_semantics": {
+      "full_learning": "All four error channels enabled.",
+      "no_temporal": "Disable temporal eligibility/credit and L0 feature-predictor updates only.",
+      "no_relational": "Disable L1 semantic relation/path/coreference/temporal-relation updates only.",
+      "no_abstraction": "Disable L2 context and event-role abstraction updates only.",
+      "no_task": "Disable task-answer reliability calibration only.",
+      "no_learning": "Disable every learning update; preserve inference, evidence, predictions and scoring."
+    },
+    "candidate_selection": {
+      "partition": "validation only",
+      "scope": "independent per task and architecture",
+      "candidates": "full_learning only; ablations remain comparative conditions",
+      "ranking": "Highest validation answer exact-match, then highest witness recall, then lowest seed as deterministic tie-break.",
+      "failure": "If no seed passes every task-specific acceptance gate, no confirmatory candidate is selected."
+    },
+    "confirmatory": "A generated, label-separated challenge is a later phase. Its generator, seeds, novel entity/topology rules and hashes must be frozen separately after validation candidate selection. Official test members remain sealed."
+  },
+  "metrics": {
+    "all_tasks": [
+      "query_answer_exact_match",
+      "support_witness_recall",
+      "false_witness_rate",
+      "abstention_rate",
+      "forecast_coverage",
+      "L0_target_accuracy",
+      "L1_target_exact_match",
+      "L2_target_accuracy",
+      "per_story_latency",
+      "peak_memory"
+    ],
+    "task11": [
+      "mention_to_entity_accuracy",
+      "antecedent_top1_accuracy",
+      "coreference_edge_precision_recall_f1",
+      "entity_chain_exact_match",
+      "state_answer_exact_match",
+      "false_binding_rate",
+      "cross_story_binding_count"
+    ],
+    "task14": [
+      "temporal_expression_parse_accuracy",
+      "event_time_order_accuracy",
+      "before_after_relation_f1",
+      "temporal_query_exact_match",
+      "temporal_witness_recall",
+      "contradiction_rate",
+      "causal_cutoff_violation_count"
+    ],
+    "task19": [
+      "edge_direction_accuracy",
+      "inverse_relation_consistency",
+      "path_exact_match",
+      "path_length_error",
+      "intermediate_node_sequence_accuracy",
+      "edge_witness_recall",
+      "invalid_edge_composition_rate",
+      "false_path_rate"
+    ],
+    "aggregation": "Report every task, architecture, condition and seed separately. Story-clustered paired bootstrap with 10,000 resamples and 95% intervals. No pooled cross-task score or ranking."
+  },
+  "acceptance_thresholds": {
+    "integrity": {
+      "cross_story_binding_count": 0,
+      "causal_cutoff_violation_count": 0,
+      "false_witness_rate": 0,
+      "invalid_edge_composition_rate": 0,
+      "false_path_rate": 0,
+      "inverse_relation_consistency": 1,
+      "witness_recovery_mismatch_count": 0,
+      "partition_overlap_count": 0,
+      "evaluator_label_leak_count": 0
+    },
+    "performance": {
+      "minimum_forecast_coverage": 0.9,
+      "minimum_support_witness_recall": 0.95,
+      "answer_exact_match": "At least the strongest non-oracle baseline on the same validation queries.",
+      "task11_false_binding_rate_max": 0.01,
+      "selection": "All integrity and performance gates must pass per task/architecture/seed; otherwise candidate is not eligible."
+    }
+  },
+  "workload": {
+    "run_units": 360,
+    "query_presentations": 3600000,
+    "calculation": "360 run units × (9,000 fit + 1,000 validation queries).",
+    "story_presentations": 1680000,
+    "story_calculation": "120 run units per task × (2,000 Task 11 stories + 2,000 Task 14 stories + 10,000 Task 19 stories).",
+    "baselines": "Six non-oracle baseline evaluations plus three separately reported oracle upper-bound evaluations, one set per task.",
+    "estimate_policy": "No wall-clock or memory estimate is fabricated. Before authorization, measure a representative non-learning runtime preflight, verify actual event counts and capacity, then publish projected wall-clock, peak-memory and artifact-storage budgets."
+  },
+  "sharding": {
+    "worker_count": 4,
+    "max_parallel": 4,
+    "assignment": "Enumerate the frozen 360-unit manifest in stable order; assign unit index modulo 4 to shard 0..3.",
+    "units_per_shard": 90,
+    "isolation": "Each shard writes only to its own run-id/shard-id evidence directory; aggregate only after all four shards finish.",
+    "concurrency_group": "babi-expansion-learning-${{ github.run_id }}",
+    "cancel_in_progress": false,
+    "retry": "Retry only failed shard/unit keys; successful unit artifacts are immutable and reused by exact key and digest.",
+    "evidence_directory": "Create before starting any run unit. Upload shard evidence with always() semantics, including failures; report explicit empty-run diagnostics instead of silently omitting evidence.",
+    "aggregate_gate": "All 360 unique run-unit keys must be present exactly once; no duplicate, missing or mixed-manifest unit is accepted."
+  },
+  "artifacts": {
+    "required": [
+      "protocol.json",
+      "source-and-partition-manifest.json",
+      "per-run-config.json",
+      "per-run-metrics.json",
+      "prediction-journal.jsonl",
+      "witness-audit.jsonl",
+      "per-run-stdout.log",
+      "per-run-stderr.log",
+      "resource-usage.json",
+      "sha256sums.txt"
+    ],
+    "provenance": "Every artifact binds task, architecture, condition, seed, partition fingerprint, code commit, native runtime commit and protocol fingerprint.",
+    "retention_days": 365
+  },
+  "execution_gate": {
+    "authorized": false,
+    "launch_allowed": false,
+    "required_before_launch": [
+      "Runtime/prediction-contract PR merged and CI green on Python 3.10 and 3.12.",
+      "Task-specific baseline implementations and validation metrics reviewed.",
+      "Four-shard dry-run proves complete artifact creation, retry isolation and deterministic aggregation.",
+      "Measured workload, memory and storage budget reviewed.",
+      "Generated confirmatory challenge protocol separately frozen.",
+      "Explicit user authorization to launch the 360-unit learning campaign."
+    ],
+    "freeze_boundary": "This protocol freeze authorizes implementation and preflight only. It does not authorize any learning run, validation campaign, confirmatory campaign or access to official test labels."
+  },
+  "acceptance_evidence": {
+    "runtime_pr": 53,
+    "runtime_pr_url": "https://github.com/johnsnowman488-oss/relational-grassmannian-research/pull/53",
+    "runtime_merge_commit": "0e4da940644033b784fc65a4ef2b4ab64b66f7ba",
+    "acceptance_workflow_runs": [
+      45995326040,
+      45995337324
+    ],
+    "python_versions": {
+      "3.10": "success",
+      "3.12": "success"
+    },
+    "test_groups": {
+      "expansion_adapter_and_runtime": "15 passed",
+      "integrated_evidence_and_prediction_lifecycle": "60 passed",
+      "frozen_task3_task5_regression": "40 passed"
+    },
+    "test_total_per_python_version": 115
+  }
+}
