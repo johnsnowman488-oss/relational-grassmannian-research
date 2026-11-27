@@ -81,7 +81,7 @@ Generated confirmatory challenges are a later, separate phase. Freeze their gene
 
 ## 8. Acceptance evidence and remaining launch gates
 
-The runtime/prediction-contract integration merged as PR #53 at commit `0e4da940644033b784fc65a4ef2b4ab64b66f7ba`. Acceptance runs `45995326040`, `45995337324` and final protocol-freeze run `45996300512` passed on Python 3.10 and 3.12. Each matrix job passed 15 expansion adapter/runtime tests, 60 integrated evidence/prediction lifecycle tests and 40 frozen Task 3/5 regression tests.
+The runtime/prediction-contract integration merged as PR #53 at commit `0e4da940644033b784fc65a4ef2b4ab64b66f7ba`. Acceptance runs `45995326040`, `45995337324`, `45996300512` and final merged-freeze run `45996589286` passed on Python 3.10 and 3.12. Each matrix job passed 15 expansion adapter/runtime tests, 60 integrated evidence/prediction lifecycle tests and 40 frozen Task 3/5 regression tests.
 
 Before launch:
 1. Implement and review the task-specific non-oracle baselines.
