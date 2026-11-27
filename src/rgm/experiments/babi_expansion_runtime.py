@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from hashlib import sha256
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 import json
 
 from rgm.experiments.babi_expansion_adapters import (
@@ -22,8 +22,8 @@ from rgm.leptograph.m4.hierarchical import (
     HLAAdapter, HLBAdapter, HierarchicalRuntimeDirector,
 )
 from rgm.leptograph.m4.learning import (
-    EligibilityEvent, Level, Prediction, PredictionJournal, TargetObservation, TargetSchema,
-    fingerprint,
+    EligibilityEvent, ErrorChannel, LearningRuntime, Level, Prediction, PredictionJournal,
+    TargetObservation, TargetSchema, fingerprint,
 )
 
 
@@ -267,13 +267,22 @@ class BabiExpansionRuntime:
     evidence journal for exact witness recovery without retaining relation paths.
     """
     def __init__(self, adapter: HLAAdapter | HLBAdapter, *, capacity: int = 100000,
-                 learning_enabled: bool = True):
+                 learning_enabled: bool = True,
+                 enabled_channels: Iterable[ErrorChannel] | None = None):
         if not isinstance(adapter, (HLAAdapter, HLBAdapter)):
             raise TypeError("adapter must be an existing HLAAdapter or HLBAdapter")
         if not isinstance(learning_enabled, bool):
             raise TypeError("learning_enabled must be a boolean")
         self.adapter = adapter
         self.learning_enabled = learning_enabled
+        if enabled_channels is not None:
+            # Configure ablation channels before any fit/online updates. Replacing
+            # the learning runtime here guarantees an empty, condition-specific
+            # learner while preserving the already-created HLA/HLB native bridge.
+            channels = frozenset(enabled_channels)
+            if any(not isinstance(channel, ErrorChannel) for channel in channels):
+                raise TypeError("enabled_channels must contain ErrorChannel values")
+            self.adapter.learning = LearningRuntime(enabled_channels=channels)
         self.director = HierarchicalRuntimeDirector(adapter)
         admission_capacity = min(capacity, adapter.evidence.capacity) if isinstance(adapter, HLBAdapter) else capacity
         self._admission = EvidenceStore(admission_capacity)
