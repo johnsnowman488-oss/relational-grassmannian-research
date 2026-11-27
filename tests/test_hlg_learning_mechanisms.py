@@ -312,3 +312,34 @@ def test_task_channel_rejects_non_binary_outcome_targets():
 
     with pytest.raises(ValueError, match="binary-range"):
         LearningRuntime().observe_task_error("task3", 1.5)
+
+
+def test_task_channel_scores_prior_error_probability_and_learns_even_on_correct_outcome():
+    from rgm.leptograph.m4.learning import LearningRuntime
+
+    learning = LearningRuntime()
+    before = learning.task_outcomes.snapshot()
+    assert learning.task_outcomes.predict_error_probability("task3") == pytest.approx(0.5)
+    learning.observe_task_error("task3", 0.0, learn=True)
+    assert learning.last_signals.task == pytest.approx(0.25)
+    assert learning.task_outcomes.snapshot() != before
+    assert learning.task_outcomes.error_rate("task3") == 0.0
+    assert learning.task_outcomes.predict_error_probability("task3") == pytest.approx(1 / 3)
+
+
+def test_no_task_ablation_suppresses_task_calibration_updates_but_keeps_error_measurement():
+    from rgm.leptograph.m4.learning import LearningRuntime
+
+    learning = LearningRuntime(enabled_channels={
+        ErrorChannel.TEMPORAL, ErrorChannel.RELATIONAL, ErrorChannel.ABSTRACTION,
+    })
+    learning.observe_task_error("task5", 0.0, learn=True)
+    assert learning.last_signals.task == pytest.approx(0.25)
+    assert learning.task_outcomes.snapshot() == {}
+
+
+def test_task_channel_rejects_non_binary_outcome_targets():
+    from rgm.leptograph.m4.learning import LearningRuntime
+
+    with pytest.raises(ValueError, match="binary-range"):
+        LearningRuntime().observe_task_error("task3", 1.5)
