@@ -21,7 +21,7 @@ from rgm.leptograph.m4.composition import (
 )
 from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge, make_h0_chain_spec
 from rgm.leptograph.m4.evidence import EvidenceStore, NaryEvent
-from rgm.leptograph.m4.learning import LearningRuntime, EligibilityEvent, ErrorChannel, ErrorChannel
+from rgm.leptograph.m4.learning import LearningRuntime, EligibilityEvent, ErrorChannel
 
 
 H1_SCHEMA_VERSION = "0.1.0"
@@ -60,23 +60,6 @@ def _memory_snapshots(bridge: SOEHierarchyBridge) -> list[dict]:
     return [memory.to_dict() for memory in bridge.memories]
 
 
-def _validate_learning_snapshot(snapshot: Mapping) -> None:
-    """Validate a learner snapshot using its own frozen ablation/configuration.
-
-    Validation must not assume the default all-channel learner: campaign units
-    intentionally use different enabled-channel sets and a larger eligibility
-    ledger capacity. The destination learner still enforces exact config
-    equality when restore() commits the snapshot.
-    """
-    eligibility = snapshot["eligibility"]
-    channels = tuple(ErrorChannel(value) for value in snapshot["enabled_channels"])
-    probe = LearningRuntime(
-        eligibility_decay=float(eligibility["decay"]),
-        eligibility_capacity=int(eligibility["capacity"]),
-        eligibility_config_fingerprint=str(eligibility["config_fingerprint"]),
-        enabled_channels=channels,
-    )
-    probe.restore(snapshot)
 
 
 def _validate_memory_snapshots(bridge: SOEHierarchyBridge, states: Sequence[Mapping]) -> None:
