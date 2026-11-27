@@ -146,12 +146,25 @@ def _run_units() -> list[dict]:
     return rows
 
 
-def prepare(source_root: Path, output_root: Path, protocol_path: Path) -> dict:
+def prepare(source_root: Path, output_root: Path, protocol_path: Path,
+            confirmatory_protocol_path: Path,
+            confirmatory_root: Path) -> dict:
     """Build the exact whole-story phase manifest, baseline report and 360 keys."""
     output_root.mkdir(parents=True, exist_ok=True)
     if not protocol_path.is_file():
         raise FileNotFoundError(f"frozen learning protocol missing: {protocol_path}")
     protocol_sha = _file_sha(protocol_path)
+    if not confirmatory_protocol_path.is_file():
+        raise FileNotFoundError(f"confirmatory protocol missing: {confirmatory_protocol_path}")
+    confirmatory_protocol = json.loads(confirmatory_protocol_path.read_text(encoding="utf-8"))
+    if confirmatory_protocol.get("status") != "FROZEN_GENERATOR_AND_SEEDS":
+        raise ValueError("generated-confirmatory protocol is not frozen")
+    confirmatory_manifest_path = confirmatory_root / "confirmatory-manifest.json"
+    if not confirmatory_manifest_path.is_file():
+        raise FileNotFoundError(f"generated-confirmatory manifest missing: {confirmatory_manifest_path}")
+    confirmatory_manifest = json.loads(confirmatory_manifest_path.read_text(encoding="utf-8"))
+    if confirmatory_manifest.get("status") != "FROZEN_GENERATOR_AND_SEEDS":
+        raise ValueError("generated-confirmatory manifest is not frozen")
     source_audit_path = source_root / "source-audit.json"
     source_audit_sha = _file_sha(source_audit_path) if source_audit_path.is_file() else None
 
@@ -235,6 +248,12 @@ def prepare(source_root: Path, output_root: Path, protocol_path: Path) -> dict:
             "protocol_id": "HLG-BABI-EXPANSION-LEARNING-CAMPAIGN-v1",
         },
         "source_audit_sha256": source_audit_sha,
+        "confirmatory_protocol": {
+            "path": str(confirmatory_protocol_path),
+            "sha256": _file_sha(confirmatory_protocol_path),
+            "manifest_sha256": confirmatory_manifest["manifest_sha256"],
+            "manifest_file_sha256": _file_sha(confirmatory_manifest_path),
+        },
         "split_seeds": {
             "fit_validation": FIT_VALIDATION_SEED,
             "warm_online": WARM_ONLINE_SEED,
@@ -434,7 +453,7 @@ def run_shard(plan_path: Path, shard_id: int, output_root: Path,
             "story_presentations": story_presentations,
             "event_presentations": event_presentations,
             "event_records_per_second": event_presentations / elapsed if elapsed else 0.0,
-            "peak_rss_mb": _resource_peak_rss_mb(),
+            "peak_rss_mb": max(_resource_peak_rss_mb(), float(prior_resource.get("peak_rss_mb", 0.0))),
             "tracemalloc_peak_mb": trace_peak / (1024.0 * 1024.0),
             "tracemalloc_peak_bytes": trace_peak,
             "retry_elapsed_seconds_included": float(prior_resource.get("elapsed_seconds", 0.0)),
@@ -542,7 +561,12 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
     if any(row["official_test_queries"] for row in results.values()):
         raise ValueError("official test queries appeared in preflight unit results")
     elapsed = sum(float(row["elapsed_seconds"]) for row in resources)
-    total_artifact_bytes = sum(int(row["artifact_storage_bytes"]) for row in resources)
+    total_artifact_bytes = sum(
+        path.stat().st_size
+        for root in shard_roots
+        for path in root.rglob("*")
+        if path.is_file()
+    )
     summary = {
         "schema": "HLG-BABI-EXPANSION-PREFLIGHT-AGGREGATE-v1",
         "status": "PASS",
@@ -560,6 +584,7 @@ def aggregate(plan_path: Path, shard_roots: list[Path], output_path: Path) -> di
         "official_test_queries": 0,
         "resource_measurements": {
             "worker_elapsed_seconds_sum": elapsed,
+            "worker_elapsed_seconds_max": max(float(row["elapsed_seconds"]) for row in resources),
             "worker_peak_rss_mb_max": max(float(row["peak_rss_mb"]) for row in resources),
             "worker_tracemalloc_peak_mb_max": max(float(row["tracemalloc_peak_mb"]) for row in resources),
             "query_presentations_per_worker_second": total_queries / elapsed if elapsed else 0.0,
@@ -586,6 +611,8 @@ def main() -> int:
     parser.add_argument("--source-root", type=Path, default=Path("data/babi-v1.2-expansion"))
     parser.add_argument("--output-root", type=Path, default=Path("artifacts/babi-expansion-preflight"))
     parser.add_argument("--protocol", type=Path, default=Path("docs/experiments/HLG_BABI_EXPANSION_LEARNING_CAMPAIGN_v1_0.json"))
+    parser.add_argument("--confirmatory-protocol", type=Path, default=Path("docs/experiments/HLG_BABI_EXPANSION_CONFIRMATORY_v1_0.json"))
+    parser.add_argument("--confirmatory-root", type=Path, default=Path("artifacts/babi-expansion-confirmatory"))
     parser.add_argument("--prepare", action="store_true")
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--shard", type=int, choices=range(4))
@@ -596,7 +623,8 @@ def main() -> int:
     parser.add_argument("--aggregate-output", type=Path)
     args = parser.parse_args()
     if args.prepare:
-        result = prepare(args.source_root, args.output_root, args.protocol)
+        result = prepare(args.source_root, args.output_root, args.protocol,
+                         args.confirmatory_protocol, args.confirmatory_root)
         print(json.dumps({
             "manifest_sha256": result["manifest"]["manifest_sha256"],
             "run_units": result["plan"]["run_unit_count"],
