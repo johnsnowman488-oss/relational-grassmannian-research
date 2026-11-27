@@ -220,7 +220,10 @@ def audit_member(payload: bytes, *, task_id: int, member_name: str) -> dict:
     }
 
 
-def freeze(output: Path) -> dict:
+def freeze(output: Path, task_ids: tuple[int, ...] | None = None) -> dict:
+    selected_tasks = tuple(sorted(SOURCE_FILES if task_ids is None else set(task_ids)))
+    if not selected_tasks or any(task_id not in SOURCE_FILES for task_id in selected_tasks):
+        raise ValueError("tasks must be a non-empty subset of 11, 14 and 19")
     output.mkdir(parents=True, exist_ok=True)
 
     # Acquire the dataset release README and license from the same immutable
@@ -236,7 +239,8 @@ def freeze(output: Path) -> dict:
         }
 
     member_records = {}
-    for task_id, splits in SOURCE_FILES.items():
+    for task_id in selected_tasks:
+        splits = SOURCE_FILES[task_id]
         for split, filename in splits.items():
             relative_path = CONFIGURATION + "/" + filename
             payload = download(MIRROR_ROOT + relative_path)
@@ -269,6 +273,7 @@ def freeze(output: Path) -> dict:
             member_records[f"task{task_id}_{split}"] = audit
 
     report = {
+        "selected_tasks": list(selected_tasks),
         "schema": "HLG-BABI-EXPANSION-SOURCE-FREEZE-v1.0",
         "status": "VERIFIED",
         "verified_utc": datetime.now(timezone.utc).isoformat(),
@@ -341,9 +346,9 @@ def freeze(output: Path) -> dict:
         },
         "members": member_records,
         "acceptance": {
-            "six_selected_members_downloaded_from_external_commit": True,
-            "all_six_members_match_pinned_git_blob_and_size": True,
-            "all_six_members_have_sha256": True,
+            "selected_members_downloaded_from_external_commit": len(member_records) == 2 * len(selected_tasks),
+            "all_selected_members_match_pinned_git_blob_and_size": len(member_records) == 2 * len(selected_tasks),
+            "all_selected_members_have_sha256": len(member_records) == 2 * len(selected_tasks),
             "all_members_are_utf8_and_parse": True,
             "story_resets_and_line_sequences_valid": True,
             "all_support_ids_resolve_to_same_story_prior_statements": True,
@@ -365,8 +370,9 @@ def main() -> int:
     parser.add_argument(
         "--output", type=Path, default=Path("data/babi-v1.2-expansion")
     )
+    parser.add_argument("--tasks", nargs="+", type=int, choices=sorted(SOURCE_FILES))
     args = parser.parse_args()
-    report = freeze(args.output)
+    report = freeze(args.output, tuple(args.tasks) if args.tasks else None)
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 0
 
