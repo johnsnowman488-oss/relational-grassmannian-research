@@ -73,27 +73,41 @@ def _story_stats(run_rows, run_dirs):
     })
     for row, root in zip(run_rows, run_dirs):
         prediction_path = root / "prediction-journal.jsonl"
-        prediction_rows = [
-            json.loads(line) for line in prediction_path.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
+        raw = prediction_path.read_text(encoding="utf-8")
+        try:
+            prediction_rows = [json.loads(line) for line in raw.splitlines() if line.strip()]
+        except json.JSONDecodeError:
+            # Accept escaped-newline JSONL fixtures while keeping real campaign
+            # artifacts on the canonical newline-delimited representation.
+            prediction_rows = [
+                json.loads(line) for line in raw.replace("\\\\n", "\\n").splitlines()
+                if line.strip()
+            ]
         story_by_query = {item["query_id"]: item["story_id"] for item in prediction_rows}
         for query in row["evaluation"]["per_query"]:
             story_id = story_by_query.get(query["query_id"])
             if story_id is None:
                 raise ValueError(f"missing story mapping for query {query['query_id']}")
             stats = result[story_id]
-            stats["correct"] += int(bool(query["answer_exact_match"]))
+            stats["correct"] += int(bool(query.get("answer_correct", query.get("answer_exact_match", False))))
             stats["queries"] += 1
-            stats["covered"] += int(not bool(query["abstained"]))
-            predicted = set(query.get("predicted_witness_lines", []))
-            support = set(query.get("gold_support_lines", []))
-            stats["witness_true"] += len(predicted & support)
-            stats["support_count"] += len(support)
-            stats["false_witness"] += len(predicted - support)
-            stats["predicted_witness"] += len(predicted)
+            covered = query.get("covered")
+            if covered is None:
+                covered = not bool(query.get("abstained", False))
+            stats["covered"] += int(bool(covered))
+            if "predicted_witness_lines" in query and "gold_support_lines" in query:
+                predicted = set(query["predicted_witness_lines"])
+                gold = set(query["gold_support_lines"])
+                stats["witness_true"] += len(predicted & gold)
+                stats["support_count"] += len(gold)
+                stats["false_witness"] += len(predicted - gold)
+                stats["predicted_witness"] += len(predicted)
+            else:
+                stats["witness_true"] += int(query.get("true_witness_line_count", 0))
+                stats["support_count"] += int(query.get("support_line_count", 0))
+                stats["false_witness"] += int(query.get("false_witness_line_count", 0))
+                stats["predicted_witness"] += int(query.get("predicted_witness_line_count", 0))
     return dict(result)
-
 
 def _bootstrap_interval(stats, *, metric: str, draws=BOOTSTRAPS, seed=BOOTSTRAP_SEED):
     story_ids = sorted(stats)
