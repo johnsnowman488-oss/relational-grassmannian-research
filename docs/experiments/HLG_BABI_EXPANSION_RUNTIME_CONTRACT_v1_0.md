@@ -39,3 +39,14 @@ A forecast must be issued before its evidence cutoff, carry the target schema fi
 6. Existing integrated HLG lifecycle, learning runtime and Task 3/5 frozen tests remain green.
 
 A green source-adapter audit is not a learned-performance result. No baseline campaign or learning ablation is run in this phase. After acceptance, freeze a campaign protocol separately; launch remains gated on explicit review and authorization.
+
+
+## Task-specific L1 relation materialization
+
+The runtime bridge materializes explicit typed L1 relations as well as the common n-ary event envelope:
+
+- Task 11 emits a `corefers_to` relation from the pronoun-mention event to its exact antecedent mention event.
+- Task 14 emits a `before` relation between the nearest temporally adjacent same-actor event pair. The relation provenance names both source lines.
+- Task 19 emits both the directed spatial edge and its explicit inverse; both preserve the same source-line provenance.
+
+For Task 14, the source adapter's temporal anchor rank is retained as a normalized ordinal coordinate (`rank / 1000`) in the numeric event-time field, while source observation time remains the original line ordinal. The complete anchor and source-order tie-break remain in the typed event payload. This coordinate is ordinal, not a physical timestamp; it must not be interpreted as elapsed time. This encoding preserves the H1 evidence invariant that observation time cannot precede event time without collapsing the source's separate temporal-anchor and observation-order information.
