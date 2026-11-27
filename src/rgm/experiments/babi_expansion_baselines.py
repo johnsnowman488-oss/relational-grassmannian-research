@@ -10,7 +10,7 @@ from typing import Callable, Iterable
 
 from rgm.experiments.babi_expansion_adapters import (
     ExpansionQuery, ExpansionStory, GoldLabel, Prediction, Task11MentionEvent,
-    Task14TemporalEvent, Task19SpatialEdge, predict_task11,
+    Task14TemporalEvent, Task19SpatialEdge, derive_task11_weak_binding_targets, predict_task11,
 )
 
 
@@ -169,16 +169,21 @@ def predict_task11_supervision(story: ExpansionStory, query: ExpansionQuery) -> 
     if not isinstance(target_event, Task11MentionEvent):
         raise RuntimeError("Task 11 target witness is not a source mention event")
 
-    antecedent_by_mention = {
-        mention_event_id: antecedent_event_id
-        for mention_event_id, antecedent_event_id in prediction.antecedent_edges
+    weak_report = derive_task11_weak_binding_targets(story)
+    if weak_report["abstentions"]:
+        raise RuntimeError(
+            "Task 11 target supervision abstains on ambiguous mentions; "
+            "no L0/L1/L2 bundle is issued for this story"
+        )
+    weak_by_mention = {
+        target.mention_event_id: target for target in weak_report["targets"]
     }
     if target_event.is_pronoun:
-        antecedent_id = antecedent_by_mention.get(target_event_id)
-        antecedent = event_by_id.get(antecedent_id or "")
-        if not isinstance(antecedent, Task11MentionEvent) or antecedent.is_pronoun:
-            raise RuntimeError("Task 11 target pronoun has no predicted name anchor")
-        entity_id = antecedent.surface_mention.casefold()
+        target_binding = weak_by_mention.get(target_event_id)
+        if target_binding is None:
+            raise RuntimeError("Task 11 target pronoun has no unique weak binding")
+        antecedent_id = target_binding.antecedent_event_id
+        entity_id = target_binding.entity_id
         l1 = {
             "mention_event_id": target_event_id,
             "antecedent_event_id": antecedent_id,
@@ -196,9 +201,8 @@ def predict_task11_supervision(story: ExpansionStory, query: ExpansionQuery) -> 
     if entity_id != query.entity:
         raise RuntimeError("Task 11 predicted target mention does not resolve to queried entity")
     # L2 preserves all source witnesses that resolve to the queried entity,
-    # including repeated explicit name mentions. The answer baseline's compact
-    # witness chain may legitimately reset at a new name mention; that is not
-    # the same object as the entity's complete evidence-support set.
+    # including repeated explicit name mentions. It uses the conservative weak
+    # target rule; ambiguous stories cannot silently create entity-state labels.
     resolved_entity_by_event: dict[str, str] = {}
     for event in story.events:
         if not isinstance(event, Task11MentionEvent):
@@ -206,10 +210,9 @@ def predict_task11_supervision(story: ExpansionStory, query: ExpansionQuery) -> 
         if not event.is_pronoun:
             resolved_entity_by_event[event.event_id] = event.surface_mention.casefold()
         else:
-            antecedent_id = antecedent_by_mention.get(event.event_id)
-            antecedent = event_by_id.get(antecedent_id or "")
-            if isinstance(antecedent, Task11MentionEvent) and not antecedent.is_pronoun:
-                resolved_entity_by_event[event.event_id] = antecedent.surface_mention.casefold()
+            target_binding = weak_by_mention.get(event.event_id)
+            if target_binding is not None:
+                resolved_entity_by_event[event.event_id] = target_binding.entity_id
     entity_witness_event_ids = [
         event.event_id for event in story.events
         if resolved_entity_by_event.get(event.event_id) == query.entity
