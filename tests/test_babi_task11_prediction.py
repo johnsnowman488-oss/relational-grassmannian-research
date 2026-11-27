@@ -1,9 +1,11 @@
 from types import SimpleNamespace
 
 from rgm.experiments.babi_expansion_adapters import (
-    ExpansionQuery, ExpansionStory, Task11MentionEvent,
+    ExpansionQuery, ExpansionStory, GoldLabel, Prediction, Task11MentionEvent,
 )
-from rgm.experiments.babi_task11_prediction import predict_task11_from_learned_state
+from rgm.experiments.babi_task11_prediction import (
+    Task11AnswerDecision, evaluate_task11_predictions, predict_task11_from_learned_state,
+)
 
 
 class ContextTransitions:
@@ -71,3 +73,39 @@ def test_query_cutoff_excludes_later_story_events():
     )
     assert result.prediction.answer == "kitchen"
     assert result.prediction.witness_event_ids == ("m1",)
+
+
+
+def test_evaluator_scores_answer_and_witnesses_only_after_prediction_is_fixed():
+    current = story()
+    query = ExpansionQuery("q1", 11, 4, "validation#4", entity="mary")
+    decision = predict_task11_from_learned_state(
+        adapter({"task11:entity:mary": "location:office"}), current, query,
+    )
+    labels = [GoldLabel("q1", "office", (1, 3), "validation#4")]
+    report = evaluate_task11_predictions([ExpansionStory(
+        current.story_id, current.task_id, current.events, (query,)
+    )], {"q1": decision}, labels)
+    assert report["answer_exact_match"] == 1.0
+    assert report["forecast_coverage"] == 1.0
+    assert report["support_witness_recall"] == 1.0
+    assert report["false_witness_rate"] == 0.0
+    assert report["witness_recovery_mismatch_count"] == 0
+    assert report["coreference_edge_metrics"]["status"] == "NOT_INDEPENDENTLY_EVALUABLE"
+
+
+def test_evaluator_reports_false_witnesses_without_rewriting_the_prediction():
+    current = story()
+    query = ExpansionQuery("q1", 11, 4, "validation#4", entity="mary")
+    prediction = Prediction("office", ("m1", "m2", "m3"), False)
+    decision = Task11AnswerDecision(
+        prediction, "location:office", "model-fingerprint", ("m1", "m2", "m3")
+    )
+    labels = [GoldLabel("q1", "office", (1, 3), "validation#4")]
+    report = evaluate_task11_predictions([ExpansionStory(
+        current.story_id, current.task_id, current.events, (query,)
+    )], {"q1": decision}, labels)
+    assert report["answer_exact_match"] == 1.0
+    assert report["support_witness_recall"] == 1.0
+    assert report["false_witness_rate"] == 1 / 3
+    assert prediction.witness_event_ids == ("m1", "m2", "m3")
