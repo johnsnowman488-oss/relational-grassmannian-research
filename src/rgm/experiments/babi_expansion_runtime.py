@@ -62,19 +62,19 @@ def _canonical_digest(value: Mapping[str, Any]) -> str:
 def to_nary_event(story: ExpansionStory, event: Any) -> NaryEvent:
     """Map one adapter event to the shared immutable, role-bound evidence type."""
     if story.task_id == 11 and isinstance(event, Task11MentionEvent):
-        event_type = "COREFERS_TO" if event.is_pronoun else "ENTITY_LOCATION_MENTION"
+        # Only source-observed fields cross the learner boundary. In particular,
+        # no antecedent ID or resolved entity is fabricated by the parser.
+        event_type = "ENTITY_LOCATION_MENTION"
         participants = (
-            Participant("entity", event.actor_entity, "person"),
-            Participant("mention", event.surface_mention, "pronoun" if event.is_pronoun else "name"),
+            Participant("mention", event.surface_mention,
+                        "pronoun" if event.is_pronoun else "name"),
             Participant("location", event.location, "location"),
-            Participant("antecedent", event.antecedent_event_id, "mention_event"),
         )
         event_time = float(event.observed_at)
         observed_at = float(event.observed_at)
         locator = event.source_ref
-        payload = {"event_id": event.event_id, "entity": event.actor_entity,
-                   "mention": event.surface_mention, "pronoun": event.is_pronoun,
-                   "location": event.location, "antecedent": event.antecedent_event_id}
+        payload = {"event_id": event.event_id, "mention": event.surface_mention,
+                   "pronoun": event.is_pronoun, "location": event.location}
     elif story.task_id == 14 and isinstance(event, Task14TemporalEvent):
         event_type = "TEMPORAL_LOCATION_EVENT"
         participants = (
@@ -146,18 +146,10 @@ def to_task_relations(
 ) -> tuple[RelationInstance, ...]:
     """Materialize task-specific L1 relations with exact source provenance."""
     if story.task_id == 11 and isinstance(event, Task11MentionEvent):
-        if not event.is_pronoun:
-            return ()
-        return (RelationInstance(
-            instance_id=f"{event.event_id}:corefers_to",
-            relation_type=RelationType("corefers_to", "mention_event", "mention_event"),
-            subject=Entity(event.event_id, "mention_event"),
-            object=Entity(event.antecedent_event_id, "mention_event"),
-            event_time=float(event.observed_at),
-            observed_at=float(event.observed_at),
-            context=f"task11:{story.story_id}",
-            provenance=event.source_ref,
-        ),)
+        # Coreference is a prediction target, not an observed relation. The raw
+        # mention event is retained at L0; no gold or heuristic antecedent edge
+        # is injected into L1 ingestion.
+        return ()
     if story.task_id == 14 and isinstance(event, Task14TemporalEvent):
         same_actor = [prior for prior in prior_temporal_events if prior.actor == event.actor]
         if not same_actor:
