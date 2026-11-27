@@ -41,7 +41,7 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
             violations.append(f"{key}: unit status is not PASS")
         if row.get("run_kind") != "preflight" or row.get("seed") != 953099:
             violations.append(f"{key}: wrong preflight identity")
-        if row.get("native_commit") != "ddf424b0ab8eb23329cd51256a919beeae2ee288":
+        if row.get("native_commit") != "48228f8c326c0e8546855eb898d374453d705b77":
             violations.append(f"{key}: native runtime commit differs from pinned ABI")
         if row.get("soe_feature_dims") != [3, 3, 3] or row.get("soe_dt") != 0.01:
             violations.append(f"{key}: SOE feature dimensions/time step differ from frozen configuration")
@@ -63,10 +63,10 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
             violations.append(f"{key}: checkpoint recovery fingerprint mismatch")
         if row.get("checkpoint_bytes", 0) > 536870912:
             violations.append(f"{key}: checkpoint exceeds 512 MiB")
-        if row.get("peak_worker_rss_mb", 1e99) > 4096:
-            violations.append(f"{key}: worker RSS exceeds 4 GiB")
-        if row.get("peak_python_allocation_mb", 1e99) > 2048:
-            violations.append(f"{key}: Python allocation exceeds 2 GiB")
+        if row.get("peak_worker_rss_mb", 1e99) > 2048:
+            violations.append(f"{key}: worker RSS exceeds 2 GiB")
+        if row.get("peak_python_allocation_mb", 1e99) > 1024:
+            violations.append(f"{key}: Python allocation exceeds 1 GiB")
         if row.get("elapsed_seconds", 1e99) > 3600:
             violations.append(f"{key}: run unit exceeds 60 minutes")
         if row.get("artifact_bytes", 1e99) > 268435456:
@@ -99,7 +99,7 @@ def aggregate(report_paths: list[Path], output_path: Path) -> dict:
         "status": "PASS" if not violations else "FAIL",
         "task_id": 11,
         "reserved_seed": 953099,
-        "native_commit": "ddf424b0ab8eb23329cd51256a919beeae2ee288",
+        "native_commit": "48228f8c326c0e8546855eb898d374453d705b77",
         "native_library_sha256": native_library_sha256,
         "soe_feature_dims": [3, 3, 3],
         "soe_dt": 0.01,
