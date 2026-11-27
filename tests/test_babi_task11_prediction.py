@@ -27,9 +27,9 @@ def adapter(values):
 
 def story():
     return ExpansionStory("task11/validation/story1", 11, (
-        Task11MentionEvent("m1", "Mary", False, "kitchen", 1, "validation#1", "female"),
-        Task11MentionEvent("m2", "John", False, "garden", 2, "validation#2", "male"),
-        Task11MentionEvent("m3", "she", True, "office", 3, "validation#3", "female"),
+        Task11MentionEvent("m1", "Mary", False, "kitchen", 1, "validation#story=1#line=1", "female"),
+        Task11MentionEvent("m2", "John", False, "garden", 2, "validation#story=1#line=2", "male"),
+        Task11MentionEvent("m3", "she", True, "office", 3, "validation#story=1#line=3", "female"),
     ), ())
 
 
@@ -54,7 +54,7 @@ def test_learned_context_conflict_abstains_instead_of_overriding_observed_story(
     )
     assert result.prediction.answer is None
     assert result.prediction.abstained is True
-    assert result.prediction.reason == "learned_context_conflicts_with_story_evidence"
+    assert result.prediction.reason == "learned_transition_conflicts_with_story_evidence"
 
 
 def test_unavailable_learned_context_abstains_even_when_story_has_answer_evidence():
@@ -62,7 +62,7 @@ def test_unavailable_learned_context_abstains_even_when_story_has_answer_evidenc
     query = ExpansionQuery("q1", 11, 4, "validation#4", entity="mary")
     result = predict_task11_from_learned_state(adapter({}), current, query)
     assert result.prediction.abstained is True
-    assert result.prediction.reason == "learned_context_unavailable"
+    assert result.prediction.reason == "learned_transition_unavailable"
 
 
 def test_query_cutoff_excludes_later_story_events():
