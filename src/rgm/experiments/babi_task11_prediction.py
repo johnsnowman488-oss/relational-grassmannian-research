@@ -119,6 +119,11 @@ def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
         else:
             model_context = adapter.learning.context_transitions.predict(context_key)
         observed_context = f"location:{event.location}"
+        if model_context == "__AMBIGUOUS__":
+            return Task11AnswerDecision(
+                Prediction(None, (), True, "learned_transition_ambiguous"),
+                model_context, model_fingerprint, tuple(witnesses),
+            )
         if not isinstance(model_context, str) or not model_context.startswith("location:"):
             return Task11AnswerDecision(
                 Prediction(None, (), True, "learned_transition_unavailable"),
