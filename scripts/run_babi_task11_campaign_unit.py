@@ -161,6 +161,9 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
         raise ValueError("SOE feature dimensions differ from frozen manifest")
     if manifest.get("soe_dt") != SOE_DT:
         raise ValueError("SOE time step differs from frozen manifest")
+    if not native_library_path.is_file():
+        raise FileNotFoundError(f"pinned native library is missing: {native_library_path}")
+    native_library_sha256 = _file_sha(native_library_path)
 
     run_key = f"task11-{architecture}-{condition}-seed{seed}"
     manifest_shard = None
@@ -330,6 +333,7 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
             "protocol_sha256": manifest["protocol_sha256"],
             "source_sha256": manifest["source"]["sha256"],
             "native_commit": NATIVE_COMMIT,
+            "native_library_sha256": native_library_sha256,
             "soe_feature_dims": list(FEATURE_DIMS),
             "soe_dt": SOE_DT,
             "hlb_model_relation_capacity": HLB_CAPACITY,
