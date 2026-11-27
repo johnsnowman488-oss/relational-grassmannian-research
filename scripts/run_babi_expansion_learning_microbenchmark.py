@@ -80,7 +80,7 @@ def _state_counts(adapter):
         "event_role_rows": len([r for r in learning._observation_journal if r.get("kind") == "event_role"]),
         "context_rows": len([r for r in learning._observation_journal if r.get("kind") == "context"]),
         "temporal_credit_weights": len(learning.temporal_credit.weights),
-        "eligibility_records": len(learning.eligibility.states),
+        "eligibility_records": len(learning.eligibility._states),
     }
 
 
