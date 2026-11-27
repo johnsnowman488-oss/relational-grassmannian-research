@@ -6,7 +6,7 @@ from rgm.experiments.babi_expansion_adapters import (
 )
 from rgm.experiments.babi_expansion_runtime import (
     BabiExpansionRuntime, ExpansionForecasts, target_contract,
-    to_nary_event, to_spatial_relation,
+    to_nary_event, to_spatial_relation, to_task_relations,
 )
 from rgm.leptograph.m4.hierarchical import HLAAdapter, HLBAdapter
 from rgm.leptograph.m4.soe_bridge import SOEHierarchyBridge
@@ -78,6 +78,42 @@ def test_task14_event_time_is_not_observation_time():
     assert mapped.observed_at == 2.0
     assert mapped.observed_at >= mapped.event_time
 
+
+
+def test_task11_coreference_is_materialized_as_a_typed_l1_edge():
+    story = ExpansionStory("task11/fit/story000001", 11, (
+        Task11MentionEvent("m1", "mary", "Mary", False, "m1", "kitchen", 1, "train#1"),
+        Task11MentionEvent("m2", "mary", "she", True, "m1", "hallway", 2, "train#2"),
+    ), ())
+    edge, = to_task_relations(story, story.events[1])
+    assert edge.relation_type.name == "corefers_to"
+    assert edge.subject.entity_id == "m2"
+    assert edge.object.entity_id == "m1"
+    assert edge.provenance == "train#2"
+
+
+def test_task14_temporal_precedence_is_materialized_with_both_witnesses():
+    story = ExpansionStory("task14/fit/story000001", 14, (
+        Task14TemporalEvent("later", "mary", "garden", "this evening", (3, 1), 1, "train#1"),
+        Task14TemporalEvent("earlier", "mary", "kitchen", "yesterday", (0, 2), 2, "train#2"),
+    ), ())
+    edge, = to_task_relations(story, story.events[1], prior_temporal_events=(story.events[0],))
+    assert edge.relation_type.name == "before"
+    assert edge.subject.entity_id == "earlier"
+    assert edge.object.entity_id == "later"
+    assert edge.provenance == "train#2|train#1"
+
+
+def test_runtime_rejects_query_forecast_issued_at_or_after_query_cutoff():
+    import pytest
+    query = ExpansionQuery("q1", 11, 5, "train#5", entity="mary")
+    forecasts = ExpansionForecasts(11)
+    with pytest.raises(ValueError, match="query target and its evidence cutoff"):
+        forecasts.issue_query_forecasts(
+            query, issued_tick=4, issued_at=5.0, evidence_cutoff=5.0,
+            l0_value="she", l1_value=("she", "mary"), l2_value="kitchen",
+            answer_value="kitchen", model_fingerprint="model-v1",
+        )
 
 def test_task19_relation_orientation_is_encoded_in_typed_edge():
     event = Task19SpatialEdge("e1", "kitchen", "hallway", "east", 1, "train#1")

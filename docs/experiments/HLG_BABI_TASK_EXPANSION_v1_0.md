@@ -120,3 +120,25 @@ The current code has:
 - a runner CLI with `choices=(3, 5)`, and a freezer whose source-member table and partition generation are limited to 3 and 5.
 
 Consequently, this branch adds only the expansion contract, machine-readable task configurations and schema acceptance tests. It does not claim a parser, task oracle, campaign runner, or experiment is implemented for the new tasks.
+
+
+## Phase C runtime and prediction-contract acceptance — PASS
+
+The Tasks 11, 14 and 19 adapters are now connected to the existing H1 runtime through `BabiExpansionRuntime`, `HierarchicalRuntimeDirector`, HLA/HLB, immutable n-ary evidence and the existing prediction journal primitives.
+
+- Runtime/prediction-contract PR #53 merged at `0e4da940644033b784fc65a4ef2b4ab64b66f7ba`.
+- CI runs `45995326040` and `45995337324` passed on Python 3.10 and 3.12.
+- Each Python matrix job passed 20 expansion adapter/runtime/protocol tests, 60 integrated HLG lifecycle tests and 40 frozen Task 3/5 regression tests (120 total).
+- Task 3/5 files and campaign protocol were not changed by the runtime integration.
+
+## First-wave learning campaign protocol — FROZEN, NOT AUTHORIZED
+
+The protocol is frozen in `HLG_BABI_EXPANSION_LEARNING_CAMPAIGN_v1_0.json` and its companion Markdown document.
+
+- Tasks 11, 14 and 19; HLA and HLB; six learning/ablation conditions; seeds 953100–953109.
+- 360 matched run units, assigned deterministically to four shards (90 units each).
+- 3.6 million fit-plus-validation query presentations.
+- Task-specific baselines, level metrics, integrity/performance thresholds, paired evaluation, artifact provenance and retry-safe sharding are specified.
+- Official test labels remain sealed. Task 3/5 remains frozen and isolated.
+
+**Important:** this freezes the protocol only. No learning run, validation campaign or confirmatory campaign is authorized or launched. Remaining launch gates are baseline implementation, nested warm-start/online partitioning, four-shard failure/retry/evidence preflight, measured resource budgets, generated-confirmatory protocol and explicit authorization.
