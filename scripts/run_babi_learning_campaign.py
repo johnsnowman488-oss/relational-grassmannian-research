@@ -23,7 +23,25 @@ def main() -> int:
         "--variants", choices=tuple(CHANNELS), nargs="+", default=list(CHANNELS),
         help="A unique subset of the six frozen learning/ablation conditions (default: all six).",
     )
+    parser.add_argument(
+        "--phase", choices=("validation", "confirmatory"), default="validation",
+        help="Run the matched validation campaign, or reconstruct one selected full-learning candidate and evaluate it once.",
+    )
+    parser.add_argument(
+        "--selection-file", type=Path, default=Path("artifacts/selected-candidates.json"),
+        help="Validation-only candidate selection artifact required for confirmatory phase.",
+    )
     args = parser.parse_args()
+
+    expected_candidate_fingerprint = None
+    if args.phase == "confirmatory":
+        if not args.selection_file.is_file():
+            raise FileNotFoundError(f"selected-candidate manifest not found: {args.selection_file}")
+        selection = json.loads(args.selection_file.read_text(encoding="utf-8"))
+        selected = selection["selected_candidates"][str(args.task_id)]
+        args.seeds = [int(selected["seed"])]
+        args.variants = ["full_learning"]
+        expected_candidate_fingerprint = selected["candidate_fingerprints"][args.architecture]
 
     native_library = gfe_ctypes.load_gfe_library()
     result = run_campaign(
@@ -31,7 +49,16 @@ def main() -> int:
         args.annotation_root, args.confirmatory_root, args.output,
         args.seeds, gfe_ctypes, native_library,
         variants=args.variants,
+        run_confirmatory=args.phase == "confirmatory",
+        selection_manifest_path=args.selection_file if args.phase == "confirmatory" else None,
     )
+    if args.phase == "confirmatory":
+        actual = result["results"][0]["candidate_fingerprint"]
+        if actual != expected_candidate_fingerprint:
+            raise RuntimeError(
+                "reconstructed candidate fingerprint differs from validation-selected candidate: "
+                f"expected {expected_candidate_fingerprint}, got {actual}"
+            )
     accepted = sum(
         row["candidate_accepted_on_validation"]
         for row in result["results"]
