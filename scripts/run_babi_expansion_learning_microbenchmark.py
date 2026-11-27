@@ -84,13 +84,18 @@ def _learner_state(adapter) -> dict:
     }
 
 
-def run(source_root: Path, output_root: Path, shard: int, python_abi_path: Path) -> dict:
+def run(source_root: Path, output_root: Path, shard: int,
+        python_abi_path: Path, plan_path: Path) -> dict:
     if shard not in range(4):
         raise ValueError("shard must be 0..3")
     sys.path.insert(0, str(python_abi_path))
     import gfe_ctypes
 
     native_library = gfe_ctypes.load_gfe_library()
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    manifest_path = plan_path.parent / plan["manifest_path"]
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest_sha = manifest["manifest_sha256"]
     output_root.mkdir(parents=True, exist_ok=True)
     tracemalloc.start()
     started = time.perf_counter()
@@ -106,6 +111,13 @@ def run(source_root: Path, output_root: Path, shard: int, python_abi_path: Path)
         if labels:
             raise AssertionError(f"Task {task_id}: evaluator labels crossed the parser boundary")
         fit, _validation = _fit_validation_split(stories, task_id)
+        manifest_task = manifest["tasks"][str(task_id)]
+        manifest_fit_ids = (
+            set(manifest_task["phases"]["warm_start"]["story_ids"])
+            | set(manifest_task["phases"]["online_adaptation"]["story_ids"])
+        )
+        if manifest_fit_ids != {story.story_id for story in fit}:
+            raise AssertionError(f"Task {task_id}: source fit partition differs from frozen manifest")
         sample = fit[shard * 8:(shard + 1) * 8]
         if len(sample) != 8:
             raise ValueError(f"Task {task_id}: insufficient fit stories for shard {shard}")
@@ -218,6 +230,7 @@ def run(source_root: Path, output_root: Path, shard: int, python_abi_path: Path)
         "status": "PASS",
         "shard": shard,
         "native_commit": os.environ.get("GFE_ABERCONICS_COMMIT", NATIVE_COMMIT),
+        "manifest_sha256": manifest_sha,
         "learning_enabled": True,
         "sample_policy": (
             "Eight deterministic whole fit stories per task per shard; HLA and HLB; "
@@ -267,8 +280,12 @@ def main() -> int:
     parser.add_argument("--output-root", type=Path, default=Path("artifacts/learning-cost-microbenchmark"))
     parser.add_argument("--shard", type=int, choices=range(4), required=True)
     parser.add_argument("--python-abi-path", type=Path, required=True)
+    parser.add_argument("--plan", type=Path, required=True)
     args = parser.parse_args()
-    result = run(args.source_root, args.output_root, args.shard, args.python_abi_path)
+    result = run(
+        args.source_root, args.output_root, args.shard,
+        args.python_abi_path, args.plan,
+    )
     print(json.dumps({
         key: value for key, value in result.items() if key != "story_runs"
     }, indent=2, sort_keys=True))
