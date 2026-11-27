@@ -20,7 +20,7 @@ def test_task11_campaign_is_exactly_120_units_and_keeps_other_tasks_locked():
     )
     assert config["scope"]["tasks14_19_locked"] is True
     assert config["scope"]["task3_task5_modified"] is False
-    assert config["native_runtime"]["top_down_gain"] == 1e-8
+    assert config["native_runtime"]["top_down_gain"] == 1.0
 
 
 def test_task11_protocol_uses_nested_whole_story_partitions_and_sealed_test():
