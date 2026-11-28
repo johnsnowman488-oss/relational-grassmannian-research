@@ -20,7 +20,6 @@ on:
       - "tests/test_babi_task11_*.py"
       - "tests/test_hlg_m4_soe_bridge.py"
       - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json"
-      - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json"
       - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.md"
       - ".github/workflows/task11-full-scale-preflight.yml"
   workflow_dispatch:
@@ -147,7 +146,7 @@ jobs:
           retention-days: 365
 
   wave1-units:
-    name: Task 11 Wave 1 \${{ matrix.architecture }} \${{ matrix.condition }} seed 953100
+    name: Task 11 Wave 1 ${{ matrix.architecture }} ${{ matrix.condition }} seed 953100
     needs: [prepare-task11, build-native]
     runs-on: ubuntu-latest
     timeout-minutes: 180
@@ -200,9 +199,9 @@ jobs:
           test "$(git -C vendor/aberconics-framework rev-parse HEAD)" = "48228f8c326c0e8546855eb898d374453d705b77"
       - name: Execute actual Wave 1 campaign unit
         env:
-          GFE_CORE_LIB: \${{ github.workspace }}/native/libgfe_core.so
+          GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
           GFE_ABERCONICS_COMMIT: 48228f8c326c0e8546855eb898d374453d705b77
-          PYTHONPATH: \${{ github.workspace }}/src:\${{ github.workspace }}/vendor/aberconics-framework/code/python
+          PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/vendor/aberconics-framework/code/python
           PYTHONUNBUFFERED: "1"
         run: |
           python scripts/run_babi_task11_campaign_unit.py \
@@ -211,17 +210,17 @@ jobs:
             --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json \
             --native-library native/libgfe_core.so \
             --python-abi-path vendor/aberconics-framework/code/python \
-            --architecture \${{ matrix.architecture }} \
-            --condition \${{ matrix.condition }} \
-            --seed \${{ matrix.seed }} \
+            --architecture ${{ matrix.architecture }} \
+            --condition ${{ matrix.condition }} \
+            --seed ${{ matrix.seed }} \
             --run-kind campaign \
-            --output artifacts/task11-campaign/\${{ matrix.architecture }}-\${{ matrix.condition }}-seed\${{ matrix.seed }}
+            --output artifacts/task11-campaign/${{ matrix.architecture }}-${{ matrix.condition }}-seed${{ matrix.seed }}
       - name: Upload immutable Wave 1 campaign evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: babi-task11-campaign-\${{ matrix.architecture }}-\${{ matrix.condition }}-seed\${{ matrix.seed }}
-          path: artifacts/task11-campaign/\${{ matrix.architecture }}-\${{ matrix.condition }}-seed\${{ matrix.seed }}/
+          name: babi-task11-campaign-${{ matrix.architecture }}-${{ matrix.condition }}-seed${{ matrix.seed }}
+          path: artifacts/task11-campaign/${{ matrix.architecture }}-${{ matrix.condition }}-seed${{ matrix.seed }}/
           if-no-files-found: warn
           retention-days: 365
 
