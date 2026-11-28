@@ -20,6 +20,19 @@ from rgm.experiments.babi_expansion_adapters import (
     _PRONOUN_GENDER,
 )
 from rgm.leptograph.m4.learning import fingerprint
+from rgm.leptograph.m4.composition import Entity
+
+
+def task11_prediction_model_fingerprint(adapter: Any) -> str:
+    """Fingerprint the frozen predictor state once per validation partition."""
+    return fingerprint({
+        "architecture": getattr(adapter, "architecture", None),
+        "context_transitions": adapter.learning.context_transitions.snapshot(),
+        "hlb_model_relations": (
+            adapter.store.snapshot()
+            if getattr(adapter, "architecture", None) == "HLB" else None
+        ),
+    })
 
 
 @dataclass(frozen=True)
@@ -30,8 +43,10 @@ class Task11AnswerDecision:
     grounding_event_ids: tuple[str, ...]
 
 
-def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
-                                      query: ExpansionQuery) -> Task11AnswerDecision:
+def predict_task11_from_learned_state(
+    adapter: Any, story: ExpansionStory, query: ExpansionQuery, *,
+    frozen_model_fingerprint: str | None = None,
+) -> Task11AnswerDecision:
     """Replay a story-local entity transition chain through the learned L2 model.
 
     Each observed mention must be predicted by the learned transition keyed by
@@ -50,12 +65,13 @@ def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
         event for event in story.events
         if isinstance(event, Task11MentionEvent) and event.observed_at < query.observed_at
     )
-    model_state = {
-        "architecture": getattr(adapter, "architecture", None),
-        "context_transitions": adapter.learning.context_transitions.snapshot(),
-        "hlb_model_relations": adapter.store.snapshot() if getattr(adapter, "architecture", None) == "HLB" else None,
-    }
-    model_fingerprint = fingerprint(model_state)
+    model_fingerprint = (
+        task11_prediction_model_fingerprint(adapter)
+        if frozen_model_fingerprint is None else frozen_model_fingerprint
+    )
+    if (not isinstance(model_fingerprint, str) or len(model_fingerprint) != 64
+            or any(char not in "0123456789abcdef" for char in model_fingerprint)):
+        raise ValueError("frozen Task 11 model fingerprint must be a lowercase SHA-256 digest")
     if not visible:
         return Task11AnswerDecision(
             Prediction(None, (), True, "no_prior_source_observations"),
@@ -114,10 +130,10 @@ def predict_task11_from_learned_state(adapter: Any, story: ExpansionStory,
             # HLB predicts through its typed, rollback-scoped model relation
             # store. These records are learned transitions, not durable source
             # evidence. The model store is fit-only during validation.
+            subject = Entity(f"{query.entity}|{previous_key}", "entity_state")
             matches = [
-                record for record in adapter.store.records(cutoff=1e300, levels=(1,))
+                record for record in adapter.store.by_subject(1, subject, cutoff=1e300)
                 if record.relation_type.name == "task11_location_transition"
-                and record.subject.entity_id == f"{query.entity}|{previous_key}"
             ]
             predicted_locations = {record.object.entity_id for record in matches}
             if len(predicted_locations) == 1:

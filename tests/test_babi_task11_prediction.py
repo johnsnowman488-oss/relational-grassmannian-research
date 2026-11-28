@@ -125,3 +125,44 @@ def test_ambiguous_later_pronoun_abstains_instead_of_returning_stale_entity_loca
     assert result.prediction.abstained is True
     assert result.prediction.answer is None
     assert result.prediction.reason == "ambiguous_entity_mention_after_last_grounded_state"
+
+
+def test_hlb_prediction_uses_subject_index_and_frozen_fingerprint():
+    from rgm.leptograph.m4.composition import Entity, RelationInstance, RelationType
+    from rgm.experiments.babi_task11_prediction import task11_prediction_model_fingerprint
+
+    class IndexedStore:
+        def __init__(self):
+            self.queries = []
+            self.records_called = False
+        def snapshot(self):
+            return {"records": ["frozen"]}
+        def by_subject(self, level, subject, *, cutoff):
+            self.queries.append((level, subject, cutoff))
+            return (RelationInstance(
+                "transition-1",
+                RelationType("task11_location_transition", "entity_state", "location"),
+                Entity("mary|__START__", "entity_state"),
+                Entity("kitchen", "location"), 1.0, 1.0,
+            ),)
+        def records(self, **kwargs):
+            self.records_called = True
+            raise AssertionError("full relation-store scan must not be used")
+
+    current = ExpansionStory("task11/validation/indexed", 11, (
+        Task11MentionEvent("m1", "Mary", False, "kitchen", 1, "validation#story=1#line=1", "female"),
+    ), ())
+    query = ExpansionQuery("q1", 11, 2, "validation#2", entity="mary")
+    store = IndexedStore()
+    adapter_value = SimpleNamespace(
+        architecture="HLB", store=store,
+        learning=SimpleNamespace(context_transitions=ContextTransitions({})),
+    )
+    frozen = task11_prediction_model_fingerprint(adapter_value)
+    result = predict_task11_from_learned_state(
+        adapter_value, current, query, frozen_model_fingerprint=frozen,
+    )
+    assert result.prediction.answer == "kitchen"
+    assert result.model_fingerprint == frozen
+    assert not store.records_called
+    assert store.queries == [(1, Entity("mary|__START__", "entity_state"), 1e300)]

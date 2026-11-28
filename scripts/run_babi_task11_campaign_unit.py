@@ -20,6 +20,7 @@ from rgm.experiments.babi_expansion_preflight import _fit_validation_split
 from rgm.experiments.babi_task11_prediction import (
     evaluate_task11_predictions,
     predict_task11_from_learned_state,
+    task11_prediction_model_fingerprint,
 )
 from rgm.experiments.babi_expansion_runtime import BabiExpansionRuntime
 from rgm.leptograph.m4.hierarchical import create_hla_adapter, create_hlb_adapter
@@ -277,10 +278,15 @@ def run_unit(source_root: Path, manifest_path: Path, protocol_path: Path,
         validation_started = time.perf_counter()
         decisions = {}
         prediction_rows = []
+        # The candidate is frozen during score-only validation. Fingerprint it once.
+        frozen_prediction_fingerprint = task11_prediction_model_fingerprint(adapter)
         for story in validation:
             runtime.ingest_story_sequence([story])
             for query in story.queries:
-                decision = predict_task11_from_learned_state(adapter, story, query)
+                decision = predict_task11_from_learned_state(
+                    adapter, story, query,
+                    frozen_model_fingerprint=frozen_prediction_fingerprint,
+                )
                 decisions[query.query_id] = decision
                 prediction_rows.append({
                     "query_id": query.query_id,

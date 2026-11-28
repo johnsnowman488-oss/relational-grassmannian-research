@@ -343,3 +343,58 @@ def test_task_channel_rejects_non_binary_outcome_targets():
 
     with pytest.raises(ValueError, match="binary-range"):
         LearningRuntime().observe_task_error("task3", 1.5)
+
+
+def test_eligibility_lazy_decay_matches_materialized_reference():
+    ledger = EligibilityLedger(decay=0.8, capacity=8, config_fingerprint="kernel-v1")
+    reference = {}
+    events = [
+        event("e1", 0, 2.0, feature="x", channel="L0"),
+        event("e2", 1, 3.0, feature="y", channel="L1"),
+        event("e3", 1, 1.5, feature="z", channel="L0"),
+    ]
+    for item in events:
+        for state in reference.values():
+            if state["last_tick"] < item.observed_tick:
+                state["value"] *= 0.8 ** (item.observed_tick - state["last_tick"])
+                state["last_tick"] = item.observed_tick
+        ledger.advance(item.observed_tick)
+        ledger.ingest(item)
+        reference[(item.event_id, item.feature_id, item.channel)] = {
+            "value": item.magnitude, "last_tick": item.observed_tick,
+        }
+    ledger.advance(5)
+    for state in reference.values():
+        if state["last_tick"] < 5:
+            state["value"] *= 0.8 ** (5 - state["last_tick"])
+            state["last_tick"] = 5
+    expected = {key: state["value"] for key, state in reference.items()}
+    assert ledger.values(prediction_cutoff_tick=5) == pytest.approx(expected)
+    assert ledger.values(prediction_cutoff_tick=5, channels={"L1"}) == {
+        key: value for key, value in expected.items() if key[2] == "L1"
+    }
+    restored = EligibilityLedger(decay=0.8, capacity=8, config_fingerprint="kernel-v1")
+    restored.restore(ledger.snapshot())
+    assert restored.snapshot() == ledger.snapshot()
+
+
+def test_eligibility_transaction_rolls_back_delta_and_clock():
+    ledger = EligibilityLedger(decay=0.5, capacity=8, config_fingerprint="kernel-v1")
+    ledger.ingest(event("trusted", 0, 2.0))
+    ledger.begin_transaction()
+    ledger.advance(3)
+    ledger.ingest(event("candidate", 3, 4.0))
+    assert ledger.values(prediction_cutoff_tick=3)[("trusted", "f0", "c0")] == pytest.approx(0.25)
+    ledger.rollback_transaction()
+    assert ledger._last_tick == -1
+    assert set(ledger._states) == {("trusted", "f0", "c0")}
+    assert ledger.values(prediction_cutoff_tick=3)[("trusted", "f0", "c0")] == pytest.approx(2.0)
+
+
+def test_eligibility_transaction_commit_keeps_new_state():
+    ledger = EligibilityLedger(decay=0.5, capacity=8, config_fingerprint="kernel-v1")
+    ledger.begin_transaction()
+    ledger.advance(2)
+    ledger.ingest(event("committed", 2, 1.0))
+    ledger.commit_transaction()
+    assert ledger.values(prediction_cutoff_tick=2)[("committed", "f0", "c0")] == 1.0
