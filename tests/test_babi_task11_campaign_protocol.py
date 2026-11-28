@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json"
 BASELINES = ROOT / "docs/experiments/HLG_BABI_TASK11_NONORACLE_BASELINE_VALIDATION_v1_0.md"
 WORKFLOW = ROOT / ".github/workflows/task11-full-scale-preflight.yml"
+PREPARE = ROOT / "scripts/prepare_babi_task11_campaign.py"
 
 
 def test_task11_campaign_is_exactly_120_units_and_keeps_other_tasks_locked():
@@ -24,6 +25,7 @@ def test_task11_campaign_is_exactly_120_units_and_keeps_other_tasks_locked():
     assert config["scope"]["task3_task5_modified"] is False
     assert config["native_runtime"]["top_down_gain"] == 1.0
     assert config["native_runtime"]["pinned_commit"] == "48228f8c326c0e8546855eb898d374453d705b77"
+    assert '"HLG-BABI-TASK11-LEARNING-CAMPAIGN-v1.1"' in PREPARE.read_text(encoding="utf-8")
 
 
 def test_task11_protocol_uses_nested_whole_story_partitions_and_sealed_test():

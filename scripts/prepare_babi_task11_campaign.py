@@ -77,7 +77,10 @@ def build_manifest(source_root: Path, protocol_path: Path, output_root: Path) ->
     if not source_path.is_file():
         raise FileNotFoundError(source_path)
     protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
-    if protocol.get("schema") != "HLG-BABI-TASK11-LEARNING-CAMPAIGN-v1.0":
+    if protocol.get("schema") not in {
+        "HLG-BABI-TASK11-LEARNING-CAMPAIGN-v1.0",
+        "HLG-BABI-TASK11-LEARNING-CAMPAIGN-v1.1",
+    }:
         raise ValueError("unsupported Task 11 campaign protocol")
     if protocol.get("scope", {}).get("tasks") != [11]:
         raise ValueError("campaign protocol must contain Task 11 only")
