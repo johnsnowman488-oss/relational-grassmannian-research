@@ -7,6 +7,7 @@ CONFIG = ROOT / "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json"
 BASELINES = ROOT / "docs/experiments/HLG_BABI_TASK11_NONORACLE_BASELINE_VALIDATION_v1_0.md"
 WORKFLOW = ROOT / ".github/workflows/task11-full-scale-preflight.yml"
 PREPARE = ROOT / "scripts/prepare_babi_task11_campaign.py"
+RUNNER = ROOT / "scripts/run_babi_task11_campaign_unit.py"
 
 
 def test_task11_campaign_is_exactly_120_units_and_keeps_other_tasks_locked():
@@ -86,3 +87,13 @@ def test_task11_baseline_record_preserves_independent_evaluation_and_claim_limit
     assert "0.704 (704/1,000)" in text
     assert "NOT INDEPENDENTLY EVALUABLE" in text
     assert "Tasks 14 and 19 remain locked" in text
+
+
+def test_task11_runner_binds_provenance_hashes_into_per_run_metrics():
+    source = RUNNER.read_text(encoding="utf-8")
+    metrics_block = source.split("        metrics = {", 1)[1].split(
+        '        _write_json(output_root / "per-run-metrics.json"', 1
+    )[0]
+    assert '"manifest_sha256": manifest["manifest_sha256"]' in metrics_block
+    assert '"protocol_sha256": manifest["protocol_sha256"]' in metrics_block
+    assert '"source_sha256": manifest["source"]["sha256"]' in metrics_block

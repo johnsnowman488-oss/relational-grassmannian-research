@@ -137,6 +137,18 @@ def accept(manifest_path: Path, protocol_path: Path, run_root: Path,
             violations.append(f"{key}: prediction journal is incomplete or duplicated")
         if set(prediction_ids) != set(evaluation_ids) or len(evaluation_ids) != 1000:
             violations.append(f"{key}: prediction and evaluator query IDs differ")
+        evaluation = metrics.get("evaluation", {})
+        if evaluation.get("witness_recovery_mismatch_count") != 0:
+            violations.append(f"{key}: witness recovery mismatch count is not zero")
+        cross_story_bindings = 0
+        for prediction in predictions:
+            story_id = prediction.get("story_id")
+            for field in ("witness_event_ids", "grounding_event_ids"):
+                for event_id in prediction.get(field, []):
+                    if not isinstance(story_id, str) or not isinstance(event_id, str) or not event_id.startswith(f"{story_id}:"):
+                        cross_story_bindings += 1
+        if cross_story_bindings:
+            violations.append(f"{key}: {cross_story_bindings} cross-story witness/grounding bindings detected")
 
         run_config = _load(root / "per-run-config.json")
         if run_config.get("run_key") != key or run_config.get("run_kind") != "campaign":
@@ -180,6 +192,8 @@ def accept(manifest_path: Path, protocol_path: Path, run_root: Path,
             "checkpoint_bytes": metrics.get("checkpoint_bytes"),
             "artifact_bytes": metrics.get("artifact_bytes"),
             "resource_gate_passed": metrics.get("resource_gate", {}).get("within_limits") is True,
+            "witness_recovery_mismatch_count": metrics.get("evaluation", {}).get("witness_recovery_mismatch_count"),
+            "cross_story_binding_count": cross_story_bindings,
         }
 
     if set(by_key) != EXPECTED:
@@ -211,6 +225,8 @@ def accept(manifest_path: Path, protocol_path: Path, run_root: Path,
         "performance_metrics_used_for_gate": False,
         "thresholds_relaxed": False,
         "remaining_campaign_units": 116,
+        "cross_story_binding_count": sum(row.get("cross_story_binding_count", 0) for row in per_unit.values()),
+        "witness_recovery_mismatch_count": sum(row.get("witness_recovery_mismatch_count", 0) or 0 for row in per_unit.values()),
         "remaining_units_authorized": not violations,
         "violations": violations,
         "decision": (

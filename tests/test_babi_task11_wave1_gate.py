@@ -74,6 +74,7 @@ def _fixture(tmp_path: Path):
             "resource_gate": {"within_limits": True},
             "evaluation": {
                 "forecast_coverage": 0.0 if is_no_learning else 1.0,
+                "witness_recovery_mismatch_count": 0,
                 "per_query": [{"query_id": q} for q in ids],
             },
         }
@@ -93,7 +94,7 @@ def _fixture(tmp_path: Path):
         })
         (root / "source-and-partition-manifest.json").write_text("{}\n", encoding="utf-8")
         (root / "prediction-journal.jsonl").write_text(
-            "".join(json.dumps({"query_id": q, "story_id": "story"}) + "\n" for q in ids),
+            "".join(json.dumps({"query_id": q, "story_id": "story", "witness_event_ids": [], "grounding_event_ids": []}) + "\n" for q in ids),
             encoding="utf-8",
         )
         (root / "witness-audit.jsonl").write_text("{}\n", encoding="utf-8")
@@ -120,4 +121,26 @@ def test_wave1_rejects_evaluator_leakage_without_relaxing_limits(tmp_path):
     _write(metrics_path, metrics)
     _hash_artifacts(metrics_path.parent)
     with pytest.raises(RuntimeError, match="acceptance failed"):
+        accept(manifest, protocol, run_root, tmp_path / "acceptance.json")
+
+
+def test_wave1_rejects_nonzero_witness_recovery_mismatches(tmp_path):
+    manifest, protocol, run_root = _fixture(tmp_path)
+    metrics_path = next(run_root.rglob("per-run-metrics.json"))
+    metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+    metrics["evaluation"]["witness_recovery_mismatch_count"] = 1
+    _write(metrics_path, metrics)
+    _hash_artifacts(metrics_path.parent)
+    with pytest.raises(RuntimeError, match="acceptance failed"):
+        accept(manifest, protocol, run_root, tmp_path / "acceptance.json")
+
+
+def test_wave1_rejects_cross_story_witness_bindings(tmp_path):
+    manifest, protocol, run_root = _fixture(tmp_path)
+    journal = next(run_root.rglob("prediction-journal.jsonl"))
+    rows = [json.loads(line) for line in journal.read_text(encoding="utf-8").splitlines()]
+    rows[0]["witness_event_ids"] = ["another-story:line000001"]
+    journal.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    _hash_artifacts(journal.parent)
+    with pytest.raises(RuntimeError, match="cross-story"):
         accept(manifest, protocol, run_root, tmp_path / "acceptance.json")
