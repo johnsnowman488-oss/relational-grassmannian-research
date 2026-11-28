@@ -430,11 +430,7 @@ class _EligibilityState:
 
 
 class EligibilityLedger:
-    """Bounded event-resolved temporal eligibility, separate from SOE χ.
-
-    Late arrivals start eligibility at observed_tick; event_time is retained
-    for analysis but never used to backfill prior credit.
-    """
+    """Bounded event-resolved eligibility with lazy decay and delta rollback."""
     def __init__(self, *, decay: float, capacity: int, config_fingerprint: str,
                  minimum_magnitude: float = 0.0):
         if not 0.0 <= decay < 1.0 or capacity < 1 or not config_fingerprint:
@@ -445,7 +441,54 @@ class EligibilityLedger:
         self.config_fingerprint = config_fingerprint
         self.minimum_magnitude = float(minimum_magnitude)
         self._states: dict[tuple[str, str, str], _EligibilityState] = {}
+        self._channel_index: dict[str, set[tuple[str, str, str]]] = {}
         self._last_tick = -1
+        self._transaction_log: dict | None = None
+        self._transaction_tick: int | None = None
+
+    def _record_before_change(self, key):
+        if self._transaction_log is not None and key not in self._transaction_log:
+            prior = self._states.get(key)
+            self._transaction_log[key] = None if prior is None else _EligibilityState(prior.event, prior.value, prior.last_tick)
+
+    def _add_state(self, key, state):
+        self._states[key] = state
+        self._channel_index.setdefault(state.event.channel, set()).add(key)
+
+    def _remove_state(self, key):
+        state = self._states.pop(key)
+        keys = self._channel_index.get(state.event.channel)
+        if keys is not None:
+            keys.discard(key)
+            if not keys:
+                self._channel_index.pop(state.event.channel, None)
+
+    def _effective_tick(self, state):
+        return max(self._last_tick, state.last_tick)
+
+    def _effective_value(self, state):
+        return state.value * (self.decay ** (self._effective_tick(state) - state.last_tick))
+
+    def begin_transaction(self):
+        if self._transaction_log is not None:
+            raise RuntimeError("eligibility transaction already active")
+        self._transaction_log, self._transaction_tick = {}, self._last_tick
+
+    def commit_transaction(self):
+        if self._transaction_log is None:
+            raise RuntimeError("eligibility has no active transaction")
+        self._transaction_log, self._transaction_tick = None, None
+
+    def rollback_transaction(self):
+        if self._transaction_log is None or self._transaction_tick is None:
+            raise RuntimeError("eligibility has no active transaction")
+        for key, prior in self._transaction_log.items():
+            if key in self._states:
+                self._remove_state(key)
+            if prior is not None:
+                self._add_state(key, prior)
+        self._last_tick = self._transaction_tick
+        self._transaction_log, self._transaction_tick = None, None
 
     def ingest(self, event: EligibilityEvent) -> None:
         if event.config_fingerprint != self.config_fingerprint:
@@ -457,38 +500,48 @@ class EligibilityLedger:
             raise ValueError("duplicate eligibility event key")
         if len(self._states) >= self.capacity:
             raise OverflowError("eligibility capacity exhausted; no silent eviction")
-        self._states[key] = _EligibilityState(event, event.magnitude, event.observed_tick)
+        self._record_before_change(key)
+        self._add_state(key, _EligibilityState(event, event.magnitude, event.observed_tick))
 
     def advance(self, tick: int) -> None:
-        if tick < self._last_tick:
+        if isinstance(tick, bool) or tick < self._last_tick:
             raise ValueError("eligibility ticks cannot move backwards")
-        if tick == self._last_tick:
-            return
-        for state in self._states.values():
-            if state.last_tick < tick:
-                state.value *= self.decay ** (tick - state.last_tick)
-                state.last_tick = tick
-        self._last_tick = tick
+        self._last_tick = int(tick)
 
     def reset(self, *, tick: int) -> None:
         """Explicitly end an episode without silently evicting its eligibility."""
         if isinstance(tick, bool) or tick < self._last_tick:
             raise ValueError("eligibility reset tick cannot move backwards")
-        self._states = {}
+        if self._transaction_log is not None:
+            for key in tuple(self._states):
+                self._record_before_change(key)
+        self._states.clear()
+        self._channel_index.clear()
         self._last_tick = int(tick)
 
-    def values(self, *, prediction_cutoff_tick: int) -> dict[tuple[str, str, str], float]:
+    def values(self, *, prediction_cutoff_tick: int,
+               channels: Iterable[str] | None = None) -> dict[tuple[str, str, str], float]:
+        if channels is None:
+            keys = self._states.keys()
+        else:
+            selected = set(str(channel) for channel in channels)
+            keys = set().union(*(self._channel_index.get(channel, set()) for channel in selected)) if selected else set()
         return {
-            key: state.value for key, state in sorted(self._states.items())
-            if state.event.observed_tick <= prediction_cutoff_tick
-            and abs(state.value) > self.minimum_magnitude
+            key: value for key in sorted(keys)
+            if (state := self._states.get(key)) is not None
+            and state.event.observed_tick <= prediction_cutoff_tick
+            and abs(value := self._effective_value(state)) > self.minimum_magnitude
         }
 
     def expire(self, *, before_tick: int) -> tuple[tuple[str, str, str], ...]:
-        removed = tuple(sorted(key for key, state in self._states.items()
-                               if state.last_tick >= before_tick and abs(state.value) <= self.minimum_magnitude))
+        removed = tuple(sorted(
+            key for key, state in self._states.items()
+            if self._effective_tick(state) >= before_tick
+            and abs(self._effective_value(state)) <= self.minimum_magnitude
+        ))
         for key in removed:
-            del self._states[key]
+            self._record_before_change(key)
+            self._remove_state(key)
         return removed
 
     def snapshot(self) -> dict:
@@ -497,33 +550,37 @@ class EligibilityLedger:
             "config_fingerprint": self.config_fingerprint,
             "minimum_magnitude": self.minimum_magnitude, "last_tick": self._last_tick,
             "states": [
-                {"event": state.event.__dict__, "value": state.value, "last_tick": state.last_tick}
+                {"event": state.event.__dict__, "value": self._effective_value(state),
+                 "last_tick": self._effective_tick(state)}
                 for _, state in sorted(self._states.items())
             ],
         }
 
     def restore(self, snapshot: Mapping) -> None:
+        if self._transaction_log is not None:
+            raise RuntimeError("cannot restore eligibility during an active transaction")
         if (snapshot.get("schema") != 1 or snapshot.get("decay") != self.decay
             or snapshot.get("capacity") != self.capacity
             or snapshot.get("config_fingerprint") != self.config_fingerprint
             or snapshot.get("minimum_magnitude") != self.minimum_magnitude):
             raise ValueError("eligibility snapshot configuration mismatch")
-        states: dict[tuple[str, str, str], _EligibilityState] = {}
+        states = {}
         for item in snapshot["states"]:
             event = EligibilityEvent(**item["event"])
             key = (event.event_id, event.feature_id, event.channel)
             if key in states or event.config_fingerprint != self.config_fingerprint:
                 raise ValueError("invalid eligibility snapshot event")
-            value = float(item["value"])
-            last_tick = int(item["last_tick"])
+            value, last_tick = float(item["value"]), int(item["last_tick"])
             if not math.isfinite(value) or last_tick < event.observed_tick:
                 raise ValueError("invalid eligibility snapshot value/tick")
             states[key] = _EligibilityState(event, value, last_tick)
         if len(states) > self.capacity:
             raise ValueError("eligibility snapshot exceeds capacity")
         self._states = states
+        self._channel_index = {}
+        for key, state in states.items():
+            self._channel_index.setdefault(state.event.channel, set()).add(key)
         self._last_tick = int(snapshot["last_tick"])
-
 
 def replay_eligibility(events: Sequence[EligibilityEvent], *, decay: float,
                        capacity: int, config_fingerprint: str,
@@ -1358,10 +1415,7 @@ class LearningRuntime:
             "eligibility_channels": None if channels is None else list(channels),
             "learn": bool(learn),
         })
-        values = self.eligibility.values(prediction_cutoff_tick=tick)
-        if channels is not None:
-            allowed = set(channels)
-            values = {key: trace for key, trace in values.items() if key[2] in allowed}
+        values = self.eligibility.values(prediction_cutoff_tick=tick, channels=channels)
         self.last_signals = LearningSignals(
             temporal=float(error), relational=self.last_signals.relational,
             abstraction=self.last_signals.abstraction, task=self.last_signals.task,
@@ -1405,9 +1459,9 @@ class LearningRuntime:
         self.context_transitions.begin_transaction()
         self.temporal_credit.begin_transaction()
         self.task_outcomes.begin_transaction()
+        self.eligibility.begin_transaction()
         return {
             "level0": self.level0.snapshot(),
-            "eligibility": self.eligibility.snapshot(),
             "journal_count": len(self._observation_journal),
             "prediction_sequence": self._prediction_sequence,
             "last_observed_at": self._last_observed_at,
@@ -1422,6 +1476,7 @@ class LearningRuntime:
         self.context_transitions.commit_transaction()
         self.temporal_credit.commit_transaction()
         self.task_outcomes.commit_transaction()
+        self.eligibility.commit_transaction()
 
     def rollback_transaction(self, state: Mapping[str, Any]) -> None:
         self.predictions.rollback_transaction()
@@ -1431,7 +1486,7 @@ class LearningRuntime:
         self.context_transitions.rollback_transaction()
         self.temporal_credit.rollback_transaction()
         self.task_outcomes.rollback_transaction()
-        self.eligibility.restore(state["eligibility"])
+        self.eligibility.rollback_transaction()
         del self._observation_journal[int(state["journal_count"]):]
         self._prediction_sequence = int(state["prediction_sequence"])
         self._last_observed_at = float(state["last_observed_at"])

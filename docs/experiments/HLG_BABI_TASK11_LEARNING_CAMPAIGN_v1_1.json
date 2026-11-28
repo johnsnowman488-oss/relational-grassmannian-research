@@ -1,0 +1,294 @@
+{
+  "schema": "HLG-BABI-TASK11-LEARNING-CAMPAIGN-v1.1",
+  "protocol_id": "HLG-BABI-TASK11-LEARNING-CAMPAIGN-v1",
+  "status": "FROZEN_STAGED_WAVE1",
+  "protocol_version": "1.1.0",
+  "scope": {
+    "tasks": [
+      11
+    ],
+    "architectures": [
+      "HLA",
+      "HLB"
+    ],
+    "conditions": [
+      "full_learning",
+      "no_temporal",
+      "no_relational",
+      "no_abstraction",
+      "no_task",
+      "no_learning"
+    ],
+    "seeds": [
+      953100,
+      953101,
+      953102,
+      953103,
+      953104,
+      953105,
+      953106,
+      953107,
+      953108,
+      953109
+    ],
+    "task3_task5_modified": false,
+    "tasks14_19_locked": true
+  },
+  "source": {
+    "dataset": "Facebook bAbI v1.2.0 English en-10k",
+    "training_member": "qa11_basic-coreference_train.txt",
+    "official_test_member": "qa11_basic-coreference_test.txt",
+    "training_member_sha256": "edfcd97fecd4a5045af25e1790cf1408856ae362c39521b1b69cd32b88ec0ced",
+    "fit_validation_seed": "HLG-BABI-EXPANSION-TRAIN-VALID-v1",
+    "fit_validation_policy": "Deterministic whole-story 90/10 split of the 2,000 training stories; official test is parsed without labels and remains sealed."
+  },
+  "partitions": {
+    "fit": {
+      "stories": 1800,
+      "queries": 9000
+    },
+    "warm_start": {
+      "stories": 1440,
+      "queries": "computed from exact whole-story assignment"
+    },
+    "online_adaptation": {
+      "stories": 360,
+      "queries": "computed from exact whole-story assignment"
+    },
+    "validation": {
+      "stories": 200,
+      "queries": 1000
+    },
+    "official_test": {
+      "stories": 200,
+      "queries": 1000,
+      "loaded": false
+    },
+    "warm_online_seed": "HLG-BABI-TASK11-WARM-ONLINE-v1:<seed>",
+    "warm_online_fraction": 0.8,
+    "unit": "whole story",
+    "ordering": "SHA-256 rank by fixed seed and story ID; retain source order within each phase; no story splitting.",
+    "warm_online_policy": "Per-seed deterministic SHA-256 whole-story assignment; HLA and HLB share the same 1,440/360 assignment for each seed. The 10 seed partitions are separately hashed in the manifest."
+  },
+  "targets": {
+    "L0": "mention-to-entity binding from source-only observations and conservative weak targets",
+    "L1": "typed corefers_with relation target; official validation edge gold unavailable",
+    "L2": "entity-conditioned location transition",
+    "answer": "separate location-answer forecast; answer and witness scoring only after prediction decisions are frozen",
+    "weak_supervision": "Pronoun target only for exactly one distinct compatible prior named entity; ambiguous/unresolved pronouns abstain; no cross-story binding.",
+    "architecture_specific_prediction": {
+      "HLA": "Answer transition is read from the learned ContextTransitionLearner conditioned on task11:entity:<entity>:from:<previous-location>.",
+      "HLB": "Answer transition is read from typed task11_location_transition records in HLBAdapter's rollback-scoped canonical model store; derived targets are inserted with observe(), never observe_source(), and never enter the immutable source evidence journal.",
+      "common": "Both architectures use the same source observations and conservative prior-only weak binding rule. Official answer/support labels remain evaluator-only."
+    }
+  },
+  "baselines": {
+    "strongest_non_oracle": "nearest-compatible-antecedent",
+    "validation_answer_exact_match": 1,
+    "validation_support_witness_recall": 1,
+    "validation_false_witness_rate": 0,
+    "secondary_control": "recency-only",
+    "secondary_control_answer_exact_match": 0.704,
+    "secondary_control_support_witness_recall": 0.3255,
+    "policy": "Compare every HLA/HLB full-learning seed on the exact same validation queries; oracle upper bounds excluded; do not relax thresholds to force candidate selection."
+  },
+  "experimental_design": {
+    "matched_unit": "task × architecture × condition × seed",
+    "run_units": 120,
+    "formula": "1 task × 2 architectures × 6 conditions × 10 seeds",
+    "run_order": "Stable lexicographic architecture, condition, seed order before deterministic sharding.",
+    "pairing": "HLA and HLB use identical source story order, seed, phase assignment, event features, query order and forecast cutoffs.",
+    "reset": "Every run unit starts from a clean adapter, native runtime and learner; no state crosses seeds, conditions or architectures.",
+    "conditions": {
+      "full_learning": "All four H1 error channels enabled.",
+      "no_temporal": "Disable temporal eligibility/credit and L0 feature-predictor updates only.",
+      "no_relational": "Disable L1 semantic relation/coreference updates only.",
+      "no_abstraction": "Disable L2 context and event-role abstraction updates only.",
+      "no_task": "Disable task-answer reliability calibration; this is a predeclared placebo/negative-control condition because Task 11 has no independent task-outcome training target under the evaluator-label firewall. Do not interpret it as a task-channel causal ablation.",
+      "no_learning": "Disable all learning updates; preserve source ingestion, inference, forecasts and scoring."
+    },
+    "candidate_selection": {
+      "partition": "validation only",
+      "scope": "independent per architecture",
+      "candidates": "full_learning only; five ablations remain comparative conditions",
+      "ranking": "Highest answer exact match, then highest support-witness recall, then lowest seed.",
+      "failure": "If no seed meets all integrity and baseline thresholds, select no candidate."
+    },
+    "answer_metric_expectations": {
+      "no_temporal": "Expected invariant to full_learning answer metrics: Task 11 answer head consumes the L2 context-transition model, not temporal eligibility/credit or the L0 feature predictor.",
+      "no_relational": "Expected invariant to full_learning answer metrics: the answer head consumes conservative source-only weak bindings and L2 transitions, not the L1 semantic relation/coreference learner.",
+      "no_task": "Expected invariant to full_learning answer metrics and retained as a placebo: no independent Task 11 task-outcome training target is available under the evaluator-label firewall.",
+      "no_abstraction": "Expected zero forecast coverage because the L2 answer-transition model is disabled.",
+      "no_learning": "Expected zero forecast coverage because all learning updates are disabled."
+    }
+  },
+  "metrics": {
+    "report_by": [
+      "architecture",
+      "condition",
+      "seed"
+    ],
+    "common": [
+      "answer_exact_match",
+      "support_witness_recall",
+      "false_witness_rate",
+      "abstention_rate",
+      "forecast_coverage",
+      "per_story_latency",
+      "peak_rss",
+      "peak_python_allocation",
+      "checkpoint_bytes",
+      "checkpoint_restore_time"
+    ],
+    "task11": [
+      "state_answer_exact_match",
+      "cross_story_binding_count",
+      "unresolved_mention_abstention_count",
+      "witness_recovery_mismatch_count"
+    ],
+    "not_independently_evaluable": [
+      "antecedent_top1_accuracy",
+      "coreference_edge_precision_recall_f1",
+      "entity_chain_exact_match"
+    ],
+    "aggregation": "Per-seed/per-condition raw counts plus story-clustered paired bootstrap (10,000 resamples, 95% intervals). No pooled cross-task metric."
+  },
+  "acceptance_thresholds": {
+    "integrity": {
+      "cross_story_binding_count": 0,
+      "witness_recovery_mismatch_count": 0,
+      "evaluator_label_leak_count": 0,
+      "partition_overlap_count": 0,
+      "source_evidence_mutation_count": 0,
+      "validation_parameter_update_count": 0
+    },
+    "performance": {
+      "minimum_forecast_coverage": 0.9,
+      "minimum_support_witness_recall": 0.95,
+      "maximum_false_witness_rate": 0,
+      "answer_exact_match": "At least 1.0 on the frozen validation split to match the strongest non-oracle baseline; if unattainable, no candidate is selected."
+    }
+  },
+  "resource_preflight": {
+    "status": "SUPERSEDED_BY_IN_CAMPAIGN_WAVE1",
+    "superseded_reserved_seed": 953099,
+    "run_units": 4,
+    "design": "The former four-unit reserved-seed full-scale preflight is retired. Resource and integrity qualification is performed by the first four actual campaign units: HLA/HLB × full_learning/no_learning at seed 953100. These four units count toward the 120-unit campaign and are never repeated as preflight.",
+    "worker_count": 4,
+    "max_parallel": 4,
+    "limits": {
+      "max_worker_rss_mb": 2048,
+      "max_python_allocation_mb": 1024,
+      "max_checkpoint_bytes": 536870912,
+      "max_unit_wall_seconds": 3600,
+      "max_unit_artifact_bytes": 268435456,
+      "hlb_model_relation_capacity": 262144,
+      "eligibility_capacity": 131072
+    },
+    "retry_policy": "No automatic retries. Preserve failed attempts and immutable successful evidence. Any rerun must be a separately identified attempt and must not overwrite or silently replace the original unit evidence.",
+    "pass_rule": "All four seed-953100 campaign units complete with exact source/partition/protocol/native identities, no evaluator leakage, zero validation updates, exact checkpoint restore, complete prediction journals, and all resource ceilings within limits. Only then may the remaining 116 campaign units start."
+  },
+  "sharding": {
+    "worker_count": 4,
+    "max_parallel": 4,
+    "units_per_shard": 30,
+    "assignment": "Stable run-unit index modulo four.",
+    "concurrency_group": "babi-task11-learning-${{ github.run_id }}",
+    "cancel_in_progress": false,
+    "retry": "Retry only failed run-unit keys; completed artifacts immutable and reused by exact key and digest.",
+    "aggregate_gate": "Exactly 120 unique keys, no duplicate/missing/mixed-manifest unit, all required metrics and hashes present."
+  },
+  "artifacts": {
+    "required": [
+      "protocol.json",
+      "source-and-partition-manifest.json",
+      "per-run-config.json",
+      "per-run-metrics.json",
+      "prediction-journal.jsonl",
+      "witness-audit.jsonl",
+      "per-run-stdout.log",
+      "per-run-stderr.log",
+      "resource-usage.json",
+      "sha256sums.txt"
+    ],
+    "retention_days": 365,
+    "provenance": "Bind every artifact to source, phase, run key, architecture, condition, seed, code commit, native commit, protocol hash and partition hash."
+  },
+  "confirmatory": {
+    "status": "FROZEN_SPEC_NOT_GENERATED",
+    "dataset_role": "Separate generated challenge; not official bAbI test and not used for fit, online adaptation, validation, threshold tuning or candidate selection.",
+    "generator_seed": 953200,
+    "stories": 384,
+    "construction": "Task 11 only; two distinct named anchors with disjoint novel names per story, explicit location changes, pronoun mentions with exactly one compatible antecedent, and a predeclared ambiguous/unresolved subset that must abstain. Keep generated input JSONL and evaluator label JSONL as separate files with independent SHA-256 hashes.",
+    "execution": "After validation candidate selection only; evaluate selected HLA and HLB candidate once each. No tuning or candidate reselection from confirmatory results.",
+    "answerable_stories": 320,
+    "ambiguous_abstention_stories": 64,
+    "generator": "generate_task11_confirmatory; inputs and evaluator labels are separate JSONL files; generated only after validation candidate selection."
+  },
+  "execution_gate": {
+    "user_requested_sequence": true,
+    "launch_allowed": true,
+    "required_before_launch": [
+      "Complete repository test suite and Task 11 prediction/evaluation contract CI green, including confirmatory generator and label-separation tests.",
+      "Task 11 non-oracle baseline validation archived and reviewed.",
+      "This Task 11-only 120-unit protocol and whole-story manifest tests pass.",
+      "All four actual Wave 1 campaign units at seed 953100 pass the resource, integrity, checkpoint, and evaluator-isolation gate.",
+      "No Task 14/19 or frozen Task 3/5 source or campaign work is included."
+    ],
+    "freeze_boundary": "The workflow runs the complete repository/Task 11 contract suite, prepares the frozen Task 11 source and manifest, and builds the pinned native runtime. It then executes four actual campaign units at seed 953100 (HLA/HLB × full_learning/no_learning). Those four units count toward the 120-unit campaign. The remaining 116 units are authorized only after the Wave 1 resource/integrity acceptance job succeeds. No reserved-seed duplicate preflight is run. The generated confirmatory challenge is produced only after validation-only candidate selection; evaluator labels are opened only after selected candidate predictions are frozen.",
+    "campaign_units_authorized": false,
+    "launch_allowed_meaning": "The gated workflow may execute contract tests, preparation/build jobs, and the first four actual campaign units. The remaining 116 campaign units remain blocked until Wave 1 acceptance succeeds. Wave 1 is part of the 120 units, not an additional preflight."
+  },
+  "native_runtime": {
+    "pinned_commit": "48228f8c326c0e8546855eb898d374453d705b77",
+    "soe_feature_dims": [
+      3,
+      3,
+      3
+    ],
+    "dt": 0.01,
+    "kernel": "Reuse the exact H0 kernel configuration from the accepted Task 11 persistent-resource qualification: gamma=reverse(SOEMemory.decay_rates), w=0.25 per channel, linear_decay=0.05 per state coordinate, forcing_bias=0.",
+    "hlb_model_relation_capacity": 262144,
+    "eligibility_capacity": 131072,
+    "top_down_gain": 1,
+    "top_down_gain_rationale": "The exact merged native integration commit 48228f8c326c0e8546855eb898d374453d705b77 contains the persistent-hierarchy ABI and bounded top-down modulation. Its source tree is identical to the CI-tested integration commit ddf424b0ab8eb23329cd51256a919beeae2ee288. It saturates mean-absolute top-down observable drive with tanh, uses stable log-sum-exp weight normalization, rejects non-finite modulation ranges, and caps gain magnitude at 50. H0 gain 1.0 is therefore restored without unbounded exponential modulation. Native C++ and Python CI passed on Linux and Windows for the tree-identical integration source; full-scale Task 11 preflight on this exact merge pin remains mandatory."
+  },
+  "staged_execution": {
+    "mode": "WAVE1_THEN_REMAINING_116",
+    "total_campaign_units": 120,
+    "wave1": {
+      "seed": 953100,
+      "run_units": 4,
+      "combinations": [
+        {
+          "architecture": "HLA",
+          "condition": "full_learning"
+        },
+        {
+          "architecture": "HLA",
+          "condition": "no_learning"
+        },
+        {
+          "architecture": "HLB",
+          "condition": "full_learning"
+        },
+        {
+          "architecture": "HLB",
+          "condition": "no_learning"
+        }
+      ],
+      "counts_toward_total": true,
+      "resource_gate": "Every Wave 1 unit must satisfy the frozen per-unit resource and integrity limits. The gate also verifies exact unit identity, complete 1,000-query prediction/evaluation correspondence, evaluator-label separation, checkpoint restore, and one common native-library hash.",
+      "performance_metrics_used_for_gate": false,
+      "max_parallel": 4
+    },
+    "after_wave1": {
+      "run_units": 116,
+      "rule": "Launch only after all four Wave 1 units pass. Exclude exactly the four Wave 1 keys from the remaining matrix; do not rerun or recount them.",
+      "per_unit_resource_gate": "Every remaining campaign unit independently enforces the same frozen resource ceilings."
+    },
+    "ci_job_timeout_minutes": 180,
+    "run_unit_wall_limit_seconds": 3600,
+    "timeout_distinction": "The 180-minute GitHub Actions job timeout is an execution/diagnostic ceiling. It does not relax the frozen 3,600-second run-unit resource limit or authorize longer scientific runs."
+  }
+}

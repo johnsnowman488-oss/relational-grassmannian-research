@@ -1,9 +1,10 @@
-name: Task 11 full-scale campaign resource preflight
+name: Task 11 staged campaign with Wave 1 resource gate
 
 on:
   push:
     branches:
       - "research/task11-campaign-execution-v1"
+      - "research/task11-wave1-protocol-v1-1"
     paths:
       - "src/rgm/experiments/babi_expansion_*.py"
       - "src/rgm/experiments/babi_task11_prediction.py"
@@ -12,12 +13,14 @@ on:
       - "scripts/prepare_babi_task11_campaign.py"
       - "scripts/run_babi_task11_campaign_unit.py"
       - "scripts/aggregate_babi_task11_preflight.py"
+      - "scripts/accept_babi_task11_wave1.py"
       - "scripts/aggregate_babi_task11_campaign.py"
       - "scripts/evaluate_babi_task11_confirmatory.py"
       - "scripts/generate_babi_task11_confirmatory.py"
       - "tests/test_babi_task11_*.py"
       - "tests/test_hlg_m4_soe_bridge.py"
-      - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json"
+      - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json"
+      - "docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.md"
       - ".github/workflows/task11-full-scale-preflight.yml"
   workflow_dispatch:
 
@@ -25,14 +28,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: task11-full-scale-preflight-${{ github.ref }}
+  group: task11-staged-campaign-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   contract-tests:
     name: Full repository and Task 11 campaign contract tests
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -50,6 +53,7 @@ jobs:
             scripts/prepare_babi_task11_campaign.py \
             scripts/run_babi_task11_campaign_unit.py \
             scripts/aggregate_babi_task11_preflight.py \
+            scripts/accept_babi_task11_wave1.py \
             scripts/aggregate_babi_task11_campaign.py \
             scripts/generate_babi_task11_confirmatory.py \
             scripts/evaluate_babi_task11_confirmatory.py
@@ -72,7 +76,7 @@ jobs:
     name: Freeze Task 11 source and seed-specific partitions
     needs: [contract-tests]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -92,7 +96,7 @@ jobs:
         run: |
           python scripts/prepare_babi_task11_campaign.py \
             --source-root data/babi-v1.2-expansion \
-            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json \
+            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json \
             --output-root artifacts/task11-campaign-plan
       - name: Upload Task 11 source and manifest (no evaluator labels)
         uses: actions/upload-artifact@v4
@@ -109,7 +113,7 @@ jobs:
     name: Build pinned Aberconics native runtime
     needs: [contract-tests]
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Checkout pinned Aberconics C++ source and Python ABI
@@ -141,17 +145,28 @@ jobs:
           if-no-files-found: error
           retention-days: 365
 
-  full-scale-preflight:
-    name: Task 11 ${{ matrix.architecture }} ${{ matrix.condition }} full-scale preflight
+  wave1-units:
+    name: Task 11 Wave 1 ${{ matrix.architecture }} ${{ matrix.condition }} seed 953100
     needs: [prepare-task11, build-native]
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       max-parallel: 4
       matrix:
-        architecture: [HLA, HLB]
-        condition: [full_learning, no_learning]
+        include:
+          - architecture: HLA
+            condition: full_learning
+            seed: 953100
+          - architecture: HLA
+            condition: no_learning
+            seed: 953100
+          - architecture: HLB
+            condition: full_learning
+            seed: 953100
+          - architecture: HLB
+            condition: no_learning
+            seed: 953100
     steps:
       - uses: actions/checkout@v4
       - name: Checkout pinned Aberconics Python ABI
@@ -182,7 +197,7 @@ jobs:
         run: |
           sha256sum -c native/libgfe_core.sha256
           test "$(git -C vendor/aberconics-framework rev-parse HEAD)" = "48228f8c326c0e8546855eb898d374453d705b77"
-      - name: Run complete 1,800-fit / 200-read-only-validation unit
+      - name: Execute actual Wave 1 campaign unit
         env:
           GFE_CORE_LIB: ${{ github.workspace }}/native/libgfe_core.so
           GFE_ABERCONICS_COMMIT: 48228f8c326c0e8546855eb898d374453d705b77
@@ -192,63 +207,66 @@ jobs:
           python scripts/run_babi_task11_campaign_unit.py \
             --source-root data/babi-v1.2-expansion \
             --manifest artifacts/task11-campaign-plan/task11-campaign-manifest.json \
-            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json \
+            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json \
             --native-library native/libgfe_core.so \
             --python-abi-path vendor/aberconics-framework/code/python \
             --architecture ${{ matrix.architecture }} \
             --condition ${{ matrix.condition }} \
-            --seed 953099 \
-            --run-kind preflight \
-            --output artifacts/task11-preflight/${{ matrix.architecture }}-${{ matrix.condition }}
-      - name: Upload immutable full-scale preflight evidence
+            --seed ${{ matrix.seed }} \
+            --run-kind campaign \
+            --output artifacts/task11-campaign/${{ matrix.architecture }}-${{ matrix.condition }}-seed${{ matrix.seed }}
+      - name: Upload immutable Wave 1 campaign evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: babi-task11-preflight-${{ matrix.architecture }}-${{ matrix.condition }}
-          path: artifacts/task11-preflight/${{ matrix.architecture }}-${{ matrix.condition }}/
+          name: babi-task11-campaign-${{ matrix.architecture }}-${{ matrix.condition }}-seed${{ matrix.seed }}
+          path: artifacts/task11-campaign/${{ matrix.architecture }}-${{ matrix.condition }}-seed${{ matrix.seed }}/
           if-no-files-found: warn
           retention-days: 365
 
-  accept-full-scale-preflight:
-    name: Accept Task 11 full-scale resource and validation preflight
-    needs: [full-scale-preflight]
-    if: always() && needs.full-scale-preflight.result == 'success'
+  accept-wave1:
+    name: Accept Task 11 Wave 1 resource and integrity gate
+    needs: [wave1-units, prepare-task11]
+    if: always() && needs.wave1-units.result == 'success' && needs.prepare-task11.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Download all four preflight reports
+      - name: Download frozen Task 11 source and manifest
         uses: actions/download-artifact@v4
         with:
-          pattern: babi-task11-preflight-*
-          path: artifacts/preflight
-      - name: Aggregate and accept full-scale Task 11 preflight
+          name: babi-task11-campaign-inputs
+          path: .
+      - name: Download all four immutable Wave 1 campaign units
+        uses: actions/download-artifact@v4
+        with:
+          pattern: babi-task11-campaign-*
+          path: artifacts/wave1
+      - name: Verify and accept Wave 1
         run: |
-          python scripts/aggregate_babi_task11_preflight.py \
-            --reports \
-              artifacts/preflight/babi-task11-preflight-HLA-full_learning/per-run-metrics.json \
-              artifacts/preflight/babi-task11-preflight-HLA-no_learning/per-run-metrics.json \
-              artifacts/preflight/babi-task11-preflight-HLB-full_learning/per-run-metrics.json \
-              artifacts/preflight/babi-task11-preflight-HLB-no_learning/per-run-metrics.json \
-            --output artifacts/task11-preflight-aggregate.json
-      - name: Upload accepted or failed preflight aggregate
+          python scripts/accept_babi_task11_wave1.py \
+            --manifest artifacts/task11-campaign-plan/task11-campaign-manifest.json \
+            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json \
+            --run-root artifacts/wave1 \
+            --output artifacts/task11-wave1-acceptance.json
+      - name: Upload Wave 1 acceptance record
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: babi-task11-full-scale-preflight-aggregate
-          path: artifacts/task11-preflight-aggregate.json
+          name: babi-task11-wave1-acceptance
+          path: artifacts/task11-wave1-acceptance.json
           if-no-files-found: warn
           retention-days: 365
 
   campaign-units:
     name: Task 11 ${{ matrix.architecture }} ${{ matrix.condition }} seed ${{ matrix.seed }}
-    needs: [prepare-task11, build-native, accept-full-scale-preflight]
-    if: needs.accept-full-scale-preflight.result == 'success'
+    needs: [prepare-task11, build-native, accept-wave1]
+    if: needs.accept-wave1.result == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 180
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -256,6 +274,19 @@ jobs:
         architecture: [HLA, HLB]
         condition: [full_learning, no_temporal, no_relational, no_abstraction, no_task, no_learning]
         seed: [953100, 953101, 953102, 953103, 953104, 953105, 953106, 953107, 953108, 953109]
+        exclude:
+          - architecture: HLA
+            condition: full_learning
+            seed: 953100
+          - architecture: HLA
+            condition: no_learning
+            seed: 953100
+          - architecture: HLB
+            condition: full_learning
+            seed: 953100
+          - architecture: HLB
+            condition: no_learning
+            seed: 953100
     steps:
       - uses: actions/checkout@v4
       - name: Checkout pinned Aberconics Python ABI
@@ -296,7 +327,7 @@ jobs:
           python scripts/run_babi_task11_campaign_unit.py \
             --source-root data/babi-v1.2-expansion \
             --manifest artifacts/task11-campaign-plan/task11-campaign-manifest.json \
-            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json \
+            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json \
             --native-library native/libgfe_core.so \
             --python-abi-path vendor/aberconics-framework/code/python \
             --architecture ${{ matrix.architecture }} \
@@ -315,8 +346,8 @@ jobs:
 
   aggregate-campaign:
     name: Aggregate and select Task 11 validation candidates
-    needs: [campaign-units, prepare-task11]
-    if: always() && needs.campaign-units.result == 'success' && needs.prepare-task11.result == 'success'
+    needs: [wave1-units, accept-wave1, campaign-units, prepare-task11]
+    if: always() && needs.wave1-units.result == 'success' && needs.accept-wave1.result == 'success' && needs.campaign-units.result == 'success' && needs.prepare-task11.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -329,7 +360,7 @@ jobs:
         with:
           name: babi-task11-campaign-inputs
           path: .
-      - name: Download all 120 campaign unit artifacts
+      - name: Download all 120 campaign unit artifacts (Wave 1 plus remaining 116)
         uses: actions/download-artifact@v4
         with:
           pattern: babi-task11-campaign-*
@@ -338,7 +369,7 @@ jobs:
         run: |
           python scripts/aggregate_babi_task11_campaign.py \
             --manifest artifacts/task11-campaign-plan/task11-campaign-manifest.json \
-            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json \
+            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json \
             --run-root artifacts/campaign-runs \
             --output-root artifacts/task11-campaign-aggregate
       - name: Upload campaign aggregate and validation-only candidate selection
