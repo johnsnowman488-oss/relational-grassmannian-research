@@ -76,7 +76,7 @@ jobs:
     name: Freeze Task 11 source and seed-specific partitions
     needs: [contract-tests]
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -96,7 +96,7 @@ jobs:
         run: |
           python scripts/prepare_babi_task11_campaign.py \
             --source-root data/babi-v1.2-expansion \
-            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json \
+            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json \
             --output-root artifacts/task11-campaign-plan
       - name: Upload Task 11 source and manifest (no evaluator labels)
         uses: actions/upload-artifact@v4
@@ -327,7 +327,7 @@ jobs:
           python scripts/run_babi_task11_campaign_unit.py \
             --source-root data/babi-v1.2-expansion \
             --manifest artifacts/task11-campaign-plan/task11-campaign-manifest.json \
-            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json \
+            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json \
             --native-library native/libgfe_core.so \
             --python-abi-path vendor/aberconics-framework/code/python \
             --architecture ${{ matrix.architecture }} \
@@ -369,7 +369,7 @@ jobs:
         run: |
           python scripts/aggregate_babi_task11_campaign.py \
             --manifest artifacts/task11-campaign-plan/task11-campaign-manifest.json \
-            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_0.json \
+            --protocol docs/experiments/HLG_BABI_TASK11_LEARNING_CAMPAIGN_v1_1.json \
             --run-root artifacts/campaign-runs \
             --output-root artifacts/task11-campaign-aggregate
       - name: Upload campaign aggregate and validation-only candidate selection
